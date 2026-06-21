@@ -1,0 +1,302 @@
+"""Examination Service: exams, papers, marks entry, result computation."""
+import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.constants import grade_for
+from app.core.enums import EnrollmentStatus, ExamStatus, ResultStatus
+from app.core.exceptions import bad_request, not_found
+from app.models.academic import Section, SchoolClass, StudentEnrollment, Subject
+from app.models.examination import Exam, ExamResult, ExamSubject, Mark
+from app.modules.examination import schemas
+
+
+class ExaminationService:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    # ------------------------------ helpers ------------------------------ #
+
+    async def _get_scoped(self, model, school_id: uuid.UUID, obj_id: uuid.UUID, label: str):
+        obj = await self.db.get(model, obj_id)
+        if obj is None or obj.school_id != school_id:
+            raise not_found(f"{label} not found in this school")
+        return obj
+
+    async def _class_student_ids(self, class_id: uuid.UUID) -> set[uuid.UUID]:
+        result = await self.db.execute(
+            select(StudentEnrollment.student_id)
+            .join(Section, Section.id == StudentEnrollment.section_id)
+            .where(
+                Section.class_id == class_id,
+                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+            )
+        )
+        return set(result.scalars().all())
+
+    # ------------------------------- exams ------------------------------- #
+
+    async def create_exam(self, school_id: uuid.UUID, data: schemas.ExamCreate) -> Exam:
+        await self._get_scoped(SchoolClass, school_id, data.class_id, "Class")
+        exam = Exam(
+            school_id=school_id,
+            class_id=data.class_id,
+            session_id=data.session_id,
+            name=data.name,
+            status=ExamStatus.DRAFT.value,
+            start_date=data.start_date,
+            end_date=data.end_date,
+        )
+        self.db.add(exam)
+        await self.db.flush()
+        return exam
+
+    async def list_exams(self, school_id: uuid.UUID, class_id: uuid.UUID | None = None) -> list[Exam]:
+        stmt = select(Exam).where(Exam.school_id == school_id)
+        if class_id is not None:
+            stmt = stmt.where(Exam.class_id == class_id)
+        stmt = stmt.order_by(Exam.created_at.desc())
+        return list((await self.db.execute(stmt)).scalars().all())
+
+    async def update_exam(
+        self, school_id: uuid.UUID, exam_id: uuid.UUID, data: schemas.ExamUpdate
+    ) -> Exam:
+        exam = await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        payload = data.model_dump(exclude_unset=True)
+        if "status" in payload and payload["status"] is not None:
+            payload["status"] = payload["status"].value
+        for field, value in payload.items():
+            setattr(exam, field, value)
+        await self.db.flush()
+        return exam
+
+    async def delete_exam(self, school_id: uuid.UUID, exam_id: uuid.UUID) -> None:
+        exam = await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        await self.db.delete(exam)
+        await self.db.flush()
+
+    # ------------------------------ papers ------------------------------- #
+
+    async def add_paper(
+        self, school_id: uuid.UUID, exam_id: uuid.UUID, data: schemas.ExamSubjectCreate
+    ) -> ExamSubject:
+        await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        await self._get_scoped(Subject, school_id, data.subject_id, "Subject")
+        dupe = await self.db.scalar(
+            select(ExamSubject).where(
+                ExamSubject.exam_id == exam_id, ExamSubject.subject_id == data.subject_id
+            )
+        )
+        if dupe is not None:
+            raise bad_request("This subject is already a paper in the exam")
+        paper = ExamSubject(
+            school_id=school_id,
+            exam_id=exam_id,
+            subject_id=data.subject_id,
+            max_marks=data.max_marks,
+            pass_marks=data.pass_marks,
+            exam_date=data.exam_date,
+        )
+        self.db.add(paper)
+        await self.db.flush()
+        return paper
+
+    async def list_papers(self, school_id: uuid.UUID, exam_id: uuid.UUID) -> list[ExamSubject]:
+        await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        result = await self.db.execute(
+            select(ExamSubject).where(ExamSubject.exam_id == exam_id)
+        )
+        return list(result.scalars().all())
+
+    async def delete_paper(self, school_id: uuid.UUID, paper_id: uuid.UUID) -> None:
+        paper = await self._get_scoped(ExamSubject, school_id, paper_id, "Exam paper")
+        await self.db.delete(paper)
+        await self.db.flush()
+
+    # ------------------------------- marks ------------------------------- #
+
+    async def enter_marks(
+        self,
+        school_id: uuid.UUID,
+        paper_id: uuid.UUID,
+        data: schemas.MarksEntryRequest,
+        marked_by: uuid.UUID,
+    ) -> list[Mark]:
+        paper = await self._get_scoped(ExamSubject, school_id, paper_id, "Exam paper")
+        exam = await self.db.get(Exam, paper.exam_id)
+        valid_students = await self._class_student_ids(exam.class_id)
+
+        ids = [e.student_id for e in data.entries]
+        if len(set(ids)) != len(ids):
+            raise bad_request("Duplicate students in the same request")
+        not_enrolled = [str(i) for i in ids if i not in valid_students]
+        if not_enrolled:
+            raise bad_request(
+                f"These students are not enrolled in the exam's class: {', '.join(not_enrolled)}"
+            )
+        for entry in data.entries:
+            if entry.marks_obtained is not None and entry.marks_obtained > paper.max_marks:
+                raise bad_request(
+                    f"marks_obtained ({entry.marks_obtained}) exceeds max_marks ({paper.max_marks})"
+                )
+
+        existing_rows = await self.db.execute(
+            select(Mark).where(
+                Mark.exam_subject_id == paper_id, Mark.student_id.in_(ids)
+            )
+        )
+        existing = {m.student_id: m for m in existing_rows.scalars().all()}
+
+        marks: list[Mark] = []
+        for entry in data.entries:
+            row = existing.get(entry.student_id)
+            if row is None:
+                row = Mark(
+                    school_id=school_id,
+                    exam_subject_id=paper_id,
+                    student_id=entry.student_id,
+                )
+                self.db.add(row)
+            row.marks_obtained = None if entry.is_absent else entry.marks_obtained
+            row.is_absent = entry.is_absent
+            row.remarks = entry.remarks
+            row.marked_by = marked_by
+            marks.append(row)
+
+        await self.db.flush()
+        return marks
+
+    async def list_marks(self, school_id: uuid.UUID, paper_id: uuid.UUID) -> list[Mark]:
+        await self._get_scoped(ExamSubject, school_id, paper_id, "Exam paper")
+        result = await self.db.execute(select(Mark).where(Mark.exam_subject_id == paper_id))
+        return list(result.scalars().all())
+
+    # ------------------------------ results ------------------------------ #
+
+    async def _compute_student_result(
+        self, exam_id: uuid.UUID, student_id: uuid.UUID, papers: list[ExamSubject],
+        marks_by_paper: dict[uuid.UUID, dict[uuid.UUID, Mark]],
+    ) -> dict:
+        total = 0.0
+        max_total = 0.0
+        failed = False
+        lines = []
+        for paper in papers:
+            max_total += paper.max_marks
+            mark = marks_by_paper.get(paper.id, {}).get(student_id)
+            obtained = None
+            absent = True
+            if mark is not None:
+                obtained = mark.marks_obtained
+                absent = mark.is_absent
+            score = 0.0 if (absent or obtained is None) else obtained
+            total += score
+            passed = (not absent) and obtained is not None and obtained >= paper.pass_marks
+            if not passed:
+                failed = True
+            lines.append(
+                {
+                    "subject_id": paper.subject_id,
+                    "max_marks": paper.max_marks,
+                    "pass_marks": paper.pass_marks,
+                    "marks_obtained": obtained,
+                    "is_absent": absent,
+                    "passed": passed,
+                }
+            )
+        percentage = round((total / max_total) * 100, 2) if max_total > 0 else 0.0
+        status = ResultStatus.FAIL.value if failed else ResultStatus.PASS.value
+        return {
+            "total": total,
+            "max_total": max_total,
+            "percentage": percentage,
+            "grade": grade_for(percentage),
+            "status": status,
+            "lines": lines,
+        }
+
+    async def _papers_and_marks(self, exam_id: uuid.UUID):
+        papers = list(
+            (await self.db.execute(select(ExamSubject).where(ExamSubject.exam_id == exam_id)))
+            .scalars()
+            .all()
+        )
+        marks_by_paper: dict[uuid.UUID, dict[uuid.UUID, Mark]] = {}
+        if papers:
+            rows = await self.db.execute(
+                select(Mark).where(Mark.exam_subject_id.in_([p.id for p in papers]))
+            )
+            for m in rows.scalars().all():
+                marks_by_paper.setdefault(m.exam_subject_id, {})[m.student_id] = m
+        return papers, marks_by_paper
+
+    async def publish_results(self, school_id: uuid.UUID, exam_id: uuid.UUID) -> list[ExamResult]:
+        exam = await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        papers, marks_by_paper = await self._papers_and_marks(exam_id)
+        if not papers:
+            raise bad_request("Cannot publish results: the exam has no papers")
+        students = await self._class_student_ids(exam.class_id)
+        if not students:
+            raise bad_request("Cannot publish results: no students enrolled in the class")
+
+        existing_rows = await self.db.execute(
+            select(ExamResult).where(ExamResult.exam_id == exam_id)
+        )
+        existing = {r.student_id: r for r in existing_rows.scalars().all()}
+
+        now = datetime.now(timezone.utc)
+        results: list[ExamResult] = []
+        for student_id in students:
+            computed = await self._compute_student_result(
+                exam_id, student_id, papers, marks_by_paper
+            )
+            row = existing.get(student_id)
+            if row is None:
+                row = ExamResult(school_id=school_id, exam_id=exam_id, student_id=student_id)
+                self.db.add(row)
+            row.total_marks = computed["total"]
+            row.max_total = computed["max_total"]
+            row.percentage = computed["percentage"]
+            row.grade = computed["grade"]
+            row.status = computed["status"]
+            row.published = True
+            row.published_at = now
+            results.append(row)
+
+        exam.status = ExamStatus.COMPLETED.value
+        await self.db.flush()
+        return results
+
+    async def list_results(self, school_id: uuid.UUID, exam_id: uuid.UUID) -> list[ExamResult]:
+        await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        result = await self.db.execute(
+            select(ExamResult).where(
+                ExamResult.exam_id == exam_id, ExamResult.published.is_(True)
+            )
+        )
+        return list(result.scalars().all())
+
+    async def report_card(
+        self, school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID
+    ) -> schemas.ReportCard:
+        exam = await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        papers, marks_by_paper = await self._papers_and_marks(exam_id)
+        computed = await self._compute_student_result(exam_id, student_id, papers, marks_by_paper)
+        published = await self.db.scalar(
+            select(ExamResult.published).where(
+                ExamResult.exam_id == exam_id, ExamResult.student_id == student_id
+            )
+        )
+        return schemas.ReportCard(
+            exam_id=exam_id,
+            student_id=student_id,
+            lines=[schemas.ReportCardLine(**line) for line in computed["lines"]],
+            total_marks=computed["total"],
+            max_total=computed["max_total"],
+            percentage=computed["percentage"],
+            grade=computed["grade"],
+            status=computed["status"],
+            published=bool(published),
+        )

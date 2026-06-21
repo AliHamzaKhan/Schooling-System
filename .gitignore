@@ -1,0 +1,30 @@
+# ── Python (backend) ─────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+*.log
+
+# ── Environment / secrets ────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Flutter / Dart (frontend) ────────────────────
+# (each app also has its own .gitignore; these are belt-and-suspenders)
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+.packages
+**/*.iml
+
+# ── IDE / OS ─────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store

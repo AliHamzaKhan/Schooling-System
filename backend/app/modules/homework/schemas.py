@@ -1,0 +1,64 @@
+"""Homework & Assignment schemas."""
+import uuid
+from datetime import date
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class AssignmentCreate(BaseModel):
+    section_id: uuid.UUID
+    subject_id: uuid.UUID
+    title: str = Field(min_length=2, max_length=200)
+    description: str | None = None
+    due_date: date
+    assigned_on: date | None = None
+    max_marks: float | None = Field(default=None, gt=0)
+
+
+class AssignmentUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=2, max_length=200)
+    description: str | None = None
+    due_date: date | None = None
+    max_marks: float | None = Field(default=None, gt=0)
+
+
+class AssignmentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    school_id: uuid.UUID
+    section_id: uuid.UUID
+    subject_id: uuid.UUID
+    title: str
+    description: str | None = None
+    assigned_on: date
+    due_date: date
+    max_marks: float | None = None
+    assigned_by: uuid.UUID | None = None
+
+
+class SubmissionCreate(BaseModel):
+    content: str | None = None
+    attachment_url: str | None = Field(default=None, max_length=500)
+    submitted_on: date | None = None
+
+
+class GradeSubmission(BaseModel):
+    marks_obtained: float = Field(ge=0)
+    feedback: str | None = None
+
+
+class SubmissionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    school_id: uuid.UUID
+    assignment_id: uuid.UUID
+    student_id: uuid.UUID
+    submitted_on: date
+    content: str | None = None
+    attachment_url: str | None = None
+    status: str
+    marks_obtained: float | None = None
+    feedback: str | None = None
+    graded_by: uuid.UUID | None = None
