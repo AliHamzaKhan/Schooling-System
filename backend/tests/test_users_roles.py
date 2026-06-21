@@ -64,3 +64,22 @@ async def test_cross_school_user_access_denied(client, school, sa_headers):
     # Headmaster of `school` cannot list users of another school.
     r = await client.get(f"{API}/schools/{other}/users", headers=school["hm"])
     assert r.status_code == 403
+
+
+async def test_cannot_assign_headmaster_via_users_endpoint(client, school):
+    """The Headmaster role must be assigned via /headmaster, not /users."""
+    sid, hm = school["id"], school["hm"]
+    r = await client.post(
+        f"{API}/schools/{sid}/users", headers=hm,
+        json={"email": "h2@test.edu", "password": "Passw0rd1", "full_name": "H Two", "role_codes": ["headmaster"]},
+    )
+    assert r.status_code == 400
+
+
+async def test_cannot_assign_super_admin_via_users_endpoint(client, school):
+    sid, hm = school["id"], school["hm"]
+    r = await client.post(
+        f"{API}/schools/{sid}/users", headers=hm,
+        json={"email": "sa2@test.edu", "password": "Passw0rd1", "full_name": "SA Two", "role_codes": ["super_admin"]},
+    )
+    assert r.status_code == 400
