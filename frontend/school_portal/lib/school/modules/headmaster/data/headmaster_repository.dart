@@ -51,7 +51,16 @@ class HeadmasterRepository {
   HeadmasterRepository({HeadmasterApiService? api})
       : _api = api ?? HeadmasterApiService();
 
+  // Aggregate screens (dashboard/overview/attendance/fees/timetable/reports/
+  // announcements) have no matching backend yet → stay on mock.
   static const bool _useMock = true;
+
+  // Per-feature live flags: these map to real `/schools/{id}/...` endpoints.
+  // People directories and classes/exams are wired live (with documented field
+  // losses — see HeadmasterApiService). Flip back to false to revert to mock.
+  static const bool _liveDirectory = true; // teachers / students / guardians
+  static const bool _liveClasses = true;
+  static const bool _liveExams = true;
 
   Future<ApiResponse<DashboardData>> loadDashboard() =>
       _useMock ? _dashboardMock.load() : _api.fetchDashboard();
@@ -63,13 +72,13 @@ class HeadmasterRepository {
       _useMock ? _attendanceMock.load(range) : _api.fetchAttendance(range);
 
   Future<ApiResponse<ExamsData>> loadExams() =>
-      _useMock ? _examsMock.load() : _api.fetchExams();
+      _liveExams ? _api.fetchExams() : _examsMock.load();
 
   Future<ApiResponse<FeesData>> loadFees() =>
       _useMock ? _feesMock.load() : _api.fetchFees();
 
   Future<ApiResponse<ClassDirectoryData>> loadClasses() =>
-      _useMock ? _classesMock.load() : _api.fetchClasses();
+      _liveClasses ? _api.fetchClasses() : _classesMock.load();
 
   Future<ApiResponse<TimetableData>> loadTimetable() =>
       _useMock ? _timetableMock.load() : _api.fetchTimetable();
@@ -85,21 +94,21 @@ class HeadmasterRepository {
           : _api.fetchAnnouncements(filter: filter);
 
   Future<ApiResponse<List<Teacher>>> loadTeachers({String query = ''}) =>
-      _useMock
-          ? _teachersMock.fetch(query: query)
-          : _api.fetchTeachers(query: query);
+      _liveDirectory
+          ? _api.fetchTeachers(query: query)
+          : _teachersMock.fetch(query: query);
 
   Future<ApiResponse<List<Student>>> loadStudents({
     String query = '',
     String? grade,
     String? section,
   }) =>
-      _useMock
-          ? _studentsMock.fetch(query: query, grade: grade, section: section)
-          : _api.fetchStudents(query: query, grade: grade, section: section);
+      _liveDirectory
+          ? _api.fetchStudents(query: query, grade: grade, section: section)
+          : _studentsMock.fetch(query: query, grade: grade, section: section);
 
   Future<ApiResponse<List<Guardian>>> loadGuardians({String query = ''}) =>
-      _useMock
-          ? _guardiansMock.fetch(query: query)
-          : _api.fetchGuardians(query: query);
+      _liveDirectory
+          ? _api.fetchGuardians(query: query)
+          : _guardiansMock.fetch(query: query);
 }

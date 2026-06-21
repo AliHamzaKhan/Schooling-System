@@ -50,8 +50,13 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env            # point DATABASE_URL at your Postgres
 python -m app.seed              # creates tables + seeds plans/roles/admin
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8003   # the Flutter apps default to :8003
 ```
+
+> **Port note:** the Flutter apps (`frontend/`) default to API host `localhost:8003`
+> (see `shared/lib/src/env/env_config.dart`). Run the backend on **8003** for local
+> development, or override the app host with
+> `flutter run --dart-define=API_HOST=localhost:8000`.
 
 ## Tests
 

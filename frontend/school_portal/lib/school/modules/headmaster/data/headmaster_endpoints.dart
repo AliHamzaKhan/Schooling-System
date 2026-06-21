@@ -17,4 +17,12 @@ class HeadmasterEndpoints {
   static const teachers = '$_base/teachers';
   static const students = '$_base/students';
   static const guardians = '$_base/guardians';
+
+  // ── Live, school-scoped backend paths (`/schools/{school_id}/...`) ──
+  // Used by the wired features (people directories, classes, exams). The
+  // aggregate paths above remain for the still-mock dashboard/overview/etc.
+  static String users(String schoolId) => '/schools/$schoolId/users';
+  static String academicClasses(String schoolId) =>
+      '/schools/$schoolId/academic/classes';
+  static String examsList(String schoolId) => '/schools/$schoolId/exams';
 }

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../models/school.dart';
+import '../../models/schools_repository.dart';
 
 /// Drives the Edit School Profile screen: two tabs (General / Subscription),
 /// prefilled form fields, institution-type selection, and suspend toggle.
 class EditSchoolController extends GetxController {
+  final SchoolsRepository _repo = SchoolsRepository();
+
   static const institutionTypes = ['Public', 'Private', 'Charter', 'Other'];
 
   /// School being edited; passed via `Get.arguments` from the list, with a
@@ -54,14 +57,15 @@ class EditSchoolController extends GetxController {
 
   void _prefill() {
     nameCtrl.text = school.name;
-    registrationCtrl.text = 'REG-992-BCA';
-    establishedCtrl.text = '1998';
-    phoneCtrl.text = '+1 (555) 123-4567';
-    emailCtrl.text = 'admin@oakridge.edu';
-    addressCtrl.text = '1245 Education Way, Suite 400';
-    cityCtrl.text = school.location.split(',').first;
-    stateCtrl.text = 'CA';
-    postalCtrl.text = '94103';
+    registrationCtrl.text = school.code;
+    establishedCtrl.text = '';
+    phoneCtrl.text = school.contactPhone ?? '';
+    emailCtrl.text = school.contactEmail ?? '';
+    addressCtrl.text = school.address ?? '';
+    cityCtrl.text = '';
+    stateCtrl.text = '';
+    postalCtrl.text = '';
+    suspended.value = school.status == SchoolStatus.expired;
   }
 
   void _markDirty() {
@@ -86,12 +90,47 @@ class EditSchoolController extends GetxController {
     dirty.value = false;
   }
 
+  final error = RxnString();
+
   Future<void> save() async {
     saving.value = true;
-    // TODO: PUT updated school to the API.
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+    error.value = null;
+    final addr = [
+      addressCtrl.text.trim(),
+      cityCtrl.text.trim(),
+      stateCtrl.text.trim(),
+      postalCtrl.text.trim(),
+    ].where((p) => p.isNotEmpty).join(', ');
+    final payload = <String, dynamic>{
+      'name': nameCtrl.text.trim(),
+      'contact_email': emailCtrl.text.trim().isEmpty ? null : emailCtrl.text.trim(),
+      'contact_phone': phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
+      if (addr.isNotEmpty) 'address': addr,
+    };
+
+    final res = await _repo.update(school.id, payload);
+    if (!res.success) {
+      saving.value = false;
+      error.value = res.error ?? 'Could not save changes. Try again.';
+      return;
+    }
+
+    // Reflect the suspend toggle if it changed the school's status.
+    final wantSuspended = suspended.value;
+    final isSuspended = school.status == SchoolStatus.expired;
+    if (wantSuspended != isSuspended) {
+      final statusRes =
+          await _repo.setStatus(school.id, wantSuspended ? 'suspended' : 'active');
+      if (!statusRes.success) {
+        saving.value = false;
+        error.value = statusRes.error ?? 'Saved details, but status update failed.';
+        return;
+      }
+    }
+
     saving.value = false;
     dirty.value = false;
+    Get.back<bool>(result: true);
     Get.snackbar('Saved', 'School profile updated.',
         snackPosition: SnackPosition.BOTTOM);
   }

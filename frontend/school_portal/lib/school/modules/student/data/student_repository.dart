@@ -26,26 +26,35 @@ class StudentRepository {
   StudentRepository({StudentApiService? api})
       : _api = api ?? StudentApiService();
 
+  // Attendance, notifications, and single-assignment detail have no usable
+  // backend mapping (attendance needs an academic student-record id with no
+  // user link; there's no GET /assignments/{id}) → stay on mock.
   static const bool _useMock = true;
+
+  // Per-feature live flags: real `/schools/{id}/...` calls (with documented
+  // field losses — see StudentApiService). Flip to false to revert to mock.
+  static const bool _liveAssignments = true;
+  static const bool _liveExams = true;
+  static const bool _liveSubmit = true;
 
   Future<ApiResponse<AttendanceData>> loadAttendance() =>
       _useMock ? _attendanceMock.load() : _api.fetchAttendance();
 
   Future<ApiResponse<AssignmentsData>> loadAssignments() =>
-      _useMock ? _assignmentsMock.load() : _api.fetchAssignments();
+      _liveAssignments ? _api.fetchAssignments() : _assignmentsMock.load();
 
   Future<ApiResponse<StudentAssignment>> loadAssignment(String id) =>
       _useMock ? _assignmentsMock.fetchOne(id) : _api.fetchAssignment(id);
 
   Future<ApiResponse<ExamsData>> loadExams() =>
-      _useMock ? _examsMock.load() : _api.fetchExams();
+      _liveExams ? _api.fetchExams() : _examsMock.load();
 
   Future<ApiResponse<List<NotificationItem>>> loadNotifications() =>
       _useMock ? _notificationsMock.load() : _api.fetchNotifications();
 
   Future<ApiResponse<void>> submitAssignment(String id,
       {String? notes, String? filename}) async {
-    if (!_useMock) {
+    if (_liveSubmit) {
       return _api.submitAssignment(id, notes: notes, filename: filename);
     }
     await Future<void>.delayed(const Duration(milliseconds: 450));

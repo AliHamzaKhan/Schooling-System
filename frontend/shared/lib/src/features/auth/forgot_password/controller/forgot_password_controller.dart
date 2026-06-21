@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../services/auth_service.dart';
+import '../../auth_config.dart';
 import '../../auth_routes.dart';
 
 /// Requests a verification code for the entered email/phone, then routes to the
@@ -15,6 +16,11 @@ class ForgotPasswordController extends GetxController {
 
   Future<void> sendCode() async {
     error.value = null;
+    if (!AuthConfig.passwordResetEnabled) {
+      error.value =
+          'Password reset isn\'t available yet. Please contact your administrator.';
+      return;
+    }
     final identifier = identifierCtrl.text.trim();
     if (identifier.isEmpty) {
       error.value = 'Enter your email or phone number.';

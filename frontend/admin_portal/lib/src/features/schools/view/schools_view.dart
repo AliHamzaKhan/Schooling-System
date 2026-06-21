@@ -95,7 +95,11 @@ class SchoolsView extends GetView<SchoolsController> {
           for (final s in controller.schools) ...[
             SchoolCard(
               school: s,
-              onTap: () => Get.toNamed(AdminRoutes.editSchool, arguments: s),
+              onTap: () async {
+                final saved =
+                    await Get.toNamed(AdminRoutes.editSchool, arguments: s);
+                if (saved == true) controller.fetch();
+              },
               onMenu: () {},
             ),
             const SizedBox(height: AppSpacing.stackMd),

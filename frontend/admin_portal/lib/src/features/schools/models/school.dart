@@ -36,6 +36,20 @@ class School {
   /// Optional logo URL; when null the card shows a lettered placeholder.
   final String? logoUrl;
 
+  // ── Backend fields (SchoolOut) ──────────────────────────────
+  /// Unique school code (backend `code`); empty for mock rows.
+  final String code;
+  final String? contactEmail;
+  final String? contactPhone;
+
+  /// Full street address from the backend (`address`); the UI's [location] is
+  /// derived from this when present.
+  final String? address;
+
+  /// Active subscription plan code/name from `subscription_plan`, if any.
+  final String? planCode;
+  final String? planName;
+
   const School({
     required this.id,
     required this.name,
@@ -44,17 +58,47 @@ class School {
     required this.status,
     required this.tenureLabel,
     this.logoUrl,
+    this.code = '',
+    this.contactEmail,
+    this.contactPhone,
+    this.address,
+    this.planCode,
+    this.planName,
   });
 
   String get initial => name.isEmpty ? '?' : name.characters.first.toUpperCase();
 
-  factory School.fromJson(Map<String, dynamic> j) => School(
-        id: j['id'] as String,
-        name: j['name'] as String,
-        location: j['location'] as String,
-        students: (j['students'] as num).toInt(),
-        status: SchoolStatus.values.byName(j['status'] as String? ?? 'active'),
-        tenureLabel: j['tenureLabel'] as String? ?? '',
-        logoUrl: j['logoUrl'] as String?,
-      );
+  /// Maps the backend `SchoolStatus` (pending/active/suspended) onto the UI
+  /// enum. The backend has no trial/expired states; `suspended` is surfaced as
+  /// [SchoolStatus.expired] (closest existing visual treatment).
+  static SchoolStatus _statusFromApi(String? s) => switch (s) {
+        'active' => SchoolStatus.active,
+        'pending' => SchoolStatus.pending,
+        'suspended' => SchoolStatus.expired,
+        _ => SchoolStatus.pending,
+      };
+
+  /// Parses the backend `SchoolOut` payload. The backend does not expose a
+  /// student count or tenure, so [students] defaults to 0 and [tenureLabel] is
+  /// derived from status until those fields exist.
+  factory School.fromJson(Map<String, dynamic> j) {
+    final status = _statusFromApi(j['status'] as String?);
+    final plan = j['subscription_plan'];
+    final address = j['address'] as String?;
+    return School(
+      id: j['id']?.toString() ?? '',
+      name: j['name'] as String? ?? '',
+      location: (address == null || address.isEmpty) ? '—' : address,
+      students: (j['students'] as num?)?.toInt() ?? 0,
+      status: status,
+      tenureLabel: status.label,
+      logoUrl: j['logoUrl'] as String?,
+      code: j['code'] as String? ?? '',
+      contactEmail: j['contact_email'] as String?,
+      contactPhone: j['contact_phone'] as String?,
+      address: address,
+      planCode: plan is Map ? plan['code'] as String? : null,
+      planName: plan is Map ? plan['name'] as String? : null,
+    );
+  }
 }

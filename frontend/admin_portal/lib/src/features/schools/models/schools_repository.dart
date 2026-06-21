@@ -1,26 +1,50 @@
 import 'package:shared/shared.dart';
 
+import '../../../data/admin_api_service.dart';
 import 'school.dart';
 import 'school_page.dart';
 
-/// Loads paginated, filterable, searchable schools.
+/// Loads paginated, filterable, searchable schools and performs school writes.
 ///
-/// Mock-backed for now; the [ApiResponse] envelope matches the real API so the
-/// body becomes a single `ApiService.request` call later.
+/// Single data gateway for the Schools feature: controllers depend on this, not
+/// on [AdminApiService] or [ApiService]. When [_useMock] is false every call
+/// routes to the live backend; the backend list endpoint supports only
+/// `limit`/`offset`, so search + status filtering + paging happen client-side.
 class SchoolsRepository {
-  static const _pageSize = 4;
+  SchoolsRepository({AdminApiService? api})
+      : _api = api ?? AdminApiService();
+
+  final AdminApiService _api;
+
+  /// When true, methods return bundled mock data instead of hitting the API.
+  static const bool _useMock = false;
+
+  static const _pageSize = 8;
 
   Future<ApiResponse<SchoolPage>> fetch({
     int page = 1,
     String query = '',
     SchoolStatus? status,
   }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final List<School> all;
+    if (_useMock) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      all = _all;
+    } else {
+      final res = await _api.fetchSchools();
+      if (!res.success || res.data == null) {
+        return ApiResponse.fail(res.error ?? 'Could not load schools.',
+            statusCode: res.statusCode);
+      }
+      all = res.data!;
+    }
 
-    var filtered = _all.where((s) {
+    final filtered = all.where((s) {
+      final q = query.toLowerCase();
       final matchesQuery = query.isEmpty ||
-          s.name.toLowerCase().contains(query.toLowerCase()) ||
-          s.location.toLowerCase().contains(query.toLowerCase());
+          s.name.toLowerCase().contains(q) ||
+          s.location.toLowerCase().contains(q) ||
+          s.code.toLowerCase().contains(q);
       final matchesStatus = status == null || s.status == status;
       return matchesQuery && matchesStatus;
     }).toList();
@@ -32,9 +56,49 @@ class SchoolsRepository {
     return ApiResponse.ok(SchoolPage(
       schools: slice,
       page: page,
-      // Pad to 12 to mirror the mock pager in the spec.
-      totalPages: filtered.length == _all.length ? 12 : totalPages,
+      totalPages: totalPages,
     ));
+  }
+
+  /// Creates a school. [payload] is the backend `SchoolCreate` body
+  /// (`name`, `code`, `contact_email`, `contact_phone`, `address`,
+  /// `subscription_plan_code`).
+  Future<ApiResponse<School>> create(Map<String, dynamic> payload) async {
+    if (_useMock) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      return ApiResponse.ok(School(
+        id: 'mock-${DateTime.now().millisecondsSinceEpoch}',
+        name: payload['name'] as String? ?? 'New School',
+        location: payload['address'] as String? ?? '—',
+        students: 0,
+        status: SchoolStatus.pending,
+        tenureLabel: 'Pending',
+      ));
+    }
+    return _api.createSchool(payload);
+  }
+
+  /// Updates a school's general info (backend `SchoolUpdate`).
+  Future<ApiResponse<School>> update(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
+    if (_useMock) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      return ApiResponse.ok(_all.firstWhere((s) => s.id == id,
+          orElse: () => _all.first));
+    }
+    return _api.updateSchool(id, payload);
+  }
+
+  /// Sets a school's status (`pending` / `active` / `suspended`).
+  Future<ApiResponse<School>> setStatus(String id, String status) async {
+    if (_useMock) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      return ApiResponse.ok(_all.firstWhere((s) => s.id == id,
+          orElse: () => _all.first));
+    }
+    return _api.setSchoolStatus(id, status);
   }
 
   static const _all = <School>[

@@ -20,12 +20,25 @@ import 'models/institution.dart';
 class AuthConfig {
   AuthConfig._();
 
-  /// Route to land on after a successful login (`Get.offAllNamed`).
+  /// Route to land on after a successful login (`Get.offAllNamed`). Used as the
+  /// fallback when [homeRouteResolver] is null or returns null.
   static String homeRoute = '/home';
+
+  /// Optional role-aware landing resolver. Given the signed-in user's role
+  /// codes (from `/auth/me` → `roles[].code`), return the route to open. Return
+  /// null to fall back to [homeRoute]. Each portal wires this at boot so the
+  /// *shared* login can route headmaster/teacher/student/guardian to the right
+  /// module shell without `shared` knowing app-specific routes.
+  static String? Function(List<String> roleCodes)? homeRouteResolver;
 
   /// When true the login screen shows + requires the institution dropdown.
   /// School portal → true; admin (super-admin) portal → false.
   static bool requireInstitution = true;
+
+  /// When false the forgot-password / OTP / reset flow is treated as
+  /// unavailable (the backend endpoints don't exist yet): the screens show a
+  /// graceful "not available" message instead of calling a 404 endpoint.
+  static bool passwordResetEnabled = true;
 
   /// Optional loader for the institution dropdown. Return the schools the user
   /// can pick from. Defaults to [apiInstitutionLoader]; set to `null` to hide

@@ -55,6 +55,16 @@ class ApiService {
   /// free of any app-level routing/auth dependency.
   void Function()? onUnauthorized;
 
+  /// Optional async hook to refresh the access token after a 401 on an
+  /// authenticated request. Should return true when a fresh token was stored,
+  /// in which case the original request is retried once before [onUnauthorized]
+  /// is fired. Wire to `AuthService.refreshSession` at boot. Kept as a plain
+  /// callback so `shared` stays free of app-level auth wiring.
+  Future<bool> Function()? tokenRefresher;
+
+  /// Coalesces concurrent refreshes so several parallel 401s share one refresh.
+  Future<bool>? _refreshInFlight;
+
   ApiService({http.Client? client, required DataStoreService store})
       : _client = client ?? http.Client(),
         _store = store;
@@ -70,11 +80,13 @@ class ApiService {
     Map<String, String>? headers,
     List<MultipartUpload>? files,
     bool requiresAuth = true,
+    bool asForm = false,
     T Function(dynamic json)? parser,
     Duration? timeout,
   }) async {
     final uri = _buildUri(path, query);
-    final mergedHeaders = await _buildHeaders(headers, requiresAuth, isMultipart: method == HttpMethod.multipart);
+    final mergedHeaders = await _buildHeaders(headers, requiresAuth,
+        isMultipart: method == HttpMethod.multipart, asForm: asForm);
     final effectiveTimeout = timeout ?? EnvConfig.apiTimeout;
 
     if (EnvConfig.verboseLogging) {
@@ -85,33 +97,24 @@ class ApiService {
     }
 
     try {
-      late http.Response response;
-      switch (method) {
-        case HttpMethod.get:
-          response = await _client.get(uri, headers: mergedHeaders).timeout(effectiveTimeout);
-          break;
-        case HttpMethod.post:
-          response = await _client.post(uri, headers: mergedHeaders, body: _jsonBody(body)).timeout(effectiveTimeout);
-          break;
-        case HttpMethod.put:
-          response = await _client.put(uri, headers: mergedHeaders, body: _jsonBody(body)).timeout(effectiveTimeout);
-          break;
-        case HttpMethod.patch:
-          response = await _client.patch(uri, headers: mergedHeaders, body: _jsonBody(body)).timeout(effectiveTimeout);
-          break;
-        case HttpMethod.delete:
-          response = await _client.delete(uri, headers: mergedHeaders, body: _jsonBody(body)).timeout(effectiveTimeout);
-          break;
-        case HttpMethod.multipart:
-          response = await _sendMultipart(uri, mergedHeaders, body, files, effectiveTimeout);
-          break;
-      }
-      final parsed = _parseResponse<T>(response, parser);
-      // Session-expiry: only authenticated calls can meaningfully 401. Fire the
-      // global hook so the app can log out + redirect. Login/refresh calls
+      var headersToUse = mergedHeaders;
+      var response = await _dispatch(
+          method, uri, headersToUse, body, files, asForm, effectiveTimeout);
+      var parsed = _parseResponse<T>(response, parser);
+
+      // Session-expiry: only authenticated calls can meaningfully 401. Try a
+      // one-time token refresh + retry before giving up; login/refresh calls
       // (requiresAuth:false) are exempt so a bad-credentials 401 stays local.
       if (parsed.statusCode == 401 && requiresAuth) {
-        onUnauthorized?.call();
+        if (tokenRefresher != null && await _refreshToken()) {
+          headersToUse = await _buildHeaders(headers, requiresAuth,
+              isMultipart: method == HttpMethod.multipart, asForm: asForm);
+          response = await _dispatch(
+              method, uri, headersToUse, body, files, asForm, effectiveTimeout);
+          parsed = _parseResponse<T>(response, parser);
+        }
+        // Still unauthorized after a refresh attempt → clear session/redirect.
+        if (parsed.statusCode == 401) onUnauthorized?.call();
       }
       return parsed;
     } on TimeoutException {
@@ -127,6 +130,45 @@ class ApiService {
 
   // ── Helpers ─────────────────────────────────────────────────
 
+  /// Sends one HTTP request for [method]. Extracted so a request can be
+  /// re-dispatched after a token refresh without duplicating the verb switch.
+  Future<http.Response> _dispatch(
+    HttpMethod method,
+    Uri uri,
+    Map<String, String> headers,
+    Map<String, dynamic>? body,
+    List<MultipartUpload>? files,
+    bool asForm,
+    Duration timeout,
+  ) {
+    switch (method) {
+      case HttpMethod.get:
+        return _client.get(uri, headers: headers).timeout(timeout);
+      case HttpMethod.post:
+        return _client.post(uri, headers: headers, body: _encodeBody(body, asForm)).timeout(timeout);
+      case HttpMethod.put:
+        return _client.put(uri, headers: headers, body: _encodeBody(body, asForm)).timeout(timeout);
+      case HttpMethod.patch:
+        return _client.patch(uri, headers: headers, body: _encodeBody(body, asForm)).timeout(timeout);
+      case HttpMethod.delete:
+        return _client.delete(uri, headers: headers, body: _encodeBody(body, asForm)).timeout(timeout);
+      case HttpMethod.multipart:
+        return _sendMultipart(uri, headers, body, files, timeout);
+    }
+  }
+
+  /// Runs [tokenRefresher] at most once concurrently; parallel 401s await the
+  /// same refresh instead of each firing their own.
+  Future<bool> _refreshToken() {
+    return _refreshInFlight ??= () async {
+      try {
+        return await tokenRefresher?.call() ?? false;
+      } finally {
+        _refreshInFlight = null;
+      }
+    }();
+  }
+
   Uri _buildUri(String path, Map<String, String>? query) {
     final base = EnvConfig.apiBaseUrl.endsWith('/') ? EnvConfig.apiBaseUrl.substring(0, EnvConfig.apiBaseUrl.length - 1) : EnvConfig.apiBaseUrl;
     final full = path.startsWith('http') ? path : '$base${path.startsWith('/') ? '' : '/'}$path';
@@ -135,9 +177,12 @@ class ApiService {
     return uri.replace(queryParameters: {...uri.queryParameters, ...query});
   }
 
-  Future<Map<String, String>> _buildHeaders(Map<String, String>? extra, bool requiresAuth, {bool isMultipart = false}) async {
+  Future<Map<String, String>> _buildHeaders(Map<String, String>? extra, bool requiresAuth, {bool isMultipart = false, bool asForm = false}) async {
     final h = <String, String>{'Accept': 'application/json'};
-    if (!isMultipart) h['Content-Type'] = 'application/json';
+    if (!isMultipart) {
+      h['Content-Type'] =
+          asForm ? 'application/x-www-form-urlencoded' : 'application/json';
+    }
     if (requiresAuth) {
       final token = await _store.readToken();
       if (token != null && token.isNotEmpty) h['Authorization'] = 'Bearer $token';
@@ -146,7 +191,17 @@ class ApiService {
     return h;
   }
 
-  String? _jsonBody(Map<String, dynamic>? body) => body == null ? null : jsonEncode(body);
+  /// Encodes the request body as JSON (default) or as
+  /// `application/x-www-form-urlencoded` when [asForm] is true (e.g. OAuth2
+  /// password login). Returns null when there is no body.
+  String? _encodeBody(Map<String, dynamic>? body, bool asForm) {
+    if (body == null) return null;
+    if (!asForm) return jsonEncode(body);
+    return body.entries
+        .map((e) =>
+            '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value?.toString() ?? '')}')
+        .join('&');
+  }
 
   Future<http.Response> _sendMultipart(
     Uri uri,

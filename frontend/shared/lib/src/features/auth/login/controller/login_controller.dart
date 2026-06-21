@@ -68,7 +68,12 @@ class LoginController extends GetxController {
     try {
       final res = await _auth.login(email: email, password: password);
       if (res.success) {
-        Get.offAllNamed(AuthConfig.homeRoute);
+        // Route by role when a resolver is configured; otherwise fall back to
+        // the single configured home route.
+        final resolved =
+            AuthConfig.homeRouteResolver?.call(_auth.roleCodes) ??
+                AuthConfig.homeRoute;
+        Get.offAllNamed(resolved);
       } else {
         error.value = res.error ?? 'Login failed. Check your credentials.';
       }

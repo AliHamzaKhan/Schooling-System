@@ -18,6 +18,9 @@ Future<void> initSharedServices() async {
   final api = ApiService(store: store);
   final auth = AuthService(api: api, store: store);
 
+  // On a 401, ApiService first tries to renew the access token via the refresh
+  // token; only if that fails does onUnauthorized fire (clear session + login).
+  api.tokenRefresher = auth.refreshSession;
   api.onUnauthorized = () {
     auth.logout();
     Get.offAllNamed(AuthRoutes.login);

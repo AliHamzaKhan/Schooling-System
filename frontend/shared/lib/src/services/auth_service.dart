@@ -25,6 +25,24 @@ class AuthService extends GetxService {
 
   AuthService({required this.api, required this.store});
 
+  /// The signed-in user's school id (backend `school_id`), or null for users
+  /// not scoped to a school (e.g. super-admin). Needed to build school-scoped
+  /// endpoints like `/schools/{school_id}/users`.
+  String? get schoolId => currentUser.value?['school_id']?.toString();
+
+  /// Role codes for the signed-in user (e.g. `headmaster`, `teacher`,
+  /// `student`, `guardian`), parsed from the `/auth/me` `roles[]` payload.
+  /// Empty until [fetchProfile] has populated [currentUser].
+  List<String> get roleCodes {
+    final roles = currentUser.value?['roles'];
+    if (roles is! List) return const [];
+    return roles
+        .whereType<Map>()
+        .map((r) => r['code']?.toString() ?? '')
+        .where((c) => c.isNotEmpty)
+        .toList();
+  }
+
   /// Call once after [DataStoreService.init] to restore the user's session.
   Future<void> bootstrap() async {
     final token = await store.readToken();
@@ -35,15 +53,19 @@ class AuthService extends GetxService {
     }
   }
 
-  // ── Endpoints (rename to match your backend) ────────────────
+  // ── Endpoints ───────────────────────────────────────────────
+  /// OAuth2 password login. The backend's `/auth/login` expects a
+  /// form-urlencoded body with `username` (the email) + `password`, and returns
+  /// `{access_token, refresh_token, token_type}` (no envelope).
   Future<ApiResponse<Map<String, dynamic>>> login({required String email, required String password}) async {
     isLoading.value = true;
     try {
       final res = await api.request<Map<String, dynamic>>(
         method: HttpMethod.post,
         path: '/auth/login',
-        body: {'email': email, 'password': password},
+        body: {'username': email, 'password': password},
         requiresAuth: false,
+        asForm: true,
       );
       if (res.success && res.rawJson != null) {
         final token = res.rawJson!['access_token'] as String?;
@@ -151,6 +173,30 @@ class AuthService extends GetxService {
     );
     if (res.success) await logout();
     return res;
+  }
+
+  /// Exchanges the stored refresh token for a new access token via
+  /// `/auth/refresh`. Returns true when a fresh access token was stored. Wired
+  /// into [ApiService.tokenRefresher] so an expired access token is renewed
+  /// transparently on the next authenticated call instead of forcing a logout.
+  Future<bool> refreshSession() async {
+    final refresh = await store.readRefreshToken();
+    if (refresh == null || refresh.isEmpty) return false;
+    final res = await api.request<Map<String, dynamic>>(
+      method: HttpMethod.post,
+      path: '/auth/refresh',
+      body: {'refresh_token': refresh},
+      requiresAuth: false,
+    );
+    if (res.success && res.rawJson != null) {
+      final token = res.rawJson!['access_token'] as String?;
+      final newRefresh = res.rawJson!['refresh_token'] as String?;
+      if (token != null) await store.writeToken(token);
+      if (newRefresh != null) await store.writeRefreshToken(newRefresh);
+      isLoggedIn.value = token != null;
+      return token != null;
+    }
+    return false;
   }
 
   Future<void> logout() async {

@@ -12,6 +12,9 @@ Future<void> main() async {
   // Admin portal: super-admin controls every school — no institution picker.
   AuthConfig.appName = 'EduMaster';
   AuthConfig.requireInstitution = false;
+  AuthConfig.institutionsLoader = null;
+  // No backend for forgot/OTP/reset yet → show a graceful message.
+  AuthConfig.passwordResetEnabled = false;
   AuthConfig.homeRoute = AdminRoutes.home;
 
   runApp(const AdminPortalApp());

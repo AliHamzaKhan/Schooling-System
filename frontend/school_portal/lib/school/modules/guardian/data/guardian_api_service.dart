@@ -24,6 +24,9 @@ class GuardianApiService {
   final ApiService _api;
   GuardianApiService({ApiService? api}) : _api = api ?? Get.find<ApiService>();
 
+  /// The signed-in guardian's school id — used by the live broadcasts feed.
+  String get _sid => Get.find<AuthService>().schoolId ?? '';
+
   Future<ApiResponse<List<Child>>> fetchChildren() {
     return _api.request<List<Child>>(
       method: HttpMethod.get,
@@ -93,13 +96,26 @@ class GuardianApiService {
     );
   }
 
+  /// Live notifications from school broadcasts
+  /// (`/schools/{id}/communication/broadcasts`, `MessageOut` list). The backend
+  /// has no severity or per-child tagging, so every item maps to
+  /// [AlertLevel.info] with no `childName`; [timeAgo] shows the sent/scheduled
+  /// timestamp.
   Future<ApiResponse<List<NotificationItem>>> fetchNotifications() {
     return _api.request<List<NotificationItem>>(
       method: HttpMethod.get,
-      path: GuardianEndpoints.notifications,
-      parser: (json) => (json as List)
-          .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      path: GuardianEndpoints.broadcasts(_sid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>().map((m) {
+        final body = m['body'] as String? ?? '';
+        return NotificationItem(
+          id: '${m['id']}',
+          title: m['title'] as String? ??
+              (body.length > 40 ? '${body.substring(0, 40)}…' : body),
+          body: body,
+          timeAgo: (m['sent_at'] ?? m['scheduled_at']) as String? ?? '',
+          level: AlertLevel.info,
+        );
+      }).toList(),
     );
   }
 }

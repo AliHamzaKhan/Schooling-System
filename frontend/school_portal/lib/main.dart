@@ -11,12 +11,29 @@ Future<void> main() async {
   EnvConfig.bootstrap(Environment.debug);
   await initSharedServices();
 
-  // School portal: users pick their institution and land on the school home.
+  // School portal auth config.
   AuthConfig.appName = AppStrings.appName;
-  AuthConfig.requireInstitution = true;
+  // No public schools endpoint yet → login is email + password only.
+  AuthConfig.requireInstitution = false;
+  AuthConfig.institutionsLoader = null;
+  // No backend for forgot/OTP/reset yet → show a graceful message.
+  AuthConfig.passwordResetEnabled = false;
   AuthConfig.homeRoute = AppRoutes.home;
+  // Route the signed-in user to their module shell based on role.
+  AuthConfig.homeRouteResolver = _homeForRoles;
 
   runApp(const SchoolPortalApp());
+}
+
+/// Maps the signed-in user's role codes (from `/auth/me`) to the module shell
+/// they should land on. Falls back to [AppRoutes.home] (headmaster) when no
+/// known role matches.
+String _homeForRoles(List<String> roleCodes) {
+  if (roleCodes.contains('headmaster')) return AppRoutes.headmaster;
+  if (roleCodes.contains('teacher')) return AppRoutes.teacher;
+  if (roleCodes.contains('student')) return AppRoutes.student;
+  if (roleCodes.contains('guardian')) return AppRoutes.guardian;
+  return AppRoutes.home;
 }
 
 class SchoolPortalApp extends StatelessWidget {
@@ -29,7 +46,10 @@ class SchoolPortalApp extends StatelessWidget {
       title: '${AppStrings.appName} — School Portal',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      initialRoute: auth.isLoggedIn.value ? AppRoutes.home : AuthRoutes.login,
+      // Restored session → role-based home, else login.
+      initialRoute: auth.isLoggedIn.value
+          ? _homeForRoles(auth.roleCodes)
+          : AuthRoutes.login,
       getPages: [
         ...AuthRoutes.pages,
         ...AppPages.pages,

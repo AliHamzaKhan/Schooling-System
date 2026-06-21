@@ -35,13 +35,22 @@ class TeacherRepository {
   TeacherRepository({TeacherApiService? api})
       : _api = api ?? TeacherApiService();
 
+  // Aggregate/complex + write features (dashboard/attendance/gradebook/
+  // performance/communication, createHomework/createExam) have no usable
+  // backend mapping yet → stay on mock. Writes need real section/subject/class
+  // UUIDs the forms don't collect.
   static const bool _useMock = true;
+
+  // Per-feature live flags: these map to real `/schools/{id}/...` reads (with
+  // documented field losses — see TeacherApiService). Flip to false to revert.
+  static const bool _liveClasses = true;
+  static const bool _liveAssignments = true;
 
   Future<ApiResponse<DashboardData>> loadDashboard() =>
       _useMock ? _dashboardMock.load() : _api.fetchDashboard();
 
   Future<ApiResponse<List<TeachingClass>>> loadClasses() =>
-      _useMock ? _classesMock.fetch() : _api.fetchClasses();
+      _liveClasses ? _api.fetchClasses() : _classesMock.fetch();
 
   Future<ApiResponse<List<AttendanceClass>>> loadAttendanceClasses() =>
       _useMock ? _attendanceMock.fetchClasses() : _api.fetchAttendanceClasses();
@@ -60,9 +69,9 @@ class TeacherRepository {
   }
 
   Future<ApiResponse<AssignmentsData>> loadAssignments({String? classFilter}) =>
-      _useMock
-          ? _assignmentsMock.load(classFilter: classFilter)
-          : _api.fetchAssignments(classFilter: classFilter);
+      _liveAssignments
+          ? _api.fetchAssignments(classFilter: classFilter)
+          : _assignmentsMock.load(classFilter: classFilter);
 
   Future<ApiResponse<List<MessageThread>>> loadMessages({
     String query = '',

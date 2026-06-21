@@ -22,4 +22,12 @@ class TeacherEndpoints {
   static String gradebook(String examId) => '$_base/gradebook/$examId';
   static String studentPerformance(String studentId) =>
       '$_base/students/$studentId/performance';
+
+  // ── Live, school-scoped backend paths (`/schools/{school_id}/...`) ──
+  // Wired teacher reads. The aggregate paths above stay for the still-mock
+  // dashboard/attendance/gradebook/performance/communication features.
+  static String academicClasses(String schoolId) =>
+      '/schools/$schoolId/academic/classes';
+  static String homeworkAssignments(String schoolId) =>
+      '/schools/$schoolId/homework/assignments';
 }

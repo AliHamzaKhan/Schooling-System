@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 
 import 'biometric_result.dart';
@@ -89,14 +88,11 @@ class BiometricService extends GetxService {
     try {
       final ok = await _auth.authenticate(
         localizedReason: reason,
-        options: AuthenticationOptions(
-          biometricOnly: biometricOnly,
-          stickyAuth: stickyAuth,
-          useErrorDialogs: true,
-        ),
+        biometricOnly: biometricOnly,
+        persistAcrossBackgrounding: stickyAuth,
       );
       return ok ? BiometricResult.success : BiometricResult.cancelled;
-    } on PlatformException catch (e) {
+    } on LocalAuthException catch (e) {
       return _mapError(e);
     } finally {
       isAuthenticating.value = false;
@@ -114,18 +110,22 @@ class BiometricService extends GetxService {
     }
   }
 
-  BiometricResult _mapError(PlatformException e) {
+  BiometricResult _mapError(LocalAuthException e) {
     switch (e.code) {
-      case auth_error.notAvailable:
+      case LocalAuthExceptionCode.userCanceled:
+      case LocalAuthExceptionCode.systemCanceled:
+      case LocalAuthExceptionCode.userRequestedFallback:
+        return BiometricResult.cancelled;
+      case LocalAuthExceptionCode.noBiometricHardware:
         return BiometricResult.notAvailable;
-      case auth_error.notEnrolled:
+      case LocalAuthExceptionCode.noBiometricsEnrolled:
+      case LocalAuthExceptionCode.noCredentialsSet:
         return BiometricResult.notEnrolled;
-      case auth_error.passcodeNotSet:
-        return BiometricResult.notEnrolled;
-      case auth_error.lockedOut:
-      case auth_error.permanentlyLockedOut:
+      case LocalAuthExceptionCode.temporaryLockout:
+      case LocalAuthExceptionCode.biometricLockout:
         return BiometricResult.lockedOut;
-      case auth_error.otherOperatingSystem:
+      case LocalAuthExceptionCode.biometricHardwareTemporarilyUnavailable:
+      case LocalAuthExceptionCode.uiUnavailable:
         return BiometricResult.unavailable;
       default:
         return BiometricResult.error;

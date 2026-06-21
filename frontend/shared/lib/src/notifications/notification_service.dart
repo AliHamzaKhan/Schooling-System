@@ -147,7 +147,8 @@ class NotificationService extends GetxService {
       requestSoundPermission: false,
     );
     await _local.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
+      settings:
+          const InitializationSettings(android: androidInit, iOS: iosInit),
       onDidReceiveNotificationResponse: (response) {
         final payload = response.payload;
         if (payload == null || payload.isEmpty) return;
@@ -175,10 +176,10 @@ class NotificationService extends GetxService {
 
     final channel = _config.androidChannel;
     _local.show(
-      message.hashCode,
-      title,
-      body,
-      NotificationDetails(
+      id: message.hashCode,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           channel.id,
           channel.name,

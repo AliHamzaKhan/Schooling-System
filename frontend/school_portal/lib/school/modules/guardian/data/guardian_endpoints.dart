@@ -22,4 +22,11 @@ class GuardianEndpoints {
 
   /// Guardian-wide notifications (not scoped to a single child).
   static const notifications = '$_base/notifications';
+
+  // ── Live, school-scoped backend path (`/schools/{school_id}/...`) ──
+  // The only guardian-wide feature with a real backend: school broadcasts
+  // (guardian has MESSAGING view). All per-child paths above stay mock — the
+  // backend has no guardian↔child linkage or per-child guardian endpoints.
+  static String broadcasts(String schoolId) =>
+      '/schools/$schoolId/communication/broadcasts';
 }

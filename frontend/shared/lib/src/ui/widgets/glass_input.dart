@@ -64,9 +64,6 @@ class _GlassInputState extends State<GlassInput> {
   @override
   Widget build(BuildContext context) {
     final hasError = widget.errorText != null;
-    final borderColor = hasError
-        ? AppColors.error
-        : _focused ? AppColors.primary : AppColors.outlineVariant;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),

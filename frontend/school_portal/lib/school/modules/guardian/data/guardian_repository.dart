@@ -45,8 +45,15 @@ class GuardianRepository {
       : _api = api ?? GuardianApiService();
 
   /// When true, methods return bundled mock data instead of hitting the API.
-  /// Set to `false` once the Guardian backend endpoints are live.
+  ///
+  /// Stays true for children + all per-child features: the backend has NO
+  /// guardian↔child linkage or per-child guardian endpoints, so they cannot be
+  /// wired. Only [loadNotifications] maps (school broadcasts).
   static const bool _useMock = true;
+
+  /// Guardian-wide notifications are wired live to school broadcasts. Flip to
+  /// false to revert to mock.
+  static const bool _liveNotifications = true;
 
   Future<ApiResponse<List<Child>>> loadChildren() async {
     if (!_useMock) return _api.fetchChildren();
@@ -97,5 +104,5 @@ class GuardianRepository {
       _useMock ? _meetingMock.load(childId) : _api.fetchMeetings(childId);
 
   Future<ApiResponse<List<NotificationItem>>> loadNotifications() =>
-      _useMock ? _notificationMock.load() : _api.fetchNotifications();
+      _liveNotifications ? _api.fetchNotifications() : _notificationMock.load();
 }
