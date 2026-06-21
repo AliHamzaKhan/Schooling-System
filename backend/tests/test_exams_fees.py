@@ -63,3 +63,29 @@ async def test_fee_payment_and_overpayment(client, school):
     paid = (await client.get(f"{API}/schools/{sid}/fees/invoices/{inv['id']}", headers=hm)).json()
     assert paid["status"] == "paid"
     assert paid["balance"] == 0
+
+
+async def test_fee_receipt_and_report(client, school):
+    sid, hm = school["id"], school["hm"]
+    student = await create_user(client, sid, hm, "student")
+    inv = (await client.post(f"{API}/schools/{sid}/fees/invoices", headers=hm, json={
+        "student_id": student["id"], "title": "Lab Fee", "amount": 1000, "due_date": "2026-12-01",
+    })).json()
+    await client.post(f"{API}/schools/{sid}/fees/invoices/{inv['id']}/payments", headers=hm,
+                      json={"amount": 400, "method": "cash", "paid_on": "2026-06-18"})
+
+    # Receipt aggregates the invoice with its payments.
+    rec = await client.get(f"{API}/schools/{sid}/fees/invoices/{inv['id']}/receipt", headers=hm)
+    assert rec.status_code == 200
+    body = rec.json()
+    assert body["invoice"]["id"] == inv["id"]
+    assert body["total_paid"] == 400
+    assert len(body["payments"]) == 1
+
+    # School-wide report reflects billed/collected/outstanding for this invoice.
+    rep = await client.get(f"{API}/schools/{sid}/fees/report", headers=hm)
+    assert rep.status_code == 200
+    r = rep.json()
+    assert r["total_billed"] >= 1000
+    assert r["total_collected"] >= 400
+    assert r["total_outstanding"] >= 600
