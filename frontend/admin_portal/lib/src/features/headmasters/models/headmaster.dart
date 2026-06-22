@@ -25,6 +25,10 @@ class Headmaster {
   final String email;
   final String? phone;
   final String? school;
+
+  /// Backend school id this headmaster belongs to — needed to target
+  /// update/deactivate calls (`/schools/{schoolId}/users/{id}`).
+  final String? schoolId;
   final HeadmasterStatus status;
   final String? avatarUrl;
 
@@ -35,6 +39,7 @@ class Headmaster {
     required this.status,
     this.phone,
     this.school,
+    this.schoolId,
     this.avatarUrl,
   });
 

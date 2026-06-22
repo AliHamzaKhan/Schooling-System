@@ -3,81 +3,98 @@ import 'package:shared/shared.dart';
 
 import '../models/headmaster.dart';
 
-/// Headmaster list card: overflow menu, avatar, name + status badge, then
-/// school / email / phone rows. Status-colored left rail. Missing fields show
-/// muted placeholders ("Unassigned", "Not provided").
+/// Headmaster list card: status-colored left rail, avatar, name + status badge,
+/// an overflow menu (Edit / Delete), then school / email / phone rows.
 class HeadmasterCard extends StatelessWidget {
   final Headmaster headmaster;
-  final VoidCallback? onMenu;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const HeadmasterCard({super.key, required this.headmaster, this.onMenu});
+  const HeadmasterCard({
+    super.key,
+    required this.headmaster,
+    this.onEdit,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     final h = headmaster;
     return GlassSurface(
       padding: EdgeInsets.zero,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: h.status.color,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackMd),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: h.status.color, width: 5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.stackMd, AppSpacing.stackMd, AppSpacing.stackSm, AppSpacing.stackMd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _Avatar(headmaster: h),
+                  const SizedBox(width: AppSpacing.stackMd),
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        InkWell(
-                          onTap: onMenu,
-                          child: const Icon(Icons.more_vert_rounded,
-                              size: 20, color: AppColors.onSurfaceVariant),
-                        ),
-                        const SizedBox(width: AppSpacing.stackSm),
-                        _Avatar(headmaster: h),
-                        const SizedBox(width: AppSpacing.stackMd),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(h.name, style: AppTypography.titleLg),
-                              const SizedBox(height: 4),
-                              _StatusBadge(status: h.status),
-                            ],
-                          ),
-                        ),
+                        Text(h.name,
+                            style: AppTypography.titleLg,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 4),
+                        _StatusBadge(status: h.status),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.stackMd),
-                    _InfoRow(
-                      icon: Icons.apartment_rounded,
-                      text: h.school ?? 'Unassigned',
-                      muted: h.school == null,
-                    ),
-                    const SizedBox(height: AppSpacing.stackSm),
-                    _InfoRow(icon: Icons.mail_outline_rounded, text: h.email),
-                    const SizedBox(height: AppSpacing.stackSm),
-                    _InfoRow(
-                      icon: Icons.phone_outlined,
-                      text: h.phone ?? 'Not provided',
-                      muted: h.phone == null,
-                    ),
-                  ],
-                ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded,
+                        size: 20, color: AppColors.onSurfaceVariant),
+                    onSelected: (v) {
+                      if (v == 'edit') onEdit?.call();
+                      if (v == 'delete') onDelete?.call();
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.edit_outlined),
+                          title: Text('Edit'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                          title: Text('Delete', style: TextStyle(color: AppColors.error)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.stackMd),
+              _InfoRow(
+                icon: Icons.apartment_rounded,
+                text: h.school ?? 'Unassigned',
+                muted: h.school == null,
+              ),
+              const SizedBox(height: AppSpacing.stackSm),
+              _InfoRow(icon: Icons.mail_outline_rounded, text: h.email),
+              const SizedBox(height: AppSpacing.stackSm),
+              _InfoRow(
+                icon: Icons.phone_outlined,
+                text: h.phone ?? 'Not provided',
+                muted: h.phone == null,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -108,13 +125,21 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 7, height: 7, decoration: BoxDecoration(color: status.color, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Text(status.label, style: AppTypography.bodyMd.copyWith(color: status.color)),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: status.color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 7, height: 7, decoration: BoxDecoration(color: status.color, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          Text(status.label,
+              style: AppTypography.labelMd.copyWith(color: status.color)),
+        ],
+      ),
     );
   }
 }

@@ -54,6 +54,15 @@ class HeadmastersRepository {
   Future<ApiResponse<Headmaster>> create(String schoolId, Map<String, dynamic> payload) =>
       _api.createHeadmaster(schoolId, payload);
 
+  /// Updates a headmaster's name/phone.
+  Future<ApiResponse<Headmaster>> update(
+          String schoolId, String userId, Map<String, dynamic> payload) =>
+      _api.updateUser(schoolId, userId, payload);
+
+  /// Soft-deletes (deactivates) a headmaster.
+  Future<ApiResponse<Headmaster>> remove(String schoolId, String userId) =>
+      _api.deactivateUser(schoolId, userId);
+
   static const _all = <Headmaster>[
     Headmaster(
       id: 'HM-001',

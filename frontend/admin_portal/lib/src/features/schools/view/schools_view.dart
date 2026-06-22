@@ -9,6 +9,68 @@ import '../../../ui/admin_widgets/filter_chips.dart';
 import '../../../ui/admin_widgets/pagination_bar.dart';
 import '../components/school_card.dart';
 import '../controller/schools_controller.dart';
+import '../models/school.dart';
+
+const _planOptions = {'Basic': 'basic', 'Standard': 'standard', 'Premium': 'premium'};
+
+/// Bottom sheet to change a school's subscription plan.
+Future<void> _showSubscriptionMenu(School s) async {
+  final choice = await Get.bottomSheet<String>(
+    Container(
+      color: AppColors.surface,
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.stackMd),
+              child: Text('Subscription — ${s.name}', style: AppTypography.titleLg),
+            ),
+            for (final e in _planOptions.entries)
+              ListTile(
+                leading: Icon(s.planCode == e.value
+                    ? Icons.check_circle_rounded
+                    : Icons.circle_outlined),
+                title: Text(e.key),
+                onTap: () => Get.back<String>(result: e.value),
+              ),
+            const SizedBox(height: AppSpacing.stackSm),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (choice == null || choice == s.planCode) return;
+  final ok = await Get.find<SchoolsController>().changeSubscription(s.id, choice);
+  if (ok) {
+    Get.snackbar('Updated', 'Plan changed for ${s.name}.',
+        snackPosition: SnackPosition.BOTTOM);
+  }
+}
+
+/// Confirms then "deletes" (suspends) a school — the backend has no hard delete.
+Future<void> _confirmDeleteSchool(School s) async {
+  final ok = await Get.dialog<bool>(
+    AlertDialog(
+      title: const Text('Delete school?'),
+      content: Text(
+          '${s.name} will be suspended and lose access. This can be reversed by reactivating it.'),
+      actions: [
+        TextButton(onPressed: () => Get.back<bool>(result: false), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Get.back<bool>(result: true),
+          child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  final removed = await Get.find<SchoolsController>().deleteSchool(s.id);
+  if (removed) {
+    Get.snackbar('Deleted', '${s.name} was suspended.',
+        snackPosition: SnackPosition.BOTTOM);
+  }
+}
 
 /// School Management — searchable, filterable, paginated list of institutions
 /// with a "+" FAB to create a new school.
@@ -95,13 +157,14 @@ class SchoolsView extends GetView<SchoolsController> {
           for (final s in controller.schools) ...[
             SchoolCard(
               school: s,
-              onTap: () async {
+              onEdit: () async {
                 // Reuse the create wizard in edit mode (prefilled via arguments).
                 final saved =
                     await Get.toNamed(AdminRoutes.createSchool, arguments: s);
                 if (saved == true) controller.fetch();
               },
-              onMenu: () {},
+              onSubscription: () => _showSubscriptionMenu(s),
+              onDelete: () => _confirmDeleteSchool(s),
             ),
             const SizedBox(height: AppSpacing.stackMd),
           ],

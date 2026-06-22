@@ -6,6 +6,31 @@ import '../../../ui/admin_widgets/admin_search_field.dart';
 import '../../../ui/admin_widgets/filter_chips.dart';
 import '../components/headmaster_card.dart';
 import '../controller/headmasters_controller.dart';
+import '../models/headmaster.dart';
+
+/// Confirms then soft-deletes (deactivates) a headmaster.
+Future<void> _confirmDeleteHeadmaster(Headmaster h) async {
+  final ok = await Get.dialog<bool>(
+    AlertDialog(
+      title: const Text('Delete headmaster?'),
+      content: Text(
+          '${h.name} will be deactivated and lose access. You can re-add them later.'),
+      actions: [
+        TextButton(onPressed: () => Get.back<bool>(result: false), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Get.back<bool>(result: true),
+          child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  final removed = await Get.find<HeadmastersController>().deleteHeadmaster(h);
+  if (removed) {
+    Get.snackbar('Deleted', '${h.name} was removed.',
+        snackPosition: SnackPosition.BOTTOM);
+  }
+}
 
 /// Headmaster Management — manage school leadership and administrative access.
 class HeadmastersView extends GetView<HeadmastersController> {
@@ -83,7 +108,11 @@ class HeadmastersView extends GetView<HeadmastersController> {
       return Column(
         children: [
           for (final h in items) ...[
-            HeadmasterCard(headmaster: h, onMenu: () {}),
+            HeadmasterCard(
+              headmaster: h,
+              onEdit: () => Get.dialog<void>(_EditHeadmasterDialog(headmaster: h)),
+              onDelete: () => _confirmDeleteHeadmaster(h),
+            ),
             const SizedBox(height: AppSpacing.stackLg),
           ],
           const SizedBox(height: AppSpacing.stackSm),
@@ -282,6 +311,76 @@ class _Pager extends StatelessWidget {
           onPressed: page < total ? onNext : null,
           icon: const Icon(Icons.chevron_right_rounded),
         ),
+      ],
+    );
+  }
+}
+
+/// Edit a headmaster's name + phone (email/school aren't editable here).
+class _EditHeadmasterDialog extends StatefulWidget {
+  final Headmaster headmaster;
+  const _EditHeadmasterDialog({required this.headmaster});
+
+  @override
+  State<_EditHeadmasterDialog> createState() => _EditHeadmasterDialogState();
+}
+
+class _EditHeadmasterDialogState extends State<_EditHeadmasterDialog> {
+  final _controller = Get.find<HeadmastersController>();
+  late final _name = TextEditingController(text: widget.headmaster.name);
+  late final _phone = TextEditingController(text: widget.headmaster.phone ?? '');
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.submitError.value = null;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_name.text.trim().length < 2) {
+      _controller.submitError.value = 'Enter a valid name.';
+      return;
+    }
+    final ok = await _controller.updateHeadmaster(
+      headmaster: widget.headmaster,
+      fullName: _name.text.trim(),
+      phone: _phone.text.trim(),
+    );
+    if (ok) {
+      Get.back<void>();
+      Get.snackbar('Saved', 'Headmaster updated.', snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Headmaster'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full name')),
+          TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone (optional)')),
+          const SizedBox(height: 8),
+          Obx(() => _controller.submitError.value == null
+              ? const SizedBox.shrink()
+              : Text(_controller.submitError.value!,
+                  style: const TextStyle(color: AppColors.error))),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back<void>(), child: const Text('Cancel')),
+        Obx(() => TextButton(
+              onPressed: _controller.submitting.value ? null : _submit,
+              child: Text(_controller.submitting.value ? 'Saving…' : 'Save'),
+            )),
       ],
     );
   }

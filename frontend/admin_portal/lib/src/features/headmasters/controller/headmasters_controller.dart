@@ -117,6 +117,44 @@ class HeadmastersController extends GetxController {
     return false;
   }
 
+  /// Updates a headmaster's name/phone; returns true on success + refreshes.
+  Future<bool> updateHeadmaster({
+    required Headmaster headmaster,
+    required String fullName,
+    String? phone,
+  }) async {
+    if (headmaster.schoolId == null) {
+      submitError.value = 'This headmaster has no school assigned.';
+      return false;
+    }
+    submitError.value = null;
+    submitting.value = true;
+    final res = await _repo.update(headmaster.schoolId!, headmaster.id, {
+      'full_name': fullName,
+      'phone': (phone == null || phone.isEmpty) ? null : phone,
+    });
+    submitting.value = false;
+    if (res.success) {
+      await fetch();
+      return true;
+    }
+    submitError.value = res.error ?? 'Could not update headmaster.';
+    return false;
+  }
+
+  /// Soft-deletes (deactivates) a headmaster; returns true on success.
+  Future<bool> deleteHeadmaster(Headmaster headmaster) async {
+    if (headmaster.schoolId == null) return false;
+    final res = await _repo.remove(headmaster.schoolId!, headmaster.id);
+    if (res.success) {
+      await fetch();
+      return true;
+    }
+    Get.snackbar('Error', res.error ?? 'Could not remove headmaster.',
+        snackPosition: SnackPosition.BOTTOM);
+    return false;
+  }
+
   @override
   void onClose() {
     _debounce?.cancel();

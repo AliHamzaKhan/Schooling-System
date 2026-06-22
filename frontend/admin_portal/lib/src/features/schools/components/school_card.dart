@@ -8,17 +8,23 @@ import '../models/school.dart';
 /// line, a status pill, an overflow menu, and a status-colored left rail.
 class SchoolCard extends StatelessWidget {
   final School school;
-  final VoidCallback? onTap;
-  final VoidCallback? onMenu;
+  final VoidCallback? onEdit;
+  final VoidCallback? onSubscription;
+  final VoidCallback? onDelete;
 
-  const SchoolCard({super.key, required this.school, this.onTap, this.onMenu});
+  const SchoolCard({
+    super.key,
+    required this.school,
+    this.onEdit,
+    this.onSubscription,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     final accent = school.status.color;
     return GlassSurface(
       padding: EdgeInsets.zero,
-      onTap: onTap,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -80,15 +86,60 @@ class SchoolCard extends StatelessWidget {
                           color: school.status.color,
                           icon: Icons.circle,
                         ),
-                        const Spacer(),
-                        InkWell(
-                          onTap: onMenu,
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                          child: const Padding(
-                            padding: EdgeInsets.all(4),
-                            child: Icon(Icons.more_vert_rounded,
-                                size: 20, color: AppColors.onSurfaceVariant),
+                        if (school.planCode != null) ...[
+                          const SizedBox(width: AppSpacing.stackSm),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(AppRadius.full),
+                            ),
+                            child: Text(
+                              school.planName ?? school.planCode!,
+                              style: AppTypography.labelMd
+                                  .copyWith(color: AppColors.onSurfaceVariant),
+                            ),
                           ),
+                        ],
+                        const Spacer(),
+                        PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.more_vert_rounded,
+                              size: 20, color: AppColors.onSurfaceVariant),
+                          onSelected: (v) {
+                            if (v == 'edit') onEdit?.call();
+                            if (v == 'subscription') onSubscription?.call();
+                            if (v == 'delete') onDelete?.call();
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.edit_outlined),
+                                title: Text('Edit'),
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'subscription',
+                              child: ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.card_membership_outlined),
+                                title: Text('Subscription'),
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                                title: Text('Delete', style: TextStyle(color: AppColors.error)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

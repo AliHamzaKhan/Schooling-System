@@ -105,6 +105,7 @@ class AdminApiService {
             email: u['email'] as String? ?? '',
             phone: u['phone'] as String?,
             school: sname,
+            schoolId: sid,
             status: (u['is_active'] as bool? ?? true)
                 ? HeadmasterStatus.active
                 : HeadmasterStatus.pendingSetup,
@@ -132,9 +133,45 @@ class AdminApiService {
           name: u['full_name'] as String? ?? '',
           email: u['email'] as String? ?? '',
           phone: u['phone'] as String?,
+          schoolId: schoolId,
           status: HeadmasterStatus.active,
         );
       },
+    );
+  }
+
+  Headmaster _headmasterFromUser(Map<String, dynamic> u, String schoolId) =>
+      Headmaster(
+        id: '${u['id']}',
+        name: u['full_name'] as String? ?? '',
+        email: u['email'] as String? ?? '',
+        phone: u['phone'] as String?,
+        schoolId: schoolId,
+        status: (u['is_active'] as bool? ?? true)
+            ? HeadmasterStatus.active
+            : HeadmasterStatus.pendingSetup,
+      );
+
+  /// Updates a user (`full_name` / `phone`). Used to edit a headmaster.
+  Future<ApiResponse<Headmaster>> updateUser(
+    String schoolId,
+    String userId,
+    Map<String, dynamic> payload,
+  ) {
+    return _api.request<Headmaster>(
+      method: HttpMethod.patch,
+      path: '${AdminEndpoints.schoolUsers(schoolId)}/$userId',
+      body: payload,
+      parser: (json) => _headmasterFromUser(json as Map<String, dynamic>, schoolId),
+    );
+  }
+
+  /// Deactivates a user (the backend has no hard delete) → soft "delete".
+  Future<ApiResponse<Headmaster>> deactivateUser(String schoolId, String userId) {
+    return _api.request<Headmaster>(
+      method: HttpMethod.post,
+      path: '${AdminEndpoints.schoolUsers(schoolId)}/$userId/deactivate',
+      parser: (json) => _headmasterFromUser(json as Map<String, dynamic>, schoolId),
     );
   }
 }
