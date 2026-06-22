@@ -135,8 +135,8 @@ class SchoolCard extends StatelessWidget {
                               child: ListTile(
                                 dense: true,
                                 contentPadding: EdgeInsets.zero,
-                                leading: Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                                title: Text('Delete', style: TextStyle(color: AppColors.error)),
+                                leading: Icon(Icons.block_rounded, color: AppColors.error),
+                                title: Text('Deactivate', style: TextStyle(color: AppColors.error)),
                               ),
                             ),
                           ],

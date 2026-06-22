@@ -12,14 +12,14 @@ import '../models/headmaster.dart';
 Future<void> _confirmDeleteHeadmaster(Headmaster h) async {
   final ok = await Get.dialog<bool>(
     AlertDialog(
-      title: const Text('Delete headmaster?'),
+      title: const Text('Deactivate headmaster?'),
       content: Text(
-          '${h.name} will be deactivated and lose access. You can re-add them later.'),
+          '${h.name} will be deactivated and lose access. You can reactivate them later.'),
       actions: [
         TextButton(onPressed: () => Get.back<bool>(result: false), child: const Text('Cancel')),
         TextButton(
           onPressed: () => Get.back<bool>(result: true),
-          child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+          child: const Text('Deactivate', style: TextStyle(color: AppColors.error)),
         ),
       ],
     ),
@@ -27,7 +27,7 @@ Future<void> _confirmDeleteHeadmaster(Headmaster h) async {
   if (ok != true) return;
   final removed = await Get.find<HeadmastersController>().deleteHeadmaster(h);
   if (removed) {
-    Get.snackbar('Deleted', '${h.name} was removed.',
+    Get.snackbar('Deactivated', '${h.name} was deactivated.',
         snackPosition: SnackPosition.BOTTOM);
   }
 }

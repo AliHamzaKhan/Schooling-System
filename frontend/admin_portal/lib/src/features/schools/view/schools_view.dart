@@ -52,14 +52,14 @@ Future<void> _showSubscriptionMenu(School s) async {
 Future<void> _confirmDeleteSchool(School s) async {
   final ok = await Get.dialog<bool>(
     AlertDialog(
-      title: const Text('Delete school?'),
+      title: const Text('Deactivate school?'),
       content: Text(
-          '${s.name} will be suspended and lose access. This can be reversed by reactivating it.'),
+          '${s.name} will be suspended and lose access. You can reactivate it later.'),
       actions: [
         TextButton(onPressed: () => Get.back<bool>(result: false), child: const Text('Cancel')),
         TextButton(
           onPressed: () => Get.back<bool>(result: true),
-          child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+          child: const Text('Deactivate', style: TextStyle(color: AppColors.error)),
         ),
       ],
     ),
@@ -67,7 +67,7 @@ Future<void> _confirmDeleteSchool(School s) async {
   if (ok != true) return;
   final removed = await Get.find<SchoolsController>().deleteSchool(s.id);
   if (removed) {
-    Get.snackbar('Deleted', '${s.name} was suspended.',
+    Get.snackbar('Deactivated', '${s.name} was suspended.',
         snackPosition: SnackPosition.BOTTOM);
   }
 }
