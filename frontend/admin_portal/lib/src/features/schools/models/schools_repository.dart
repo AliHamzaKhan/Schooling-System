@@ -101,6 +101,15 @@ class SchoolsRepository {
     return _api.setSchoolStatus(id, status);
   }
 
+  /// Assigns a subscription plan (`basic` / `standard` / `premium`).
+  Future<ApiResponse<School>> assignSubscription(String id, String planCode) async {
+    if (_useMock) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      return ApiResponse.ok(_all.firstWhere((s) => s.id == id, orElse: () => _all.first));
+    }
+    return _api.assignSubscription(id, planCode);
+  }
+
   static const _all = <School>[
     School(
       id: 'SCH-2023-089',

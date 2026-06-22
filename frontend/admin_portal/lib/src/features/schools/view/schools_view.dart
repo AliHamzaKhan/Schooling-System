@@ -96,8 +96,9 @@ class SchoolsView extends GetView<SchoolsController> {
             SchoolCard(
               school: s,
               onTap: () async {
+                // Reuse the create wizard in edit mode (prefilled via arguments).
                 final saved =
-                    await Get.toNamed(AdminRoutes.editSchool, arguments: s);
+                    await Get.toNamed(AdminRoutes.createSchool, arguments: s);
                 if (saved == true) controller.fetch();
               },
               onMenu: () {},

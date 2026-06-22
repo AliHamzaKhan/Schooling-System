@@ -27,7 +27,7 @@ class CreateSchoolView extends GetView<CreateSchoolController> {
                   onPressed: () => Get.back<void>(),
                   icon: const Icon(Icons.close_rounded, color: AppColors.onSurface),
                 ),
-                Text('New School Profile',
+                Text(controller.title,
                     style: AppTypography.titleLg.copyWith(
                         color: AppColors.primary, fontWeight: FontWeight.w700)),
               ],

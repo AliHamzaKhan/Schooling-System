@@ -18,8 +18,6 @@ import '../features/permissions/school_permissions/binding/school_permissions_bi
 import '../features/permissions/school_permissions/view/school_permissions_view.dart';
 import '../features/schools/create/binding/create_school_binding.dart';
 import '../features/schools/create/view/create_school_view.dart';
-import '../features/schools/edit/binding/edit_school_binding.dart';
-import '../features/schools/edit/view/edit_school_view.dart';
 import '../features/subscriptions/binding/subscriptions_binding.dart';
 import '../features/subscriptions/view/subscriptions_view.dart';
 import 'admin_shell.dart';
@@ -34,7 +32,6 @@ class AdminRoutes {
 
   static const home = '/home';
   static const createSchool = '/schools/create';
-  static const editSchool = '/schools/edit';
   static const subscriptions = '/subscriptions';
   static const headmasters = '/headmasters';
   static const rolePolicy = '/permissions/role';
@@ -52,11 +49,6 @@ class AdminRoutes {
       page: () => const CreateSchoolView(),
       binding: CreateSchoolBinding(),
       fullscreenDialog: true,
-    ),
-    GetPage(
-      name: editSchool,
-      page: () => const EditSchoolView(),
-      binding: EditSchoolBinding(),
     ),
     GetPage(
       name: subscriptions,
