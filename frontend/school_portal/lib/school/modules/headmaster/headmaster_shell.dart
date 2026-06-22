@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared/shared.dart';
 
-import '../../widgets/portal_app_bar.dart';
-import '../../widgets/portal_bottom_nav.dart';
+import '../../widgets/portal_tab_scaffold.dart';
 import 'data/headmaster_repository.dart';
 import 'features/attendance/binding/attendance_binding.dart';
 import 'features/attendance/view/attendance_view.dart';
@@ -29,17 +27,13 @@ class HeadmasterShell extends StatefulWidget {
 }
 
 class _HeadmasterShellState extends State<HeadmasterShell> {
-  int _index = 0;
-
-  static const _items = [
-    PortalNavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
-    PortalNavItem(icon: Icons.groups_rounded, label: 'People'),
-    PortalNavItem(icon: Icons.event_note_rounded, label: 'Schedule'),
-    PortalNavItem(icon: Icons.payments_outlined, label: 'Finance'),
-    PortalNavItem(icon: Icons.insights_rounded, label: 'Reports'),
+  static const _tabs = [
+    PortalTab(Icons.dashboard_rounded, 'Dashboard'),
+    PortalTab(Icons.groups_rounded, 'People'),
+    PortalTab(Icons.event_note_rounded, 'Schedule'),
+    PortalTab(Icons.payments_outlined, 'Finance'),
+    PortalTab(Icons.insights_rounded, 'Reports'),
   ];
-
-  void _goTo(int i) => setState(() => _index = i);
 
   @override
   void initState() {
@@ -77,14 +71,6 @@ class _HeadmasterShellState extends State<HeadmasterShell> {
       ),
     ];
 
-    return AppScaffold(
-      appBar: const PortalAppBar(title: 'Headmaster'),
-      body: IndexedStack(index: _index, children: tabs),
-      bottomNavigationBar: PortalBottomNav(
-        currentIndex: _index,
-        onTap: _goTo,
-        items: _items,
-      ),
-    );
+    return PortalTabScaffold(title: 'Headmaster', tabs: _tabs, screens: tabs);
   }
 }

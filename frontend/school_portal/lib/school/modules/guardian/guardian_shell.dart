@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared/shared.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 import '../../config/guardian_routes.dart';
-import '../../widgets/portal_app_bar.dart';
-import '../../widgets/portal_bottom_nav.dart';
+import '../../widgets/portal_tab_scaffold.dart';
 import 'features/attendance/binding/attendance_binding.dart';
 import 'features/attendance/view/attendance_view.dart';
 import 'features/dashboard/binding/dashboard_binding.dart';
@@ -31,20 +30,19 @@ class GuardianShell extends StatefulWidget {
 }
 
 class _GuardianShellState extends State<GuardianShell> {
-  int _index = 0;
-
   static const _alertsTab = 4;
 
-  static const _items = [
-    PortalNavItem(icon: Icons.dashboard_rounded, label: 'Home'),
-    PortalNavItem(icon: Icons.insights_rounded, label: 'Academics'),
-    PortalNavItem(icon: Icons.event_available_rounded, label: 'Attendance'),
-    PortalNavItem(icon: Icons.assignment_outlined, label: 'Homework'),
-    PortalNavItem(icon: Icons.notifications_outlined, label: 'Alerts'),
+  final _tabController = PersistentTabController(initialIndex: 0);
+
+  static const _tabs = [
+    PortalTab(Icons.dashboard_rounded, 'Home'),
+    PortalTab(Icons.insights_rounded, 'Academics'),
+    PortalTab(Icons.event_available_rounded, 'Attendance'),
+    PortalTab(Icons.assignment_outlined, 'Homework'),
+    PortalTab(Icons.notifications_outlined, 'Alerts'),
   ];
 
-  void _goTo(int i) => setState(() => _index = i);
-  void _openAlerts() => _goTo(_alertsTab);
+  void _openAlerts() => _tabController.jumpToTab(_alertsTab);
 
   void _manageChildren() => Get.toNamed(GuardianRoutes.childSelection);
   void _openFees() => Get.toNamed(GuardianRoutes.fees);
@@ -88,14 +86,17 @@ class _GuardianShellState extends State<GuardianShell> {
       const NotificationView(),
     ];
 
-    return AppScaffold(
-      appBar: const PortalAppBar(title: 'Guardian'),
-      body: IndexedStack(index: _index, children: tabs),
-      bottomNavigationBar: PortalBottomNav(
-        currentIndex: _index,
-        onTap: _goTo,
-        items: _items,
-      ),
+    return PortalTabScaffold(
+      title: 'Guardian',
+      tabs: _tabs,
+      screens: tabs,
+      controller: _tabController,
     );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 }

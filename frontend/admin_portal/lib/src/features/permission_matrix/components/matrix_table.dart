@@ -56,7 +56,9 @@ class _HeaderRow extends StatelessWidget {
         for (final r in roles)
           SizedBox(
             width: MatrixTable._cellW,
-            child: Obx(() {
+            // focusRoleId is set once (from route args), so this header is not
+            // reactive — a Builder, not Obx (Obx with no observable throws).
+            child: Builder(builder: (context) {
               final focused = controller.focusRoleId == r.id;
               return GestureDetector(
                 onTap: () => controller.setRoleAll(

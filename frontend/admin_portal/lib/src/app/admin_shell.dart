@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:shared/shared.dart';
 
 import '../features/analytics/binding/analytics_binding.dart';
@@ -11,12 +12,10 @@ import '../features/payments/view/payments_view.dart';
 import '../features/schools/binding/schools_binding.dart';
 import '../features/schools/view/schools_view.dart';
 import '../features/settings/view/settings_view.dart';
-import '../ui/admin_widgets/admin_bottom_nav.dart';
 import 'admin_routes.dart';
 
 /// Root authenticated shell — hosts the five admin tabs behind a persistent
-/// dark bottom navigation bar. Tabs are kept alive via [IndexedStack] so each
-/// keeps its scroll position when switching.
+/// style-7 bottom navigation bar (persistent_bottom_nav_bar).
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
 
@@ -24,49 +23,80 @@ class AdminShell extends StatefulWidget {
   State<AdminShell> createState() => _AdminShellState();
 }
 
-class _AdminShellState extends State<AdminShell> {
-  int _index = 0;
+class _AdminShellState extends State<AdminShell> with TickerProviderStateMixin {
+  final _tabController = PersistentTabController(initialIndex: 0);
 
-  static const _items = [
-    AdminNavItem(icon: Icons.home_rounded, label: 'Home'),
-    AdminNavItem(icon: Icons.apartment_rounded, label: 'Schools'),
-    AdminNavItem(icon: Icons.credit_card_rounded, label: 'Billing'),
-    AdminNavItem(icon: Icons.query_stats_rounded, label: 'Metrics'),
-    AdminNavItem(icon: Icons.settings_rounded, label: 'Settings'),
-  ];
-
-  void _goTo(int i) => setState(() => _index = i);
+  // Animated "Home" icon (home ⇄ menu), per the persistent_bottom_nav_bar API.
+  late final AnimationController _homeAnim =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+  late final Animation<double> _homeAnimValue =
+      Tween<double>(begin: 0, end: 1).animate(_homeAnim);
 
   @override
   void initState() {
     super.initState();
-    // Register tab controllers up front since IndexedStack mounts all tabs.
+    // Register tab controllers up front since the tabs are kept alive.
     DashboardBinding().dependencies();
     SchoolsBinding().dependencies();
     PaymentsBinding().dependencies();
     AnalyticsBinding().dependencies();
+    _homeAnim.forward();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final tabs = <Widget>[
-      DashboardView(
-        onCreateSchool: () => _goTo(1),
-        onManageHeadmasters: () => Get.toNamed(AdminRoutes.headmasters),
-      ),
-      const SchoolsView(),
-      const PaymentsView(),
-      const AnalyticsView(),
-      const SettingsView(),
-    ];
+  void dispose() {
+    _homeAnim.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
 
-    return AppScaffold(
-      body: IndexedStack(index: _index, children: tabs),
-      bottomNavigationBar: AdminBottomNav(
-        currentIndex: _index,
-        onTap: _goTo,
-        items: _items,
-      ),
+  List<Widget> _screens() => [
+        DashboardView(
+          onCreateSchool: () => _tabController.jumpToTab(1),
+          onManageHeadmasters: () => Get.toNamed(AdminRoutes.headmasters),
+        ),
+        const SchoolsView(),
+        const PaymentsView(),
+        const AnalyticsView(),
+        const SettingsView(),
+      ];
+
+  PersistentBottomNavBarItem _item(Widget icon, String title,
+          {AnimationController? animController}) =>
+      PersistentBottomNavBarItem(
+        icon: icon,
+        iconAnimationController: animController,
+        title: title,
+        activeColorPrimary: AppColors.primary,
+        activeColorSecondary: Colors.white,
+        inactiveColorPrimary: AppColors.onSurfaceVariant,
+      );
+
+  List<PersistentBottomNavBarItem> _items() => [
+        _item(
+          AnimatedIcon(icon: AnimatedIcons.home_menu, progress: _homeAnimValue),
+          'Home',
+          animController: _homeAnim,
+        ),
+        _item(const Icon(Icons.apartment_rounded), 'Schools'),
+        _item(const Icon(Icons.credit_card_rounded), 'Billing'),
+        _item(const Icon(Icons.query_stats_rounded), 'Metrics'),
+        _item(const Icon(Icons.settings_rounded), 'Settings'),
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    return PersistentTabView(
+      context,
+      controller: _tabController,
+      screens: _screens(),
+      items: _items(),
+      navBarStyle: NavBarStyle.style7,
+      backgroundColor: AppColors.surface,
+      confineToSafeArea: true,
+      handleAndroidBackButtonPress: true,
+      resizeToAvoidBottomInset: true,
+      stateManagement: true,
     );
   }
 }
