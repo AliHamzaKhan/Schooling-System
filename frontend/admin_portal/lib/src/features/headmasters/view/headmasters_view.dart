@@ -148,10 +148,109 @@ class _Header extends StatelessWidget {
             label: 'New Headmaster',
             leadingIcon: Icons.add,
             trailingIcon: null,
-            onPressed: () {},
+            onPressed: () => Get.dialog<void>(const _CreateHeadmasterDialog()),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Create-headmaster form: pick a school, enter the account details, and POST
+/// to the backend via the controller. Refreshes the list on success.
+class _CreateHeadmasterDialog extends StatefulWidget {
+  const _CreateHeadmasterDialog();
+
+  @override
+  State<_CreateHeadmasterDialog> createState() => _CreateHeadmasterDialogState();
+}
+
+class _CreateHeadmasterDialogState extends State<_CreateHeadmasterDialog> {
+  final _controller = Get.find<HeadmastersController>();
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _phone = TextEditingController();
+  String? _schoolId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.loadSchools();
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _password.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_schoolId == null ||
+        _name.text.trim().isEmpty ||
+        _email.text.trim().isEmpty ||
+        _password.text.length < 8) {
+      _controller.submitError.value =
+          'Pick a school and fill name, email, and a password (8+ chars).';
+      return;
+    }
+    final ok = await _controller.createHeadmaster(
+      schoolId: _schoolId!,
+      fullName: _name.text.trim(),
+      email: _email.text.trim(),
+      password: _password.text,
+      phone: _phone.text.trim(),
+    );
+    if (ok) {
+      Get.back<void>();
+      Get.snackbar('Headmaster created', '${_name.text.trim()} was added.',
+          snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('New Headmaster'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Obx(() => DropdownButtonFormField<String>(
+                  initialValue: _schoolId,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: _controller.loadingSchools.value
+                        ? 'Loading schools…'
+                        : 'School',
+                  ),
+                  items: _controller.schools
+                      .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _schoolId = v),
+                )),
+            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full name')),
+            TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
+            TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'Password (8+ chars)')),
+            TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone (optional)')),
+            const SizedBox(height: 8),
+            Obx(() => _controller.submitError.value == null
+                ? const SizedBox.shrink()
+                : Text(_controller.submitError.value!,
+                    style: const TextStyle(color: AppColors.error))),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back<void>(), child: const Text('Cancel')),
+        Obx(() => TextButton(
+              onPressed: _controller.submitting.value ? null : _submit,
+              child: Text(_controller.submitting.value ? 'Creating…' : 'Create'),
+            )),
+      ],
     );
   }
 }

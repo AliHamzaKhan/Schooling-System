@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
+import '../../schools/models/school.dart';
 import '../models/headmaster.dart';
 import '../models/headmasters_repository.dart';
 
@@ -73,6 +74,47 @@ class HeadmastersController extends GetxController {
       error.value = res.error ?? 'Could not load headmasters.';
     }
     loading.value = false;
+  }
+
+  // ── Create headmaster ───────────────────────────────────────
+  final schools = <School>[].obs;
+  final loadingSchools = false.obs;
+  final submitting = false.obs;
+  final submitError = RxnString();
+
+  /// Lazily loads the school list for the create-headmaster picker.
+  Future<void> loadSchools() async {
+    if (schools.isNotEmpty || loadingSchools.value) return;
+    loadingSchools.value = true;
+    final res = await _repo.loadSchools();
+    if (res.success && res.data != null) schools.assignAll(res.data!);
+    loadingSchools.value = false;
+  }
+
+  /// Creates a headmaster for [schoolId]; returns true on success and refreshes
+  /// the list. Errors surface via [submitError].
+  Future<bool> createHeadmaster({
+    required String schoolId,
+    required String fullName,
+    required String email,
+    required String password,
+    String? phone,
+  }) async {
+    submitError.value = null;
+    submitting.value = true;
+    final res = await _repo.create(schoolId, {
+      'full_name': fullName,
+      'email': email,
+      'password': password,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+    });
+    submitting.value = false;
+    if (res.success) {
+      await fetch();
+      return true;
+    }
+    submitError.value = res.error ?? 'Could not create headmaster.';
+    return false;
   }
 
   @override

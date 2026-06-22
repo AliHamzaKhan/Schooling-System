@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../../config/guardian_routes.dart';
+import '../../widgets/portal_app_bar.dart';
 import '../../widgets/portal_bottom_nav.dart';
 import 'features/attendance/binding/attendance_binding.dart';
 import 'features/attendance/view/attendance_view.dart';
@@ -88,6 +89,7 @@ class _GuardianShellState extends State<GuardianShell> {
     ];
 
     return AppScaffold(
+      appBar: const PortalAppBar(title: 'Guardian'),
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: PortalBottomNav(
         currentIndex: _index,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../widgets/portal_app_bar.dart';
 import '../../widgets/portal_bottom_nav.dart';
 import 'data/headmaster_repository.dart';
 import 'features/attendance/binding/attendance_binding.dart';
@@ -77,6 +78,7 @@ class _HeadmasterShellState extends State<HeadmasterShell> {
     ];
 
     return AppScaffold(
+      appBar: const PortalAppBar(title: 'Headmaster'),
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: PortalBottomNav(
         currentIndex: _index,

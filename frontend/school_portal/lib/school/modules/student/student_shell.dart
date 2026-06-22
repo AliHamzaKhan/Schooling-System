@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../../config/student_routes.dart';
+import '../../widgets/portal_app_bar.dart';
 import '../../widgets/portal_bottom_nav.dart';
 import 'data/student_repository.dart';
 import 'features/assignments/binding/assignments_binding.dart';
@@ -65,6 +66,7 @@ class _StudentShellState extends State<StudentShell> {
     ];
 
     return AppScaffold(
+      appBar: const PortalAppBar(title: 'Student'),
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: PortalBottomNav(
         currentIndex: _index,

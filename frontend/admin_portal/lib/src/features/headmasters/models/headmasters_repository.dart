@@ -1,6 +1,7 @@
 import 'package:shared/shared.dart';
 
 import '../../../data/admin_api_service.dart';
+import '../../schools/models/school.dart';
 import 'headmaster.dart';
 
 /// Loads filterable, paginated headmasters.
@@ -44,6 +45,14 @@ class HeadmastersRepository {
     }).toList();
     return ApiResponse.ok(filtered);
   }
+
+  /// Schools available to assign a new headmaster to (for the create form).
+  Future<ApiResponse<List<School>>> loadSchools() => _api.fetchSchools();
+
+  /// Creates a headmaster for [schoolId]. [payload] is the backend
+  /// `HeadmasterCreate` body (`email`, `password`, `full_name`, optional `phone`).
+  Future<ApiResponse<Headmaster>> create(String schoolId, Map<String, dynamic> payload) =>
+      _api.createHeadmaster(schoolId, payload);
 
   static const _all = <Headmaster>[
     Headmaster(
