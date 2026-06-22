@@ -10,4 +10,6 @@ class AdminEndpoints {
   static String schoolStatus(String id) => '/schools/$id/status';
   static String schoolSubscription(String id) => '/schools/$id/subscription';
   static String schoolModules(String id) => '/schools/$id/modules';
+  static String schoolUsers(String id) => '/schools/$id/users';
+  static String schoolHeadmaster(String id) => '/schools/$id/headmaster';
 }

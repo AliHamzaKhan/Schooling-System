@@ -1,18 +1,40 @@
 import 'package:shared/shared.dart';
 
+import '../../../data/admin_api_service.dart';
 import 'headmaster.dart';
 
 /// Loads filterable, paginated headmasters.
+///
+/// When [_useMock] is false the list is built live by aggregating every
+/// school's headmaster-role users (there is no global headmasters endpoint);
+/// search + status filtering happen client-side.
 class HeadmastersRepository {
+  HeadmastersRepository({AdminApiService? api}) : _api = api ?? AdminApiService();
+
+  final AdminApiService _api;
+
+  static const bool _useMock = false;
   static const pageSize = 3;
 
   Future<ApiResponse<List<Headmaster>>> fetch({
     String query = '',
     HeadmasterStatus? status,
   }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final List<Headmaster> all;
+    if (_useMock) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      all = _all;
+    } else {
+      final res = await _api.fetchHeadmasters();
+      if (!res.success || res.data == null) {
+        return ApiResponse.fail(res.error ?? 'Could not load headmasters.',
+            statusCode: res.statusCode);
+      }
+      all = res.data!;
+    }
+
     final q = query.toLowerCase();
-    final filtered = _all.where((h) {
+    final filtered = all.where((h) {
       final matchQ = q.isEmpty ||
           h.name.toLowerCase().contains(q) ||
           h.email.toLowerCase().contains(q) ||
