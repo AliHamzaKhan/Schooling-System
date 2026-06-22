@@ -1,8 +1,12 @@
 """FastAPI application entrypoint."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
+from app.core.ratelimit import limiter
 from app.modules.academic.router import router as academic_router
 from app.modules.ai.router import router as ai_router
 from app.modules.attendance.router import router as attendance_router
@@ -30,6 +34,12 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     docs_url="/docs",
 )
+
+# Rate limiting (per-IP). Routers opt in via `@limiter.limit(...)`; the
+# middleware + handler turn breaches into HTTP 429.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

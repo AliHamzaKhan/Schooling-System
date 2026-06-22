@@ -2,8 +2,14 @@
 from functools import lru_cache
 from typing import Annotated
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+# Secrets shipped as defaults for local dev. They must never be used once the
+# app runs outside development.
+_WEAK_JWT_SECRETS = {"change-this-in-production", "dev-secret-change-in-production"}
+_DEFAULT_SUPERADMIN_PASSWORD = "ChangeMe123!"
+_DEV_ENVS = {"development", "dev", "local", "test"}
 
 
 class Settings(BaseSettings):
@@ -51,6 +57,30 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
+
+    @model_validator(mode="after")
+    def _enforce_production_secrets(self) -> "Settings":
+        """Refuse to boot with dev defaults / wildcard CORS outside development.
+
+        This makes an insecure production deploy fail loudly instead of silently
+        shipping a forgeable JWT secret, the seeded super-admin password, or a
+        credentialed wildcard CORS policy.
+        """
+        if self.ENVIRONMENT.lower() in _DEV_ENVS:
+            return self
+        problems: list[str] = []
+        if self.JWT_SECRET_KEY in _WEAK_JWT_SECRETS or len(self.JWT_SECRET_KEY) < 32:
+            problems.append("JWT_SECRET_KEY must be set to a strong (>=32 char) value")
+        if self.FIRST_SUPERADMIN_PASSWORD == _DEFAULT_SUPERADMIN_PASSWORD:
+            problems.append("FIRST_SUPERADMIN_PASSWORD must be changed from the default")
+        if "*" in self.BACKEND_CORS_ORIGINS:
+            problems.append("BACKEND_CORS_ORIGINS must list explicit origins, not '*'")
+        if problems:
+            raise ValueError(
+                f"Insecure configuration for ENVIRONMENT={self.ENVIRONMENT}: "
+                + "; ".join(problems)
+            )
+        return self
 
 
 @lru_cache

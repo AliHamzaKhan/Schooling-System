@@ -1,11 +1,12 @@
 """Auth endpoints: login, refresh, current user."""
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.deps import CurrentUser, DbDep
 from app.core.exceptions import credentials_exception
+from app.core.ratelimit import limiter
 from app.core.security import ACCESS_TOKEN, JWTError, decode_token
 from app.modules.auth.schemas import RefreshRequest, TokenPair, UserOut
 from app.modules.auth.service import AuthService
@@ -14,11 +15,16 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/login", response_model=TokenPair)
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: DbDep,
 ) -> TokenPair:
-    """OAuth2 password login. `username` is the user's email."""
+    """OAuth2 password login. `username` is the user's email.
+
+    Rate-limited per client IP to blunt brute-force / credential-stuffing.
+    """
     service = AuthService(db)
     user = await service.authenticate(form_data.username, form_data.password)
     if user is None:
