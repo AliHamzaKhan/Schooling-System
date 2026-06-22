@@ -17,35 +17,26 @@ class EditSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The accent rail is drawn as a left border so it stretches to the card's
+    // height without IntrinsicHeight — IntrinsicHeight cannot measure the
+    // TextFields these cards contain and throws a layout assertion
+    // ("RenderBox was not laid out").
     return GlassSurface(
       padding: EdgeInsets.zero,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: AppTypography.headlineLg.copyWith(fontSize: 22)),
-                    const SizedBox(height: AppSpacing.stackMd),
-                    ...children,
-                  ],
-                ),
-              ),
-            ),
-          ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: accent, width: 5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.stackLg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTypography.headlineLg.copyWith(fontSize: 22)),
+              const SizedBox(height: AppSpacing.stackMd),
+              ...children,
+            ],
+          ),
         ),
       ),
     );
