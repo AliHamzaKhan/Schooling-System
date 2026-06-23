@@ -4,15 +4,18 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import Module, PermissionAction
 from app.core.exceptions import bad_request, not_found
 from app.models.meeting import Meeting
 from app.models.user import User
 from app.modules.meetings import schemas
+from app.modules.permissions.service import PermissionService
 
 
 class MeetingService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+        self.perms = PermissionService(db)
 
     async def _validate_user(self, school_id: uuid.UUID, user_id: uuid.UUID | None, label: str) -> None:
         if user_id is None:
@@ -36,10 +39,25 @@ class MeetingService:
             raise not_found("Meeting not found in this school")
         return meeting
 
-    async def list_meetings(self, school_id: uuid.UUID, status: str | None = None) -> list[Meeting]:
+    async def list_meetings(
+        self,
+        school_id: uuid.UUID,
+        current_user: User,
+        status: str | None = None,
+    ) -> list[Meeting]:
         stmt = select(Meeting).where(Meeting.school_id == school_id)
         if status is not None:
             stmt = stmt.where(Meeting.status == status)
+        # Staff who manage meetings (Headmaster) see all; a guardian only sees
+        # meetings they are a party to (their own children's parent-teacher
+        # meetings). Super Admin sees all.
+        is_staff = PermissionService.is_super_admin(
+            current_user
+        ) or await self.perms.has_permission(
+            current_user, Module.MEETINGS, PermissionAction.EDIT
+        )
+        if not is_staff:
+            stmt = stmt.where(Meeting.guardian_id == current_user.id)
         stmt = stmt.order_by(Meeting.scheduled_at.desc())
         return list((await self.db.execute(stmt)).scalars().all())
 

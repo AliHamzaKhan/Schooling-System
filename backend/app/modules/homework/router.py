@@ -7,7 +7,12 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import CurrentUser, DbDep, require_school_permission
+from app.core.deps import (
+    CurrentUser,
+    DbDep,
+    require_school_permission,
+    verify_student_access,
+)
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.homework import schemas
 from app.modules.homework.service import HomeworkService
@@ -80,7 +85,7 @@ async def grade_submission(
     return await HomeworkService(db).grade(school_id, submission_id, data, current_user.id)
 
 
-@router.get("/students/{student_id}/submissions", response_model=list[schemas.SubmissionOut], dependencies=[_view])
+@router.get("/students/{student_id}/submissions", response_model=list[schemas.SubmissionOut], dependencies=[_view, Depends(verify_student_access)])
 async def student_submissions(
     school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
 ) -> list[schemas.SubmissionOut]:

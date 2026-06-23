@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import DbDep, require_school_permission
+from app.core.deps import CurrentUser, DbDep, require_school_permission
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.meetings import schemas
 from app.modules.meetings.service import MeetingService
@@ -22,8 +22,13 @@ async def schedule_meeting(school_id: uuid.UUID, data: schemas.MeetingCreate, db
 
 
 @router.get("", response_model=list[schemas.MeetingOut], dependencies=[_view])
-async def list_meetings(school_id: uuid.UUID, db: DbDep, status: str | None = Query(default=None)) -> list[schemas.MeetingOut]:
-    return await MeetingService(db).list_meetings(school_id, status)
+async def list_meetings(
+    school_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+    status: str | None = Query(default=None),
+) -> list[schemas.MeetingOut]:
+    return await MeetingService(db).list_meetings(school_id, current_user, status)
 
 
 @router.patch("/{meeting_id}", response_model=schemas.MeetingOut, dependencies=[_edit])

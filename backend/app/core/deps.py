@@ -83,6 +83,47 @@ def require_permission(module: Module, action: PermissionAction):
     return checker
 
 
+async def verify_student_access(
+    school_id: uuid.UUID,
+    student_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbDep,
+) -> User:
+    """Guard for per-student records under /schools/{school_id}/.../{student_id}.
+
+    Access is granted to: the Super Admin; a staff member of the school holding
+    STUDENT_MANAGEMENT view (Headmaster/Teacher); the student themselves; and a
+    guardian linked to that student. Everyone else is rejected — this both
+    enables guardian access to their children and prevents one student/guardian
+    from reading another's records.
+    """
+    from app.models.associations import guardian_students
+
+    if PermissionService.is_super_admin(user):
+        return user
+    if user.school_id != school_id:
+        raise forbidden("You can only act within your own school")
+    # The student viewing their own records.
+    if user.id == student_id:
+        return user
+    # A guardian linked to this student.
+    linked = await db.scalar(
+        select(guardian_students.c.student_id).where(
+            guardian_students.c.guardian_id == user.id,
+            guardian_students.c.student_id == student_id,
+            guardian_students.c.school_id == school_id,
+        )
+    )
+    if linked is not None:
+        return user
+    # School staff who manage students.
+    if await PermissionService(db).has_permission(
+        user, Module.STUDENT_MANAGEMENT, PermissionAction.VIEW
+    ):
+        return user
+    raise forbidden("You do not have access to this student's records")
+
+
 def require_school_permission(module: Module, action: PermissionAction):
     """Dependency factory for routes under /schools/{school_id}.
 

@@ -8,7 +8,12 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import CurrentUser, DbDep, require_school_permission
+from app.core.deps import (
+    CurrentUser,
+    DbDep,
+    require_school_permission,
+    verify_student_access,
+)
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.attendance import schemas
 from app.modules.attendance.service import AttendanceService
@@ -110,7 +115,7 @@ async def attendance_summary(
 @router.get(
     "/students/{student_id}/attendance",
     response_model=list[schemas.AttendanceRecordOut],
-    dependencies=[_att_view],
+    dependencies=[_att_view, Depends(verify_student_access)],
 )
 async def student_attendance(
     school_id: uuid.UUID,

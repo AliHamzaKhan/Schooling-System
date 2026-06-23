@@ -84,6 +84,7 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, dict[Module, set[PermissionAction]]] = {
         Module.HOMEWORK: {_A.VIEW},
         Module.FEE_MANAGEMENT: {_A.VIEW},
         Module.TIMETABLE: {_A.VIEW},
+        Module.MEETINGS: {_A.VIEW},
         Module.MESSAGING: {_A.VIEW, _A.CREATE},
     },
     SystemRole.STUDENT.value: {

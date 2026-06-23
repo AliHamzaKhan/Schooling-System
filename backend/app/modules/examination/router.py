@@ -9,7 +9,12 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import CurrentUser, DbDep, require_school_permission
+from app.core.deps import (
+    CurrentUser,
+    DbDep,
+    require_school_permission,
+    verify_student_access,
+)
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.examination import schemas
 from app.modules.examination.service import ExaminationService
@@ -103,7 +108,7 @@ async def list_results(school_id: uuid.UUID, exam_id: uuid.UUID, db: DbDep) -> l
     return await ExaminationService(db).list_results(school_id, exam_id)
 
 
-@router.get("/{exam_id}/students/{student_id}/report-card", response_model=schemas.ReportCard, dependencies=[_result_view])
+@router.get("/{exam_id}/students/{student_id}/report-card", response_model=schemas.ReportCard, dependencies=[_result_view, Depends(verify_student_access)])
 async def report_card(
     school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
 ) -> schemas.ReportCard:

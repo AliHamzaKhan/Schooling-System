@@ -19,6 +19,7 @@ from app.modules.hostel.router import router as hostel_router
 from app.modules.hr.router import router as hr_router
 from app.modules.inventory.router import router as inventory_router
 from app.modules.leave.router import router as leave_router
+from app.modules.guardians.router import router as guardians_router
 from app.modules.meetings.router import router as meetings_router
 from app.modules.online_classes.router import router as online_classes_router
 from app.modules.library.router import router as library_router
@@ -70,6 +71,7 @@ app.include_router(online_classes_router, prefix=settings.API_V1_PREFIX)
 app.include_router(ai_router, prefix=settings.API_V1_PREFIX)
 app.include_router(leave_router, prefix=settings.API_V1_PREFIX)
 app.include_router(meetings_router, prefix=settings.API_V1_PREFIX)
+app.include_router(guardians_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health", tags=["Health"])
