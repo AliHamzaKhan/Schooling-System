@@ -129,16 +129,35 @@ class TeacherApiService {
     );
   }
 
+  /// Live message threads from school broadcasts
+  /// (`/schools/{id}/communication/broadcasts`, `MessageOut` list). The backend
+  /// has no per-thread sender/party or read state, so every item maps to
+  /// [ThreadParty.parent] with the broadcast title as the sender; `time` shows
+  /// the sent/scheduled timestamp. [query]/[party] filter client-side.
   Future<ApiResponse<List<MessageThread>>> fetchMessages({
     String query = '',
     String? party,
   }) {
+    final q = query.trim().toLowerCase();
     return _api.request<List<MessageThread>>(
       method: HttpMethod.get,
-      path: TeacherEndpoints.messages,
-      query: {'q': query, 'party': ?party},
+      path: TeacherEndpoints.broadcasts(_sid),
       parser: (json) => (json as List)
-          .map((e) => MessageThread.fromJson(e as Map<String, dynamic>))
+          .cast<Map<String, dynamic>>()
+          .map((m) {
+            final body = m['body'] as String? ?? '';
+            return MessageThread(
+              id: '${m['id']}',
+              senderName: m['title'] as String? ?? 'Broadcast',
+              preview: body,
+              time: (m['sent_at'] ?? m['scheduled_at']) as String? ?? '',
+              party: ThreadParty.parent,
+            );
+          })
+          .where((t) =>
+              q.isEmpty ||
+              t.senderName.toLowerCase().contains(q) ||
+              t.preview.toLowerCase().contains(q))
           .toList(),
     );
   }

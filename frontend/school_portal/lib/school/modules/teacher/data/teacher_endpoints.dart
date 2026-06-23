@@ -30,4 +30,6 @@ class TeacherEndpoints {
       '/schools/$schoolId/academic/classes';
   static String homeworkAssignments(String schoolId) =>
       '/schools/$schoolId/homework/assignments';
+  static String broadcasts(String schoolId) =>
+      '/schools/$schoolId/communication/broadcasts';
 }

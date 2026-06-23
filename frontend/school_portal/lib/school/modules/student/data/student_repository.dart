@@ -26,9 +26,8 @@ class StudentRepository {
   StudentRepository({StudentApiService? api})
       : _api = api ?? StudentApiService();
 
-  // Attendance, notifications, and single-assignment detail have no usable
-  // backend mapping (attendance needs an academic student-record id with no
-  // user link; there's no GET /assignments/{id}) → stay on mock.
+  // Only single-assignment detail lacks a backend mapping (there's no
+  // GET /assignments/{id}) → stays on mock. Everything else is wired live.
   static const bool _useMock = true;
 
   // Per-feature live flags: real `/schools/{id}/...` calls (with documented
@@ -36,9 +35,11 @@ class StudentRepository {
   static const bool _liveAssignments = true;
   static const bool _liveExams = true;
   static const bool _liveSubmit = true;
+  static const bool _liveAttendance = true;
+  static const bool _liveNotifications = true;
 
   Future<ApiResponse<AttendanceData>> loadAttendance() =>
-      _useMock ? _attendanceMock.load() : _api.fetchAttendance();
+      _liveAttendance ? _api.fetchAttendance() : _attendanceMock.load();
 
   Future<ApiResponse<AssignmentsData>> loadAssignments() =>
       _liveAssignments ? _api.fetchAssignments() : _assignmentsMock.load();
@@ -50,7 +51,7 @@ class StudentRepository {
       _liveExams ? _api.fetchExams() : _examsMock.load();
 
   Future<ApiResponse<List<NotificationItem>>> loadNotifications() =>
-      _useMock ? _notificationsMock.load() : _api.fetchNotifications();
+      _liveNotifications ? _api.fetchNotifications() : _notificationsMock.load();
 
   Future<ApiResponse<void>> submitAssignment(String id,
       {String? notes, String? filename}) async {

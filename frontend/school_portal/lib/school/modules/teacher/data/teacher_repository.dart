@@ -45,6 +45,7 @@ class TeacherRepository {
   // documented field losses — see TeacherApiService). Flip to false to revert.
   static const bool _liveClasses = true;
   static const bool _liveAssignments = true;
+  static const bool _liveCommunication = true;
 
   Future<ApiResponse<DashboardData>> loadDashboard() =>
       _useMock ? _dashboardMock.load() : _api.fetchDashboard();
@@ -77,9 +78,9 @@ class TeacherRepository {
     String query = '',
     ThreadParty? party,
   }) =>
-      _useMock
-          ? _communicationMock.fetch(query: query, party: party)
-          : _api.fetchMessages(query: query, party: party?.name);
+      _liveCommunication
+          ? _api.fetchMessages(query: query, party: party?.name)
+          : _communicationMock.fetch(query: query, party: party);
 
   Future<ApiResponse<Gradebook>> loadGradebook(String? examId) =>
       _useMock

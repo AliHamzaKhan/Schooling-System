@@ -16,6 +16,10 @@ import '../features/notifications/models/notification_item.dart';
 import '../features/notifications/models/notification_repository.dart';
 import '../features/performance/models/performance_data.dart';
 import '../features/performance/models/performance_repository.dart';
+import '../features/report_card/models/report_card_data.dart';
+import '../features/report_card/models/report_card_repository.dart';
+import '../features/timetable/models/timetable_data.dart';
+import '../features/timetable/models/timetable_repository.dart';
 import '../shared/models/child.dart';
 import 'guardian_api_service.dart';
 
@@ -39,24 +43,24 @@ class GuardianRepository {
   final _homeworkMock = HomeworkRepository();
   final _examMock = ExamRepository();
   final _meetingMock = MeetingRepository();
+  final _reportCardMock = ReportCardRepository();
+  final _timetableMock = TimetableRepository();
   final _notificationMock = NotificationRepository();
 
   GuardianRepository({GuardianApiService? api})
       : _api = api ?? GuardianApiService();
 
-  /// When true, methods return bundled mock data instead of hitting the API.
-  ///
-  /// Stays true for children + all per-child features: the backend has NO
-  /// guardian↔child linkage or per-child guardian endpoints, so they cannot be
-  /// wired. Only [loadNotifications] maps (school broadcasts).
-  static const bool _useMock = true;
-
-  /// Guardian-wide notifications are wired live to school broadcasts. Flip to
-  /// false to revert to mock.
+  /// Every Guardian feature is now wired to live backend data: children come
+  /// from `/me/children` (the guardian↔child link), and each per-child feature
+  /// reads the same school-scoped resources a student uses, scoped to the
+  /// child's `student_id` (see [GuardianApiService] for the mapping + losses).
+  /// The bundled mock fixtures remain only as the `false`-branch fallback for
+  /// each flag below.
+  static const bool _live = true;
   static const bool _liveNotifications = true;
 
   Future<ApiResponse<List<Child>>> loadChildren() async {
-    if (!_useMock) return _api.fetchChildren();
+    if (_live) return _api.fetchChildren();
     await Future<void>.delayed(const Duration(milliseconds: 250));
     return ApiResponse.ok(_childrenMock);
   }
@@ -83,25 +87,31 @@ class GuardianRepository {
   ];
 
   Future<ApiResponse<List<ActivityItem>>> loadDashboardFeed(String childId) =>
-      _useMock ? _dashboardMock.loadFeed(childId) : _api.fetchDashboardFeed(childId);
+      _live ? _api.fetchDashboardFeed(childId) : _dashboardMock.loadFeed(childId);
 
   Future<ApiResponse<GuardianAttendanceData>> loadAttendance(String childId) =>
-      _useMock ? _attendanceMock.load(childId) : _api.fetchAttendance(childId);
+      _live ? _api.fetchAttendance(childId) : _attendanceMock.load(childId);
 
   Future<ApiResponse<PerformanceData>> loadPerformance(String childId) =>
-      _useMock ? _performanceMock.load(childId) : _api.fetchPerformance(childId);
+      _live ? _api.fetchPerformance(childId) : _performanceMock.load(childId);
 
   Future<ApiResponse<FeeData>> loadFees(String childId) =>
-      _useMock ? _feeMock.load(childId) : _api.fetchFees(childId);
+      _live ? _api.fetchFees(childId) : _feeMock.load(childId);
 
   Future<ApiResponse<HomeworkData>> loadHomework(String childId) =>
-      _useMock ? _homeworkMock.load(childId) : _api.fetchHomework(childId);
+      _live ? _api.fetchHomework(childId) : _homeworkMock.load(childId);
 
   Future<ApiResponse<ExamData>> loadExams(String childId) =>
-      _useMock ? _examMock.load(childId) : _api.fetchExams(childId);
+      _live ? _api.fetchExams(childId) : _examMock.load(childId);
 
   Future<ApiResponse<MeetingData>> loadMeetings(String childId) =>
-      _useMock ? _meetingMock.load(childId) : _api.fetchMeetings(childId);
+      _live ? _api.fetchMeetings(childId) : _meetingMock.load(childId);
+
+  Future<ApiResponse<ReportCardData>> loadReportCard(String childId) =>
+      _live ? _api.fetchReportCard(childId) : _reportCardMock.load(childId);
+
+  Future<ApiResponse<TimetableData>> loadTimetable(String childId) =>
+      _live ? _api.fetchTimetable(childId) : _timetableMock.load(childId);
 
   Future<ApiResponse<List<NotificationItem>>> loadNotifications() =>
       _liveNotifications ? _api.fetchNotifications() : _notificationMock.load();

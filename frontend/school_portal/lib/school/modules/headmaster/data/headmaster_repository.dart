@@ -51,47 +51,57 @@ class HeadmasterRepository {
   HeadmasterRepository({HeadmasterApiService? api})
       : _api = api ?? HeadmasterApiService();
 
-  // Aggregate screens (dashboard/overview/attendance/fees/timetable/reports/
-  // announcements) have no matching backend yet → stay on mock.
-  static const bool _useMock = true;
+  // Every Headmaster feature is wired to real `/schools/{id}/...` endpoints
+  // (see the per-feature flags below and HeadmasterApiService for the mapping
+  // + documented field losses). The mock fixtures are kept only as the
+  // `false`-branch fallback for each flag.
 
-  // Per-feature live flags: these map to real `/schools/{id}/...` endpoints.
-  // People directories and classes/exams are wired live (with documented field
-  // losses — see HeadmasterApiService). Flip back to false to revert to mock.
+  // Per-feature live flags: these map to real `/schools/{id}/...` endpoints
+  // (with documented field losses — see HeadmasterApiService). Flip back to
+  // false to revert any one feature to its bundled mock fixture.
   static const bool _liveDirectory = true; // teachers / students / guardians
   static const bool _liveClasses = true;
   static const bool _liveExams = true;
+  static const bool _liveDashboard = true;
+  static const bool _liveOverview = true;
+  static const bool _liveAttendance = true;
+  static const bool _liveFees = true;
+  static const bool _liveTimetable = true;
+  static const bool _liveReports = true;
+  static const bool _liveAnnouncements = true;
 
   Future<ApiResponse<DashboardData>> loadDashboard() =>
-      _useMock ? _dashboardMock.load() : _api.fetchDashboard();
+      _liveDashboard ? _api.fetchDashboard() : _dashboardMock.load();
 
   Future<ApiResponse<OverviewData>> loadOverview() =>
-      _useMock ? _overviewMock.load() : _api.fetchOverview();
+      _liveOverview ? _api.fetchOverview() : _overviewMock.load();
 
   Future<ApiResponse<AttendanceData>> loadAttendance(AttendanceRange range) =>
-      _useMock ? _attendanceMock.load(range) : _api.fetchAttendance(range);
+      _liveAttendance
+          ? _api.fetchAttendance(range)
+          : _attendanceMock.load(range);
 
   Future<ApiResponse<ExamsData>> loadExams() =>
       _liveExams ? _api.fetchExams() : _examsMock.load();
 
   Future<ApiResponse<FeesData>> loadFees() =>
-      _useMock ? _feesMock.load() : _api.fetchFees();
+      _liveFees ? _api.fetchFees() : _feesMock.load();
 
   Future<ApiResponse<ClassDirectoryData>> loadClasses() =>
       _liveClasses ? _api.fetchClasses() : _classesMock.load();
 
   Future<ApiResponse<TimetableData>> loadTimetable() =>
-      _useMock ? _timetableMock.load() : _api.fetchTimetable();
+      _liveTimetable ? _api.fetchTimetable() : _timetableMock.load();
 
   Future<ApiResponse<ReportsData>> loadReports() =>
-      _useMock ? _reportsMock.load() : _api.fetchReports();
+      _liveReports ? _api.fetchReports() : _reportsMock.load();
 
   Future<ApiResponse<List<Announcement>>> loadAnnouncements({
     String filter = 'All Updates',
   }) =>
-      _useMock
-          ? _announcementsMock.fetch(filter: filter)
-          : _api.fetchAnnouncements(filter: filter);
+      _liveAnnouncements
+          ? _api.fetchAnnouncements(filter: filter)
+          : _announcementsMock.fetch(filter: filter);
 
   Future<ApiResponse<List<Teacher>>> loadTeachers({String query = ''}) =>
       _liveDirectory

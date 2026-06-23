@@ -18,12 +18,70 @@ class StudentApiService {
   /// The signed-in student's school id — every live endpoint is scoped to it.
   String get _sid => Get.find<AuthService>().schoolId ?? '';
 
-  Future<ApiResponse<AttendanceData>> fetchAttendance() {
-    return _api.request<AttendanceData>(
+  /// The signed-in student's own user id (attendance records key on users.id).
+  String get _uid =>
+      Get.find<AuthService>().currentUser.value?['id']?.toString() ?? '';
+
+  static const _weekdayNames = [
+    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', //
+  ];
+
+  /// Live attendance from `/schools/{id}/students/{my_user_id}/attendance`
+  /// (list of `AttendanceRecordOut`). The backend returns raw daily records, so
+  /// the view-model is aggregated client-side: monthly average = (present+late)
+  /// / total, the week strip = the last 7 records (late counts as a half bar),
+  /// recent absences and late marks come straight from the records. The backend
+  /// has no previous-period figure, so `deltaPercent` is 0 and late `minutes`
+  /// are unknown (0).
+  Future<ApiResponse<AttendanceData>> fetchAttendance() async {
+    final res = await _api.request<List<Map<String, dynamic>>>(
       method: HttpMethod.get,
-      path: StudentEndpoints.attendance,
-      parser: (json) => AttendanceData.fromJson(json as Map<String, dynamic>),
+      path: StudentEndpoints.studentAttendance(_sid, _uid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
     );
+    if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
+    final records = res.data ?? [];
+    String statusOf(Map<String, dynamic> r) =>
+        (r['status'] as String? ?? '').toLowerCase();
+    double ratioOf(String s) =>
+        s == 'present' || s == 'excused' ? 1 : (s == 'late' ? 0.5 : 0);
+
+    final present =
+        records.where((r) => ['present', 'late', 'excused'].contains(statusOf(r)));
+    final monthlyAverage =
+        records.isEmpty ? 0 : (present.length * 100 / records.length).round();
+
+    final sorted = [...records]..sort((a, b) =>
+        '${a['attendance_date']}'.compareTo('${b['attendance_date']}'));
+    final week = sorted.length <= 7 ? sorted : sorted.sublist(sorted.length - 7);
+
+    return ApiResponse.ok(AttendanceData(
+      monthlyAverage: monthlyAverage,
+      deltaPercent: 0,
+      week: week.map((r) {
+        final date = DateTime.tryParse('${r['attendance_date']}');
+        final label =
+            date == null ? '' : _weekdayNames[(date.weekday - 1) % 7];
+        return DayBar(label, ratioOf(statusOf(r)));
+      }).toList(),
+      recentAbsences: sorted
+          .where((r) => statusOf(r) == 'absent')
+          .map((r) => '${r['attendance_date']}')
+          .toList()
+          .reversed
+          .take(5)
+          .toList(),
+      lateMarks: sorted
+          .where((r) => statusOf(r) == 'late')
+          .map((r) => LateMark(
+              date: '${r['attendance_date']}',
+              period: '',
+              minutes: 0))
+          .toList()
+          .reversed
+          .take(5)
+          .toList(),
+    ));
   }
 
   /// Live assignments from `/schools/{id}/homework/assignments` (`AssignmentOut`
@@ -133,13 +191,26 @@ class StudentApiService {
     );
   }
 
+  /// Live notifications from school broadcasts
+  /// (`/schools/{id}/communication/broadcasts`, `MessageOut` list). The backend
+  /// has no per-student read state or category, so every item maps to
+  /// [NotificationKind.announcement] and `unread` defaults false; `timeAgo`
+  /// shows the sent/scheduled timestamp.
   Future<ApiResponse<List<NotificationItem>>> fetchNotifications() {
     return _api.request<List<NotificationItem>>(
       method: HttpMethod.get,
-      path: StudentEndpoints.notifications,
-      parser: (json) => (json as List)
-          .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      path: StudentEndpoints.broadcasts(_sid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>().map((m) {
+        final body = m['body'] as String? ?? '';
+        return NotificationItem(
+          id: '${m['id']}',
+          title: m['title'] as String? ??
+              (body.length > 40 ? '${body.substring(0, 40)}…' : body),
+          body: body,
+          timeAgo: (m['sent_at'] ?? m['scheduled_at']) as String? ?? '',
+          kind: NotificationKind.announcement,
+        );
+      }).toList(),
     );
   }
 

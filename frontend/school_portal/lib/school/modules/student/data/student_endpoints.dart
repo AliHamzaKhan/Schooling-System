@@ -19,4 +19,8 @@ class StudentEndpoints {
   static String examsList(String schoolId) => '/schools/$schoolId/exams';
   static String submitAssignment(String schoolId, String assignmentId) =>
       '/schools/$schoolId/homework/assignments/$assignmentId/submissions';
+  static String broadcasts(String schoolId) =>
+      '/schools/$schoolId/communication/broadcasts';
+  static String studentAttendance(String schoolId, String studentId) =>
+      '/schools/$schoolId/students/$studentId/attendance';
 }

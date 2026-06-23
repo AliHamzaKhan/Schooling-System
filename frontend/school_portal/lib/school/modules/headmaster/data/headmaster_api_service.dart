@@ -27,29 +27,115 @@ class HeadmasterApiService {
   /// The signed-in headmaster's school id — every live endpoint is scoped to it.
   String get _sid => Get.find<AuthService>().schoolId ?? '';
 
-  Future<ApiResponse<DashboardData>> fetchDashboard() {
-    return _api.request<DashboardData>(
-      method: HttpMethod.get,
-      path: HeadmasterEndpoints.dashboard,
-      parser: (json) => DashboardData.fromJson(json as Map<String, dynamic>),
-    );
+  /// Raw GET returning the decoded JSON untouched (helper for aggregate
+  /// methods that combine several backend endpoints into one view-model).
+  Future<ApiResponse<dynamic>> _get(String path, {Map<String, String>? query}) =>
+      _api.request<dynamic>(
+        method: HttpMethod.get,
+        path: path,
+        query: query,
+        parser: (json) => json,
+      );
+
+  String get _userName =>
+      Get.find<AuthService>().currentUser.value?['full_name'] as String? ?? '';
+
+  String _money(num v) =>
+      '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+
+  /// Headmaster Dashboard — KPI metrics from `/reports/overview` plus recent
+  /// announcements from `/communication/broadcasts`. The backend exposes no
+  /// pending-approval queue, so [DashboardData.approvals] stays empty; trend
+  /// percentages are not tracked server-side (default 0).
+  Future<ApiResponse<DashboardData>> fetchDashboard() async {
+    final ov = await _get(HeadmasterEndpoints.reportsOverview(_sid));
+    if (!ov.success) return ApiResponse.fail(ov.error ?? 'Failed to load');
+    final o = (ov.data as Map).cast<String, dynamic>();
+    final bc = await _get(HeadmasterEndpoints.broadcasts(_sid),
+        query: {'limit': '5'});
+    final announcements = bc.success
+        ? (bc.data as List).cast<Map<String, dynamic>>().map((m) {
+            final body = m['body'] as String? ?? '';
+            return RecentAnnouncementSummary.fromJson({
+              'id': m['id'],
+              'title': m['title'] ??
+                  (body.length > 40 ? '${body.substring(0, 40)}…' : body),
+              'preview': body,
+              'time_ago': (m['sent_at'] ?? m['scheduled_at']) ?? '',
+            });
+          }).toList()
+        : <RecentAnnouncementSummary>[];
+    return ApiResponse.ok(DashboardData(
+      greeting: _userName.isEmpty ? 'Welcome back' : 'Welcome back, $_userName',
+      date: '',
+      metrics: [
+        DashboardMetric.fromJson(
+            {'label': 'Total Students', 'value': o['students']}),
+        DashboardMetric.fromJson({'label': 'Teachers', 'value': o['teachers']}),
+        DashboardMetric.fromJson({'label': 'Classes', 'value': o['classes']}),
+        DashboardMetric.fromJson({'label': 'Subjects', 'value': o['subjects']}),
+      ],
+      approvals: const [],
+      announcements: announcements,
+    ));
   }
 
-  Future<ApiResponse<OverviewData>> fetchOverview() {
-    return _api.request<OverviewData>(
-      method: HttpMethod.get,
-      path: HeadmasterEndpoints.overview,
-      parser: (json) => OverviewData.fromJson(json as Map<String, dynamic>),
-    );
+  /// School Overview — identity from `/schools/{id}` and KPI pulse from
+  /// `/reports/overview`. The backend has no events feed, so the Upcoming
+  /// Events carousel stays empty.
+  Future<ApiResponse<OverviewData>> fetchOverview() async {
+    final ov = await _get(HeadmasterEndpoints.reportsOverview(_sid));
+    if (!ov.success) return ApiResponse.fail(ov.error ?? 'Failed to load');
+    final o = (ov.data as Map).cast<String, dynamic>();
+    final sc = await _get(HeadmasterEndpoints.school(_sid));
+    final s = sc.success
+        ? (sc.data as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    return ApiResponse.ok(OverviewData(
+      school: SchoolIdentity.fromJson({
+        'name': s['name'] ?? '',
+        'address': s['address'] ?? '',
+        'principal': _userName,
+      }),
+      pulse: [
+        PulseMetric.fromJson({'label': 'Students', 'value': o['students']}),
+        PulseMetric.fromJson({'label': 'Teachers', 'value': o['teachers']}),
+        PulseMetric.fromJson({'label': 'Guardians', 'value': o['guardians']}),
+        PulseMetric.fromJson({'label': 'Classes', 'value': o['classes']}),
+        PulseMetric.fromJson({'label': 'Sections', 'value': o['sections']}),
+        PulseMetric.fromJson({'label': 'Subjects', 'value': o['subjects']}),
+      ],
+      events: const [],
+    ));
   }
 
-  Future<ApiResponse<AttendanceData>> fetchAttendance(AttendanceRange range) {
-    return _api.request<AttendanceData>(
-      method: HttpMethod.get,
-      path: HeadmasterEndpoints.attendance,
-      query: {'range': range.name},
-      parser: (json) => AttendanceData.fromJson(json as Map<String, dynamic>),
-    );
+  /// Attendance Overview — from `/reports/attendance` (present_rate + status
+  /// counts). The backend aggregate has no per-grade breakdown, teacher
+  /// attendance, or time-series trend, so those render empty.
+  Future<ApiResponse<AttendanceData>> fetchAttendance(
+      AttendanceRange range) async {
+    final res = await _get(HeadmasterEndpoints.reportsAttendance(_sid));
+    if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
+    final a = (res.data as Map).cast<String, dynamic>();
+    final counts = ((a['counts'] as Map?) ?? const {}).cast<String, dynamic>();
+    final rate = ((a['present_rate'] as num?)?.toDouble() ?? 0).round();
+    return ApiResponse.ok(AttendanceData(
+      metrics: [
+        AttendanceMetric.fromJson({'label': 'Present Rate', 'value': '$rate%'}),
+        AttendanceMetric.fromJson(
+            {'label': 'Present', 'value': counts['present'] ?? 0}),
+        AttendanceMetric.fromJson(
+            {'label': 'Absent', 'value': counts['absent'] ?? 0}),
+        AttendanceMetric.fromJson(
+            {'label': 'Records', 'value': a['total_records'] ?? 0}),
+      ],
+      studentRatePercent: rate,
+      teacherRatePercent: 0,
+      trendLabels: const [],
+      studentTrend: const [],
+      teacherTrend: const [],
+      grades: const [],
+    ));
   }
 
   /// Live exams from `/schools/{id}/exams` (list of `ExamOut`: name, status,
@@ -96,12 +182,43 @@ class HeadmasterApiService {
         _ => ExamStatus.upcoming,
       };
 
-  Future<ApiResponse<FeesData>> fetchFees() {
-    return _api.request<FeesData>(
-      method: HttpMethod.get,
-      path: HeadmasterEndpoints.fees,
-      parser: (json) => FeesData.fromJson(json as Map<String, dynamic>),
-    );
+  /// Fee Management — totals from `/reports/finance` and the overdue list from
+  /// `/fees/invoices` (filtered to `is_overdue`). Invoices carry no student
+  /// name/grade (only `student_id`), so overdue rows show the id-derived title;
+  /// trend % is not tracked server-side.
+  Future<ApiResponse<FeesData>> fetchFees() async {
+    final fin = await _get(HeadmasterEndpoints.reportsFinance(_sid));
+    if (!fin.success) return ApiResponse.fail(fin.error ?? 'Failed to load');
+    final f = (fin.data as Map).cast<String, dynamic>();
+    final inv = await _get(HeadmasterEndpoints.feesInvoices(_sid),
+        query: {'limit': '200'});
+    final overdue = inv.success
+        ? (inv.data as List)
+            .cast<Map<String, dynamic>>()
+            .where((i) => i['is_overdue'] as bool? ?? false)
+            .map((i) => OverduePayment.fromJson({
+                  'id': i['id'],
+                  'student_name': i['title'] ?? 'Invoice',
+                  'grade': '',
+                  'overdue_days': 0,
+                  'amount': i['balance'] ?? 0,
+                }))
+            .toList()
+        : <OverduePayment>[];
+    final collected = (f['total_collected'] as num?)?.toDouble() ?? 0;
+    final billed = (f['total_billed'] as num?)?.toDouble() ?? 0;
+    final outstanding = (f['total_outstanding'] as num?)?.toDouble() ?? 0;
+    final rate = (f['collection_rate'] as num?)?.toDouble() ?? 0;
+    return ApiResponse.ok(FeesData(
+      term: '',
+      totalCollected: _money(collected),
+      trendPercent: 0,
+      progressPercent: rate,
+      targetLabel: 'of ${_money(billed)} billed',
+      outstandingAmount: _money(outstanding),
+      outstandingCount: (f['overdue_count'] as num?)?.toInt() ?? 0,
+      overdue: overdue,
+    ));
   }
 
   /// Live classes from `/schools/{id}/academic/classes` (list of `ClassOut`:
@@ -149,32 +266,160 @@ class HeadmasterApiService {
     return GradeLevel.primary;
   }
 
-  Future<ApiResponse<TimetableData>> fetchTimetable() {
-    return _api.request<TimetableData>(
-      method: HttpMethod.get,
-      path: HeadmasterEndpoints.timetable,
-      parser: (json) => TimetableData.fromJson(json as Map<String, dynamic>),
-    );
+  static const _dayNames = [
+    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', //
+  ];
+
+  /// Timetable Management — built from `/academic/timetable` (slots) with
+  /// subject names resolved via `/academic/subjects` and teacher names via
+  /// `/users?role_code=teacher`. Slots are grouped into rows by start–end time;
+  /// each lesson is keyed by its weekday. `classLabel` shows the room (the slot
+  /// references a section id, not a printable class label).
+  Future<ApiResponse<TimetableData>> fetchTimetable() async {
+    final res = await _get(HeadmasterEndpoints.academicTimetable(_sid));
+    if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
+    final slots = (res.data as List).cast<Map<String, dynamic>>();
+
+    final subjRes = await _get(HeadmasterEndpoints.academicSubjects(_sid));
+    final subjects = <String, String>{
+      if (subjRes.success)
+        for (final s in (subjRes.data as List).cast<Map<String, dynamic>>())
+          '${s['id']}': s['name'] as String? ?? '',
+    };
+    final teacherRes = await _get(HeadmasterEndpoints.users(_sid),
+        query: {'role_code': 'teacher', 'limit': '200'});
+    final teachers = <String, String>{
+      if (teacherRes.success)
+        for (final u in (teacherRes.data as List).cast<Map<String, dynamic>>())
+          '${u['id']}': u['full_name'] as String? ?? '',
+    };
+
+    final days = <String>{};
+    final byTime = <String, TimeSlot>{};
+    for (final s in slots) {
+      final dow = (s['day_of_week'] as num?)?.toInt() ?? 0;
+      final day = _dayNames[dow % 7];
+      days.add(day);
+      final start = '${s['start_time'] ?? ''}';
+      final end = '${s['end_time'] ?? ''}';
+      final label = '${start.padRight(5).substring(0, 5)}'
+          '–${end.padRight(5).substring(0, 5)}';
+      final lesson = Lesson(
+        subject: subjects['${s['subject_id']}'] ?? 'Subject',
+        classLabel: s['room'] as String? ?? '',
+        teacher: teachers['${s['teacher_id']}'] ?? '',
+        color: AppColors.primary,
+      );
+      final existing = byTime[label];
+      byTime[label] = TimeSlot(
+        label: label,
+        lessons: {...?existing?.lessons, day: lesson},
+      );
+    }
+    final orderedDays = _dayNames.where(days.contains).toList();
+    final orderedSlots = byTime.values.toList()
+      ..sort((a, b) => a.label.compareTo(b.label));
+    return ApiResponse.ok(
+        TimetableData(days: orderedDays, slots: orderedSlots));
   }
 
-  Future<ApiResponse<ReportsData>> fetchReports() {
-    return _api.request<ReportsData>(
-      method: HttpMethod.get,
-      path: HeadmasterEndpoints.reports,
-      parser: (json) => ReportsData.fromJson(json as Map<String, dynamic>),
-    );
+  /// Reports & Analytics — combines `/reports/academic` (per-exam averages →
+  /// performance chart), `/reports/enrollment` (per-class counts → enrollment
+  /// bars), `/reports/finance` and `/reports/attendance` (KPI tiles). The
+  /// backend has no previous-year series, so that line stays empty.
+  Future<ApiResponse<ReportsData>> fetchReports() async {
+    final acaRes = await _get(HeadmasterEndpoints.reportsAcademic(_sid));
+    if (!acaRes.success) return ApiResponse.fail(acaRes.error ?? 'Failed');
+    final aca = (acaRes.data as Map).cast<String, dynamic>();
+    final exams = ((aca['exams'] as List?) ?? []).cast<Map<String, dynamic>>();
+
+    final enrRes = await _get(HeadmasterEndpoints.reportsEnrollment(_sid));
+    final enr = enrRes.success
+        ? (enrRes.data as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final finRes = await _get(HeadmasterEndpoints.reportsFinance(_sid));
+    final fin = finRes.success
+        ? (finRes.data as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final attRes = await _get(HeadmasterEndpoints.reportsAttendance(_sid));
+    final att = attRes.success
+        ? (attRes.data as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+
+    final avgScore = exams.isEmpty
+        ? 0.0
+        : exams
+                .map((e) => (e['average_percentage'] as num?)?.toDouble() ?? 0)
+                .reduce((a, b) => a + b) /
+            exams.length;
+
+    return ApiResponse.ok(ReportsData(
+      metrics: [
+        ReportMetric.fromJson(
+            {'label': 'Avg Score', 'value': '${avgScore.round()}%'}),
+        ReportMetric.fromJson({
+          'label': 'Collection',
+          'value': '${((fin['collection_rate'] as num?)?.toDouble() ?? 0).round()}%'
+        }),
+        ReportMetric.fromJson({
+          'label': 'Attendance',
+          'value': '${((att['present_rate'] as num?)?.toDouble() ?? 0).round()}%'
+        }),
+        ReportMetric.fromJson(
+            {'label': 'Students', 'value': enr['total_students'] ?? 0}),
+      ],
+      currentYearScores: exams
+          .map((e) => (e['average_percentage'] as num?)?.toDouble() ?? 0)
+          .toList(),
+      previousYearScores: const [],
+      performanceLabels:
+          exams.map((e) => e['name'] as String? ?? '').toList(),
+      enrollmentByYear: {
+        for (final c in ((enr['classes'] as List?) ?? [])
+            .cast<Map<String, dynamic>>())
+          '${c['class_name']}': (c['students'] as num?)?.toInt() ?? 0,
+      },
+    ));
   }
 
+  /// Announcements Hub — from school broadcasts
+  /// (`/schools/{id}/communication/broadcasts`). Audience maps to the scope pill
+  /// (teachers → Teachers Only, else School-Wide); the backend has no event
+  /// category or attachments. [filter] is applied client-side.
   Future<ApiResponse<List<Announcement>>> fetchAnnouncements({
     String filter = 'All Updates',
   }) {
     return _api.request<List<Announcement>>(
       method: HttpMethod.get,
-      path: HeadmasterEndpoints.announcements,
-      query: {'filter': filter},
-      parser: (json) => (json as List)
-          .map((e) => Announcement.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      path: HeadmasterEndpoints.broadcasts(_sid),
+      parser: (json) {
+        final items = (json as List).cast<Map<String, dynamic>>().map((m) {
+          final audience = '${m['audience_type'] ?? ''}'.toLowerCase();
+          final scope = audience.contains('teacher')
+              ? AnnouncementScope.teachers
+              : AnnouncementScope.schoolWide;
+          final body = m['body'] as String? ?? '';
+          return Announcement(
+            id: '${m['id']}',
+            scope: scope,
+            timestamp: (m['sent_at'] ?? m['scheduled_at']) as String? ?? '',
+            title: m['title'] as String? ??
+                (body.length > 40 ? '${body.substring(0, 40)}…' : body),
+            body: body,
+          );
+        }).toList();
+        if (filter == 'Teachers Only') {
+          return items
+              .where((a) => a.scope == AnnouncementScope.teachers)
+              .toList();
+        }
+        if (filter == 'School-Wide') {
+          return items
+              .where((a) => a.scope == AnnouncementScope.schoolWide)
+              .toList();
+        }
+        return items;
+      },
     );
   }
 

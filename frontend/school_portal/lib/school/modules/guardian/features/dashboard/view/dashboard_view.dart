@@ -20,6 +20,8 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
   final VoidCallback? onOpenFees;
   final VoidCallback? onOpenExams;
   final VoidCallback? onOpenMeetings;
+  final VoidCallback? onOpenReportCard;
+  final VoidCallback? onOpenTimetable;
 
   const GuardianDashboardView({
     super.key,
@@ -28,6 +30,8 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
     this.onOpenFees,
     this.onOpenExams,
     this.onOpenMeetings,
+    this.onOpenReportCard,
+    this.onOpenTimetable,
   });
 
   @override
@@ -70,6 +74,8 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
                         onOpenExams: onOpenExams,
                         onOpenMeetings: onOpenMeetings,
                         onOpenFees: onOpenFees,
+                        onOpenReportCard: onOpenReportCard,
+                        onOpenTimetable: onOpenTimetable,
                       ),
                       const SizedBox(height: AppSpacing.stackLg),
                       const SectionHeader(title: 'Recent Activity'),
@@ -175,26 +181,58 @@ class _QuickLinks extends StatelessWidget {
   final VoidCallback? onOpenExams;
   final VoidCallback? onOpenMeetings;
   final VoidCallback? onOpenFees;
-  const _QuickLinks({this.onOpenExams, this.onOpenMeetings, this.onOpenFees});
+  final VoidCallback? onOpenReportCard;
+  final VoidCallback? onOpenTimetable;
+  const _QuickLinks({
+    this.onOpenExams,
+    this.onOpenMeetings,
+    this.onOpenFees,
+    this.onOpenReportCard,
+    this.onOpenTimetable,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final links = <Widget>[
+      _LinkChip(
+          icon: Icons.grading_rounded,
+          label: 'Report Card',
+          onTap: onOpenReportCard),
+      _LinkChip(
+          icon: Icons.calendar_month_outlined,
+          label: 'Timetable',
+          onTap: onOpenTimetable),
+      _LinkChip(
+          icon: Icons.school_outlined, label: 'Exams', onTap: onOpenExams),
+      _LinkChip(
+          icon: Icons.groups_outlined,
+          label: 'Meetings',
+          onTap: onOpenMeetings),
+      _LinkChip(
+          icon: Icons.payments_outlined, label: 'Fees', onTap: onOpenFees),
+    ];
+    // Two rows: a top row of 3 then a bottom row of the rest, each chip flexing.
+    return Column(
       children: [
-        _LinkChip(
-            icon: Icons.school_outlined,
-            label: 'Exams',
-            onTap: onOpenExams),
-        const SizedBox(width: AppSpacing.stackSm),
-        _LinkChip(
-            icon: Icons.groups_outlined,
-            label: 'Meetings',
-            onTap: onOpenMeetings),
-        const SizedBox(width: AppSpacing.stackSm),
-        _LinkChip(
-            icon: Icons.payments_outlined,
-            label: 'Fees',
-            onTap: onOpenFees),
+        Row(
+          children: [
+            for (var i = 0; i < 3; i++) ...[
+              if (i > 0) const SizedBox(width: AppSpacing.stackSm),
+              links[i],
+            ],
+          ],
+        ),
+        const SizedBox(height: AppSpacing.stackSm),
+        Row(
+          children: [
+            for (var i = 3; i < links.length; i++) ...[
+              if (i > 3) const SizedBox(width: AppSpacing.stackSm),
+              links[i],
+            ],
+            // keep the last row aligned to the same chip width as the top row
+            const Spacer(),
+          ],
+        ),
       ],
     );
   }

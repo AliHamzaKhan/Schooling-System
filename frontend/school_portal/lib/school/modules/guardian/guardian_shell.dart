@@ -48,6 +48,8 @@ class _GuardianShellState extends State<GuardianShell> {
   void _openFees() => Get.toNamed(GuardianRoutes.fees);
   void _openExams() => Get.toNamed(GuardianRoutes.exams);
   void _openMeetings() => Get.toNamed(GuardianRoutes.meetings);
+  void _openReportCard() => Get.toNamed(GuardianRoutes.reportCard);
+  void _openTimetable() => Get.toNamed(GuardianRoutes.timetable);
 
   @override
   void initState() {
@@ -70,6 +72,8 @@ class _GuardianShellState extends State<GuardianShell> {
         onOpenFees: _openFees,
         onOpenExams: _openExams,
         onOpenMeetings: _openMeetings,
+        onOpenReportCard: _openReportCard,
+        onOpenTimetable: _openTimetable,
       ),
       PerformanceView(
         onNotifications: _openAlerts,

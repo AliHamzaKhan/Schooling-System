@@ -3,30 +3,39 @@
 /// No endpoint string is hardcoded inside the API service or repository — they
 /// all live here so the backend contract can change in one place. Paths are
 /// relative to `EnvConfig.apiBaseUrl` (the shared [ApiService] prefixes it).
+///
+/// The Guardian portal has no dedicated namespace on the backend: a guardian is
+/// a school user linked to one or more students, and reads their children's
+/// data through the same school-scoped resources a student uses (scoped to the
+/// child's `student_id`). The only guardian-specific endpoint is the children
+/// list (`/me/children`).
 class GuardianEndpoints {
   GuardianEndpoints._();
 
-  static const _base = '/guardian';
+  static String _base(String schoolId) => '/schools/$schoolId';
 
-  /// Children linked to the signed-in guardian.
-  static const children = '$_base/children';
+  /// Children linked to the signed-in guardian (`ChildOut` list).
+  static String myChildren(String schoolId) => '${_base(schoolId)}/me/children';
 
-  /// Per-child resources. Pass the child id to build the concrete path.
-  static String dashboardFeed(String childId) => '$_base/$childId/activity';
-  static String attendance(String childId) => '$_base/$childId/attendance';
-  static String performance(String childId) => '$_base/$childId/performance';
-  static String fees(String childId) => '$_base/$childId/fees';
-  static String homework(String childId) => '$_base/$childId/homework';
-  static String exams(String childId) => '$_base/$childId/exams';
-  static String meetings(String childId) => '$_base/$childId/meetings';
+  /// Per-child resources, scoped by the child's `student_id` (or section).
+  static String studentAttendance(String schoolId, String studentId) =>
+      '${_base(schoolId)}/students/$studentId/attendance';
+  static String feesInvoices(String schoolId) =>
+      '${_base(schoolId)}/fees/invoices';
+  static String homeworkAssignments(String schoolId) =>
+      '${_base(schoolId)}/homework/assignments';
+  static String studentSubmissions(String schoolId, String studentId) =>
+      '${_base(schoolId)}/homework/students/$studentId/submissions';
+  static String exams(String schoolId) => '${_base(schoolId)}/exams';
+  static String reportCard(String schoolId, String examId, String studentId) =>
+      '${_base(schoolId)}/exams/$examId/students/$studentId/report-card';
+  static String academicTimetable(String schoolId) =>
+      '${_base(schoolId)}/academic/timetable';
+  static String academicSubjects(String schoolId) =>
+      '${_base(schoolId)}/academic/subjects';
+  static String meetings(String schoolId) => '${_base(schoolId)}/meetings';
 
-  /// Guardian-wide notifications (not scoped to a single child).
-  static const notifications = '$_base/notifications';
-
-  // ── Live, school-scoped backend path (`/schools/{school_id}/...`) ──
-  // The only guardian-wide feature with a real backend: school broadcasts
-  // (guardian has MESSAGING view). All per-child paths above stay mock — the
-  // backend has no guardian↔child linkage or per-child guardian endpoints.
+  /// School broadcasts → the guardian notifications feed (MESSAGING view).
   static String broadcasts(String schoolId) =>
-      '/schools/$schoolId/communication/broadcasts';
+      '${_base(schoolId)}/communication/broadcasts';
 }

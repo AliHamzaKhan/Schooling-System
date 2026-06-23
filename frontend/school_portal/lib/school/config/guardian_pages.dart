@@ -9,6 +9,10 @@ import '../modules/guardian/features/meetings/binding/meeting_binding.dart';
 import '../modules/guardian/features/meetings/view/meeting_view.dart';
 import '../modules/guardian/features/notifications/binding/notification_binding.dart';
 import '../modules/guardian/features/notifications/view/notification_view.dart';
+import '../modules/guardian/features/report_card/binding/report_card_binding.dart';
+import '../modules/guardian/features/report_card/view/report_card_view.dart';
+import '../modules/guardian/features/timetable/binding/timetable_binding.dart';
+import '../modules/guardian/features/timetable/view/timetable_view.dart';
 import '../modules/guardian/guardian_shell.dart';
 import '../modules/guardian/shared/binding/guardian_session_binding.dart';
 import 'guardian_routes.dart';
@@ -41,6 +45,16 @@ class GuardianPages {
       name: GuardianRoutes.meetings,
       page: () => const MeetingView(),
       binding: MeetingBinding(),
+    ),
+    GetPage(
+      name: GuardianRoutes.reportCard,
+      page: () => const ReportCardView(),
+      binding: ReportCardBinding(),
+    ),
+    GetPage(
+      name: GuardianRoutes.timetable,
+      page: () => const TimetableView(),
+      binding: TimetableBinding(),
     ),
     GetPage(
       name: GuardianRoutes.notifications,
