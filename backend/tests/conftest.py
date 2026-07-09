@@ -9,7 +9,10 @@ import os
 from uuid import uuid4
 
 # Point the app at the dedicated test database BEFORE importing app modules.
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://aliawan@localhost:5432/schooling_system_test"
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql+asyncpg://aliawan@localhost:5432/schooling_system_test",
+)
 os.environ["ENVIRONMENT"] = "test"
 
 import pytest_asyncio  # noqa: E402

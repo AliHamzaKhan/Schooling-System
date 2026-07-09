@@ -37,6 +37,28 @@ class AssignmentOut(BaseModel):
     assigned_by: uuid.UUID | None = None
 
 
+class SubmissionBrief(BaseModel):
+    """Compact submission summary embedded in the assignment list."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    status: str
+    submitted_on: date
+    attachment_url: str | None = None
+    marks_obtained: float | None = None
+    feedback: str | None = None
+
+
+class AssignmentListOut(AssignmentOut):
+    """Assignment enriched for list views: resolved subject name, total
+    submission count, and the requesting user's own submission (if any)."""
+
+    subject_name: str | None = None
+    submission_count: int = 0
+    my_submission: SubmissionBrief | None = None
+
+
 class SubmissionCreate(BaseModel):
     content: str | None = None
     attachment_url: str | None = Field(default=None, max_length=500)
@@ -45,6 +67,11 @@ class SubmissionCreate(BaseModel):
 
 class GradeSubmission(BaseModel):
     marks_obtained: float = Field(ge=0)
+    feedback: str | None = None
+
+
+class ReviewSubmission(BaseModel):
+    approved: bool
     feedback: str | None = None
 
 

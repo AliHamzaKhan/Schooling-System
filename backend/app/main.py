@@ -10,8 +10,10 @@ from app.core.ratelimit import limiter
 from app.modules.academic.router import router as academic_router
 from app.modules.ai.router import router as ai_router
 from app.modules.attendance.router import router as attendance_router
+from app.modules.calendar.router import router as calendar_router
 from app.modules.auth.router import router as auth_router
 from app.modules.communication.router import router as communication_router
+from app.modules.documents.router import router as documents_router
 from app.modules.examination.router import router as examination_router
 from app.modules.fees.router import router as fees_router
 from app.modules.homework.router import router as homework_router
@@ -19,12 +21,17 @@ from app.modules.hostel.router import router as hostel_router
 from app.modules.hr.router import router as hr_router
 from app.modules.inventory.router import router as inventory_router
 from app.modules.leave.router import router as leave_router
+from app.modules.lessons.router import router as lessons_router
 from app.modules.guardians.router import router as guardians_router
 from app.modules.meetings.router import router as meetings_router
+from app.modules.messages.router import router as messages_router
 from app.modules.online_classes.router import router as online_classes_router
 from app.modules.library.router import router as library_router
 from app.modules.transport.router import router as transport_router
+from app.modules.uploads.router import router as uploads_router
 from app.modules.permissions.router import router as permissions_router
+from app.modules.promotion.router import router as promotion_router
+from app.modules.quiz.router import router as quiz_router
 from app.modules.reports.router import router as reports_router
 from app.modules.roles.router import router as roles_router
 from app.modules.schools.router import router as schools_router
@@ -71,7 +78,25 @@ app.include_router(online_classes_router, prefix=settings.API_V1_PREFIX)
 app.include_router(ai_router, prefix=settings.API_V1_PREFIX)
 app.include_router(leave_router, prefix=settings.API_V1_PREFIX)
 app.include_router(meetings_router, prefix=settings.API_V1_PREFIX)
+app.include_router(messages_router, prefix=settings.API_V1_PREFIX)
 app.include_router(guardians_router, prefix=settings.API_V1_PREFIX)
+app.include_router(quiz_router, prefix=settings.API_V1_PREFIX)
+app.include_router(promotion_router, prefix=settings.API_V1_PREFIX)
+app.include_router(calendar_router, prefix=settings.API_V1_PREFIX)
+app.include_router(documents_router, prefix=settings.API_V1_PREFIX)
+app.include_router(lessons_router, prefix=settings.API_V1_PREFIX)
+app.include_router(uploads_router, prefix=settings.API_V1_PREFIX)
+
+# Serve locally-stored uploads (STORAGE_BACKEND=local, i.e. development). Cloud
+# backends return their own provider URLs, so this static mount is skipped.
+if settings.STORAGE_BACKEND.lower() == "local":
+    from pathlib import Path
+
+    from fastapi.staticfiles import StaticFiles
+
+    _media_dir = Path(settings.STORAGE_LOCAL_DIR)
+    _media_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/media", StaticFiles(directory=str(_media_dir)), name="media")
 
 
 @app.get("/health", tags=["Health"])

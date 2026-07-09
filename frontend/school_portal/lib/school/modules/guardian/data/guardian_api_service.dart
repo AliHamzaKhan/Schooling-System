@@ -464,9 +464,11 @@ class GuardianApiService {
 
   // --------------------------- notifications ---------------------------- #
 
-  /// Notifications from school broadcasts (MESSAGING view).
-  Future<ApiResponse<List<NotificationItem>>> fetchNotifications() {
-    return _api.request<List<NotificationItem>>(
+  /// Notifications: school broadcasts merged with the direct messages and
+  /// complaints addressed to this guardian (teacher/headmaster → guardian).
+  /// Complaints surface as warnings; unread state comes from `read_at`.
+  Future<ApiResponse<List<NotificationItem>>> fetchNotifications() async {
+    final broadcastsRes = await _api.request<List<NotificationItem>>(
       method: HttpMethod.get,
       path: GuardianEndpoints.broadcasts(_sid),
       parser: (json) => (json as List).cast<Map<String, dynamic>>().map((m) {
@@ -476,10 +478,56 @@ class GuardianApiService {
           title: m['title'] as String? ??
               (body.length > 40 ? '${body.substring(0, 40)}…' : body),
           body: body,
-          timeAgo: (m['sent_at'] ?? m['scheduled_at']) as String? ?? '',
+          timeAgo: _relative((m['sent_at'] ?? m['scheduled_at']) as String?),
           level: AlertLevel.info,
         );
       }).toList(),
+    );
+    final directRes = await _api.request<List<NotificationItem>>(
+      method: HttpMethod.get,
+      path: GuardianEndpoints.directMessages(_sid),
+      query: {'box': 'inbox'},
+      parser: (json) => (json as List).cast<Map<String, dynamic>>().map((m) {
+        final complaint = (m['kind'] as String?) == 'complaint';
+        final sender = m['sender_name'] as String? ?? 'school';
+        return NotificationItem(
+          id: '${m['id']}',
+          title: complaint ? 'Concern from $sender' : 'Message from $sender',
+          body: m['body'] as String? ?? '',
+          timeAgo: _relative(m['created_at'] as String?),
+          level: complaint ? AlertLevel.warning : AlertLevel.info,
+          read: m['read_at'] != null,
+          directMessageId: '${m['id']}',
+        );
+      }).toList(),
+    );
+    if (!broadcastsRes.success && !directRes.success) {
+      return ApiResponse.fail(
+          broadcastsRes.error ?? 'Could not load notifications');
+    }
+    // Direct messages first — they're personal and more actionable.
+    return ApiResponse.ok([
+      ...?directRes.data,
+      ...?broadcastsRes.data,
+    ]);
+  }
+
+  static final _dt = DateTimeParserService();
+
+  /// Formats an ISO timestamp as a friendly "2 hours ago"; falls back to the
+  /// raw string when it can't be parsed.
+  String _relative(String? iso) {
+    if (iso == null || iso.isEmpty) return '';
+    final parsed = DateTime.tryParse(iso);
+    return parsed == null ? iso : _dt.toRelative(parsed.toLocal());
+  }
+
+  /// Marks a direct message read for the signed-in guardian.
+  Future<ApiResponse<dynamic>> markMessageRead(String messageId) {
+    return _api.request<dynamic>(
+      method: HttpMethod.patch,
+      path: '${GuardianEndpoints.directMessages(_sid)}/$messageId/read',
+      parser: (json) => json,
     );
   }
 }

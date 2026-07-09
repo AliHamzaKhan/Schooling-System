@@ -14,6 +14,7 @@ import '../features/gradebook/models/gradebook_data.dart';
 import '../features/gradebook/models/gradebook_repository.dart';
 import '../features/performance/models/performance_data.dart';
 import '../features/performance/models/performance_repository.dart';
+import '../features/quiz/models/quiz_models.dart';
 import 'teacher_api_service.dart';
 
 /// Single data gateway for the Teacher module. Every Teacher controller depends
@@ -52,6 +53,9 @@ class TeacherRepository {
 
   Future<ApiResponse<List<TeachingClass>>> loadClasses() =>
       _liveClasses ? _api.fetchClasses() : _classesMock.fetch();
+
+  /// Distinct subject names for the school (live only — no mock fixture).
+  Future<ApiResponse<List<String>>> loadSubjects() => _api.fetchSubjects();
 
   Future<ApiResponse<List<AttendanceClass>>> loadAttendanceClasses() =>
       _useMock ? _attendanceMock.fetchClasses() : _api.fetchAttendanceClasses();
@@ -104,4 +108,49 @@ class TeacherRepository {
     await Future<void>.delayed(const Duration(milliseconds: 450));
     return ApiResponse.ok(null);
   }
+
+  // ── Quizzes (always live) ──
+  Future<ApiResponse<List<TeacherQuiz>>> loadQuizzes() => _api.fetchQuizzes();
+
+  Future<ApiResponse<String>> createQuiz({
+    required String sectionId,
+    required String subjectId,
+    required String title,
+    String? description,
+    int? timeLimitMinutes,
+    List<String>? assigneeIds,
+  }) =>
+      _api.createQuiz(
+        sectionId: sectionId,
+        subjectId: subjectId,
+        title: title,
+        description: description,
+        timeLimitMinutes: timeLimitMinutes,
+        assigneeIds: assigneeIds,
+      );
+
+  Future<ApiResponse<List<IdLabel>>> loadSectionStudents(String sectionId) =>
+      _api.fetchSectionStudents(sectionId);
+
+  Future<ApiResponse<QuizPerformance>> loadQuizPerformance(String quizId) =>
+      _api.fetchQuizPerformance(quizId);
+
+  Future<ApiResponse<List<DraftQuestion>>> generateQuizQuestions({
+    required List<int> bytes,
+    required String filename,
+  }) =>
+      _api.generateQuizQuestions(bytes: bytes, filename: filename);
+
+  Future<ApiResponse<dynamic>> addQuizQuestion(
+          String quizId, Map<String, dynamic> question) =>
+      _api.addQuestion(quizId, question);
+
+  Future<ApiResponse<dynamic>> publishQuiz(String quizId) =>
+      _api.publishQuiz(quizId);
+
+  Future<ApiResponse<List<IdLabel>>> loadSectionOptions() =>
+      _api.fetchSectionOptions();
+
+  Future<ApiResponse<List<IdLabel>>> loadSubjectOptions() =>
+      _api.fetchSubjectOptions();
 }

@@ -5,6 +5,10 @@ import '../features/assignments/models/assignment.dart';
 import '../features/attendance/models/attendance_data.dart';
 import '../features/exams/models/exam.dart';
 import '../features/notifications/models/notification_item.dart';
+import '../features/results/models/exam_result.dart';
+import '../features/results/models/report_card.dart';
+import '../features/timetable/models/timetable_data.dart';
+import '../features/quiz/models/quiz_models.dart';
 import 'student_endpoints.dart';
 
 /// Network layer for the Student module. Owns every Student HTTP call, building
@@ -96,23 +100,33 @@ class StudentApiService {
       parser: (json) {
         final items = (json as List).cast<Map<String, dynamic>>().map((a) {
           final due = a['due_date'] as String?;
+          final sub = a['my_submission'] as Map<String, dynamic>?;
+          final subStatus = (sub?['status'] as String?)?.toLowerCase();
+          final status = switch (subStatus) {
+            'submitted' || 'late' || 'graded' || 'approved' =>
+              StudentAssignmentStatus.submitted,
+            _ => StudentAssignmentStatus.notStarted,
+          };
           return StudentAssignment(
             id: '${a['id']}',
-            subject: '',
+            subject: a['subject_name'] as String? ?? '',
             title: a['title'] as String? ?? '',
             description: a['description'] as String? ?? '',
             dueLine: due == null ? '' : 'Due $due',
-            status: StudentAssignmentStatus.notStarted,
-            accent: StudentAssignmentStatus.notStarted.color,
+            status: status,
+            accent: status.color,
             points: (a['max_marks'] as num?)?.toInt() ?? 0,
           );
         }).toList();
+        final completed = items
+            .where((i) => i.status == StudentAssignmentStatus.submitted)
+            .length;
         return AssignmentsData(
           summary: AssignmentsSummary(
-            completed: 0,
+            completed: completed,
             total: items.length,
             inProgress: 0,
-            toDo: items.length,
+            toDo: items.length - completed,
           ),
           assignments: items,
         );
@@ -191,6 +205,134 @@ class StudentApiService {
     );
   }
 
+  /// Papers scheduled for one exam, from `/schools/{id}/exams/{exam_id}/papers`
+  /// (`ExamSubjectOut`: subject_id, max/pass marks, exam_date). Subject names are
+  /// resolved via `/academic/subjects`.
+  Future<ApiResponse<List<ExamPaper>>> fetchExamPapers(String examId) async {
+    final papersRes = await _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.examPapers(_sid, examId),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    if (!papersRes.success) {
+      return ApiResponse.fail(papersRes.error ?? 'Failed to load exam details');
+    }
+    final subjRes = await _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.academicSubjects(_sid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    final names = <String, String>{
+      if (subjRes.success)
+        for (final s in subjRes.data ?? const <Map<String, dynamic>>[])
+          '${s['id']}': s['name'] as String? ?? '',
+    };
+    final papers = (papersRes.data ?? const <Map<String, dynamic>>[])
+        .map((p) => ExamPaper(
+              subject: names['${p['subject_id']}'] ?? 'Subject',
+              date: p['exam_date'] as String? ?? '',
+              maxMarks: (p['max_marks'] as num?)?.toDouble() ?? 0,
+              passMarks: (p['pass_marks'] as num?)?.toDouble() ?? 0,
+            ))
+        .toList();
+    return ApiResponse.ok(papers);
+  }
+
+  /// The student's own published exam results (across exams), for the results
+  /// screen. Scoped to their user id server-side via `verify_student_access`.
+  Future<ApiResponse<List<ExamResultItem>>> fetchExamResults() {
+    return _api.request<List<ExamResultItem>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.studentExamResults(_sid, _uid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(ExamResultItem.fromJson)
+          .toList(),
+    );
+  }
+
+  /// The student's per-subject report card for one exam. Subject names are
+  /// resolved via `/academic/subjects`; the exam name comes from the caller.
+  Future<ApiResponse<ReportCard>> fetchReportCard(String examId) async {
+    final rcRes = await _api.request<Map<String, dynamic>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.studentReportCard(_sid, examId, _uid),
+      parser: (json) => (json as Map<String, dynamic>),
+    );
+    if (!rcRes.success || rcRes.data == null) {
+      return ApiResponse.fail(rcRes.error ?? 'Could not load report card');
+    }
+    final rc = rcRes.data!;
+    final subjRes = await _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.academicSubjects(_sid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    final names = <String, String>{
+      if (subjRes.success)
+        for (final s in subjRes.data ?? const <Map<String, dynamic>>[])
+          '${s['id']}': s['name'] as String? ?? '',
+    };
+    final lines = ((rc['lines'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map((l) => ReportCardLine(
+              subject: names['${l['subject_id']}'] ?? 'Subject',
+              maxMarks: (l['max_marks'] as num?)?.toDouble() ?? 0,
+              marksObtained: (l['marks_obtained'] as num?)?.toDouble(),
+              isAbsent: l['is_absent'] as bool? ?? false,
+              passed: l['passed'] as bool? ?? false,
+            ))
+        .toList();
+    return ApiResponse.ok(ReportCard(
+      totalMarks: (rc['total_marks'] as num?)?.toDouble() ?? 0,
+      maxTotal: (rc['max_total'] as num?)?.toDouble() ?? 0,
+      percentage: (rc['percentage'] as num?)?.toDouble() ?? 0,
+      grade: rc['grade'] as String? ?? '',
+      status: rc['status'] as String? ?? '',
+      published: rc['published'] as bool? ?? false,
+      lines: lines,
+    ));
+  }
+
+  /// The student's own weekly timetable, grouped by weekday (empty weekends
+  /// hidden). Times come back as "HH:MM"; today's column is flagged.
+  Future<ApiResponse<List<TimetableDay>>> fetchTimetable() {
+    return _api.request<List<TimetableDay>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.studentTimetable(_sid, _uid),
+      parser: (json) {
+        const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        final today = DateTime.now().weekday - 1; // 0=Mon
+        String hhmm(String? t) =>
+            (t != null && t.length >= 5) ? t.substring(0, 5) : (t ?? '');
+        final byDay = <int, List<TimetablePeriod>>{};
+        for (final s in (json as List).cast<Map<String, dynamic>>()) {
+          final dow = (s['day_of_week'] as num?)?.toInt() ?? 0;
+          (byDay[dow] ??= []).add(TimetablePeriod(
+            subject: s['subject'] as String? ?? 'Subject',
+            teacher: s['teacher'] as String?,
+            room: s['room'] as String?,
+            start: hhmm(s['start_time'] as String?),
+            end: hhmm(s['end_time'] as String?),
+          ));
+        }
+        final days = <TimetableDay>[];
+        for (var i = 0; i < 7; i++) {
+          final periods = byDay[i] ?? const <TimetablePeriod>[];
+          if (periods.isEmpty && i > 4) continue; // hide empty weekends
+          periods.sort((a, b) => a.start.compareTo(b.start));
+          days.add(TimetableDay(
+            weekday: i,
+            label: labels[i],
+            isToday: i == today,
+            periods: periods,
+          ));
+        }
+        return days;
+      },
+    );
+  }
+
   /// Live notifications from school broadcasts
   /// (`/schools/{id}/communication/broadcasts`, `MessageOut` list). The backend
   /// has no per-student read state or category, so every item maps to
@@ -220,15 +362,96 @@ class StudentApiService {
   Future<ApiResponse<void>> submitAssignment(
     String id, {
     String? notes,
-    String? filename,
+    String? attachmentUrl,
   }) {
     return _api.request<void>(
       method: HttpMethod.post,
       path: StudentEndpoints.submitAssignment(_sid, id),
       body: {
         'content': ?notes,
-        'attachment_url': ?filename,
+        'attachment_url': ?attachmentUrl,
       },
+    );
+  }
+
+  /// Uploads a file to the school's storage bucket and returns its public URL,
+  /// which is then stored as the submission's `attachment_url`. The backend
+  /// picks the storage provider (local disk in dev, cloud in prod) — this call
+  /// is provider-agnostic.
+  Future<ApiResponse<String>> uploadFile({
+    required List<int> bytes,
+    required String filename,
+    String contentType = 'application/pdf',
+  }) {
+    return _api.request<String>(
+      method: HttpMethod.multipart,
+      path: StudentEndpoints.uploads(_sid),
+      files: [
+        MultipartUpload(
+          field: 'file',
+          filename: filename,
+          bytes: bytes,
+          contentType: contentType,
+        ),
+      ],
+      parser: (json) => (json as Map<String, dynamic>)['url'] as String? ?? '',
+    );
+  }
+
+  // ──────────────────────────────── quizzes ───────────────────────────────
+
+  /// Quizzes assigned to the student (section-wide or targeted at them), merged
+  /// with their own attempt (score/state). Scoping is enforced server-side.
+  Future<ApiResponse<List<StudentQuiz>>> fetchQuizzes() async {
+    final quizzesRes = await _api.request<List<StudentQuiz>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.quizzesAssigned(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(StudentQuiz.fromJson)
+          .toList(),
+    );
+    if (!quizzesRes.success || quizzesRes.data == null) return quizzesRes;
+
+    final attemptsRes = await _api.request<List<QuizAttempt>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.studentQuizAttempts(_sid, _uid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(QuizAttempt.fromJson)
+          .toList(),
+    );
+    final byQuiz = <String, QuizAttempt>{
+      for (final a in attemptsRes.data ?? const <QuizAttempt>[]) a.quizId: a,
+    };
+    return ApiResponse.ok(
+      quizzesRes.data!.map((q) => q.withAttempt(byQuiz[q.id])).toList(),
+    );
+  }
+
+  /// A quiz's questions for the student to attempt.
+  Future<ApiResponse<StudentQuizDetail>> fetchQuizDetail(String quizId) {
+    return _api.request<StudentQuizDetail>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.quizDetail(_sid, quizId),
+      parser: (json) =>
+          StudentQuizDetail.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Submits answers (question id → chosen option) and returns the graded result.
+  Future<ApiResponse<QuizResult>> submitQuiz(
+      String quizId, Map<String, String> answers) {
+    return _api.request<QuizResult>(
+      method: HttpMethod.post,
+      path: StudentEndpoints.quizSubmit(_sid, quizId),
+      body: {
+        'answers': [
+          for (final e in answers.entries)
+            {'question_id': e.key, 'response': e.value},
+        ],
+      },
+      parser: (json) => QuizResult.fromJson(json as Map<String, dynamic>),
     );
   }
 }

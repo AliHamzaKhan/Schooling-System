@@ -38,4 +38,8 @@ class GuardianEndpoints {
   /// School broadcasts → the guardian notifications feed (MESSAGING view).
   static String broadcasts(String schoolId) =>
       '${_base(schoolId)}/communication/broadcasts';
+
+  /// Direct messages/complaints addressed to the signed-in guardian.
+  static String directMessages(String schoolId) =>
+      '${_base(schoolId)}/messages';
 }

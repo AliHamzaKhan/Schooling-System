@@ -11,6 +11,8 @@ import '../features/fees/models/fees_data.dart';
 import '../features/guardians/models/guardian.dart';
 import '../features/overview/models/overview_data.dart';
 import '../features/reports/models/reports_data.dart';
+import '../features/salary/models/salary_models.dart';
+import '../features/settings/models/school_profile.dart';
 import '../features/students/models/student.dart';
 import '../features/teachers/models/teacher.dart';
 import '../features/timetable/models/timetable_data.dart';
@@ -224,40 +226,61 @@ class HeadmasterApiService {
   /// Live classes from `/schools/{id}/academic/classes` (list of `ClassOut`:
   /// id, name, level). The backend exposes no per-section student counts or
   /// KPIs, so sections carry 0 students and only a "Total Classes" stat shows.
-  Future<ApiResponse<ClassDirectoryData>> fetchClasses() {
-    return _api.request<ClassDirectoryData>(
+  Future<ApiResponse<ClassDirectoryData>> fetchClasses() async {
+    final classesRes = await _api.request<List<Map<String, dynamic>>>(
       method: HttpMethod.get,
       path: HeadmasterEndpoints.academicClasses(_sid),
-      parser: (json) {
-        final list = (json as List).cast<Map<String, dynamic>>();
-        final grades = list.map((c) {
-          final level = (c['level'] as num?)?.toInt() ?? 0;
-          return GradeGroup(
-            grade: level,
-            level: _gradeLevel(level),
-            sections: [
-              ClassSection(
-                id: '${c['id']}',
-                name: c['name'] as String? ?? '',
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    if (!classesRes.success || classesRes.data == null) {
+      return ApiResponse.fail(classesRes.error ?? 'Could not load classes');
+    }
+    final classes = classesRes.data!;
+    final grades = <GradeGroup>[];
+    var totalSections = 0;
+    for (final c in classes) {
+      final classId = '${c['id']}';
+      final className = c['name'] as String? ?? '';
+      final level = (c['level'] as num?)?.toInt() ?? 0;
+      final secRes = await _api.request<List<Map<String, dynamic>>>(
+        method: HttpMethod.get,
+        path: HeadmasterEndpoints.classSections(_sid, classId),
+        parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+      );
+      final sections = (secRes.data ?? const <Map<String, dynamic>>[])
+          .map((s) => ClassSection(
+                id: '${s['id']}',
+                name: s['name'] as String? ?? '',
                 students: 0,
                 accent: AppColors.primary,
-              ),
-            ],
-          );
-        }).toList();
-        return ClassDirectoryData(
-          stats: [
-            ClassStat(
-              label: 'Total Classes',
-              value: '${list.length}',
-              icon: Icons.class_outlined,
-              color: AppColors.primary,
-            ),
-          ],
-          grades: grades,
-        );
-      },
-    );
+              ))
+          .toList();
+      totalSections += sections.length;
+      grades.add(GradeGroup(
+        classId: classId,
+        className: className,
+        grade: level,
+        level: _gradeLevel(level),
+        sections: sections,
+      ));
+    }
+    return ApiResponse.ok(ClassDirectoryData(
+      stats: [
+        ClassStat(
+          label: 'Total Classes',
+          value: '${classes.length}',
+          icon: Icons.class_outlined,
+          color: AppColors.primary,
+        ),
+        ClassStat(
+          label: 'Total Sections',
+          value: '$totalSections',
+          icon: Icons.grid_view_rounded,
+          color: AppColors.tertiary,
+        ),
+      ],
+      grades: grades,
+    ));
   }
 
   GradeLevel _gradeLevel(int level) {
@@ -505,4 +528,348 @@ class HeadmasterApiService {
           .toList(),
     );
   }
+
+  // ──────────────────────────── create actions ────────────────────────────
+  // Write endpoints backing the Headmaster "add" flows. Each returns the raw
+  // ApiResponse so callers can surface `error`/`fieldErrors` in the form.
+
+  /// Create a class (grade). `level` is optional (numeric ordering).
+  Future<ApiResponse<dynamic>> createClass({
+    required String name,
+    int? level,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.academicClasses(_sid),
+      body: {'name': name, 'level': ?level},
+      parser: (json) => json,
+    );
+  }
+
+  /// Create a section under a class.
+  Future<ApiResponse<dynamic>> createSection({
+    required String classId,
+    required String name,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.classSections(_sid, classId),
+      body: {'name': name},
+      parser: (json) => json,
+    );
+  }
+
+  /// Rename a class.
+  Future<ApiResponse<dynamic>> updateClass({
+    required String classId,
+    required String name,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.patch,
+      path: HeadmasterEndpoints.classDetail(_sid, classId),
+      body: {'name': name},
+      parser: (json) => json,
+    );
+  }
+
+  /// Delete a class (and its sections).
+  Future<ApiResponse<dynamic>> deleteClass(String classId) {
+    return _api.request<dynamic>(
+      method: HttpMethod.delete,
+      path: HeadmasterEndpoints.classDetail(_sid, classId),
+      parser: (json) => json,
+    );
+  }
+
+  /// Link a student (child) to a guardian.
+  Future<ApiResponse<dynamic>> linkChild({
+    required String guardianId,
+    required String studentId,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.guardianChildren(_sid, guardianId),
+      body: {'student_id': studentId},
+      parser: (json) => json,
+    );
+  }
+
+  // ──────────────────────────── school settings ───────────────────────────
+
+  /// Fetch the school profile + branding settings.
+  Future<ApiResponse<SchoolProfile>> fetchSchoolProfile() {
+    return _api.request<SchoolProfile>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.schoolProfile(_sid),
+      parser: (json) => SchoolProfile.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Update the school name and branding settings (logo, uniform colour,
+  /// monthly fee due day). Branding fields are merged into `settings`.
+  Future<ApiResponse<SchoolProfile>> updateSchoolProfile({
+    required String name,
+    String? logoUrl,
+    String? uniformColor,
+    int? feeDueDay,
+  }) {
+    return _api.request<SchoolProfile>(
+      method: HttpMethod.patch,
+      path: HeadmasterEndpoints.schoolProfile(_sid),
+      body: {
+        'name': name,
+        'settings': {
+          'logo_url': ?logoUrl,
+          'uniform_color': ?uniformColor,
+          'fee_due_day': ?feeDueDay,
+        },
+      },
+      parser: (json) => SchoolProfile.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Create a school user (teacher / guardian / student) with one role.
+  Future<ApiResponse<dynamic>> createUser({
+    required String email,
+    required String password,
+    required String fullName,
+    required String role,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.users(_sid),
+      body: {
+        'email': email,
+        'password': password,
+        'full_name': fullName,
+        'role_codes': [role],
+      },
+      parser: (json) => json,
+    );
+  }
+
+  /// Enroll an existing student user into a section.
+  Future<ApiResponse<dynamic>> enrollStudent({
+    required String sectionId,
+    required String studentId,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.sectionStudents(_sid, sectionId),
+      body: {'student_id': studentId},
+      parser: (json) => json,
+    );
+  }
+
+  /// Record a payment against a fee invoice.
+  Future<ApiResponse<dynamic>> recordPayment({
+    required String invoiceId,
+    required double amount,
+    required String method,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.invoicePayments(_sid, invoiceId),
+      body: {'amount': amount, 'method': method},
+      parser: (json) => json,
+    );
+  }
+
+  /// Compose a school broadcast (announcement) via
+  /// `POST /schools/{id}/communication/broadcasts`. [audienceType] is a backend
+  /// `AudienceType` value (e.g. `entire_school`, `teachers`); [channel] a
+  /// backend `Channel` value (defaults to push).
+  Future<ApiResponse<dynamic>> createBroadcast({
+    required String body,
+    String? title,
+    String audienceType = 'entire_school',
+    String channel = 'push',
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.broadcasts(_sid),
+      body: {
+        'channel': channel,
+        'audience_type': audienceType,
+        'title': ?title,
+        'body': body,
+      },
+      parser: (json) => json,
+    );
+  }
+
+  /// Publish (compute) results for a single exam via
+  /// `POST /schools/{id}/exams/{exam_id}/results/publish`.
+  Future<ApiResponse<dynamic>> publishExamResults(String examId) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.examResultsPublish(_sid, examId),
+      parser: (json) => json,
+    );
+  }
+
+
+  /// Flattened section picker options ("Grade 1 - A") built from classes +
+  /// their sections. N+1 requests, acceptable for a small dropdown.
+  Future<ApiResponse<List<PickerOption>>> fetchSectionOptions() async {
+    final classesRes = await _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.academicClasses(_sid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    if (!classesRes.success || classesRes.data == null) {
+      return ApiResponse.fail(classesRes.error ?? 'Could not load classes');
+    }
+    final out = <PickerOption>[];
+    for (final c in classesRes.data!) {
+      final classId = '${c['id']}';
+      final className = c['name'] as String? ?? '';
+      final secRes = await _api.request<List<Map<String, dynamic>>>(
+        method: HttpMethod.get,
+        path: HeadmasterEndpoints.classSections(_sid, classId),
+        parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+      );
+      for (final s in secRes.data ?? const <Map<String, dynamic>>[]) {
+        out.add(PickerOption(
+          id: '${s['id']}',
+          label: '$className - ${s['name'] ?? ''}',
+        ));
+      }
+    }
+    return ApiResponse.ok(out);
+  }
+
+  /// Student picker options (id + name) from the user directory.
+  Future<ApiResponse<List<PickerOption>>> fetchStudentOptions() {
+    return _api.request<List<PickerOption>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.users(_sid),
+      query: {'role_code': 'student', 'limit': '200'},
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map((u) => PickerOption(
+                id: '${u['id']}',
+                label: u['full_name'] as String? ?? (u['email'] as String? ?? ''),
+              ))
+          .toList(),
+    );
+  }
+
+  // ──────────────────────────── salary / HR ───────────────────────────────
+
+  /// Teachers merged with their staff/salary profiles (if any).
+  Future<ApiResponse<List<SalaryStaff>>> fetchSalaryStaff() async {
+    final teachersRes = await _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.users(_sid),
+      query: {'role_code': 'teacher', 'limit': '200'},
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    if (!teachersRes.success || teachersRes.data == null) {
+      return ApiResponse.fail(teachersRes.error ?? 'Could not load teachers');
+    }
+    final staffRes = await _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.hrStaff(_sid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    final byUser = <String, Map<String, dynamic>>{
+      for (final p in staffRes.data ?? const <Map<String, dynamic>>[])
+        '${p['user_id']}': p,
+    };
+    final staff = teachersRes.data!.map((u) {
+      final uid = '${u['id']}';
+      final profile = byUser[uid];
+      return SalaryStaff(
+        userId: uid,
+        name: u['full_name'] as String? ?? '',
+        email: u['email'] as String? ?? '',
+        profileId: profile == null ? null : '${profile['id']}',
+        designation: profile?['designation'] as String?,
+        baseSalary: (profile?['base_salary'] as num?)?.toDouble(),
+      );
+    }).toList();
+    return ApiResponse.ok(staff);
+  }
+
+  /// Create a staff/salary profile for a user.
+  Future<ApiResponse<dynamic>> createStaffProfile({
+    required String userId,
+    required String designation,
+    required double baseSalary,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.hrStaff(_sid),
+      body: {
+        'user_id': userId,
+        'designation': designation,
+        'base_salary': baseSalary,
+      },
+      parser: (json) => json,
+    );
+  }
+
+  /// Update an existing staff/salary profile.
+  Future<ApiResponse<dynamic>> updateStaffProfile({
+    required String profileId,
+    required String designation,
+    required double baseSalary,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.patch,
+      path: HeadmasterEndpoints.hrStaffDetail(_sid, profileId),
+      body: {'designation': designation, 'base_salary': baseSalary},
+      parser: (json) => json,
+    );
+  }
+
+  /// Generate a payslip for a staff profile for a given month/year.
+  Future<ApiResponse<dynamic>> generatePayslip({
+    required String profileId,
+    required int month,
+    required int year,
+    double allowances = 0,
+    double deductions = 0,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.hrStaffPayslips(_sid, profileId),
+      body: {
+        'period_month': month,
+        'period_year': year,
+        'allowances': allowances,
+        'deductions': deductions,
+      },
+      parser: (json) => json,
+    );
+  }
+
+  /// List payslips across staff.
+  Future<ApiResponse<List<PayslipRow>>> fetchPayslips() {
+    return _api.request<List<PayslipRow>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.hrPayslips(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(PayslipRow.fromJson)
+          .toList(),
+    );
+  }
+
+  /// Mark a payslip as paid.
+  Future<ApiResponse<dynamic>> markPayslipPaid(String payslipId) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.hrPayslipPay(_sid, payslipId),
+      parser: (json) => json,
+    );
+  }
+}
+
+/// A generic id/label pair for dropdown pickers in the create flows.
+class PickerOption {
+  final String id;
+  final String label;
+  const PickerOption({required this.id, required this.label});
 }

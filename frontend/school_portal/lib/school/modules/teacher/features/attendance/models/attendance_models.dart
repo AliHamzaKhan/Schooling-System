@@ -17,6 +17,13 @@ extension AttendanceMarkX on AttendanceMark {
         AttendanceMark.absent => Icons.cancel_outlined,
         AttendanceMark.unmarked => Icons.radio_button_unchecked_rounded,
       };
+
+  String get label => switch (this) {
+        AttendanceMark.present => 'Present',
+        AttendanceMark.late => 'Late',
+        AttendanceMark.absent => 'Absent',
+        AttendanceMark.unmarked => 'Unmarked',
+      };
 }
 
 /// A class/grade row in the Attendance tab list (entry point to marking).

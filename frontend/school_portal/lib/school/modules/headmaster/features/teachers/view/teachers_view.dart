@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../widgets/entity_detail_sheet.dart';
 import '../../../../../widgets/portal_search_field.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/teacher_card.dart';
 import '../controller/teachers_controller.dart';
+import '../models/teacher.dart';
 
 /// Teacher Roster — search + filter teachers with quick-contact actions and an
 /// "Add Teacher" FAB.
@@ -49,11 +51,14 @@ class TeachersView extends GetView<TeachersController> {
                             ),
                           ),
                           const SizedBox(width: AppSpacing.stackSm),
-                          _FilterButton(onTap: () {}),
+                          _FilterButton(
+                            onTap: controller.openFilter,
+                            count: controller.activeFilterCount,
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.stackLg),
-                      if (controller.results.isEmpty)
+                      if (controller.visibleTeachers.isEmpty)
                         Padding(
                           padding: const EdgeInsets.all(AppSpacing.stackXl),
                           child: Center(
@@ -62,12 +67,12 @@ class TeachersView extends GetView<TeachersController> {
                           ),
                         )
                       else
-                        for (final t in controller.results) ...[
+                        for (final t in controller.visibleTeachers) ...[
                           TeacherCard(
                             teacher: t,
-                            onView: () {},
-                            onMail: () {},
-                            onChat: () {},
+                            onView: () => _showTeacher(context, t),
+                            onMail: () => _showTeacher(context, t),
+                            onChat: () => _showTeacher(context, t),
                           ),
                           const SizedBox(height: AppSpacing.stackLg),
                         ],
@@ -81,7 +86,7 @@ class TeachersView extends GetView<TeachersController> {
             right: AppSpacing.stackLg,
             bottom: AppSpacing.stackLg,
             child: FloatingActionButton(
-              onPressed: () {},
+              onPressed: controller.addTeacherFlow,
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.onPrimary,
               child: const Icon(Icons.add),
@@ -93,12 +98,30 @@ class TeachersView extends GetView<TeachersController> {
   }
 }
 
+void _showTeacher(BuildContext context, Teacher t) {
+  showEntityDetailSheet(
+    context,
+    title: t.name,
+    subtitle: t.department,
+    initials: t.initials,
+    accent: t.accent,
+    statusLabel: t.status.label,
+    statusColor: t.status.color,
+    fields: [
+      DetailField(Icons.badge_outlined, 'ID', t.id),
+      DetailField(Icons.apartment_outlined, 'Department', t.department),
+    ],
+  );
+}
+
 class _FilterButton extends StatelessWidget {
   final VoidCallback onTap;
-  const _FilterButton({required this.onTap});
+  final int count;
+  const _FilterButton({required this.onTap, this.count = 0});
 
   @override
   Widget build(BuildContext context) {
+    final active = count > 0;
     return Material(
       color: AppColors.surfaceContainerLowest,
       borderRadius: BorderRadius.circular(AppRadius.full),
@@ -110,14 +133,17 @@ class _FilterButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.full),
-            border: Border.all(color: AppColors.outlineVariant, width: 1),
+            border: Border.all(
+              color: active ? AppColors.primary : AppColors.outlineVariant,
+              width: active ? 1.5 : 1,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.tune_rounded, size: 18, color: AppColors.primary),
               const SizedBox(width: 6),
-              Text('Filter',
+              Text(active ? 'Filter ($count)' : 'Filter',
                   style: AppTypography.labelMd
                       .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
             ],

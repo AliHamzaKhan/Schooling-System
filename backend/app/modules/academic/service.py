@@ -9,8 +9,15 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import EnrollmentStatus
 from app.core.exceptions import bad_request, not_found
-from app.models.academic import Section, SchoolClass, Subject, TimetableSlot
+from app.models.academic import (
+    Section,
+    SchoolClass,
+    StudentEnrollment,
+    Subject,
+    TimetableSlot,
+)
 from app.models.school import AcademicSession, School
 from app.models.user import User
 from app.modules.academic import schemas
@@ -257,3 +264,58 @@ class AcademicService:
         slot = await self._get_scoped(TimetableSlot, school_id, slot_id, "Timetable slot")
         await self.db.delete(slot)
         await self.db.flush()
+
+    async def student_timetable(
+        self, school_id: uuid.UUID, student_id: uuid.UUID
+    ) -> list[schemas.StudentTimetableSlot]:
+        """A student's own weekly timetable — the slots for the section(s) they're
+        actively enrolled in, with subject and teacher names resolved."""
+        section_rows = await self.db.execute(
+            select(StudentEnrollment.section_id).where(
+                StudentEnrollment.school_id == school_id,
+                StudentEnrollment.student_id == student_id,
+                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+            )
+        )
+        section_ids = [r[0] for r in section_rows.all()]
+        if not section_ids:
+            return []
+
+        slots = (await self.db.execute(
+            select(TimetableSlot)
+            .where(
+                TimetableSlot.school_id == school_id,
+                TimetableSlot.section_id.in_(section_ids),
+            )
+            .order_by(TimetableSlot.day_of_week, TimetableSlot.start_time)
+        )).scalars().all()
+        if not slots:
+            return []
+
+        subject_ids = {s.subject_id for s in slots}
+        teacher_ids = {s.teacher_id for s in slots if s.teacher_id}
+        subjects = dict(
+            (await self.db.execute(
+                select(Subject.id, Subject.name).where(Subject.id.in_(subject_ids))
+            )).all()
+        )
+        teachers = (
+            dict(
+                (await self.db.execute(
+                    select(User.id, User.full_name).where(User.id.in_(teacher_ids))
+                )).all()
+            )
+            if teacher_ids
+            else {}
+        )
+        return [
+            schemas.StudentTimetableSlot(
+                day_of_week=s.day_of_week,
+                start_time=s.start_time,
+                end_time=s.end_time,
+                subject=subjects.get(s.subject_id, "Subject"),
+                teacher=teachers.get(s.teacher_id),
+                room=s.room,
+            )
+            for s in slots
+        ]

@@ -8,7 +8,9 @@ import '../models/exam.dart';
 class TimelineCard extends StatelessWidget {
   final UpcomingExam exam;
   final bool isLast;
-  const TimelineCard({super.key, required this.exam, this.isLast = false});
+  final VoidCallback? onTap;
+  const TimelineCard(
+      {super.key, required this.exam, this.isLast = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +43,9 @@ class TimelineCard extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
-              child: GlassSurface(
+              child: GestureDetector(
+                onTap: onTap,
+                child: GlassSurface(
                 padding: EdgeInsets.zero,
                 child: IntrinsicHeight(
                   child: Row(
@@ -93,6 +97,7 @@ class TimelineCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
             ),

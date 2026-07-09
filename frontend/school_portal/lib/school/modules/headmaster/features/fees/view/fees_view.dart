@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../components/outstanding_card.dart';
@@ -46,21 +47,27 @@ class FeesView extends GetView<FeesController> {
                   label: 'Record Payment',
                   leadingIcon: Icons.add,
                   trailingIcon: null,
-                  onPressed: () {},
+                  onPressed: controller.recordPaymentFlow,
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
                 TotalCollectedCard(data: data),
                 const SizedBox(height: AppSpacing.stackLg),
-                OutstandingCard(data: data, onRemindAll: () {}),
+                OutstandingCard(data: data, onRemindAll: controller.remindAll),
                 const SizedBox(height: AppSpacing.stackLg),
                 SectionHeader(
                   title: 'Overdue Payments',
                   actionLabel: 'View All',
-                  onAction: () {},
+                  onAction: () => Get.toNamed(
+                    HeadmasterRoutes.overduePayments,
+                    arguments: data.overdue,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.stackMd),
                 for (var i = 0; i < data.overdue.length; i++) ...[
-                  OverdueRow(payment: data.overdue[i], onSend: () {}),
+                  OverdueRow(
+                    payment: data.overdue[i],
+                    onSend: () => controller.remind(data.overdue[i]),
+                  ),
                   if (i != data.overdue.length - 1)
                     const SizedBox(height: AppSpacing.stackMd),
                 ],

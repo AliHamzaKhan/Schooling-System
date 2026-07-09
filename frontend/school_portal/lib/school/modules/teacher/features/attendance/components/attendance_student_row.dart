@@ -45,35 +45,30 @@ class AttendanceStudentRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(AppRadius.full),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ActionDot(
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _ActionButton(
                   active: mark == AttendanceMark.present,
-                  color: AttendanceMark.present.color,
-                  icon: AttendanceMark.present.icon,
+                  mark: AttendanceMark.present,
                   onTap: () => onChanged(AttendanceMark.present)),
-              const SizedBox(width: 14),
-              _ActionDot(
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ActionButton(
                   active: mark == AttendanceMark.late,
-                  color: AttendanceMark.late.color,
-                  icon: AttendanceMark.late.icon,
+                  mark: AttendanceMark.late,
                   onTap: () => onChanged(AttendanceMark.late)),
-              const SizedBox(width: 14),
-              _ActionDot(
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ActionButton(
                   active: mark == AttendanceMark.absent,
-                  color: AttendanceMark.absent.color,
-                  icon: AttendanceMark.absent.icon,
+                  mark: AttendanceMark.absent,
                   onTap: () => onChanged(AttendanceMark.absent)),
-            ],
-          ),
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.stackMd),
         const Divider(height: 1, color: AppColors.outlineVariant),
@@ -82,33 +77,52 @@ class AttendanceStudentRow extends StatelessWidget {
   }
 }
 
-class _ActionDot extends StatelessWidget {
+class _ActionButton extends StatelessWidget {
   final bool active;
-  final Color color;
-  final IconData icon;
+  final AttendanceMark mark;
   final VoidCallback onTap;
 
-  const _ActionDot({
+  const _ActionButton({
     required this.active,
-    required this.color,
-    required this.icon,
+    required this.mark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final color = mark.color;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 32,
-        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? color.withValues(alpha: 0.18) : Colors.transparent,
-          shape: BoxShape.circle,
+          color: active
+              ? color.withValues(alpha: 0.18)
+              : AppColors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(
+              color: active ? color : AppColors.outlineVariant, width: 1),
         ),
-        child: Icon(icon,
-            size: 18,
-            color: active ? color : AppColors.onSurfaceVariant),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(mark.icon,
+                size: 16,
+                color: active ? color : AppColors.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                mark.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.labelMd.copyWith(
+                    color: active ? color : AppColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

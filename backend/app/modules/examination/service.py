@@ -9,7 +9,7 @@ from app.core.constants import grade_for
 from app.core.enums import EnrollmentStatus, ExamStatus, ResultStatus
 from app.core.exceptions import bad_request, not_found
 from app.models.academic import Section, SchoolClass, StudentEnrollment, Subject
-from app.models.examination import Exam, ExamResult, ExamSubject, Mark
+from app.models.examination import Exam, ExamResult, ExamSeat, ExamSubject, Mark
 from app.modules.examination import schemas
 
 
@@ -278,6 +278,34 @@ class ExaminationService:
         )
         return list(result.scalars().all())
 
+    async def student_results(
+        self, school_id: uuid.UUID, student_id: uuid.UUID
+    ) -> list[schemas.StudentExamResult]:
+        """Every published exam result for a student, newest first (with the
+        exam name) — for their academic results view."""
+        rows = await self.db.execute(
+            select(ExamResult, Exam.name)
+            .join(Exam, Exam.id == ExamResult.exam_id)
+            .where(
+                ExamResult.school_id == school_id,
+                ExamResult.student_id == student_id,
+                ExamResult.published.is_(True),
+            )
+            .order_by(ExamResult.published_at.desc().nullslast())
+        )
+        return [
+            schemas.StudentExamResult(
+                exam_id=res.exam_id,
+                exam_name=exam_name,
+                total_marks=res.total_marks,
+                max_total=res.max_total,
+                percentage=res.percentage,
+                grade=res.grade,
+                status=res.status,
+            )
+            for res, exam_name in rows.all()
+        ]
+
     async def report_card(
         self, school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID
     ) -> schemas.ReportCard:
@@ -300,3 +328,104 @@ class ExaminationService:
             status=computed["status"],
             published=bool(published),
         )
+
+    # -------------------------- admit card & seating -------------------------- #
+
+    async def admit_card(
+        self, school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID
+    ) -> schemas.AdmitCard:
+        exam = await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        # The student must be enrolled in a section of the exam's class.
+        section_id = await self.db.scalar(
+            select(StudentEnrollment.section_id)
+            .join(Section, Section.id == StudentEnrollment.section_id)
+            .where(
+                Section.class_id == exam.class_id,
+                StudentEnrollment.student_id == student_id,
+                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+            )
+        )
+        if section_id is None:
+            raise not_found("Student is not enrolled in this exam's class")
+
+        papers = list(
+            (
+                await self.db.execute(
+                    select(ExamSubject)
+                    .where(ExamSubject.exam_id == exam_id)
+                    .order_by(ExamSubject.exam_date)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        seat = await self.db.scalar(
+            select(ExamSeat).where(
+                ExamSeat.exam_id == exam_id, ExamSeat.student_id == student_id
+            )
+        )
+        return schemas.AdmitCard(
+            exam_id=exam_id,
+            exam_name=exam.name,
+            student_id=student_id,
+            class_id=exam.class_id,
+            section_id=section_id,
+            start_date=exam.start_date,
+            end_date=exam.end_date,
+            room=seat.room if seat else None,
+            seat_no=seat.seat_no if seat else None,
+            papers=[
+                schemas.AdmitCardPaper(
+                    subject_id=p.subject_id, exam_date=p.exam_date, max_marks=p.max_marks
+                )
+                for p in papers
+            ],
+        )
+
+    async def generate_seating(
+        self, school_id: uuid.UUID, exam_id: uuid.UUID, data: schemas.SeatingGenerate
+    ) -> list[ExamSeat]:
+        exam = await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        student_ids = sorted(await self._class_student_ids(exam.class_id), key=str)
+        if not student_ids:
+            raise bad_request("No students enrolled in the exam's class")
+        total_capacity = sum(r.capacity for r in data.rooms)
+        if len(student_ids) > total_capacity:
+            raise bad_request(
+                f"Seating capacity ({total_capacity}) is less than the number of "
+                f"students ({len(student_ids)})"
+            )
+
+        # Clear any existing plan for a clean regeneration.
+        existing = await self.db.execute(select(ExamSeat).where(ExamSeat.exam_id == exam_id))
+        for row in existing.scalars().all():
+            await self.db.delete(row)
+        await self.db.flush()
+
+        seats: list[ExamSeat] = []
+        idx = 0
+        for room in data.rooms:
+            for seat_no in range(1, room.capacity + 1):
+                if idx >= len(student_ids):
+                    break
+                seat = ExamSeat(
+                    school_id=school_id,
+                    exam_id=exam_id,
+                    student_id=student_ids[idx],
+                    room=room.name,
+                    seat_no=seat_no,
+                )
+                self.db.add(seat)
+                seats.append(seat)
+                idx += 1
+        await self.db.flush()
+        return seats
+
+    async def list_seating(self, school_id: uuid.UUID, exam_id: uuid.UUID) -> list[ExamSeat]:
+        await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        result = await self.db.execute(
+            select(ExamSeat)
+            .where(ExamSeat.exam_id == exam_id)
+            .order_by(ExamSeat.room, ExamSeat.seat_no)
+        )
+        return list(result.scalars().all())

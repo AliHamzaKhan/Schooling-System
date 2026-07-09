@@ -2,7 +2,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -77,6 +77,28 @@ class Mark(Base, UUIDMixin, TimestampMixin):
     marked_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+
+
+class ExamSeat(Base, UUIDMixin, TimestampMixin):
+    """A student's seat allocation for an exam (seating plan)."""
+
+    __tablename__ = "exam_seats"
+    __table_args__ = (
+        UniqueConstraint("exam_id", "student_id", name="uq_seat_exam_student"),
+        UniqueConstraint("exam_id", "room", "seat_no", name="uq_seat_exam_room_seat"),
+    )
+
+    school_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("schools.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    exam_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    room: Mapped[str] = mapped_column(String(100), nullable=False)
+    seat_no: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class ExamResult(Base, UUIDMixin, TimestampMixin):

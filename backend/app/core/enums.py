@@ -108,6 +108,46 @@ class SubmissionStatus(str, Enum):
     SUBMITTED = "submitted"
     LATE = "late"
     GRADED = "graded"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class LessonStatus(str, Enum):
+    PLANNED = "planned"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+class CalendarEventType(str, Enum):
+    HOLIDAY = "holiday"
+    EVENT = "event"
+    EXAM = "exam"
+    ACADEMIC = "academic"
+    OTHER = "other"
+
+
+class PromotionOutcome(str, Enum):
+    PROMOTED = "promoted"
+    RETAINED = "retained"
+    GRADUATED = "graduated"
+
+
+class QuestionType(str, Enum):
+    MCQ = "mcq"
+    TRUE_FALSE = "true_false"
+    SHORT = "short"
+
+
+class QuizStatus(str, Enum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    CLOSED = "closed"
+
+
+class AttemptStatus(str, Enum):
+    IN_PROGRESS = "in_progress"
+    SUBMITTED = "submitted"
+    GRADED = "graded"
 
 
 class Channel(str, Enum):

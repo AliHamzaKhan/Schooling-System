@@ -2,7 +2,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import EnrollmentStatus, SubmissionStatus
@@ -57,13 +57,80 @@ class HomeworkService:
         return assignment
 
     async def list_assignments(
-        self, school_id: uuid.UUID, section_id: uuid.UUID | None = None
-    ) -> list[Assignment]:
+        self,
+        school_id: uuid.UUID,
+        section_id: uuid.UUID | None = None,
+        current_user_id: uuid.UUID | None = None,
+    ) -> list[schemas.AssignmentListOut]:
+        """Assignments enriched for list views.
+
+        Each item resolves its subject name, carries a total ``submission_count``,
+        and — when ``current_user_id`` is a student — embeds that student's own
+        submission so clients can render "Submitted / Graded" state directly.
+        """
         stmt = select(Assignment).where(Assignment.school_id == school_id)
         if section_id is not None:
             stmt = stmt.where(Assignment.section_id == section_id)
         stmt = stmt.order_by(Assignment.due_date.desc())
-        return list((await self.db.execute(stmt)).scalars().all())
+        assignments = list((await self.db.execute(stmt)).scalars().all())
+        if not assignments:
+            return []
+
+        assignment_ids = [a.id for a in assignments]
+        subject_ids = {a.subject_id for a in assignments}
+
+        # Subject names (single batched query).
+        subject_names: dict[uuid.UUID, str] = dict(
+            (await self.db.execute(
+                select(Subject.id, Subject.name).where(Subject.id.in_(subject_ids))
+            )).all()
+        )
+
+        # Total submissions per assignment.
+        counts: dict[uuid.UUID, int] = dict(
+            (await self.db.execute(
+                select(Submission.assignment_id, func.count())
+                .where(Submission.assignment_id.in_(assignment_ids))
+                .group_by(Submission.assignment_id)
+            )).all()
+        )
+
+        # The requesting user's own submissions (for students).
+        mine: dict[uuid.UUID, Submission] = {}
+        if current_user_id is not None:
+            rows = (await self.db.execute(
+                select(Submission).where(
+                    Submission.assignment_id.in_(assignment_ids),
+                    Submission.student_id == current_user_id,
+                )
+            )).scalars().all()
+            mine = {s.assignment_id: s for s in rows}
+
+        out: list[schemas.AssignmentListOut] = []
+        for a in assignments:
+            submission = mine.get(a.id)
+            out.append(
+                schemas.AssignmentListOut(
+                    id=a.id,
+                    school_id=a.school_id,
+                    section_id=a.section_id,
+                    subject_id=a.subject_id,
+                    title=a.title,
+                    description=a.description,
+                    assigned_on=a.assigned_on,
+                    due_date=a.due_date,
+                    max_marks=a.max_marks,
+                    assigned_by=a.assigned_by,
+                    subject_name=subject_names.get(a.subject_id),
+                    submission_count=counts.get(a.id, 0),
+                    my_submission=(
+                        schemas.SubmissionBrief.model_validate(submission)
+                        if submission is not None
+                        else None
+                    ),
+                )
+            )
+        return out
 
     async def update_assignment(
         self, school_id: uuid.UUID, assignment_id: uuid.UUID, data: schemas.AssignmentUpdate
@@ -154,6 +221,24 @@ class HomeworkService:
         submission.feedback = data.feedback
         submission.status = SubmissionStatus.GRADED.value
         submission.graded_by = graded_by
+        await self.db.flush()
+        return submission
+
+    async def review(
+        self,
+        school_id: uuid.UUID,
+        submission_id: uuid.UUID,
+        data: schemas.ReviewSubmission,
+        reviewed_by: uuid.UUID,
+    ) -> Submission:
+        """Approve or reject a submission (moderation, distinct from grading)."""
+        submission = await self._get_scoped(Submission, school_id, submission_id, "Submission")
+        submission.status = (
+            SubmissionStatus.APPROVED.value if data.approved else SubmissionStatus.REJECTED.value
+        )
+        if data.feedback is not None:
+            submission.feedback = data.feedback
+        submission.graded_by = reviewed_by
         await self.db.flush()
         return submission
 

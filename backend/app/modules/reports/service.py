@@ -7,8 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import AttendanceStatus, EnrollmentStatus, ResultStatus, SystemRole
 from app.models.academic import Section, SchoolClass, StudentEnrollment, Subject
+from app.models.associations import guardian_students
 from app.models.attendance import AttendanceRecord
 from app.models.examination import Exam, ExamResult
+from app.models.homework import Assignment, Submission
+from app.models.quiz import Quiz, QuizAttempt
 from app.models.role import Role
 from app.models.school import AcademicSession
 from app.models.user import User
@@ -183,4 +186,132 @@ class ReportingService:
             )
         return schemas.EnrollmentReport(
             school_id=school_id, total_students=total_students, classes=out
+        )
+
+    # -------------------------- per-student report -------------------------- #
+
+    async def student_report(
+        self, school_id: uuid.UUID, student_id: uuid.UUID
+    ) -> schemas.StudentReport:
+        """Cross-module 360-degree report for one student."""
+        student = await self.db.get(User, student_id)
+        name = student.full_name if student else ""
+
+        # Active sections (assignment scope).
+        section_ids = [
+            r[0]
+            for r in (await self.db.execute(
+                select(StudentEnrollment.section_id).where(
+                    StudentEnrollment.school_id == school_id,
+                    StudentEnrollment.student_id == student_id,
+                    StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                )
+            )).all()
+        ]
+
+        # Attendance summary.
+        att_counts = {
+            status: count
+            for status, count in (await self.db.execute(
+                select(AttendanceRecord.status, func.count())
+                .where(
+                    AttendanceRecord.school_id == school_id,
+                    AttendanceRecord.student_id == student_id,
+                )
+                .group_by(AttendanceRecord.status)
+            )).all()
+        }
+        present = att_counts.get(AttendanceStatus.PRESENT.value, 0)
+        absent = att_counts.get(AttendanceStatus.ABSENT.value, 0)
+        late = att_counts.get(AttendanceStatus.LATE.value, 0)
+        excused = att_counts.get(AttendanceStatus.EXCUSED.value, 0)
+        att_total = sum(att_counts.values())
+        att_pct = round((present + late + excused) * 100 / att_total, 1) if att_total else 0.0
+        attendance = schemas.ReportAttendance(
+            present=present, absent=absent, late=late, excused=excused,
+            total=att_total, percentage=att_pct,
+        )
+
+        # Published exam results.
+        exams: list[schemas.ReportExam] = []
+        exam_percents: list[float] = []
+        exam_points = 0.0
+        for res, exam_name in (await self.db.execute(
+            select(ExamResult, Exam.name)
+            .join(Exam, Exam.id == ExamResult.exam_id)
+            .where(
+                ExamResult.school_id == school_id,
+                ExamResult.student_id == student_id,
+                ExamResult.published.is_(True),
+            )
+            .order_by(ExamResult.published_at.desc().nullslast())
+        )).all():
+            exams.append(schemas.ReportExam(
+                exam_name=exam_name, percentage=res.percentage,
+                grade=res.grade, status=res.status,
+            ))
+            exam_percents.append(res.percentage)
+            exam_points += res.total_marks
+        exam_avg = round(sum(exam_percents) / len(exam_percents), 1) if exam_percents else 0.0
+
+        # Assignments: assigned to the student's sections vs submitted.
+        assignments_total = 0
+        if section_ids:
+            assignments_total = (await self.db.scalar(
+                select(func.count()).select_from(Assignment).where(
+                    Assignment.school_id == school_id,
+                    Assignment.section_id.in_(section_ids),
+                )
+            )) or 0
+        assignments_submitted = (await self.db.scalar(
+            select(func.count()).select_from(Submission).where(
+                Submission.school_id == school_id,
+                Submission.student_id == student_id,
+            )
+        )) or 0
+
+        # Quiz attempts (submitted).
+        quizzes: list[schemas.ReportQuiz] = []
+        quiz_scores: list[float] = []
+        quiz_points = 0.0
+        for attempt, title in (await self.db.execute(
+            select(QuizAttempt, Quiz.title)
+            .join(Quiz, Quiz.id == QuizAttempt.quiz_id)
+            .where(
+                QuizAttempt.school_id == school_id,
+                QuizAttempt.student_id == student_id,
+                QuizAttempt.submitted_at.isnot(None),
+            )
+        )).all():
+            quizzes.append(schemas.ReportQuiz(title=title, score=attempt.score))
+            if attempt.score is not None:
+                quiz_scores.append(attempt.score)
+                quiz_points += attempt.score
+        quiz_avg = round(sum(quiz_scores) / len(quiz_scores), 1) if quiz_scores else None
+
+        # Linked guardians (for messaging / meeting requests).
+        guardians = [
+            schemas.ReportGuardian(id=gid, name=gname)
+            for gid, gname in (await self.db.execute(
+                select(guardian_students.c.guardian_id, User.full_name)
+                .join(User, User.id == guardian_students.c.guardian_id)
+                .where(
+                    guardian_students.c.school_id == school_id,
+                    guardian_students.c.student_id == student_id,
+                )
+            )).all()
+        ]
+
+        return schemas.StudentReport(
+            student_id=student_id,
+            student_name=name,
+            guardians=guardians,
+            attendance=attendance,
+            exams=exams,
+            exam_average=exam_avg,
+            assignments_total=assignments_total,
+            assignments_submitted=assignments_submitted,
+            quizzes=quizzes,
+            quiz_average=quiz_avg,
+            total_points=round(exam_points + quiz_points, 1),
         )

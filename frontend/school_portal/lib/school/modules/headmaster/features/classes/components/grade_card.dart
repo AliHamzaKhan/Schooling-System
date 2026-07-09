@@ -10,11 +10,15 @@ class GradeCard extends StatelessWidget {
   final VoidCallback? onAddSection;
   final VoidCallback? onMenu;
 
+  /// Fired when a section row is tapped (opens that section's student list).
+  final ValueChanged<ClassSection>? onSectionTap;
+
   const GradeCard({
     super.key,
     required this.group,
     this.onAddSection,
     this.onMenu,
+    this.onSectionTap,
   });
 
   @override
@@ -44,7 +48,12 @@ class GradeCard extends StatelessWidget {
                   .copyWith(fontSize: 24, color: AppColors.primary)),
           const SizedBox(height: AppSpacing.stackMd),
           for (var i = 0; i < group.sections.length; i++) ...[
-            _SectionRow(section: group.sections[i]),
+            GestureDetector(
+              onTap: onSectionTap == null
+                  ? null
+                  : () => onSectionTap!(group.sections[i]),
+              child: _SectionRow(section: group.sections[i]),
+            ),
             if (i != group.sections.length - 1)
               const SizedBox(height: AppSpacing.stackSm),
           ],

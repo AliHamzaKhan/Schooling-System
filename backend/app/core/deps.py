@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.enums import Module, PermissionAction
+from app.core.enums import Module, PermissionAction, SystemRole
 from app.core.exceptions import credentials_exception, forbidden
 from app.core.security import ACCESS_TOKEN, JWTError, decode_token
 from app.models.role import Role
@@ -66,6 +66,22 @@ async def require_school_member(school_id: uuid.UUID, user: CurrentUser) -> User
         return user
     if user.school_id != school_id:
         raise forbidden("You can only act within your own school")
+    return user
+
+
+async def require_school_admin(school_id: uuid.UUID, user: CurrentUser) -> User:
+    """The school's own Headmaster (or Super Admin).
+
+    For school-level administration a Headmaster may perform on their own school
+    but ordinary staff/guardians/students may not — e.g. editing school profile
+    and branding settings.
+    """
+    if PermissionService.is_super_admin(user):
+        return user
+    if user.school_id != school_id:
+        raise forbidden("You can only act within your own school")
+    if not any(role.code == SystemRole.HEADMASTER.value for role in user.roles):
+        raise forbidden("Headmaster privileges required")
     return user
 
 

@@ -18,6 +18,8 @@ import '../features/overview/models/overview_data.dart';
 import '../features/overview/models/overview_repository.dart';
 import '../features/reports/models/reports_data.dart';
 import '../features/reports/models/reports_repository.dart';
+import '../features/salary/models/salary_models.dart';
+import '../features/settings/models/school_profile.dart';
 import '../features/students/models/student.dart';
 import '../features/students/models/students_repository.dart';
 import '../features/teachers/models/teacher.dart';
@@ -121,4 +123,126 @@ class HeadmasterRepository {
       _liveDirectory
           ? _api.fetchGuardians(query: query)
           : _guardiansMock.fetch(query: query);
+
+  // ── Create actions (always live) ──
+  Future<ApiResponse<dynamic>> createClass({required String name, int? level}) =>
+      _api.createClass(name: name, level: level);
+
+  Future<ApiResponse<dynamic>> createSection({
+    required String classId,
+    required String name,
+  }) =>
+      _api.createSection(classId: classId, name: name);
+
+  Future<ApiResponse<dynamic>> updateClass({
+    required String classId,
+    required String name,
+  }) =>
+      _api.updateClass(classId: classId, name: name);
+
+  Future<ApiResponse<dynamic>> deleteClass(String classId) =>
+      _api.deleteClass(classId);
+
+  Future<ApiResponse<dynamic>> linkChild({
+    required String guardianId,
+    required String studentId,
+  }) =>
+      _api.linkChild(guardianId: guardianId, studentId: studentId);
+
+  Future<ApiResponse<dynamic>> createUser({
+    required String email,
+    required String password,
+    required String fullName,
+    required String role,
+  }) =>
+      _api.createUser(
+          email: email, password: password, fullName: fullName, role: role);
+
+  Future<ApiResponse<dynamic>> enrollStudent({
+    required String sectionId,
+    required String studentId,
+  }) =>
+      _api.enrollStudent(sectionId: sectionId, studentId: studentId);
+
+  Future<ApiResponse<dynamic>> recordPayment({
+    required String invoiceId,
+    required double amount,
+    required String method,
+  }) =>
+      _api.recordPayment(invoiceId: invoiceId, amount: amount, method: method);
+
+  /// Compose a school-wide (or audience-scoped) announcement broadcast.
+  Future<ApiResponse<dynamic>> createBroadcast({
+    required String body,
+    String? title,
+    String audienceType = 'entire_school',
+  }) =>
+      _api.createBroadcast(
+          body: body, title: title, audienceType: audienceType);
+
+  /// Publish computed results for a single exam.
+  Future<ApiResponse<dynamic>> publishExamResults(String examId) =>
+      _api.publishExamResults(examId);
+
+  Future<ApiResponse<List<PickerOption>>> loadSectionOptions() =>
+      _api.fetchSectionOptions();
+
+  Future<ApiResponse<List<PickerOption>>> loadStudentOptions() =>
+      _api.fetchStudentOptions();
+
+  // ── School settings ──
+  Future<ApiResponse<SchoolProfile>> loadSchoolProfile() =>
+      _api.fetchSchoolProfile();
+
+  Future<ApiResponse<SchoolProfile>> saveSchoolProfile({
+    required String name,
+    String? logoUrl,
+    String? uniformColor,
+    int? feeDueDay,
+  }) =>
+      _api.updateSchoolProfile(
+        name: name,
+        logoUrl: logoUrl,
+        uniformColor: uniformColor,
+        feeDueDay: feeDueDay,
+      );
+
+  // ── Salary / HR ──
+  Future<ApiResponse<List<SalaryStaff>>> loadSalaryStaff() =>
+      _api.fetchSalaryStaff();
+
+  Future<ApiResponse<List<PayslipRow>>> loadPayslips() => _api.fetchPayslips();
+
+  Future<ApiResponse<dynamic>> createStaffProfile({
+    required String userId,
+    required String designation,
+    required double baseSalary,
+  }) =>
+      _api.createStaffProfile(
+          userId: userId, designation: designation, baseSalary: baseSalary);
+
+  Future<ApiResponse<dynamic>> updateStaffProfile({
+    required String profileId,
+    required String designation,
+    required double baseSalary,
+  }) =>
+      _api.updateStaffProfile(
+          profileId: profileId, designation: designation, baseSalary: baseSalary);
+
+  Future<ApiResponse<dynamic>> generatePayslip({
+    required String profileId,
+    required int month,
+    required int year,
+    double allowances = 0,
+    double deductions = 0,
+  }) =>
+      _api.generatePayslip(
+          profileId: profileId,
+          month: month,
+          year: year,
+          allowances: allowances,
+          deductions: deductions);
+
+  Future<ApiResponse<dynamic>> markPayslipPaid(String payslipId) =>
+      _api.markPayslipPaid(payslipId);
 }

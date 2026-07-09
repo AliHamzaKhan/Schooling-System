@@ -30,6 +30,10 @@ class NotificationItem {
   final String? childName; // which child this concerns, if any
   final bool read;
 
+  /// Set when this alert is a direct message/complaint — its id is used to mark
+  /// it read server-side on tap. Null for broadcast alerts.
+  final String? directMessageId;
+
   const NotificationItem({
     required this.id,
     required this.title,
@@ -38,6 +42,7 @@ class NotificationItem {
     required this.level,
     this.childName,
     this.read = false,
+    this.directMessageId,
   });
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) =>
@@ -62,5 +67,6 @@ class NotificationItem {
         level: level,
         childName: childName,
         read: read ?? this.read,
+        directMessageId: directMessageId,
       );
 }

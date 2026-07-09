@@ -5,6 +5,12 @@ import 'package:shared/shared.dart';
 enum ExamStatus { live, upcoming, completed }
 
 extension ExamStatusX on ExamStatus {
+  String get label => switch (this) {
+        ExamStatus.live => 'Live',
+        ExamStatus.upcoming => 'Upcoming',
+        ExamStatus.completed => 'Completed',
+      };
+
   Color get color => switch (this) {
         ExamStatus.live => AppColors.error,
         ExamStatus.upcoming => AppColors.primary,

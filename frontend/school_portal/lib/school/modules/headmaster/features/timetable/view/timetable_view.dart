@@ -62,7 +62,7 @@ class TimetableView extends GetView<TimetableController> {
                     label: 'New Class',
                     leadingIcon: Icons.add,
                     trailingIcon: null,
-                    onPressed: () {},
+                    onPressed: controller.createClassFlow,
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
                   TimetableGrid(data: data),

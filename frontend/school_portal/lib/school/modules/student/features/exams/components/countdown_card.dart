@@ -7,11 +7,16 @@ import '../models/exam.dart';
 /// glassy inset panel showing the next exam's title, date/time, and location.
 class CountdownCard extends StatelessWidget {
   final ExamCountdown next;
-  const CountdownCard({super.key, required this.next});
+
+  /// Tapping the card (or its ⋯ affordance) opens the exam detail, when wired.
+  final VoidCallback? onTap;
+  const CountdownCard({super.key, required this.next, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       decoration: BoxDecoration(
         color: AppColors.primary,
@@ -123,6 +128,7 @@ class CountdownCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

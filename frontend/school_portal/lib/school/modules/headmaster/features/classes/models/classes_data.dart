@@ -46,14 +46,25 @@ class ClassSection {
       );
 }
 
-/// One grade group with its sections.
+/// One grade group with its sections. [classId]/[className] identify the
+/// backing class so the UI can add sections to it or edit/delete it.
 class GradeGroup {
+  final String classId;
+  final String className;
   final int grade;
   final GradeLevel level;
   final List<ClassSection> sections;
-  const GradeGroup({required this.grade, required this.level, required this.sections});
+  const GradeGroup({
+    this.classId = '',
+    this.className = '',
+    required this.grade,
+    required this.level,
+    required this.sections,
+  });
 
   factory GradeGroup.fromJson(Map<String, dynamic> json) => GradeGroup(
+        classId: '${json['class_id'] ?? json['id'] ?? ''}',
+        className: json['class_name'] as String? ?? '',
         grade: (json['grade'] as num?)?.toInt() ?? 0,
         level: GradeLevel.values.firstWhere(
           (l) => l.name == json['level'],

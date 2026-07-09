@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
+import '../../student_report/view/section_students_view.dart';
 import '../components/class_stat_tile.dart';
 import '../components/grade_card.dart';
 import '../controller/classes_controller.dart';
@@ -61,7 +63,7 @@ class ClassesView extends GetView<ClassesController> {
                   label: 'New Class',
                   leadingIcon: Icons.add,
                   trailingIcon: null,
-                  onPressed: () {},
+                  onPressed: controller.createClassFlow,
                 ),
                 const SizedBox(height: AppSpacing.stackMd),
                 Row(
@@ -95,7 +97,20 @@ class ClassesView extends GetView<ClassesController> {
                 _statGrid(data.stats),
                 const SizedBox(height: AppSpacing.stackLg),
                 for (final g in data.grades) ...[
-                  GradeCard(group: g, onAddSection: () {}, onMenu: () {}),
+                  GradeCard(
+                    group: g,
+                    onAddSection: () =>
+                        controller.addSectionFlow(g.classId, g.className),
+                    onMenu: () =>
+                        controller.classMenuFlow(g.classId, g.className),
+                    onSectionTap: (s) => Get.toNamed(
+                      HeadmasterRoutes.sectionStudents,
+                      arguments: SectionStudentsArgs(
+                        sectionId: s.id,
+                        title: '${g.className} · ${s.name}',
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.stackLg),
                 ],
               ],

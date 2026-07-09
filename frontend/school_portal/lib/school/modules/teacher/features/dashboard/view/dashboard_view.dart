@@ -11,7 +11,31 @@ import '../models/dashboard_data.dart';
 /// to-do list with urgent count badge, and a "Recent Activity" section.
 class DashboardView extends GetView<DashboardController> {
   final VoidCallback? onChat;
-  const DashboardView({super.key, this.onChat});
+  final VoidCallback? onMarkAttendance;
+  final VoidCallback? onAddAssignment;
+  final VoidCallback? onAnnounce;
+  final VoidCallback? onViewCalendar;
+  final VoidCallback? onViewAllTasks;
+
+  const DashboardView({
+    super.key,
+    this.onChat,
+    this.onMarkAttendance,
+    this.onAddAssignment,
+    this.onAnnounce,
+    this.onViewCalendar,
+    this.onViewAllTasks,
+  });
+
+  /// Maps a data-driven quick action to its destination by label so the mock/
+  /// backend controls copy while routing stays in the shell.
+  VoidCallback? _actionTap(QuickAction action) {
+    final label = action.label.toLowerCase();
+    if (label.contains('attendance')) return onMarkAttendance;
+    if (label.contains('assignment')) return onAddAssignment;
+    if (label.contains('announce')) return onAnnounce;
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,12 +44,6 @@ class DashboardView extends GetView<DashboardController> {
         PortalTopBar(
           title: 'Teacher Portal',
           onBell: onChat,
-          actions: [
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.menu_rounded, color: AppColors.onSurface),
-            ),
-          ],
         ),
         Expanded(
           child: Obx(() {
@@ -58,7 +76,10 @@ class DashboardView extends GetView<DashboardController> {
                   child: Column(
                     children: [
                       for (var i = 0; i < data.actions.length; i++) ...[
-                        _QuickActionRow(action: data.actions[i]),
+                        _QuickActionRow(
+                          action: data.actions[i],
+                          onTap: _actionTap(data.actions[i]),
+                        ),
                         if (i != data.actions.length - 1)
                           const SizedBox(height: AppSpacing.stackSm),
                       ],
@@ -71,7 +92,7 @@ class DashboardView extends GetView<DashboardController> {
                 SectionHeader(
                   title: "Today's Schedule",
                   actionLabel: 'View Calendar',
-                  onAction: () {},
+                  onAction: onViewCalendar,
                 ),
                 const SizedBox(height: AppSpacing.stackMd),
                 for (final s in data.schedule) ...[
@@ -106,7 +127,7 @@ class DashboardView extends GetView<DashboardController> {
                       GhostButton(
                         label: 'View All Tasks',
                         expanded: true,
-                        onPressed: () {},
+                        onPressed: onViewAllTasks,
                       ),
                     ],
                   ),
@@ -157,39 +178,47 @@ class DashboardView extends GetView<DashboardController> {
 
 class _QuickActionRow extends StatelessWidget {
   final QuickAction action;
-  const _QuickActionRow({required this.action});
+  final VoidCallback? onTap;
+  const _QuickActionRow({required this.action, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.stackMd),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+    return Material(
+      color: AppColors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(AppRadius.button),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.button),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: action.color.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(action.icon, color: action.color, size: 20),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.stackMd),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: action.color.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(action.icon, color: action.color, size: 20),
+              ),
+              const SizedBox(width: AppSpacing.stackMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(action.label,
+                        style: AppTypography.titleMd
+                            .copyWith(fontWeight: FontWeight.w700)),
+                    Text(action.subtitle, style: AppTypography.bodySm),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.onSurfaceVariant),
+            ],
           ),
-          const SizedBox(width: AppSpacing.stackMd),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(action.label,
-                    style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
-                Text(action.subtitle, style: AppTypography.bodySm),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

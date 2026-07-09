@@ -1,4 +1,6 @@
 """Password hashing and JWT token helpers."""
+import hashlib
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -21,13 +23,30 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def _create_token(subject: str, token_type: str, expires_delta: timedelta) -> str:
+def hash_token(token: str) -> str:
+    """Stable, non-reversible fingerprint of a token string.
+
+    Refresh tokens are stored only as this hash so a database/backup leak can't
+    be used to mint sessions. SHA-256 (not a slow KDF) is deliberate: the input
+    is already a high-entropy signed JWT, so there is nothing to brute-force.
+    """
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def _create_token(
+    subject: str, token_type: str, expires_delta: timedelta, **extra: Any
+) -> str:
     now = datetime.now(timezone.utc)
     payload: dict[str, Any] = {
         "sub": subject,
         "type": token_type,
         "iat": now,
         "exp": now + expires_delta,
+        # Unique per token so two tokens minted in the same second (e.g. a
+        # refresh rotation) are never byte-identical — rotation must produce a
+        # genuinely new token for reuse detection to work.
+        "jti": uuid.uuid4().hex,
+        **extra,
     }
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
@@ -38,9 +57,17 @@ def create_access_token(subject: str) -> str:
     )
 
 
-def create_refresh_token(subject: str) -> str:
+def create_refresh_token(subject: str, session_id: str) -> str:
+    """Mint a refresh token bound to a server-side session (`sid`).
+
+    The session id ties every token in a rotation chain to one DB row, so the
+    session can be rotated, revoked (logout), and checked for token reuse.
+    """
     return _create_token(
-        subject, REFRESH_TOKEN, timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        subject,
+        REFRESH_TOKEN,
+        timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        sid=session_id,
     )
 
 
@@ -52,6 +79,7 @@ def decode_token(token: str) -> dict[str, Any]:
 __all__ = [
     "hash_password",
     "verify_password",
+    "hash_token",
     "create_access_token",
     "create_refresh_token",
     "decode_token",

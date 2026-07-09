@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../components/pulse_card.dart';
@@ -50,7 +51,10 @@ class OverviewView extends GetView<OverviewController> {
                     title: 'Upcoming Events',
                     actionLabel: 'View All',
                     actionIcon: Icons.arrow_forward_rounded,
-                    onAction: () {},
+                    onAction: () => Get.toNamed(
+                      HeadmasterRoutes.upcomingEvents,
+                      arguments: data.events,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.stackMd),
                   SizedBox(

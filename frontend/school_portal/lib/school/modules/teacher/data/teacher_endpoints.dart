@@ -28,8 +28,25 @@ class TeacherEndpoints {
   // dashboard/attendance/gradebook/performance/communication features.
   static String academicClasses(String schoolId) =>
       '/schools/$schoolId/academic/classes';
+  static String academicSubjects(String schoolId) =>
+      '/schools/$schoolId/academic/subjects';
+  static String academicClassSections(String schoolId, String classId) =>
+      '/schools/$schoolId/academic/classes/$classId/sections';
   static String homeworkAssignments(String schoolId) =>
       '/schools/$schoolId/homework/assignments';
   static String broadcasts(String schoolId) =>
       '/schools/$schoolId/communication/broadcasts';
+
+  // ── Quizzes ──
+  static String quizzes(String schoolId) => '/schools/$schoolId/quizzes';
+  static String quizQuestions(String schoolId, String quizId) =>
+      '/schools/$schoolId/quizzes/$quizId/questions';
+  static String quizPublish(String schoolId, String quizId) =>
+      '/schools/$schoolId/quizzes/$quizId/publish';
+  static String quizPerformance(String schoolId, String quizId) =>
+      '/schools/$schoolId/quizzes/$quizId/performance';
+  static String quizGenerateQuestions(String schoolId) =>
+      '/schools/$schoolId/quizzes/generate-questions';
+  static String quizSectionStudents(String schoolId, String sectionId) =>
+      '/schools/$schoolId/quizzes/sections/$sectionId/students';
 }

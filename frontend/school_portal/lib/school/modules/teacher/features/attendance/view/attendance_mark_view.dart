@@ -67,6 +67,8 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
                           size: 16, color: AppColors.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Text('Oct 24, 2023', style: AppTypography.bodyMd),
+                      const Spacer(),
+                      _MarkAllPresentButton(onTap: controller.markAllPresent),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
@@ -77,27 +79,9 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.done_all_rounded,
-                                size: 18, color: AppColors.primary),
-                            const SizedBox(width: 6),
-                            GestureDetector(
-                              onTap: controller.markAllPresent,
-                              child: Text('Mark All Present',
-                                  style: AppTypography.labelMd.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w700)),
-                            ),
-                            const Spacer(),
-                            SizedBox(
-                              width: 200,
-                              child: PortalSearchField(
-                                hint: 'Search…',
-                                onChanged: controller.onSearch,
-                              ),
-                            ),
-                          ],
+                        PortalSearchField(
+                          hint: 'Search…',
+                          onChanged: controller.onSearch,
                         ),
                         const SizedBox(height: AppSpacing.stackMd),
                         for (final s in controller.filtered) ...[
@@ -125,6 +109,38 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
           foregroundColor: AppColors.onPrimary,
           icon: const Icon(Icons.send_rounded),
           label: const Text('Submit Attendance'),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact pill CTA that marks every student present. Lives in the class
+/// header (top-right, beside the date) so the search field can span full width.
+class _MarkAllPresentButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _MarkAllPresentButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(AppRadius.full),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.done_all_rounded,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text('Mark All Present',
+                style: AppTypography.labelMd.copyWith(
+                    color: AppColors.primary, fontWeight: FontWeight.w700)),
+          ],
         ),
       ),
     );

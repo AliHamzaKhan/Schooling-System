@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
+import '../../../../../widgets/action_form_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/student.dart';
 // Imported only for the [StudentsRepository.pageSize] constant; data access goes
@@ -79,6 +82,80 @@ class StudentsController extends GetxController {
       error.value = res.error ?? 'Could not load students.';
     }
     loading.value = false;
+  }
+
+  /// Admit a new student and enroll them into a section in one step.
+  Future<void> enrollStudentFlow() async {
+    final sectionsRes = await _repo.loadSectionOptions();
+    final sections = sectionsRes.data ?? const [];
+    if (sections.isEmpty) {
+      Get.snackbar('No sections yet',
+          'Create a class and section before enrolling students.',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    final name = TextEditingController();
+    final email = TextEditingController();
+    final password = TextEditingController();
+    final selectedSection = Rxn<String>(sections.first.id);
+
+    final ok = await showActionFormSheet(
+      title: 'Enroll Student',
+      submitLabel: 'Admit & Enroll',
+      fields: [
+        GlassInput(label: 'Full name', hint: 'Student name', controller: name),
+        GlassInput(
+          label: 'Email',
+          hint: 'student@school.edu',
+          controller: email,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        GlassInput(
+          label: 'Temporary password',
+          hint: 'At least 8 characters',
+          controller: password,
+          obscureText: true,
+        ),
+        Obx(() => ActionDropdownField<String>(
+              label: 'Section',
+              hint: 'Select a section',
+              value: selectedSection.value,
+              items: [
+                for (final s in sections)
+                  DropdownMenuItem(value: s.id, child: Text(s.label)),
+              ],
+              onChanged: (v) => selectedSection.value = v,
+            )),
+      ],
+      onSubmit: () async {
+        if (name.text.trim().isEmpty) return 'Full name is required';
+        if (!email.text.contains('@')) return 'A valid email is required';
+        if (password.text.trim().length < 8) {
+          return 'Password must be at least 8 characters';
+        }
+        final sectionId = selectedSection.value;
+        if (sectionId == null) return 'Select a section';
+        final created = await _repo.createUser(
+            email: email.text.trim(),
+            password: password.text.trim(),
+            fullName: name.text.trim(),
+            role: 'student');
+        if (!created.success) {
+          return created.error ?? 'Could not create the student';
+        }
+        final studentId = '${(created.data as Map)['id']}';
+        final enrolled = await _repo.enrollStudent(
+            sectionId: sectionId, studentId: studentId);
+        return enrolled.success
+            ? null
+            : (enrolled.error ?? 'Student created, but enrollment failed');
+      },
+    );
+    if (ok == true) {
+      Get.snackbar('Student enrolled', 'The student was admitted and enrolled.',
+          snackPosition: SnackPosition.BOTTOM);
+      await fetch();
+    }
   }
 
   @override

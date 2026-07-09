@@ -35,11 +35,16 @@ async def create_assignment(
     return await HomeworkService(db).create_assignment(school_id, data, current_user.id)
 
 
-@router.get("/assignments", response_model=list[schemas.AssignmentOut], dependencies=[_view])
+@router.get("/assignments", response_model=list[schemas.AssignmentListOut], dependencies=[_view])
 async def list_assignments(
-    school_id: uuid.UUID, db: DbDep, section_id: uuid.UUID | None = Query(default=None)
-) -> list[schemas.AssignmentOut]:
-    return await HomeworkService(db).list_assignments(school_id, section_id)
+    school_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+    section_id: uuid.UUID | None = Query(default=None),
+) -> list[schemas.AssignmentListOut]:
+    return await HomeworkService(db).list_assignments(
+        school_id, section_id, current_user_id=current_user.id
+    )
 
 
 @router.patch("/assignments/{assignment_id}", response_model=schemas.AssignmentOut, dependencies=[_edit])
@@ -83,6 +88,18 @@ async def grade_submission(
     current_user: CurrentUser,
 ) -> schemas.SubmissionOut:
     return await HomeworkService(db).grade(school_id, submission_id, data, current_user.id)
+
+
+@router.patch("/submissions/{submission_id}/review", response_model=schemas.SubmissionOut, dependencies=[_edit])
+async def review_submission(
+    school_id: uuid.UUID,
+    submission_id: uuid.UUID,
+    data: schemas.ReviewSubmission,
+    db: DbDep,
+    current_user: CurrentUser,
+) -> schemas.SubmissionOut:
+    """Approve or reject a submission (moderation, separate from grading)."""
+    return await HomeworkService(db).review(school_id, submission_id, data, current_user.id)
 
 
 @router.get("/students/{student_id}/submissions", response_model=list[schemas.SubmissionOut], dependencies=[_view, Depends(verify_student_access)])

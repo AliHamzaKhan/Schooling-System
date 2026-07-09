@@ -78,6 +78,24 @@ class SchoolService:
         await self.db.refresh(school)
         return school
 
+    async def update_school_profile(
+        self, school_id: uuid.UUID, data: schemas.SchoolUpdate
+    ) -> School:
+        """Like [update_school] but *merges* `settings` into the existing blob
+        instead of replacing it, so a partial branding update (logo / uniform /
+        fee day) never clobbers unrelated settings keys."""
+        school = await self._get_school(school_id)
+        payload = data.model_dump(exclude_unset=True)
+        incoming_settings = payload.pop("settings", None)
+        for field, value in payload.items():
+            setattr(school, field, value)
+        if incoming_settings is not None:
+            merged = {**(school.settings or {}), **incoming_settings}
+            school.settings = merged
+        await self.db.flush()
+        await self.db.refresh(school)
+        return school
+
     async def set_status(self, school_id: uuid.UUID, status: SchoolStatus) -> School:
         school = await self._get_school(school_id)
         school.status = status.value

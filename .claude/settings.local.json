@@ -15,7 +15,8 @@
       "Bash(python3 -c \"from app.modules.permissions.service import PermissionService; assert hasattr\\(PermissionService,'school_effective_modules'\\); print\\('refactor OK'\\)\")",
       "Bash(pkill -f \"uvicorn app.main:app\")",
       "Bash(python3 -c \"from app.models import SchoolClass, Section, Subject, TimetableSlot; print\\('models OK'\\)\")",
-      "Bash(python3 -c \"from app.models import StudentEnrollment, AttendanceRecord; print\\('models OK'\\)\")"
+      "Bash(python3 -c \"from app.models import StudentEnrollment, AttendanceRecord; print\\('models OK'\\)\")",
+      "Bash(git ls-remote *)"
     ]
   }
 }

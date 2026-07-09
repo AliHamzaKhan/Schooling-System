@@ -136,6 +136,17 @@ class SubmissionView extends GetView<SubmissionController> {
                           controller: controller.notesCtrl,
                           maxLines: 3,
                         ),
+                        Obx(() {
+                          final err = controller.error.value;
+                          if (err == null) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                                top: AppSpacing.stackMd),
+                            child: Text(err,
+                                style: AppTypography.bodyMd
+                                    .copyWith(color: AppColors.error)),
+                          );
+                        }),
                         const SizedBox(height: AppSpacing.stackLg),
                         Obx(() => PrimaryButton(
                               label: 'Turn In Assignment',

@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // The Flutter Gradle Plugin must be applied after the Android plugin; it
+    // provides Kotlin support (Built-in Kotlin), so no separate kotlin-android.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -13,6 +13,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Required by flutter_local_notifications (uses java.time on older APIs).
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -41,4 +43,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Backports java.time (and other Java 8+ APIs) so flutter_local_notifications
+    // works below its target API. Version tracks the plugin's requirement.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

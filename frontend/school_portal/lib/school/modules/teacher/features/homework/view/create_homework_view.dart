@@ -124,6 +124,8 @@ class _LogisticsCard extends StatelessWidget {
                       label: 'Due Date',
                       hint: 'mm/dd/yyyy',
                       controller: controller.dueCtrl,
+                      readOnly: true,
+                      onTap: () => controller.pickDueDate(context),
                       suffix: const Icon(Icons.calendar_today_outlined,
                           size: 18, color: AppColors.onSurfaceVariant),
                     ),

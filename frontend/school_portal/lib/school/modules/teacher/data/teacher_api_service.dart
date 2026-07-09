@@ -9,6 +9,7 @@ import '../features/communication/models/message_thread.dart';
 import '../features/dashboard/models/dashboard_data.dart';
 import '../features/gradebook/models/gradebook_data.dart';
 import '../features/performance/models/performance_data.dart';
+import '../features/quiz/models/quiz_models.dart';
 import 'teacher_endpoints.dart';
 
 /// Network layer for the Teacher module. Owns every Teacher HTTP call, building
@@ -50,6 +51,21 @@ class TeacherApiService {
               accent: AppColors.primary,
             );
           })
+          .toList(),
+    );
+  }
+
+  /// Live subject names from `/schools/{id}/academic/subjects` (`SubjectOut`:
+  /// id, name). Used to populate the Create Exam subject picker with real
+  /// subjects rather than class names.
+  Future<ApiResponse<List<String>>> fetchSubjects() {
+    return _api.request<List<String>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.academicSubjects(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map((s) => s['name'] as String? ?? '')
+          .where((n) => n.isNotEmpty)
           .toList(),
     );
   }
@@ -191,6 +207,156 @@ class TeacherApiService {
       method: HttpMethod.post,
       path: TeacherEndpoints.exams,
       body: payload,
+    );
+  }
+
+  // ──────────────────────────────── quizzes ───────────────────────────────
+
+  /// Quizzes created for this school (`QuizOut` list).
+  Future<ApiResponse<List<TeacherQuiz>>> fetchQuizzes() {
+    return _api.request<List<TeacherQuiz>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.quizzes(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(TeacherQuiz.fromJson)
+          .toList(),
+    );
+  }
+
+  /// Creates a quiz (draft) and returns its id. When [assigneeIds] is non-empty
+  /// the quiz targets only those students; otherwise it is section-wide.
+  Future<ApiResponse<String>> createQuiz({
+    required String sectionId,
+    required String subjectId,
+    required String title,
+    String? description,
+    int? timeLimitMinutes,
+    List<String>? assigneeIds,
+  }) {
+    return _api.request<String>(
+      method: HttpMethod.post,
+      path: TeacherEndpoints.quizzes(_sid),
+      body: {
+        'section_id': sectionId,
+        'subject_id': subjectId,
+        'title': title,
+        'description': ?description,
+        'time_limit_minutes': ?timeLimitMinutes,
+        if (assigneeIds != null && assigneeIds.isNotEmpty)
+          'assignee_ids': assigneeIds,
+      },
+      parser: (json) => '${(json as Map<String, dynamic>)['id']}',
+    );
+  }
+
+  /// Enrolled students of a section (for the assignee picker).
+  Future<ApiResponse<List<IdLabel>>> fetchSectionStudents(String sectionId) {
+    return _api.request<List<IdLabel>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.quizSectionStudents(_sid, sectionId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map((s) => IdLabel('${s['student_id']}', s['name'] as String? ?? ''))
+          .toList(),
+    );
+  }
+
+  /// Per-student scores for a quiz.
+  Future<ApiResponse<QuizPerformance>> fetchQuizPerformance(String quizId) {
+    return _api.request<QuizPerformance>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.quizPerformance(_sid, quizId),
+      parser: (json) => QuizPerformance.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Uploads a PDF and returns AI-generated draft MCQs to pre-fill the form.
+  Future<ApiResponse<List<DraftQuestion>>> generateQuizQuestions({
+    required List<int> bytes,
+    required String filename,
+  }) {
+    return _api.request<List<DraftQuestion>>(
+      method: HttpMethod.multipart,
+      path: TeacherEndpoints.quizGenerateQuestions(_sid),
+      files: [
+        MultipartUpload(
+          field: 'file',
+          filename: filename,
+          bytes: bytes,
+          contentType: 'application/pdf',
+        ),
+      ],
+      parser: (json) => (json as List).cast<Map<String, dynamic>>().map((q) {
+        final options =
+            ((q['options'] as List?) ?? const []).map((e) => '$e').toList();
+        final correct = q['correct_answer'] as String? ?? '';
+        final idx = options.indexOf(correct);
+        return DraftQuestion(
+          prompt: q['prompt'] as String? ?? '',
+          options: options,
+          correctIndex: idx < 0 ? 0 : idx,
+          marks: (q['marks'] as num?)?.toDouble() ?? 1,
+        );
+      }).toList(),
+    );
+  }
+
+  /// Adds one question to a quiz.
+  Future<ApiResponse<dynamic>> addQuestion(
+      String quizId, Map<String, dynamic> question) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: TeacherEndpoints.quizQuestions(_sid, quizId),
+      body: question,
+      parser: (json) => json,
+    );
+  }
+
+  /// Publishes a quiz (opens it for student attempts).
+  Future<ApiResponse<dynamic>> publishQuiz(String quizId) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: TeacherEndpoints.quizPublish(_sid, quizId),
+      parser: (json) => json,
+    );
+  }
+
+  /// Flattened "Grade · Section" options built from classes + their sections.
+  Future<ApiResponse<List<IdLabel>>> fetchSectionOptions() async {
+    final classesRes = await _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.academicClasses(_sid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    if (!classesRes.success || classesRes.data == null) {
+      return ApiResponse.fail(classesRes.error ?? 'Could not load classes');
+    }
+    final out = <IdLabel>[];
+    for (final c in classesRes.data!) {
+      final classId = '${c['id']}';
+      final className = c['name'] as String? ?? '';
+      final secRes = await _api.request<List<Map<String, dynamic>>>(
+        method: HttpMethod.get,
+        path: TeacherEndpoints.academicClassSections(_sid, classId),
+        parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+      );
+      for (final s in secRes.data ?? const <Map<String, dynamic>>[]) {
+        out.add(IdLabel('${s['id']}', '$className · ${s['name'] ?? ''}'));
+      }
+    }
+    return ApiResponse.ok(out);
+  }
+
+  /// Subject id/name options from the subject catalog.
+  Future<ApiResponse<List<IdLabel>>> fetchSubjectOptions() {
+    return _api.request<List<IdLabel>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.academicSubjects(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map((s) => IdLabel('${s['id']}', s['name'] as String? ?? ''))
+          .toList(),
     );
   }
 }

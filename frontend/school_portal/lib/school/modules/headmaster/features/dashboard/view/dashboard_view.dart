@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../components/dashboard_metric_card.dart';
@@ -14,8 +15,16 @@ import '../controller/dashboard_controller.dart';
 class DashboardView extends GetView<DashboardController> {
   final VoidCallback? onAnnouncements;
   final VoidCallback? onSchoolOverview;
+  final VoidCallback? onSettings;
+  final VoidCallback? onSalary;
 
-  const DashboardView({super.key, this.onAnnouncements, this.onSchoolOverview});
+  const DashboardView({
+    super.key,
+    this.onAnnouncements,
+    this.onSchoolOverview,
+    this.onSettings,
+    this.onSalary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +61,28 @@ class DashboardView extends GetView<DashboardController> {
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
 
+                // Admin quick actions.
+                Row(
+                  children: [
+                    Expanded(
+                      child: _AdminAction(
+                        icon: Icons.settings_outlined,
+                        label: 'School Settings',
+                        onTap: onSettings,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.stackMd),
+                    Expanded(
+                      child: _AdminAction(
+                        icon: Icons.payments_outlined,
+                        label: 'Teacher Salaries',
+                        onTap: onSalary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.stackLg),
+
                 // KPI stack.
                 for (final m in data.metrics) ...[
                   DashboardMetricCard(metric: m),
@@ -74,7 +105,10 @@ class DashboardView extends GetView<DashboardController> {
                             child: SectionHeader(
                               title: 'Pending\nApprovals',
                               actionLabel: 'View All',
-                              onAction: () {},
+                              onAction: () => Get.toNamed(
+                                HeadmasterRoutes.approvals,
+                                arguments: data.approvals,
+                              ),
                             ),
                           ),
                         ],
@@ -127,6 +161,40 @@ class DashboardView extends GetView<DashboardController> {
           }),
         ),
       ],
+    );
+  }
+}
+
+class _AdminAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _AdminAction({required this.icon, required this.label, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.button),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.stackMd),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          border: Border.all(color: AppColors.outlineVariant, width: 1),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.primary),
+            const SizedBox(width: AppSpacing.stackSm),
+            Expanded(
+              child: Text(label,
+                  style: AppTypography.labelMd.copyWith(
+                      color: AppColors.primary, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

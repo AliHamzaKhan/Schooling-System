@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -11,8 +12,8 @@ import '../../models/institution.dart';
 class LoginController extends GetxController {
   final AuthService _auth = Get.find<AuthService>();
 
-  final emailCtrl = TextEditingController();
-  final passwordCtrl = TextEditingController();
+  final emailCtrl = TextEditingController(text:kDebugMode ? 'teacher@ths.edu' : '');
+  final passwordCtrl = TextEditingController(text:kDebugMode ? 'Pass1234!' : '');
 
   final institutions = <Institution>[].obs;
   final selectedInstitution = Rxn<Institution>();

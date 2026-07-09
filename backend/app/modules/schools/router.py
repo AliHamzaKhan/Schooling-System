@@ -1,9 +1,10 @@
-"""School Service endpoints. All routes require Super Admin (docs/permissions/01)."""
+"""School Service endpoints. Most routes require Super Admin
+(docs/permissions/01); the `/{id}/profile` routes are Headmaster self-service."""
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
-from app.core.deps import DbDep, SuperAdmin
+from app.core.deps import DbDep, SuperAdmin, require_school_admin
 from app.modules.schools import schemas
 from app.modules.schools.service import SchoolService
 
@@ -35,6 +36,32 @@ async def update_school(
     school_id: uuid.UUID, data: schemas.SchoolUpdate, db: DbDep, _: SuperAdmin
 ) -> schemas.SchoolOut:
     return await SchoolService(db).update_school(school_id, data)
+
+
+# ── Headmaster self-service: read + edit own school profile / branding ──
+
+
+@router.get(
+    "/{school_id}/profile",
+    response_model=schemas.SchoolOut,
+    dependencies=[Depends(require_school_admin)],
+)
+async def get_school_profile(school_id: uuid.UUID, db: DbDep) -> schemas.SchoolOut:
+    """The school's own Headmaster (or Super Admin) reads their school."""
+    return await SchoolService(db).get_school(school_id)
+
+
+@router.patch(
+    "/{school_id}/profile",
+    response_model=schemas.SchoolOut,
+    dependencies=[Depends(require_school_admin)],
+)
+async def update_school_profile(
+    school_id: uuid.UUID, data: schemas.SchoolUpdate, db: DbDep
+) -> schemas.SchoolOut:
+    """Headmaster updates their school name, contact details and branding
+    settings (logo, uniform colour, monthly fee due day live in `settings`)."""
+    return await SchoolService(db).update_school_profile(school_id, data)
 
 
 @router.post("/{school_id}/status", response_model=schemas.SchoolOut)

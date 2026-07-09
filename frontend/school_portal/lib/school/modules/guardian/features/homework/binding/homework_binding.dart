@@ -5,6 +5,7 @@ import '../controller/homework_controller.dart';
 class HomeworkBinding extends Bindings {
   @override
   void dependencies() {
+    Get.delete<HomeworkController>(force: true);
     Get.lazyPut<HomeworkController>(() => HomeworkController());
   }
 }

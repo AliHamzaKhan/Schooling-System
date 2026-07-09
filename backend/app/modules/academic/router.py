@@ -8,7 +8,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import DbDep, require_school_permission
+from app.core.deps import DbDep, require_school_permission, verify_student_access
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.academic import schemas
 from app.modules.academic.service import AcademicService
@@ -113,6 +113,19 @@ async def list_slots(
     school_id: uuid.UUID, db: DbDep, section_id: uuid.UUID | None = Query(default=None)
 ) -> list[schemas.TimetableSlotOut]:
     return await AcademicService(db).list_slots(school_id, section_id)
+
+
+@router.get(
+    "/students/{student_id}/timetable",
+    response_model=list[schemas.StudentTimetableSlot],
+    dependencies=[_view, Depends(verify_student_access)],
+)
+async def student_timetable(
+    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+) -> list[schemas.StudentTimetableSlot]:
+    """A student's own weekly timetable (their section's slots, names resolved).
+    Reachable by the student, their guardian, or staff with timetable view."""
+    return await AcademicService(db).student_timetable(school_id, student_id)
 
 
 @router.patch("/timetable/{slot_id}", response_model=schemas.TimetableSlotOut, dependencies=[_edit])

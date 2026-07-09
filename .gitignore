@@ -7,8 +7,13 @@ __pycache__/
 .ruff_cache/
 .venv/
 venv/
-env/
+# Scope the Python venv "env" ignore to the backend so it doesn't swallow
+# unrelated Dart source dirs (e.g. frontend/shared/lib/src/env/).
+backend/env/
 *.log
+
+# Local file-storage bucket (STORAGE_BACKEND=local) — dev uploads, never commit.
+backend/uploads/
 
 # ── Environment / secrets ────────────────────────
 .env

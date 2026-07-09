@@ -115,6 +115,19 @@ class ExamResultOut(BaseModel):
     published_at: datetime | None = None
 
 
+class StudentExamResult(BaseModel):
+    """One published exam result for a student, with the exam's name — for the
+    student's academic results view."""
+
+    exam_id: uuid.UUID
+    exam_name: str
+    total_marks: float
+    max_total: float
+    percentage: float
+    grade: str
+    status: str
+
+
 class ReportCardLine(BaseModel):
     subject_id: uuid.UUID
     max_marks: float
@@ -134,3 +147,46 @@ class ReportCard(BaseModel):
     grade: str
     status: str
     published: bool
+
+
+# --------------------------------------------------------------------------- #
+# Admit card & seating plan
+# --------------------------------------------------------------------------- #
+
+
+class AdmitCardPaper(BaseModel):
+    subject_id: uuid.UUID
+    exam_date: date | None = None
+    max_marks: float
+
+
+class AdmitCard(BaseModel):
+    exam_id: uuid.UUID
+    exam_name: str
+    student_id: uuid.UUID
+    class_id: uuid.UUID
+    section_id: uuid.UUID | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    room: str | None = None
+    seat_no: int | None = None
+    papers: list[AdmitCardPaper]
+
+
+class SeatOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    exam_id: uuid.UUID
+    student_id: uuid.UUID
+    room: str
+    seat_no: int
+
+
+class SeatingRoom(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    capacity: int = Field(gt=0)
+
+
+class SeatingGenerate(BaseModel):
+    rooms: list[SeatingRoom] = Field(min_length=1)

@@ -72,11 +72,14 @@ class ExamsView extends GetView<ExamsController> {
                         label: 'Pending Results',
                         value: '${data.pendingResults}',
                         accent: AppColors.tertiary,
-                        trailing: PrimaryButton(
-                          label: 'Publish All',
-                          trailingIcon: null,
-                          onPressed: () {},
-                        ),
+                        trailing: Obx(() => PrimaryButton(
+                              label: 'Publish All',
+                              trailingIcon: null,
+                              isLoading: controller.publishing.value,
+                              onPressed: controller.publishing.value
+                                  ? null
+                                  : controller.publishAll,
+                            )),
                       ),
                     ),
                   ],
@@ -97,22 +100,39 @@ class ExamsView extends GetView<ExamsController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SectionHeader(
-                        title: 'Exam Schedule',
-                        actionLabel: 'Filter',
-                        actionIcon: Icons.filter_list_rounded,
-                        onAction: () {},
-                      ),
+                      Obx(() => SectionHeader(
+                            title: 'Exam Schedule',
+                            actionLabel: controller.activeFilterCount > 0
+                                ? 'Filter (${controller.activeFilterCount})'
+                                : 'Filter',
+                            actionIcon: Icons.filter_list_rounded,
+                            onAction: controller.openScheduleFilter,
+                          )),
                       const SizedBox(height: AppSpacing.stackMd),
-                      for (var i = 0; i < data.schedule.length; i++) ...[
-                        ExamScheduleRow(item: data.schedule[i]),
-                        if (i != data.schedule.length - 1)
-                          const SizedBox(height: AppSpacing.stackSm),
-                      ],
+                      Obx(() {
+                        final schedule = controller.visibleSchedule;
+                        if (schedule.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.stackMd),
+                            child: Text('No exams match your filters.',
+                                style: AppTypography.bodyMd),
+                          );
+                        }
+                        return Column(
+                          children: [
+                            for (var i = 0; i < schedule.length; i++) ...[
+                              ExamScheduleRow(item: schedule[i]),
+                              if (i != schedule.length - 1)
+                                const SizedBox(height: AppSpacing.stackSm),
+                            ],
+                          ],
+                        );
+                      }),
                       const SizedBox(height: AppSpacing.stackMd),
                       Center(
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: onTimetable,
                           child: Text('View Full Schedule',
                               style: AppTypography.labelMd
                                   .copyWith(color: AppColors.primary)),

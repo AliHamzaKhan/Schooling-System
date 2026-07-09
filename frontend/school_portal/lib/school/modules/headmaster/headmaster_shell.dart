@@ -56,6 +56,8 @@ class _HeadmasterShellState extends State<HeadmasterShell> {
       DashboardView(
         onAnnouncements: () => Get.toNamed(HeadmasterRoutes.announcements),
         onSchoolOverview: () => Get.toNamed(HeadmasterRoutes.schoolOverview),
+        onSettings: () => Get.toNamed(HeadmasterRoutes.settings),
+        onSalary: () => Get.toNamed(HeadmasterRoutes.salary),
       ),
       ClassesView(
         onManageStudents: () => Get.toNamed(HeadmasterRoutes.students),

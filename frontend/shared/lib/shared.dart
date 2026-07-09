@@ -1,9 +1,9 @@
 /// Public API of the `shared` package — common design system, services and
 /// cross-portal features for the school & admin portals.
 ///
-/// Heavier modules under `lib/src` (calling, notifications, ads, biometric,
+/// Heavier modules under `lib/src` (calling, notifications, biometric,
 /// permissions, version) are intentionally NOT exported here yet: they pull in
-/// firebase/agora/ads/etc. Export them once their dependencies are added to
+/// firebase/agora/etc. Export them once their dependencies are added to
 /// `pubspec.yaml` and the modules are actually used.
 library;
 

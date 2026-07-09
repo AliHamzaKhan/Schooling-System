@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:shared/shared.dart';
 
-import 'portal_app_bar.dart';
-
 /// One bottom-nav tab spec (icon + label).
 class PortalTab {
   final IconData icon;
@@ -11,10 +9,14 @@ class PortalTab {
   const PortalTab(this.icon, this.label);
 }
 
-/// Shared module shell: a [PortalAppBar] (title + logout) over a style-7
-/// persistent bottom nav (persistent_bottom_nav_bar). The first tab gets an
-/// animated home⇄menu icon; the rest use their Material icon.
+/// Shared module shell: a style-7 persistent bottom nav
+/// (persistent_bottom_nav_bar) with no Material app bar — each tab screen owns
+/// its single compact [PortalTopBar] header (which carries the account/logout
+/// menu). The first tab gets an animated home⇄menu icon; the rest use their
+/// Material icon.
 class PortalTabScaffold extends StatefulWidget {
+  /// Retained for call-site compatibility; no longer rendered (the header now
+  /// lives inside each tab screen's [PortalTopBar]).
   final String title;
   final List<PortalTab> tabs;
   final List<Widget> screens;
@@ -76,18 +78,23 @@ class _PortalTabScaffoldState extends State<PortalTabScaffold>
   Widget build(BuildContext context) {
     return AppScaffold(
       safeArea: false,
-      appBar: PortalAppBar(title: widget.title),
-      body: PersistentTabView(
-        context,
-        controller: _tabController,
-        screens: widget.screens,
-        items: _items(),
-        navBarStyle: NavBarStyle.style7,
-        backgroundColor: AppColors.surface,
-        confineToSafeArea: true,
-        handleAndroidBackButtonPress: true,
-        resizeToAvoidBottomInset: true,
-        stateManagement: true,
+      // Top inset only: the persistent nav manages its own bottom safe area via
+      // [confineToSafeArea]. This replaces the removed Material app bar's inset
+      // so each screen's [PortalTopBar] clears the status bar.
+      body: SafeArea(
+        bottom: false,
+        child: PersistentTabView(
+          context,
+          controller: _tabController,
+          screens: widget.screens,
+          items: _items(),
+          navBarStyle: NavBarStyle.style7,
+          backgroundColor: AppColors.surface,
+          confineToSafeArea: true,
+          handleAndroidBackButtonPress: true,
+          resizeToAvoidBottomInset: true,
+          stateManagement: true,
+        ),
       ),
     );
   }

@@ -17,10 +17,33 @@ class StudentEndpoints {
   static String homeworkAssignments(String schoolId) =>
       '/schools/$schoolId/homework/assignments';
   static String examsList(String schoolId) => '/schools/$schoolId/exams';
+  static String examPapers(String schoolId, String examId) =>
+      '/schools/$schoolId/exams/$examId/papers';
+  static String academicSubjects(String schoolId) =>
+      '/schools/$schoolId/academic/subjects';
   static String submitAssignment(String schoolId, String assignmentId) =>
       '/schools/$schoolId/homework/assignments/$assignmentId/submissions';
+  static String uploads(String schoolId) => '/schools/$schoolId/uploads';
+
+  // ── Quizzes ──
+  static String quizzes(String schoolId) => '/schools/$schoolId/quizzes';
+  static String quizzesAssigned(String schoolId) =>
+      '/schools/$schoolId/quizzes/assigned';
+  static String quizDetail(String schoolId, String quizId) =>
+      '/schools/$schoolId/quizzes/$quizId';
+  static String quizSubmit(String schoolId, String quizId) =>
+      '/schools/$schoolId/quizzes/$quizId/attempts/submit';
+  static String studentQuizAttempts(String schoolId, String studentId) =>
+      '/schools/$schoolId/quizzes/students/$studentId/attempts';
   static String broadcasts(String schoolId) =>
       '/schools/$schoolId/communication/broadcasts';
   static String studentAttendance(String schoolId, String studentId) =>
       '/schools/$schoolId/students/$studentId/attendance';
+  static String studentExamResults(String schoolId, String studentId) =>
+      '/schools/$schoolId/exams/students/$studentId/results';
+  static String studentReportCard(
+          String schoolId, String examId, String studentId) =>
+      '/schools/$schoolId/exams/$examId/students/$studentId/report-card';
+  static String studentTimetable(String schoolId, String studentId) =>
+      '/schools/$schoolId/academic/students/$studentId/timetable';
 }

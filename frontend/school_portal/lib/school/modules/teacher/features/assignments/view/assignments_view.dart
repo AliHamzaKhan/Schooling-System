@@ -14,13 +14,17 @@ import '../controller/assignments_controller.dart';
 class AssignmentsView extends GetView<AssignmentsController> {
   final VoidCallback? onCreateHomework;
   final VoidCallback? onCreateExam;
+  final VoidCallback? onCreateQuiz;
   final VoidCallback? onOpenGradebook;
+  final VoidCallback? onOpenQuizzes;
 
   const AssignmentsView({
     super.key,
     this.onCreateHomework,
     this.onCreateExam,
+    this.onCreateQuiz,
     this.onOpenGradebook,
+    this.onOpenQuizzes,
   });
 
   @override
@@ -58,6 +62,14 @@ class AssignmentsView extends GetView<AssignmentsController> {
                       leadingIcon: Icons.add,
                       trailingIcon: null,
                       onPressed: () => _showCreatePicker(context),
+                    ),
+                    const SizedBox(height: AppSpacing.stackSm),
+                    GhostButton(
+                      label: 'Quizzes',
+                      leadingIcon: Icons.quiz_outlined,
+                      trailingIcon: Icons.chevron_right_rounded,
+                      expanded: true,
+                      onPressed: onOpenQuizzes,
                     ),
                     const SizedBox(height: AppSpacing.stackLg),
                     // KPI list — divided rows, no card per stat.
@@ -166,6 +178,15 @@ class AssignmentsView extends GetView<AssignmentsController> {
               onTap: () {
                 Navigator.of(context).pop();
                 onCreateExam?.call();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.quiz_outlined, color: AppColors.primary),
+              title: const Text('Quiz'),
+              subtitle: const Text('Auto-graded multiple-choice questions'),
+              onTap: () {
+                Navigator.of(context).pop();
+                onCreateQuiz?.call();
               },
             ),
             const SizedBox(height: AppSpacing.stackMd),

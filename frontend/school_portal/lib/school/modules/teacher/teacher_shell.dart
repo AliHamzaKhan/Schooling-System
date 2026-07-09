@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 import '../../config/teacher_routes.dart';
 import '../../widgets/portal_tab_scaffold.dart';
@@ -35,6 +36,20 @@ class _TeacherShellState extends State<TeacherShell> {
     PortalTab(Icons.insights_rounded, 'Performance'),
   ];
 
+  // Tab indices, so dashboard quick actions can jump between tabs.
+  static const _attendanceTab = 2;
+  static const _tasksTab = 3;
+
+  // Owned here (rather than by the scaffold) so the dashboard can switch tabs.
+  final PersistentTabController _tabController =
+      PersistentTabController(initialIndex: 0);
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -50,22 +65,39 @@ class _TeacherShellState extends State<TeacherShell> {
     PerformanceBinding().dependencies();
   }
 
+  void _goToTab(int index) => _tabController.jumpToTab(index);
+
   @override
   Widget build(BuildContext context) {
     final tabs = <Widget>[
       DashboardView(
         onChat: () => Get.toNamed(TeacherRoutes.chat),
+        onMarkAttendance: () => _goToTab(_attendanceTab),
+        onAddAssignment: () => _goToTab(_tasksTab),
+        onAnnounce: () => Get.toNamed(TeacherRoutes.chat),
+        onViewCalendar: () => Get.toNamed(TeacherRoutes.calendar),
+        onViewAllTasks: () => _goToTab(_tasksTab),
       ),
-      const ClassesView(),
+      ClassesView(
+        onOpenClass: (c) =>
+            Get.toNamed(TeacherRoutes.classDetail, arguments: c),
+      ),
       const AttendanceClassesView(),
       AssignmentsView(
         onCreateHomework: () => Get.toNamed(TeacherRoutes.createHomework),
         onCreateExam: () => Get.toNamed(TeacherRoutes.createExam),
+        onCreateQuiz: () => Get.toNamed(TeacherRoutes.createQuiz),
         onOpenGradebook: () => Get.toNamed(TeacherRoutes.gradebook),
+        onOpenQuizzes: () => Get.toNamed(TeacherRoutes.quizzes),
       ),
       const StudentPerformanceView(),
     ];
 
-    return PortalTabScaffold(title: 'Teacher', tabs: _tabs, screens: tabs);
+    return PortalTabScaffold(
+      title: 'Teacher',
+      tabs: _tabs,
+      screens: tabs,
+      controller: _tabController,
+    );
   }
 }

@@ -76,7 +76,7 @@ class AnnouncementsView extends GetView<AnnouncementsController> {
             right: AppSpacing.stackLg,
             bottom: AppSpacing.stackLg,
             child: FloatingActionButton(
-              onPressed: () {},
+              onPressed: controller.composeFlow,
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.onPrimary,
               child: const Icon(Icons.edit_outlined),

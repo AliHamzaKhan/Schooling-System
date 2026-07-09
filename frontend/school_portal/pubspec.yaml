@@ -43,6 +43,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   persistent_bottom_nav_bar: 6.2.1
 
+  # Native file picker — used by Create Exam "Upload PDF".
+  file_picker: ^8.1.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

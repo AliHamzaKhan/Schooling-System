@@ -59,6 +59,22 @@ class ExamCountdown {
       );
 }
 
+/// One scheduled paper within an exam (a subject sitting), as entered by the
+/// teacher/headmaster when the exam was scheduled.
+class ExamPaper {
+  final String subject;
+  final String date;
+  final double maxMarks;
+  final double passMarks;
+
+  const ExamPaper({
+    required this.subject,
+    required this.date,
+    required this.maxMarks,
+    required this.passMarks,
+  });
+}
+
 class ExamsData {
   final int comingThisMonth;
   final ExamCountdown next;
@@ -68,6 +84,15 @@ class ExamsData {
     required this.next,
     required this.timeline,
   });
+
+  /// The timeline entry that backs the [next] countdown (matched by title +
+  /// date), so callers can navigate to that exam's detail. Null if none.
+  UpcomingExam? get nextEntry {
+    for (final e in timeline) {
+      if (e.title == next.title && e.date == next.date) return e;
+    }
+    return null;
+  }
 
   factory ExamsData.fromJson(Map<String, dynamic> json) => ExamsData(
         comingThisMonth: (json['coming_this_month'] as num?)?.toInt() ?? 0,

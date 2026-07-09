@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/student_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/countdown_card.dart';
 import '../components/timeline_card.dart';
@@ -36,7 +37,13 @@ class ExamsView extends GetView<ExamsController> {
                 Text('You have ${data.comingThisMonth} exams coming up this month.',
                     style: AppTypography.bodyLg),
                 const SizedBox(height: AppSpacing.stackLg),
-                CountdownCard(next: data.next),
+                CountdownCard(
+                  next: data.next,
+                  onTap: data.nextEntry == null
+                      ? null
+                      : () => Get.toNamed(StudentRoutes.examDetail,
+                          arguments: data.nextEntry),
+                ),
                 const SizedBox(height: AppSpacing.stackXl),
                 Text('Upcoming Timeline',
                     style: AppTypography.displayLg.copyWith(fontSize: 28)),
@@ -45,6 +52,8 @@ class ExamsView extends GetView<ExamsController> {
                   TimelineCard(
                     exam: data.timeline[i],
                     isLast: i == data.timeline.length - 1,
+                    onTap: () => Get.toNamed(StudentRoutes.examDetail,
+                        arguments: data.timeline[i]),
                   ),
               ],
             );

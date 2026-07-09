@@ -8,6 +8,7 @@ import 'features/assignments/binding/assignments_binding.dart';
 import 'features/assignments/view/assignments_view.dart';
 import 'features/attendance/binding/attendance_binding.dart';
 import 'features/attendance/view/attendance_view.dart';
+import 'features/dashboard/binding/dashboard_binding.dart';
 import 'features/dashboard/view/dashboard_view.dart';
 import 'features/exams/binding/exams_binding.dart';
 import 'features/exams/view/exams_view.dart';
@@ -40,6 +41,7 @@ class _StudentShellState extends State<StudentShell> {
     if (!Get.isRegistered<StudentRepository>()) {
       Get.put<StudentRepository>(StudentRepository(), permanent: true);
     }
+    DashboardBinding().dependencies();
     ExamsBinding().dependencies();
     AssignmentsBinding().dependencies();
     AttendanceBinding().dependencies();
@@ -48,13 +50,20 @@ class _StudentShellState extends State<StudentShell> {
   @override
   Widget build(BuildContext context) {
     final tabs = <Widget>[
-      DashboardView(onNotifications: _openNotifications),
+      DashboardView(
+        onNotifications: _openNotifications,
+        onOpenQuizzes: () => Get.toNamed(StudentRoutes.quizzes),
+        onOpenAssignment: (a) => Get.toNamed(
+          StudentRoutes.assignmentDetail,
+          arguments: a,
+        ),
+      ),
       ExamsView(onNotifications: _openNotifications),
       AssignmentsView(
         onNotifications: _openNotifications,
-        onOpenAssignment: (id) => Get.toNamed(
+        onOpenAssignment: (a) => Get.toNamed(
           StudentRoutes.assignmentDetail,
-          arguments: id,
+          arguments: a,
         ),
       ),
       AttendanceView(onNotifications: _openNotifications),

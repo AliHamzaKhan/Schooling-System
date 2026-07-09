@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/headmaster_routes.dart';
+import '../../../../../widgets/entity_detail_sheet.dart';
 import '../../../../../widgets/portal_search_field.dart';
 import '../components/student_card.dart';
 import '../controller/students_controller.dart';
@@ -19,13 +21,30 @@ class StudentsView extends GetView<StudentsController> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _Header(),
-          Expanded(child: _list()),
+          Expanded(child: _list(context)),
         ],
       ),
     );
   }
 
-  Widget _list() {
+  void _showStudent(BuildContext context, Student s) {
+    showEntityDetailSheet(
+      context,
+      title: s.name,
+      subtitle: 'Roll ${s.roll}',
+      initials: s.initials,
+      accent: s.status.color,
+      statusLabel: s.status.label,
+      statusColor: s.status.color,
+      fields: [
+        DetailField(Icons.confirmation_number_outlined, 'Roll', s.roll),
+        DetailField(Icons.school_outlined, 'Grade', s.grade),
+        DetailField(Icons.class_outlined, 'Section', s.section),
+      ],
+    );
+  }
+
+  Widget _list(BuildContext context) {
     return Obx(() {
       if (controller.loading.value) {
         return const Center(child: CircularProgressIndicator());
@@ -50,7 +69,14 @@ class StudentsView extends GetView<StudentsController> {
             )
           else
             for (final s in items) ...[
-              StudentCard(student: s, onTap: () {}, onMenu: () {}),
+              StudentCard(
+                student: s,
+                // Card tap → the 360° student report; the menu keeps the
+                // quick-view sheet.
+                onTap: () => Get.toNamed(HeadmasterRoutes.studentReport,
+                    arguments: s.id),
+                onMenu: () => _showStudent(context, s),
+              ),
               const SizedBox(height: AppSpacing.stackLg),
             ],
           _Pager(
@@ -102,7 +128,7 @@ class _Header extends StatelessWidget {
             leadingIcon: Icons.person_add_alt_1_rounded,
             trailingIcon: null,
             expanded: true,
-            onPressed: () {},
+            onPressed: () => Get.find<StudentsController>().enrollStudentFlow(),
           ),
         ],
       ),

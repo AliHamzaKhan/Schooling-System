@@ -12,6 +12,8 @@ class PortalFormField extends StatelessWidget {
   final TextInputType keyboardType;
   final bool filled;
   final Widget? suffix;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   const PortalFormField({
     super.key,
@@ -22,6 +24,8 @@ class PortalFormField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.filled = false,
     this.suffix,
+    this.readOnly = false,
+    this.onTap,
   });
 
   @override
@@ -36,6 +40,8 @@ class PortalFormField extends StatelessWidget {
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
+          readOnly: readOnly,
+          onTap: onTap,
           style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
           decoration: InputDecoration(
             hintText: hint,

@@ -60,3 +60,50 @@ class EnrollmentReport(BaseModel):
     school_id: uuid.UUID
     total_students: int
     classes: list[ClassEnrollment]
+
+
+# --------------------------- per-student report --------------------------- #
+
+
+class ReportGuardian(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class ReportAttendance(BaseModel):
+    present: int = 0
+    absent: int = 0
+    late: int = 0
+    excused: int = 0
+    total: int = 0
+    percentage: float = 0  # (present + late + excused) / total * 100
+
+
+class ReportExam(BaseModel):
+    exam_name: str
+    percentage: float
+    grade: str
+    status: str
+
+
+class ReportQuiz(BaseModel):
+    title: str
+    score: float | None = None
+
+
+class StudentReport(BaseModel):
+    """A teacher/headmaster's 360-degree view of one student — attendance, exam
+    results, assignment turn-in, quiz scores, total points, and the linked
+    guardian(s) (for messaging / meetings)."""
+
+    student_id: uuid.UUID
+    student_name: str
+    guardians: list[ReportGuardian] = []
+    attendance: ReportAttendance
+    exams: list[ReportExam] = []
+    exam_average: float = 0
+    assignments_total: int = 0
+    assignments_submitted: int = 0
+    quizzes: list[ReportQuiz] = []
+    quiz_average: float | None = None
+    total_points: float = 0

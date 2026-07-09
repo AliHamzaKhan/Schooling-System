@@ -8,7 +8,7 @@ from app.models.academic import (
 )
 from app.models.associations import user_roles
 from app.models.attendance import AttendanceRecord
-from app.models.examination import Exam, ExamResult, ExamSubject, Mark
+from app.models.examination import Exam, ExamResult, ExamSeat, ExamSubject, Mark
 from app.models.fees import FeeStructure, Invoice, Payment
 from app.models.communication import (
     DeviceToken,
@@ -17,6 +17,7 @@ from app.models.communication import (
     NotificationConfig,
     NotificationTemplate,
 )
+from app.models.direct_message import DirectMessage
 from app.models.homework import Assignment, Submission
 from app.models.library import Book, BookLoan
 from app.models.hostel import HostelAllocation, HostelBlock, HostelRoom
@@ -26,10 +27,16 @@ from app.models.ai import AIInteraction
 from app.models.leave import LeaveRequest
 from app.models.meeting import Meeting
 from app.models.online_class import OnlineClass
+from app.models.quiz import Quiz, QuizAnswer, QuizAssignment, QuizAttempt, QuizQuestion
+from app.models.promotion import PromotionRecord
+from app.models.calendar import CalendarEvent
+from app.models.document import StudentDocument
+from app.models.lesson import LessonPlan
 from app.models.transport import Route, RouteStop, TransportAssignment, Vehicle
 from app.models.base import Base
 from app.models.role import Role, RolePermission
 from app.models.school import AcademicSession, School, SchoolModule
+from app.models.session import RefreshSession
 from app.models.subscription import SubscriptionPlan
 from app.models.user import User
 
@@ -43,6 +50,7 @@ __all__ = [
     "SchoolModule",
     "SubscriptionPlan",
     "User",
+    "RefreshSession",
     "SchoolClass",
     "Section",
     "Subject",
@@ -53,6 +61,7 @@ __all__ = [
     "ExamSubject",
     "Mark",
     "ExamResult",
+    "ExamSeat",
     "FeeStructure",
     "Invoice",
     "Payment",
@@ -62,6 +71,7 @@ __all__ = [
     "NotificationConfig",
     "Message",
     "MessageDelivery",
+    "DirectMessage",
     "DeviceToken",
     "Book",
     "BookLoan",
@@ -80,4 +90,13 @@ __all__ = [
     "AIInteraction",
     "LeaveRequest",
     "Meeting",
+    "Quiz",
+    "QuizQuestion",
+    "QuizAttempt",
+    "QuizAnswer",
+    "QuizAssignment",
+    "PromotionRecord",
+    "CalendarEvent",
+    "StudentDocument",
+    "LessonPlan",
 ]

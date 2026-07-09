@@ -108,8 +108,58 @@ async def list_results(school_id: uuid.UUID, exam_id: uuid.UUID, db: DbDep) -> l
     return await ExaminationService(db).list_results(school_id, exam_id)
 
 
+@router.get(
+    "/students/{student_id}/results",
+    response_model=list[schemas.StudentExamResult],
+    dependencies=[_result_view, Depends(verify_student_access)],
+)
+async def student_exam_results(
+    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+) -> list[schemas.StudentExamResult]:
+    """Every published exam result for one student (their own, or a guardian's
+    child / a teacher). Powers the student academic results screen."""
+    return await ExaminationService(db).student_results(school_id, student_id)
+
+
 @router.get("/{exam_id}/students/{student_id}/report-card", response_model=schemas.ReportCard, dependencies=[_result_view, Depends(verify_student_access)])
 async def report_card(
     school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
 ) -> schemas.ReportCard:
     return await ExaminationService(db).report_card(school_id, exam_id, student_id)
+
+
+# ---------------------------- admit card & seating ---------------------------- #
+
+
+@router.get(
+    "/{exam_id}/students/{student_id}/admit-card",
+    response_model=schemas.AdmitCard,
+    dependencies=[_exam_view, Depends(verify_student_access)],
+)
+async def admit_card(
+    school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+) -> schemas.AdmitCard:
+    return await ExaminationService(db).admit_card(school_id, exam_id, student_id)
+
+
+@router.post(
+    "/{exam_id}/seating/generate",
+    response_model=list[schemas.SeatOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[_exam_create],
+)
+async def generate_seating(
+    school_id: uuid.UUID, exam_id: uuid.UUID, data: schemas.SeatingGenerate, db: DbDep
+) -> list[schemas.SeatOut]:
+    return await ExaminationService(db).generate_seating(school_id, exam_id, data)
+
+
+@router.get(
+    "/{exam_id}/seating",
+    response_model=list[schemas.SeatOut],
+    dependencies=[_exam_view],
+)
+async def list_seating(
+    school_id: uuid.UUID, exam_id: uuid.UUID, db: DbDep
+) -> list[schemas.SeatOut]:
+    return await ExaminationService(db).list_seating(school_id, exam_id)

@@ -45,8 +45,6 @@ class PerformanceProfileCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.stackSm),
-          Text(student.name,
-              style: AppTypography.headlineLg.copyWith(fontSize: 24)),
           Text('Student ID: #${student.id}', style: AppTypography.bodyMd),
           const SizedBox(height: AppSpacing.stackMd),
           Row(
@@ -73,15 +71,6 @@ class PerformanceProfileCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackLg),
           const Divider(height: 1, color: AppColors.outlineVariant),
           const SizedBox(height: AppSpacing.stackMd),
-          Row(
-            children: [
-              Expanded(child: Text('Current GPA', style: AppTypography.bodyLg)),
-              Text(student.currentGpa,
-                  style: AppTypography.displayLg
-                      .copyWith(fontSize: 28, color: AppColors.primary)),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.stackSm),
           Row(
             children: [
               Expanded(child: Text('Attendance', style: AppTypography.bodyLg)),

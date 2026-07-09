@@ -125,3 +125,15 @@ class TimetableSlotOut(BaseModel):
     start_time: time
     end_time: time
     room: str | None = None
+
+
+class StudentTimetableSlot(BaseModel):
+    """A period on a student's own timetable, with subject/teacher names
+    resolved (0=Mon .. 6=Sun)."""
+
+    day_of_week: int
+    start_time: time
+    end_time: time
+    subject: str
+    teacher: str | None = None
+    room: str | None = None

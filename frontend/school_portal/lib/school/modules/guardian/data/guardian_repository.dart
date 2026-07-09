@@ -115,4 +115,8 @@ class GuardianRepository {
 
   Future<ApiResponse<List<NotificationItem>>> loadNotifications() =>
       _liveNotifications ? _api.fetchNotifications() : _notificationMock.load();
+
+  /// Marks a direct message read for the signed-in guardian.
+  Future<ApiResponse<dynamic>> markMessageRead(String messageId) =>
+      _api.markMessageRead(messageId);
 }

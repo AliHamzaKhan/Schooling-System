@@ -6,6 +6,7 @@
 library;
 
 export 'filter_chips.dart';
+export 'filter_sheet.dart';
 export 'multi_line_chart.dart';
 export 'portal_form_field.dart';
 export 'portal_search_field.dart';

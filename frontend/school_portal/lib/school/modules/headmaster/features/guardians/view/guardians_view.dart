@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../widgets/entity_detail_sheet.dart';
 import '../../../../../widgets/portal_search_field.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/guardian_card.dart';
 import '../controller/guardians_controller.dart';
+import '../models/guardian.dart';
 
 /// Guardian Management — searchable list of guardians with linked students.
 class GuardiansView extends GetView<GuardiansController> {
@@ -49,7 +51,7 @@ class GuardiansView extends GetView<GuardiansController> {
                         label: 'Add Guardian',
                         leadingIcon: Icons.add,
                         trailingIcon: null,
-                        onPressed: () {},
+                        onPressed: controller.addGuardianFlow,
                       ),
                     ],
                   ),
@@ -68,9 +70,9 @@ class GuardiansView extends GetView<GuardiansController> {
                     for (final g in controller.results) ...[
                       GuardianCard(
                         guardian: g,
-                        onView: () {},
+                        onView: () => _showGuardian(context, g),
                         onInvite: () => controller.invite(g.id),
-                        onMenu: () {},
+                        onMenu: () => _showGuardian(context, g),
                       ),
                       const SizedBox(height: AppSpacing.stackLg),
                     ],
@@ -82,6 +84,23 @@ class GuardiansView extends GetView<GuardiansController> {
       ),
     );
   }
+}
+
+void _showGuardian(BuildContext context, Guardian g) {
+  showEntityDetailSheet(
+    context,
+    title: g.name,
+    subtitle: g.email,
+    initials: g.initials,
+    statusLabel: g.status.label,
+    statusColor: g.status.color,
+    fields: [
+      DetailField(Icons.email_outlined, 'Email', g.email),
+      if (g.phone != null) DetailField(Icons.phone_outlined, 'Phone', g.phone!),
+    ],
+    chipsLabel: g.linkedStudents.isEmpty ? null : 'LINKED STUDENTS',
+    chips: [for (final s in g.linkedStudents) s.label],
+  );
 }
 
 class _AllGuardiansChip extends StatelessWidget {

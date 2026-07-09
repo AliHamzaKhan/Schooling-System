@@ -6,10 +6,11 @@ import '../../../../../widgets/portal_top_bar.dart';
 import '../components/assignment_card.dart';
 import '../components/weekly_progress_card.dart';
 import '../controller/assignments_controller.dart';
+import '../models/assignment.dart';
 
 /// Student My Assignments — weekly progress card + active assignments list.
 class AssignmentsView extends GetView<AssignmentsController> {
-  final ValueChanged<String>? onOpenAssignment;
+  final ValueChanged<StudentAssignment>? onOpenAssignment;
   final VoidCallback? onNotifications;
 
   const AssignmentsView({super.key, this.onOpenAssignment, this.onNotifications});
@@ -46,17 +47,29 @@ class AssignmentsView extends GetView<AssignmentsController> {
                       child: Text('Active Assignments',
                           style: AppTypography.headlineLg.copyWith(fontSize: 22)),
                     ),
-                    _FilterPill(onTap: () {}),
+                    _FilterPill(
+                      onTap: controller.openFilter,
+                      count: controller.activeFilterCount,
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.stackMd),
-                for (final a in data.assignments) ...[
-                  AssignmentCard(
-                    assignment: a,
-                    onTap: () => onOpenAssignment?.call(a.id),
-                  ),
-                  const SizedBox(height: AppSpacing.stackMd),
-                ],
+                if (controller.visibleAssignments.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.stackXl),
+                    child: Center(
+                      child: Text('No assignments match your filters.',
+                          style: AppTypography.bodyLg),
+                    ),
+                  )
+                else
+                  for (final a in controller.visibleAssignments) ...[
+                    AssignmentCard(
+                      assignment: a,
+                      onTap: () => onOpenAssignment?.call(a),
+                    ),
+                    const SizedBox(height: AppSpacing.stackMd),
+                  ],
               ],
             );
           }),
@@ -68,10 +81,12 @@ class AssignmentsView extends GetView<AssignmentsController> {
 
 class _FilterPill extends StatelessWidget {
   final VoidCallback onTap;
-  const _FilterPill({required this.onTap});
+  final int count;
+  const _FilterPill({required this.onTap, this.count = 0});
 
   @override
   Widget build(BuildContext context) {
+    final active = count > 0;
     return Material(
       color: AppColors.surfaceContainerLowest,
       borderRadius: BorderRadius.circular(AppRadius.full),
@@ -82,14 +97,17 @@ class _FilterPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.full),
-            border: Border.all(color: AppColors.outlineVariant, width: 1),
+            border: Border.all(
+              color: active ? AppColors.primary : AppColors.outlineVariant,
+              width: active ? 1.5 : 1,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
               const SizedBox(width: 6),
-              Text('Filter',
+              Text(active ? 'Filter ($count)' : 'Filter',
                   style: AppTypography.labelMd
                       .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
             ],

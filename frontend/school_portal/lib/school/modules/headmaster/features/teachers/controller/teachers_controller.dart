@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
+import '../../../../../widgets/action_form_sheet.dart';
+import '../../../../../widgets/filter_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher.dart';
 
@@ -14,12 +16,55 @@ class TeachersController extends GetxController {
   final error = RxnString();
   final results = <Teacher>[].obs;
   final query = ''.obs;
+
+  // Client-side filters applied over the loaded roster.
+  final deptFilter = <String>{}.obs;
+  final statusFilter = <String>{}.obs;
+
   Timer? _debounce;
 
-  @override
-  void onInit() {
-    super.onInit();
-    fetch();
+  /// Distinct departments present in the loaded roster (sorted), for the filter.
+  List<String> get departmentOptions => (results
+          .map((t) => t.department)
+          .where((d) => d.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort());
+
+  /// Roster after applying department/status filters.
+  List<Teacher> get visibleTeachers => results.where((t) {
+        final okDept = deptFilter.isEmpty || deptFilter.contains(t.department);
+        final okStatus =
+            statusFilter.isEmpty || statusFilter.contains(t.status.label);
+        return okDept && okStatus;
+      }).toList();
+
+  int get activeFilterCount => deptFilter.length + statusFilter.length;
+
+  /// Opens the filter sheet and applies the chosen department/status selections.
+  Future<void> openFilter() async {
+    final result = await showFilterSheet(
+      title: 'Filter Teachers',
+      sections: [
+        if (departmentOptions.isNotEmpty)
+          FilterSection(
+            key: 'department',
+            title: 'Department',
+            options: departmentOptions,
+            initial: deptFilter,
+          ),
+        FilterSection(
+          key: 'status',
+          title: 'Status',
+          options: [for (final s in TeacherStatus.values) s.label],
+          initial: statusFilter,
+        ),
+      ],
+    );
+    if (result != null) {
+      deptFilter.assignAll(result['department'] ?? const {});
+      statusFilter.assignAll(result['status'] ?? const {});
+    }
   }
 
   void onSearch(String v) {
@@ -38,6 +83,22 @@ class TeachersController extends GetxController {
       error.value = res.error ?? 'Could not load teachers.';
     }
     loading.value = false;
+  }
+
+  /// Opens the "Add Teacher" form; on success reloads the roster.
+  Future<void> addTeacherFlow() async {
+    final ok = await showAddPersonSheet(
+      title: 'Add Teacher',
+      submitLabel: 'Add Teacher',
+      onSubmit: (email, password, fullName) =>
+          _repo.createUser(
+              email: email, password: password, fullName: fullName, role: 'teacher'),
+    );
+    if (ok == true) {
+      Get.snackbar('Teacher added', 'The teacher account was created.',
+          snackPosition: SnackPosition.BOTTOM);
+      await fetch();
+    }
   }
 
   @override

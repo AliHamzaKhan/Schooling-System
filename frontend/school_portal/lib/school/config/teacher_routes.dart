@@ -10,7 +10,12 @@ class TeacherRoutes {
   static const attendanceMark = '$_base/attendance/mark';  // per-class marking
   static const createHomework = '$_base/homework/new';
   static const createExam = '$_base/exams/new';
+  static const quizzes = '$_base/quizzes';
+  static const createQuiz = '$_base/quizzes/new';
+  static const quizPerformance = '$_base/quizzes/performance';
   static const chat = '$_base/chat';                       // Communication Center
   static const gradebook = '$_base/gradebook/marks';       // Marks Entry
   static const studentPerformance = '$_base/performance/student';
+  static const calendar = '$_base/calendar';               // schedule calendar
+  static const classDetail = '$_base/classes/detail';      // single class detail
 }

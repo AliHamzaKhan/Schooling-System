@@ -42,14 +42,22 @@ class NotificationController extends GetxController {
 
   void markRead(String id) {
     final idx = _all.indexWhere((n) => n.id == id);
-    if (idx != -1 && !_all[idx].read) {
-      _all[idx] = _all[idx].copyWith(read: true);
-    }
+    if (idx == -1 || _all[idx].read) return;
+    final item = _all[idx];
+    _all[idx] = item.copyWith(read: true);
+    // Persist read state for direct messages (broadcasts have no per-user
+    // receipt). Fire-and-forget — the optimistic update already applied.
+    final messageId = item.directMessageId;
+    if (messageId != null) _repo.markMessageRead(messageId);
   }
 
   void markAllRead() {
     for (var i = 0; i < _all.length; i++) {
-      if (!_all[i].read) _all[i] = _all[i].copyWith(read: true);
+      if (!_all[i].read) {
+        final messageId = _all[i].directMessageId;
+        _all[i] = _all[i].copyWith(read: true);
+        if (messageId != null) _repo.markMessageRead(messageId);
+      }
     }
   }
 }

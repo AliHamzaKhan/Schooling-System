@@ -46,4 +46,33 @@ class HeadmasterEndpoints {
       '/schools/$schoolId/academic/subjects';
   static String broadcasts(String schoolId) =>
       '/schools/$schoolId/communication/broadcasts';
+
+  // ── Write paths (create actions) ──
+  static String classSections(String schoolId, String classId) =>
+      '/schools/$schoolId/academic/classes/$classId/sections';
+  static String classDetail(String schoolId, String classId) =>
+      '/schools/$schoolId/academic/classes/$classId';
+  static String sectionStudents(String schoolId, String sectionId) =>
+      '/schools/$schoolId/sections/$sectionId/students';
+  static String invoicePayments(String schoolId, String invoiceId) =>
+      '/schools/$schoolId/fees/invoices/$invoiceId/payments';
+  static String examResultsPublish(String schoolId, String examId) =>
+      '/schools/$schoolId/exams/$examId/results/publish';
+  static String studentReport(String schoolId, String studentId) =>
+      '/schools/$schoolId/reports/students/$studentId';
+  static String meetings(String schoolId) => '/schools/$schoolId/meetings';
+  static String guardianChildren(String schoolId, String guardianId) =>
+      '/schools/$schoolId/guardians/$guardianId/children';
+  static String schoolProfile(String schoolId) =>
+      '/schools/$schoolId/profile';
+
+  // ── HR / payroll (salary management) ──
+  static String hrStaff(String schoolId) => '/schools/$schoolId/hr/staff';
+  static String hrStaffDetail(String schoolId, String profileId) =>
+      '/schools/$schoolId/hr/staff/$profileId';
+  static String hrStaffPayslips(String schoolId, String profileId) =>
+      '/schools/$schoolId/hr/staff/$profileId/payslips';
+  static String hrPayslips(String schoolId) => '/schools/$schoolId/hr/payslips';
+  static String hrPayslipPay(String schoolId, String payslipId) =>
+      '/schools/$schoolId/hr/payslips/$payslipId/pay';
 }
