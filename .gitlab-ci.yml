@@ -1,0 +1,152 @@
+# =============================================================================
+# GitLab CI/CD — backend deploy to the shared AHKStudios VPS.
+# Frontend/Flutter pipelines are intentionally omitted for now.
+#
+# One-time setup (see backend/deploy/README.md for the full checklist):
+#   - Create `school_db` in the shared postgres.
+#   - Create `/opt/apps/school/backend` and `/opt/storage/projects/school`
+#     on the VPS (chown 999:999 for uploads).
+#   - Add the CI/CD variables listed in backend/deploy/README.md
+#     (mask + protect all secrets).
+#   - Point school.ahkstudios.com A record at 161.97.98.16 and add an NPM
+#     proxy host: /api/* -> school-backend:8000 over app-network.
+# =============================================================================
+
+stages: [lint, test, build, deploy]
+
+variables:
+  IMAGE: $CI_REGISTRY_IMAGE/backend
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+# --------------------------------------------------------------------------- #
+# Backend (FastAPI) — runs from the backend/ directory
+# --------------------------------------------------------------------------- #
+.backend:
+  image: python:3.12-slim
+  cache:
+    key: backend-pip
+    paths: [.pip-cache/]
+  before_script:
+    - cd backend
+    - pip install -r requirements-dev.txt
+
+backend:lint:
+  extends: .backend
+  stage: lint
+  script:
+    - pip install ruff
+    - ruff check app
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: [backend/**/*]
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes: [backend/**/*]
+
+backend:test:
+  extends: .backend
+  stage: test
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: schooling_test
+    DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/schooling_test"
+    JWT_SECRET_KEY: "ci-test-secret-not-used-in-prod"
+  script:
+    - python -m pytest -q
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: [backend/**/*]
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes: [backend/**/*]
+
+backend:build:
+  stage: build
+  image: docker:27
+  services: [docker:27-dind]
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$IMAGE:$CI_COMMIT_SHORT_SHA" -t "$IMAGE:latest" backend
+    - docker push "$IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$IMAGE:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes: [backend/**/*]
+
+backend:deploy:prod:
+  stage: deploy
+  image: alpine:3.20
+  variables:
+    APP_DIR: /opt/apps/school/backend
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    # 1) Prepare directories on the VPS.
+    - ssh $SSH_USER@$SSH_HOST "mkdir -p $APP_DIR /opt/storage/projects/school"
+
+    # 2) Ship the compose file.
+    - scp backend/deploy/docker-compose.prod.yml $SSH_USER@$SSH_HOST:$APP_DIR/docker-compose.yml
+
+    # 3) Build .env locally, then scp it (avoids fragile heredoc-over-ssh quoting).
+    - |
+      cat > /tmp/school.env <<EOF
+      ENVIRONMENT=production
+      IMAGE=$IMAGE
+      IMAGE_TAG=$CI_COMMIT_SHORT_SHA
+      DATABASE_URL=$DATABASE_URL
+      REDIS_URL=$REDIS_URL
+      JWT_SECRET_KEY=$JWT_SECRET_KEY
+      ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      FIRST_SUPERADMIN_EMAIL=$FIRST_SUPERADMIN_EMAIL
+      FIRST_SUPERADMIN_PASSWORD=$FIRST_SUPERADMIN_PASSWORD
+      BACKEND_CORS_ORIGINS=$BACKEND_CORS_ORIGINS
+      STORAGE_BACKEND=${STORAGE_BACKEND:-local}
+      STORAGE_LOCAL_DIR=/app/uploads
+      TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM=${TWILIO_WHATSAPP_FROM:-}
+      TWILIO_SMS_FROM=${TWILIO_SMS_FROM:-}
+      FCM_SERVER_KEY=${FCM_SERVER_KEY:-}
+      EMAIL_FROM=${EMAIL_FROM:-}
+      ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      EOF
+    - scp /tmp/school.env $SSH_USER@$SSH_HOST:$APP_DIR/.env
+    - ssh $SSH_USER@$SSH_HOST "chmod 600 $APP_DIR/.env"
+
+    # 4) Log in to the registry ON the VPS (the job token is still valid here),
+    #    then pull + restart.
+    - |
+      ssh $SSH_USER@$SSH_HOST "
+        set -e
+        cd $APP_DIR
+        docker login -u '$CI_REGISTRY_USER' -p '$CI_REGISTRY_PASSWORD' '$CI_REGISTRY'
+        docker compose pull
+        docker compose up -d
+        docker compose ps
+      "
+
+    # 5) Healthcheck — retry a few times while migrations + seed run.
+    - |
+      ssh $SSH_USER@$SSH_HOST "
+        for i in \$(seq 1 20); do
+          if docker exec school-backend python -c 'import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(\"http://127.0.0.1:8000/health\").status==200 else 1)'; then
+            echo 'Healthcheck OK'; exit 0
+          fi
+          echo \"Waiting for backend (\$i/20)...\"; sleep 5
+        done
+        echo 'Healthcheck FAILED'; docker logs --tail 200 school-backend; exit 1
+      "
+  environment:
+    name: production
+    url: https://school.ahkstudios.com/api
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

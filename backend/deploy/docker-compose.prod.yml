@@ -1,0 +1,31 @@
+## Deployed to /opt/apps/school/backend/docker-compose.yml on the VPS by CI.
+## The API joins the shared `app-network` and is reached by NPM (no ports).
+## Shared postgres/redis live on the same network — do NOT redeclare them here.
+
+services:
+  backend:
+    image: ${IMAGE}:${IMAGE_TAG:-latest}
+    container_name: school-backend
+    restart: unless-stopped
+    env_file: [.env]
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m app.seed &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips='*'"
+    volumes:
+      - /opt/storage/projects/school:/app/uploads
+    networks: [app-network]
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  app-network:
+    external: true

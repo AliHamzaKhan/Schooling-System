@@ -1,6 +1,7 @@
 """Application configuration loaded from environment variables."""
 from functools import lru_cache
 from typing import Annotated, List, Union
+from urllib.parse import quote
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -20,8 +21,17 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
 
-    # Database
+    # Database. Either set DATABASE_URL directly, or supply the DB_* components
+    # below (handy for Docker, where DB_HOST is the compose service name) and let
+    # `_assemble_db_url` build the URL — it percent-encodes the password, so
+    # special characters like '#', '@', ':' are handled for you. When all of
+    # DB_HOST / DB_NAME / DB_USER are present the assembled URL wins.
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/schooling"
+    DB_HOST: str = ""
+    DB_PORT: int = 5432
+    DB_NAME: str = ""
+    DB_USER: str = ""
+    DB_PASSWORD: str = ""
     # Connection pool sizing. These are PER worker process, so the ceiling of
     # concurrent Postgres connections is roughly
     #   (DB_POOL_SIZE + DB_MAX_OVERFLOW) * workers * replicas.
@@ -83,6 +93,21 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
+
+    @model_validator(mode="after")
+    def _assemble_db_url(self) -> "Settings":
+        """Build DATABASE_URL from DB_* components when they are supplied.
+
+        The password is percent-encoded so URL-reserved characters (e.g. '#',
+        which would otherwise be read as the start of a URL fragment) survive.
+        """
+        if self.DB_HOST and self.DB_NAME and self.DB_USER:
+            password = quote(self.DB_PASSWORD, safe="")
+            self.DATABASE_URL = (
+                f"postgresql+asyncpg://{self.DB_USER}:{password}"
+                f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            )
+        return self
 
     @model_validator(mode="after")
     def _enforce_production_secrets(self) -> "Settings":
