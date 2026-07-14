@@ -10,7 +10,6 @@ from app.core.exceptions import bad_request, not_found
 from app.models.academic import Section, StudentEnrollment
 from app.models.attendance import AttendanceRecord
 from app.models.role import Role
-from app.models.school import School
 from app.models.user import User
 from app.modules.attendance import schemas
 

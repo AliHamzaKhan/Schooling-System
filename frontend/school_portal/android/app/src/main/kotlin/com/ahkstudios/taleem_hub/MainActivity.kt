@@ -1,4 +1,4 @@
-package com.schoolingsystem.school_portal
+package com.ahkstudios.taleem_hub
 
 import io.flutter.embedding.android.FlutterActivity
 

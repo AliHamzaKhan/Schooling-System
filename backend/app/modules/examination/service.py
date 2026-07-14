@@ -309,7 +309,7 @@ class ExaminationService:
     async def report_card(
         self, school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID
     ) -> schemas.ReportCard:
-        exam = await self._get_scoped(Exam, school_id, exam_id, "Exam")
+        await self._get_scoped(Exam, school_id, exam_id, "Exam")
         papers, marks_by_paper = await self._papers_and_marks(exam_id)
         computed = await self._compute_student_result(exam_id, student_id, papers, marks_by_paper)
         published = await self.db.scalar(

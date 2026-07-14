@@ -1,6 +1,4 @@
 """Association tables."""
-import uuid
-
 from sqlalchemy import Column, DateTime, ForeignKey, String, Table, func
 from sqlalchemy.dialects.postgresql import UUID
 

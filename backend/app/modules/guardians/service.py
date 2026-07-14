@@ -24,7 +24,6 @@ from app.core.enums import Module, PermissionAction, SystemRole
 from app.core.exceptions import bad_request, forbidden, not_found
 from app.models.academic import Section, SchoolClass, StudentEnrollment
 from app.models.associations import guardian_students
-from app.models.role import Role
 from app.models.user import User
 from app.modules.guardians import schemas
 from app.modules.permissions.service import PermissionService

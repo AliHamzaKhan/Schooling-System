@@ -80,8 +80,8 @@ class LessonService:
     ) -> schemas.TeachingProgress:
         lessons = await self.list_lessons(school_id, section_id, subject_id)
         total = len(lessons)
-        completed = sum(1 for l in lessons if l.status == LessonStatus.COMPLETED.value)
-        avg = (sum(l.progress_percent for l in lessons) / total) if total else 0.0
+        completed = sum(1 for lesson in lessons if lesson.status == LessonStatus.COMPLETED.value)
+        avg = (sum(lesson.progress_percent for lesson in lessons) / total) if total else 0.0
         return schemas.TeachingProgress(
             section_id=section_id,
             subject_id=subject_id,
