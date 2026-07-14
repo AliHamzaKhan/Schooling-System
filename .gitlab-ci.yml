@@ -52,9 +52,14 @@ backend:test:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
     POSTGRES_DB: schooling_test
-    DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/schooling_test"
-    JWT_SECRET_KEY: "ci-test-secret-not-used-in-prod"
   script:
+    # Force test DB + secrets — must be exported in-script because GitLab
+    # project-level variables (DATABASE_URL, JWT_SECRET_KEY, REDIS_URL) win
+    # over job-level `variables:` and would otherwise point tests at prod.
+    - export DATABASE_URL="postgresql+asyncpg://postgres:postgres@postgres:5432/schooling_test"
+    - export JWT_SECRET_KEY="ci-test-secret-not-used-in-prod"
+    - export REDIS_URL=""
+    - export ENVIRONMENT="test"
     - python -m pytest -q
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
