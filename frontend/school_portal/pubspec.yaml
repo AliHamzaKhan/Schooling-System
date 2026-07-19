@@ -46,6 +46,14 @@ dependencies:
   # Native file picker — used by Create Exam "Upload PDF".
   file_picker: ^8.1.6
 
+  # Camera / gallery access for profile-picture capture.
+  image_picker: ^1.1.2
+
+  # Payslip PDF generation + share sheet.
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  http: ^1.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

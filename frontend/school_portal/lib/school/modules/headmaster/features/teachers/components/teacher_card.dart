@@ -3,9 +3,9 @@ import 'package:shared/shared.dart';
 
 import '../models/teacher.dart';
 
-/// Teacher list card: avatar, name, department, status badge, then a row of
-/// quick-contact icon buttons (mail / chat) opposite a "View Profile" link.
-/// Accent-colored left rail per teacher.
+/// Teacher roster card: accent avatar (with status ring), name + status pill,
+/// department chip, and a right-aligned "View Profile" CTA with quick-contact
+/// icon buttons.
 class TeacherCard extends StatelessWidget {
   final Teacher teacher;
   final VoidCallback? onView;
@@ -26,68 +26,70 @@ class TeacherCard extends StatelessWidget {
     final canChat = t.status == TeacherStatus.active;
     return GlassSurface(
       padding: EdgeInsets.zero,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      onTap: onView,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.stackLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: t.accent,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _AvatarBadge(teacher: t),
+                const SizedBox(width: AppSpacing.stackMd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(t.name,
+                                style: AppTypography.titleLg
+                                    .copyWith(fontWeight: FontWeight.w700),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                          _StatusPill(status: t.status),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      _DeptChip(text: t.department),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            const SizedBox(height: AppSpacing.stackMd),
+            Row(
+              children: [
+                _IconDot(icon: Icons.mail_outline_rounded, onTap: onMail),
+                const SizedBox(width: AppSpacing.stackSm),
+                if (canChat)
+                  _IconDot(
+                      icon: Icons.chat_bubble_outline_rounded, onTap: onChat),
+                const Spacer(),
+                InkWell(
+                  onTap: onView,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _Avatar(teacher: t),
-                        const SizedBox(width: AppSpacing.stackMd),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(t.name,
-                                  style: AppTypography.titleLg
-                                      .copyWith(fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 2),
-                              Text(t.department, style: AppTypography.bodyMd),
-                            ],
-                          ),
-                        ),
-                        _StatusBadge(status: t.status),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.stackMd),
-                    const Divider(height: 1, color: AppColors.outlineVariant),
-                    const SizedBox(height: AppSpacing.stackMd),
-                    Row(
-                      children: [
-                        _IconDot(icon: Icons.mail_outline_rounded, onTap: onMail),
-                        const SizedBox(width: AppSpacing.stackSm),
-                        if (canChat)
-                          _IconDot(
-                              icon: Icons.chat_bubble_outline_rounded, onTap: onChat),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: onView,
-                          child: Text(
-                            'View Profile',
+                        Text('View Profile',
                             style: AppTypography.labelMd.copyWith(
-                                color: AppColors.primary, fontWeight: FontWeight.w700),
-                          ),
-                        ),
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700)),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_rounded,
+                            size: 16, color: AppColors.primary),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -96,50 +98,85 @@ class TeacherCard extends StatelessWidget {
   }
 }
 
-class _Avatar extends StatelessWidget {
+class _AvatarBadge extends StatelessWidget {
   final Teacher teacher;
-  const _Avatar({required this.teacher});
+  const _AvatarBadge({required this.teacher});
 
   @override
   Widget build(BuildContext context) {
-    if (teacher.avatarUrl != null) {
-      return CircleAvatar(radius: 26, backgroundImage: NetworkImage(teacher.avatarUrl!));
-    }
-    return CircleAvatar(
-      radius: 26,
-      backgroundColor: teacher.accent.withValues(alpha: 0.18),
-      child: Text(teacher.initials,
-          style: AppTypography.titleLg.copyWith(color: teacher.accent)),
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border:
+            Border.all(color: teacher.accent.withValues(alpha: 0.35), width: 2),
+      ),
+      child: teacher.avatarUrl != null
+          ? CircleAvatar(
+              radius: 28, backgroundImage: NetworkImage(teacher.avatarUrl!))
+          : CircleAvatar(
+              radius: 28,
+              backgroundColor: teacher.accent.withValues(alpha: 0.18),
+              child: Text(teacher.initials,
+                  style: AppTypography.titleLg.copyWith(
+                      color: teacher.accent, fontWeight: FontWeight.w700)),
+            ),
     );
   }
 }
 
-class _StatusBadge extends StatelessWidget {
+class _StatusPill extends StatelessWidget {
   final TeacherStatus status;
-  const _StatusBadge({required this.status});
+  const _StatusPill({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    final muted = status == TeacherStatus.onLeave;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: muted
-            ? AppColors.surfaceContainerHigh
-            : status.color.withValues(alpha: 0.12),
+        color: status.color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: status.color, shape: BoxShape.circle)),
+              width: 6,
+              height: 6,
+              decoration:
+                  BoxDecoration(color: status.color, shape: BoxShape.circle)),
           const SizedBox(width: 6),
           Text(status.label,
               style: AppTypography.labelMd
-                  .copyWith(color: muted ? AppColors.onSurfaceVariant : status.color)),
+                  .copyWith(color: status.color, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeptChip extends StatelessWidget {
+  final String text;
+  const _DeptChip({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(color: AppColors.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.apartment_outlined,
+              size: 14, color: AppColors.onSurfaceVariant),
+          const SizedBox(width: 6),
+          Text(text,
+              style: AppTypography.labelMd
+                  .copyWith(fontWeight: FontWeight.w600)),
         ],
       ),
     );

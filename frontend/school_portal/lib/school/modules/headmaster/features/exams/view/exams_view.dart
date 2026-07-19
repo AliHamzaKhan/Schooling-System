@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
-import '../../../../../widgets/portal_search_field.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../components/exam_schedule_row.dart';
 import '../components/exam_stat_card.dart';
 import '../components/grade_distribution_chart.dart';
 import '../controller/exams_controller.dart';
-import '../models/exams_data.dart';
 
 /// Exams & Results — manage assessments and review performance.
 class ExamsView extends GetView<ExamsController> {
@@ -72,14 +70,16 @@ class ExamsView extends GetView<ExamsController> {
                         label: 'Pending Results',
                         value: '${data.pendingResults}',
                         accent: AppColors.tertiary,
-                        trailing: Obx(() => PrimaryButton(
-                              label: 'Publish All',
-                              trailingIcon: null,
-                              isLoading: controller.publishing.value,
-                              onPressed: controller.publishing.value
-                                  ? null
-                                  : controller.publishAll,
-                            )),
+                        trailing: data.pendingResults <= 0
+                            ? null
+                            : Obx(() => PrimaryButton(
+                                  label: 'Publish All',
+                                  trailingIcon: null,
+                                  isLoading: controller.publishing.value,
+                                  onPressed: controller.publishing.value
+                                      ? null
+                                      : controller.publishAll,
+                                )),
                       ),
                     ),
                   ],
@@ -129,41 +129,6 @@ class ExamsView extends GetView<ExamsController> {
                           ],
                         );
                       }),
-                      const SizedBox(height: AppSpacing.stackMd),
-                      Center(
-                        child: TextButton(
-                          onPressed: onTimetable,
-                          child: Text('View Full Schedule',
-                              style: AppTypography.labelMd
-                                  .copyWith(color: AppColors.primary)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.stackLg),
-
-                // Student results card.
-                GlassSurface(
-                  padding: const EdgeInsets.all(AppSpacing.stackLg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Student Results', style: AppTypography.titleLg),
-                      const SizedBox(height: AppSpacing.stackMd),
-                      PortalSearchField(
-                        hint: 'Search by name or ID…',
-                        onChanged: controller.onSearch,
-                      ),
-                      const SizedBox(height: AppSpacing.stackMd),
-                      Text('RECENT VIEWED',
-                          style: AppTypography.labelCaps
-                              .copyWith(color: AppColors.onSurfaceVariant)),
-                      const SizedBox(height: AppSpacing.stackSm),
-                      for (final r in data.recent) ...[
-                        _RecentRow(student: r),
-                        if (r != data.recent.last) const SizedBox(height: 6),
-                      ],
                     ],
                   ),
                 ),
@@ -192,38 +157,3 @@ class ExamsView extends GetView<ExamsController> {
   }
 }
 
-class _RecentRow extends StatelessWidget {
-  final RecentStudent student;
-  const _RecentRow({required this.student});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: student.accent.withValues(alpha: 0.18),
-            backgroundImage: student.avatarUrl != null ? NetworkImage(student.avatarUrl!) : null,
-            child: student.avatarUrl == null
-                ? Text(student.name.characters.first,
-                    style: AppTypography.titleMd.copyWith(color: student.accent))
-                : null,
-          ),
-          const SizedBox(width: AppSpacing.stackSm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(student.name, style: AppTypography.bodyLg.copyWith(fontWeight: FontWeight.w600)),
-                Text('ID: ${student.id}', style: AppTypography.bodySm),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.onSurfaceVariant),
-        ],
-      ),
-    );
-  }
-}

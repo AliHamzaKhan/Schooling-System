@@ -47,8 +47,33 @@ async def list_invoices(
     db: DbDep,
     student_id: uuid.UUID | None = Query(default=None),
     status: str | None = Query(default=None),
+    class_id: uuid.UUID | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
 ) -> list[schemas.InvoiceOut]:
-    return await FeeService(db).list_invoices(school_id, student_id, status)
+    items, _ = await FeeService(db).list_invoices(
+        school_id, student_id, status, class_id, limit, offset
+    )
+    return items
+
+
+@router.get("/students", response_model=schemas.StudentFeePage, dependencies=[_view])
+async def search_student_fees(
+    school_id: uuid.UUID,
+    db: DbDep,
+    q: str = Query(default="", max_length=100),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    class_id: uuid.UUID | None = Query(default=None),
+    fee_status: str | None = Query(
+        default=None,
+        pattern="^(overdue|pending|paid|no_dues)$",
+    ),
+) -> schemas.StudentFeePage:
+    items, total = await FeeService(db).search_student_fees(
+        school_id, q, limit, offset, class_id, fee_status,
+    )
+    return schemas.StudentFeePage(total=total, items=items)
 
 
 @router.get("/invoices/{invoice_id}", response_model=schemas.InvoiceOut, dependencies=[_view])

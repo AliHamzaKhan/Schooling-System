@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
-import '../../../../../widgets/action_form_sheet.dart';
+import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/filter_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher.dart';
@@ -23,7 +23,14 @@ class TeachersController extends GetxController {
 
   Timer? _debounce;
 
-  /// Distinct departments present in the loaded roster (sorted), for the filter.
+  @override
+  void onInit() {
+    super.onInit();
+    fetch();
+  }
+
+  /// Distinct specializations present in the loaded roster (sorted), for the
+  /// filter.
   List<String> get departmentOptions => (results
           .map((t) => t.department)
           .where((d) => d.isNotEmpty)
@@ -31,7 +38,7 @@ class TeachersController extends GetxController {
           .toList()
         ..sort());
 
-  /// Roster after applying department/status filters.
+  /// Roster after applying specialization/status filters.
   List<Teacher> get visibleTeachers => results.where((t) {
         final okDept = deptFilter.isEmpty || deptFilter.contains(t.department);
         final okStatus =
@@ -49,7 +56,7 @@ class TeachersController extends GetxController {
         if (departmentOptions.isNotEmpty)
           FilterSection(
             key: 'department',
-            title: 'Department',
+            title: 'Specialization',
             options: departmentOptions,
             initial: deptFilter,
           ),
@@ -85,20 +92,11 @@ class TeachersController extends GetxController {
     loading.value = false;
   }
 
-  /// Opens the "Add Teacher" form; on success reloads the roster.
+  /// Opens the full-page teacher registration flow and refreshes the roster if
+  /// the create succeeded.
   Future<void> addTeacherFlow() async {
-    final ok = await showAddPersonSheet(
-      title: 'Add Teacher',
-      submitLabel: 'Add Teacher',
-      onSubmit: (email, password, fullName) =>
-          _repo.createUser(
-              email: email, password: password, fullName: fullName, role: 'teacher'),
-    );
-    if (ok == true) {
-      Get.snackbar('Teacher added', 'The teacher account was created.',
-          snackPosition: SnackPosition.BOTTOM);
-      await fetch();
-    }
+    final ok = await Get.toNamed(HeadmasterRoutes.teacherRegistration);
+    if (ok == true) await fetch();
   }
 
   @override

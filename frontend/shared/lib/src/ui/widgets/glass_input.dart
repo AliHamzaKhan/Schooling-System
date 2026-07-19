@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/app_colors.dart';
-import '../tokens/app_elevation.dart';
 import '../tokens/app_radius.dart';
 import '../tokens/app_typography.dart';
 
@@ -68,17 +67,15 @@ class _GlassInputState extends State<GlassInput> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
-      padding: EdgeInsets.symmetric(horizontal: _focused ? 5 : 0, vertical: _focused ? 4 : 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: _focused ? AppElevation.l1Fill : Colors.transparent,
-        borderRadius: BorderRadius.circular(
-          _focused ? AppRadius.button : 0,
-        ),
+        // Always filled with the surface colour so inputs stand out from the
+        // scaffold background (light or dark theme).
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.button),
         border: Border.all(
-          color: _focused
-              ? AppColors.glassBorder
-              : Colors.transparent,
-          width: 1,
+          color: _focused ? AppColors.primary : AppColors.outlineVariant,
+          width: _focused ? 1.4 : 1,
         ),
       ),
       child: Column(

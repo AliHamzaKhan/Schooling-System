@@ -22,6 +22,7 @@ class HeadmasterEndpoints {
   // Used by the wired features (people directories, classes, exams). The
   // aggregate paths above remain for the still-mock dashboard/overview/etc.
   static String users(String schoolId) => '/schools/$schoolId/users';
+  static String uploads(String schoolId) => '/schools/$schoolId/uploads';
   static String academicClasses(String schoolId) =>
       '/schools/$schoolId/academic/classes';
   static String examsList(String schoolId) => '/schools/$schoolId/exams';
@@ -40,10 +41,14 @@ class HeadmasterEndpoints {
       '/schools/$schoolId/reports/enrollment';
   static String feesInvoices(String schoolId) =>
       '/schools/$schoolId/fees/invoices';
+  static String feesStudents(String schoolId) =>
+      '/schools/$schoolId/fees/students';
   static String academicTimetable(String schoolId) =>
       '/schools/$schoolId/academic/timetable';
   static String academicSubjects(String schoolId) =>
       '/schools/$schoolId/academic/subjects';
+  static String timetableSlot(String schoolId, String slotId) =>
+      '/schools/$schoolId/academic/timetable/$slotId';
   static String broadcasts(String schoolId) =>
       '/schools/$schoolId/communication/broadcasts';
 
@@ -68,6 +73,10 @@ class HeadmasterEndpoints {
 
   // ── HR / payroll (salary management) ──
   static String hrStaff(String schoolId) => '/schools/$schoolId/hr/staff';
+  static String hrTeacherAttendance(String schoolId) =>
+      '/schools/$schoolId/hr/attendance';
+  static String hrTeacherAttendanceSummary(String schoolId, String teacherId) =>
+      '/schools/$schoolId/hr/teachers/$teacherId/attendance-summary';
   static String hrStaffDetail(String schoolId, String profileId) =>
       '/schools/$schoolId/hr/staff/$profileId';
   static String hrStaffPayslips(String schoolId, String profileId) =>

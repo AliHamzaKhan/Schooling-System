@@ -1,17 +1,24 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../modules/headmaster/features/announcements/binding/announcements_binding.dart';
 import '../modules/headmaster/features/announcements/view/announcements_view.dart';
+import '../modules/headmaster/features/attendance/view/teacher_attendance_roster_view.dart';
+import '../modules/headmaster/features/attendance/view/teacher_attendance_view.dart';
+import '../modules/headmaster/features/classes/binding/classes_binding.dart';
+import '../modules/headmaster/features/classes/view/classes_view.dart';
 import '../modules/headmaster/features/dashboard/view/approvals_view.dart';
+import '../modules/headmaster/features/fees/view/fees_roster_view.dart';
 import '../modules/headmaster/features/fees/view/overdue_payments_view.dart';
+import '../modules/headmaster/features/fees/view/record_payment_view.dart';
 import '../modules/headmaster/features/guardians/binding/guardians_binding.dart';
 import '../modules/headmaster/features/guardians/view/guardians_view.dart';
-import '../modules/headmaster/features/overview/binding/overview_binding.dart';
-import '../modules/headmaster/features/overview/view/overview_view.dart';
 import '../modules/headmaster/features/overview/view/upcoming_events_view.dart';
 import '../modules/headmaster/features/reports/binding/reports_binding.dart';
 import '../modules/headmaster/features/reports/view/reports_view.dart';
 import '../modules/headmaster/features/salary/binding/salary_binding.dart';
+import '../modules/headmaster/features/salary/view/generate_payslip_view.dart';
 import '../modules/headmaster/features/salary/view/salary_view.dart';
 import '../modules/headmaster/features/settings/binding/settings_binding.dart';
 import '../modules/headmaster/features/settings/view/settings_view.dart';
@@ -21,11 +28,12 @@ import '../modules/headmaster/features/student_report/view/message_history_view.
 import '../modules/headmaster/features/student_report/view/section_students_view.dart';
 import '../modules/headmaster/features/student_report/view/student_report_view.dart';
 import '../modules/headmaster/features/students/binding/students_binding.dart';
+import '../modules/headmaster/features/students/view/student_registration_view.dart';
 import '../modules/headmaster/features/students/view/students_view.dart';
 import '../modules/headmaster/features/teachers/binding/teachers_binding.dart';
+import '../modules/headmaster/features/teachers/view/teacher_registration_view.dart';
 import '../modules/headmaster/features/teachers/view/teachers_view.dart';
-import '../modules/headmaster/features/timetable/binding/timetable_binding.dart';
-import '../modules/headmaster/features/timetable/view/timetable_view.dart';
+import '../modules/headmaster/features/timetable/view/timetable_editor_view.dart';
 import '../modules/headmaster/headmaster_shell.dart';
 import 'headmaster_routes.dart';
 
@@ -39,11 +47,6 @@ class HeadmasterPages {
 
   static final pages = <GetPage>[
     GetPage(name: HeadmasterRoutes.shell, page: () => const HeadmasterShell()),
-    GetPage(
-      name: HeadmasterRoutes.schoolOverview,
-      page: () => const OverviewView(),
-      binding: OverviewBinding(),
-    ),
     // Drill-in list screens — stateless, fed the already-loaded list via
     // Get.arguments (no binding of their own).
     GetPage(
@@ -55,6 +58,22 @@ class HeadmasterPages {
       page: () => const OverduePaymentsView(),
     ),
     GetPage(
+      name: HeadmasterRoutes.recordPayment,
+      page: () => const RecordPaymentView(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.feesRoster,
+      page: () => const FeesRosterView(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.teacherAttendance,
+      page: () => const TeacherAttendanceView(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.teacherAttendanceRoster,
+      page: () => const TeacherAttendanceRosterView(),
+    ),
+    GetPage(
       name: HeadmasterRoutes.upcomingEvents,
       page: () => const UpcomingEventsView(),
     ),
@@ -62,6 +81,14 @@ class HeadmasterPages {
       name: HeadmasterRoutes.students,
       page: () => const StudentsView(),
       binding: StudentsBinding(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.studentRegistration,
+      page: () => const StudentRegistrationView(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.teacherRegistration,
+      page: () => const TeacherRegistrationView(),
     ),
     // Shared staff drill-down (Teacher module navigates here too).
     GetPage(
@@ -82,6 +109,11 @@ class HeadmasterPages {
       page: () => const ClassStudentsView(),
     ),
     GetPage(
+      name: HeadmasterRoutes.classes,
+      page: () => const _ClassesRoutePage(),
+      binding: ClassesBinding(),
+    ),
+    GetPage(
       name: HeadmasterRoutes.teachers,
       page: () => const TeachersView(),
       binding: TeachersBinding(),
@@ -93,8 +125,7 @@ class HeadmasterPages {
     ),
     GetPage(
       name: HeadmasterRoutes.timetable,
-      page: () => const TimetableView(),
-      binding: TimetableBinding(),
+      page: () => const TimetableEditorView(),
     ),
     GetPage(
       name: HeadmasterRoutes.announcements,
@@ -116,5 +147,27 @@ class HeadmasterPages {
       page: () => const SalaryView(),
       binding: SalaryBinding(),
     ),
+    GetPage(
+      name: HeadmasterRoutes.generatePayslip,
+      page: () => const GeneratePayslipView(),
+    ),
   ];
+}
+
+/// Wraps [ClassesView] with an app-bar (title + back arrow) when it is opened
+/// as a standalone route from the dashboard. In the tab shell, [ClassesView]
+/// is embedded directly and this wrapper is not used.
+class _ClassesRoutePage extends StatelessWidget {
+  const _ClassesRoutePage();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      appBar: AppBar(
+        title: const Text('Classes & Sections'),
+        backgroundColor: AppColors.surface,
+      ),
+      body: const ClassesView(),
+    );
+  }
 }

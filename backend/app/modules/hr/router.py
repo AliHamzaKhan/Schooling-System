@@ -1,9 +1,10 @@
 """HR & Payroll endpoints, gated by the HR_PAYROLL module."""
 import uuid
+from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import DbDep, require_school_permission
+from app.core.deps import CurrentUser, DbDep, require_school_permission
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.hr import schemas
 from app.modules.hr.service import HRService
@@ -49,3 +50,53 @@ async def list_payslips(
     month: int | None = Query(default=None),
 ) -> list[schemas.PayslipOut]:
     return await HRService(db).list_payslips(school_id, profile_id, year, month)
+
+
+@router.get(
+    "/teachers/{teacher_id}/attendance-summary",
+    response_model=schemas.MonthlyAttendanceSummary,
+    dependencies=[_view],
+)
+async def teacher_attendance_summary(
+    school_id: uuid.UUID,
+    teacher_id: uuid.UUID,
+    db: DbDep,
+    month: int = Query(ge=1, le=12),
+    year: int = Query(ge=2000, le=2100),
+) -> schemas.MonthlyAttendanceSummary:
+    """Monthly attendance roll-up for one teacher, plus the absence deduction
+    a payslip would apply. Drives the Generate Payslip screen."""
+    return await HRService(db).monthly_attendance_summary(
+        school_id, teacher_id, month, year
+    )
+
+
+# --------------------------- teacher attendance -------------------------- #
+
+
+@router.get("/attendance", response_model=schemas.TeacherAttendanceDay, dependencies=[_view])
+async def teacher_attendance_day(
+    school_id: uuid.UUID,
+    db: DbDep,
+    day: date_type = Query(alias="date"),
+    status: str | None = Query(
+        default=None,
+        pattern="^(present|absent|late|on_leave|unmarked)$",
+    ),
+) -> schemas.TeacherAttendanceDay:
+    return await HRService(db).attendance_day(school_id, day, status)
+
+
+@router.post(
+    "/attendance",
+    response_model=list[schemas.TeacherAttendanceOut],
+    dependencies=[_create],
+)
+async def mark_teacher_attendance(
+    school_id: uuid.UUID,
+    data: schemas.TeacherAttendanceBulkMark,
+    db: DbDep,
+    current_user: CurrentUser,
+) -> list[schemas.TeacherAttendanceOut]:
+    rows = await HRService(db).bulk_upsert_attendance(school_id, data, current_user.id)
+    return [schemas.TeacherAttendanceOut.model_validate(r) for r in rows]

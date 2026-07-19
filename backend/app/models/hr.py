@@ -48,3 +48,14 @@ class Payslip(Base, UUIDMixin, TimestampMixin):
     net: Mapped[float] = mapped_column(Float, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="unpaid", nullable=False)
     paid_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    # Attendance snapshot captured at generation time (for the payslip PDF and
+    # to show how the absence deduction was derived). Counts cover the payslip
+    # period_month/period_year; absence_deduction is the amount already folded
+    # into [deductions].
+    allowances: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    present_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    absent_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    late_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    leave_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    absence_deduction: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)

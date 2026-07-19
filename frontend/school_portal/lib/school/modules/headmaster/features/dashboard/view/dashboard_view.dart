@@ -5,23 +5,23 @@ import 'package:shared/shared.dart';
 import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
+import '../../attendance/components/teacher_attendance_card.dart';
 import '../components/dashboard_metric_card.dart';
 import '../components/pending_approval_row.dart';
 import '../components/recent_announcement_row.dart';
 import '../controller/dashboard_controller.dart';
+import '../models/dashboard_data.dart';
 
 /// Headmaster Dashboard — greeting, daily KPIs, pending approvals, and a
 /// preview of recent announcements with a quick "New" CTA.
 class DashboardView extends GetView<DashboardController> {
   final VoidCallback? onAnnouncements;
-  final VoidCallback? onSchoolOverview;
   final VoidCallback? onSettings;
   final VoidCallback? onSalary;
 
   const DashboardView({
     super.key,
     this.onAnnouncements,
-    this.onSchoolOverview,
     this.onSettings,
     this.onSalary,
   });
@@ -54,11 +54,6 @@ class DashboardView extends GetView<DashboardController> {
                 const SizedBox(height: AppSpacing.stackSm),
                 Text("Here's what's happening on campus today.",
                     style: AppTypography.bodyLg),
-                const SizedBox(height: AppSpacing.stackMd),
-                GestureDetector(
-                  onTap: onSchoolOverview,
-                  child: _DatePill(label: data.date),
-                ),
                 const SizedBox(height: AppSpacing.stackLg),
 
                 // Admin quick actions.
@@ -83,12 +78,13 @@ class DashboardView extends GetView<DashboardController> {
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
 
-                // KPI stack.
-                for (final m in data.metrics) ...[
-                  DashboardMetricCard(metric: m),
-                  const SizedBox(height: AppSpacing.stackMd),
-                ],
-                const SizedBox(height: AppSpacing.stackSm),
+                // KPI grid (2 per row).
+                _MetricsGrid(metrics: data.metrics),
+                const SizedBox(height: AppSpacing.stackLg),
+
+                // Teacher attendance + analytics.
+                const TeacherAttendanceReportCard(),
+                const SizedBox(height: AppSpacing.stackLg),
 
                 // Pending approvals.
                 GlassSurface(
@@ -165,6 +161,102 @@ class DashboardView extends GetView<DashboardController> {
   }
 }
 
+/// Maps a metric label (e.g. "Total Students") to the icon, color, listing
+/// route, and — where the module supports it — an in-tab create trigger.
+class _MetricMeta {
+  final IconData icon;
+  final Color color;
+  final String? route;
+  final String? createRoute;
+
+  const _MetricMeta({
+    required this.icon,
+    required this.color,
+    this.route,
+    this.createRoute,
+  });
+}
+
+_MetricMeta _metricMetaFor(String label) {
+  final l = label.toLowerCase();
+  if (l.contains('student')) {
+    return _MetricMeta(
+      icon: Icons.school_rounded,
+      color: AppColors.primary,
+      route: HeadmasterRoutes.students,
+      createRoute: HeadmasterRoutes.studentRegistration,
+    );
+  }
+  if (l.contains('teacher')) {
+    return _MetricMeta(
+      icon: Icons.person_outline_rounded,
+      color: const Color(0xFFF59E0B),
+      route: HeadmasterRoutes.teachers,
+      createRoute: HeadmasterRoutes.teacherRegistration,
+    );
+  }
+  if (l.contains('class')) {
+    return _MetricMeta(
+      icon: Icons.class_outlined,
+      color: AppColors.secondary,
+      route: HeadmasterRoutes.classes,
+    );
+  }
+  if (l.contains('subject')) {
+    return _MetricMeta(
+      icon: Icons.menu_book_rounded,
+      color: AppColors.tertiary,
+      route: HeadmasterRoutes.classes,
+    );
+  }
+  return const _MetricMeta(
+    icon: Icons.insights_rounded,
+    color: AppColors.primary,
+  );
+}
+
+class _MetricsGrid extends StatelessWidget {
+  final List<DashboardMetric> metrics;
+  const _MetricsGrid({required this.metrics});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      const gap = AppSpacing.stackMd;
+      final width = (constraints.maxWidth - gap) / 2;
+      return Wrap(
+        spacing: gap,
+        runSpacing: gap,
+        children: [
+          for (final m in metrics)
+            SizedBox(
+              width: width,
+              child: Builder(builder: (_) {
+                final meta = _metricMetaFor(m.label);
+                final decorated = DashboardMetric(
+                  label: m.label,
+                  value: m.value,
+                  trendPercent: m.trendPercent,
+                  icon: meta.icon,
+                  color: meta.color,
+                );
+                return DashboardMetricCard(
+                  metric: decorated,
+                  onTap: meta.route == null
+                      ? null
+                      : () => Get.toNamed(meta.route!),
+                  onAdd: (meta.createRoute ?? meta.route) == null
+                      ? null
+                      : () => Get.toNamed(meta.createRoute ?? meta.route!),
+                );
+              }),
+            ),
+        ],
+      );
+    });
+  }
+}
+
 class _AdminAction extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -199,32 +291,6 @@ class _AdminAction extends StatelessWidget {
   }
 }
 
-class _DatePill extends StatelessWidget {
-  final String label;
-  const _DatePill({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppRadius.button),
-        border: Border.all(color: AppColors.outlineVariant, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Text(label,
-              style: AppTypography.labelMd
-                  .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-}
 
 class _NewButton extends StatelessWidget {
   final VoidCallback? onTap;

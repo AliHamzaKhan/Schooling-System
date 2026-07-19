@@ -8,6 +8,7 @@ from app.models.academic import (
 )
 from app.models.associations import user_roles
 from app.models.attendance import AttendanceRecord
+from app.models.teacher_attendance import TeacherAttendance
 from app.models.examination import Exam, ExamResult, ExamSeat, ExamSubject, Mark
 from app.models.fees import FeeStructure, Invoice, Payment
 from app.models.communication import (
@@ -57,6 +58,7 @@ __all__ = [
     "TimetableSlot",
     "StudentEnrollment",
     "AttendanceRecord",
+    "TeacherAttendance",
     "Exam",
     "ExamSubject",
     "Mark",

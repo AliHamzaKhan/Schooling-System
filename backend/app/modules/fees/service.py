@@ -147,14 +147,198 @@ class FeeService:
         school_id: uuid.UUID,
         student_id: uuid.UUID | None = None,
         status: str | None = None,
-    ) -> list[Invoice]:
-        stmt = select(Invoice).where(Invoice.school_id == school_id)
+        class_id: uuid.UUID | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[Invoice], int]:
+        """Return (invoices, total_count) — page window + full match total."""
+        filters = [Invoice.school_id == school_id]
         if student_id is not None:
-            stmt = stmt.where(Invoice.student_id == student_id)
+            filters.append(Invoice.student_id == student_id)
         if status is not None:
-            stmt = stmt.where(Invoice.status == status)
-        stmt = stmt.order_by(Invoice.due_date)
-        return list((await self.db.execute(stmt)).scalars().all())
+            if status == "overdue":
+                # A logical status: not paid AND past due date.
+                filters.append(Invoice.status != InvoiceStatus.PAID.value)
+                filters.append(Invoice.due_date < date.today())
+            else:
+                filters.append(Invoice.status == status)
+
+        if class_id is not None:
+            # Join to student's most-recent active enrollment → section → class.
+            filters.append(
+                Invoice.student_id.in_(
+                    select(StudentEnrollment.student_id)
+                    .join(Section, Section.id == StudentEnrollment.section_id)
+                    .where(
+                        Section.class_id == class_id,
+                        StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                    )
+                )
+            )
+
+        count_stmt = select(func.count()).select_from(Invoice).where(*filters)
+        total = int(await self.db.scalar(count_stmt) or 0)
+
+        page_stmt = (
+            select(Invoice)
+            .where(*filters)
+            .order_by(Invoice.due_date)
+            .limit(limit)
+            .offset(offset)
+        )
+        items = list((await self.db.execute(page_stmt)).scalars().all())
+        return items, total
+
+    async def search_student_fees(
+        self,
+        school_id: uuid.UUID,
+        query: str = "",
+        limit: int = 20,
+        offset: int = 0,
+        class_id: uuid.UUID | None = None,
+        fee_status: str | None = None,  # 'overdue' | 'pending' | 'paid' | 'no_dues'
+    ) -> tuple[list[schemas.StudentFeeSnapshot], int]:
+        """Search students by name / father / class and attach their fee state.
+
+        Match is case-insensitive substring across:
+          * users.full_name
+          * users.profile_metadata['father_name']
+          * classes.name
+
+        Optional filters:
+          * [class_id]: only students in that class.
+          * [fee_status]: 'overdue' (any invoice past due and unpaid),
+                        'pending' (has balance > 0 but nothing overdue),
+                        'paid' (has invoices, all paid),
+                        'no_dues' (no invoices at all).
+        """
+        # Pull the student's most-recent active enrollment so we can surface
+        # class/section on the search result. Older enrollments are ignored.
+        enrol_sub = (
+            select(
+                StudentEnrollment.student_id.label("student_id"),
+                StudentEnrollment.section_id.label("section_id"),
+            )
+            .where(
+                StudentEnrollment.school_id == school_id,
+                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+            )
+            .subquery()
+        )
+
+        base = (
+            select(
+                User.id,
+                User.full_name,
+                User.profile_metadata,
+                Section.id.label("section_id"),
+                Section.name.label("section_name"),
+                SchoolClass.id.label("class_id"),
+                SchoolClass.name.label("class_name"),
+                SchoolClass.level.label("class_level"),
+            )
+            .where(
+                User.school_id == school_id,
+                User.roles.any(Role.code == SystemRole.STUDENT.value),
+            )
+            .outerjoin(enrol_sub, enrol_sub.c.student_id == User.id)
+            .outerjoin(Section, Section.id == enrol_sub.c.section_id)
+            .outerjoin(SchoolClass, SchoolClass.id == Section.class_id)
+        )
+
+        q = query.strip().lower()
+        if q:
+            like = f"%{q}%"
+            base = base.where(
+                func.lower(User.full_name).like(like)
+                | func.lower(func.coalesce(SchoolClass.name, "")).like(like)
+                | func.lower(
+                    func.coalesce(
+                        User.profile_metadata["father_name"].astext, ""
+                    )
+                ).like(like)
+            )
+
+        if class_id is not None:
+            base = base.where(SchoolClass.id == class_id)
+
+        # Status filter needs the invoice roll-up, so we compute totals AFTER
+        # loading the page window. To keep pagination honest under status
+        # filtering, we scan candidates in windows and re-page.
+        want_status = fee_status
+        page_rows = (
+            await self.db.execute(base.order_by(User.full_name))
+        ).all()
+
+        if not page_rows:
+            return [], 0
+
+        student_ids = [row.id for row in page_rows]
+        invoices_by_student: dict[uuid.UUID, list[Invoice]] = {sid: [] for sid in student_ids}
+        invoices = (
+            await self.db.execute(
+                select(Invoice)
+                .where(
+                    Invoice.school_id == school_id,
+                    Invoice.student_id.in_(student_ids),
+                )
+                .order_by(Invoice.due_date)
+            )
+        ).scalars().all()
+        for inv in invoices:
+            invoices_by_student.setdefault(inv.student_id, []).append(inv)
+
+        today = date.today()
+        snapshots: list[schemas.StudentFeeSnapshot] = []
+        for row in page_rows:
+            meta = row.profile_metadata or {}
+            invs = invoices_by_student.get(row.id, [])
+            summaries = [
+                schemas.InvoiceSummary(
+                    id=i.id,
+                    title=i.title,
+                    amount=i.amount,
+                    amount_paid=i.amount_paid,
+                    balance=round(i.amount - i.amount_paid, 2),
+                    status=i.status,
+                    due_date=i.due_date,
+                )
+                for i in invs
+            ]
+            outstanding = round(sum(s.balance for s in summaries), 2)
+            paid = round(sum(s.amount_paid for s in summaries), 2)
+            has_overdue = any(
+                s.status != InvoiceStatus.PAID.value and s.due_date < today
+                for s in summaries
+            )
+            snapshot = schemas.StudentFeeSnapshot(
+                student_id=row.id,
+                full_name=row.full_name,
+                father_name=meta.get("father_name") if isinstance(meta, dict) else None,
+                class_id=row.class_id,
+                class_name=row.class_name,
+                section_id=row.section_id,
+                section_name=row.section_name,
+                grade=row.class_level,
+                outstanding_total=outstanding,
+                paid_total=paid,
+                has_overdue=has_overdue,
+                invoices=summaries,
+            )
+            # Fold in fee_status filter after the roll-up is known.
+            if want_status is not None:
+                if want_status == "overdue" and not has_overdue:
+                    continue
+                if want_status == "pending" and (has_overdue or outstanding <= 0):
+                    continue
+                if want_status == "paid" and (outstanding > 0 or not summaries):
+                    continue
+                if want_status == "no_dues" and summaries:
+                    continue
+            snapshots.append(snapshot)
+
+        total = len(snapshots)
+        return snapshots[offset : offset + limit], total
 
     # ------------------------------ payments ----------------------------- #
 

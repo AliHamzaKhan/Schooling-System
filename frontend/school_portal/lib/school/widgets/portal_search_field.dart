@@ -20,7 +20,7 @@ class PortalSearchField extends StatelessWidget {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.button),
         border: Border.all(color: AppColors.outlineVariant, width: 1),
       ),

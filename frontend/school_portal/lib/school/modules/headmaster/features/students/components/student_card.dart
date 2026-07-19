@@ -3,9 +3,9 @@ import 'package:shared/shared.dart';
 
 import '../models/student.dart';
 
-/// Centered student card: overflow menu in the corner, large avatar, name +
-/// roll number, then two side-by-side info pills for Grade and Section.
-/// Status-colored left rail.
+/// Horizontal student card: avatar + status ring on the left, name/roll on top,
+/// grade + section chips underneath, status pill on the right. Overflow menu
+/// stays in the top-right corner; tapping the surface opens the student.
 class StudentCard extends StatelessWidget {
   final Student student;
   final VoidCallback? onTap;
@@ -15,66 +15,62 @@ class StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = student.status.color;
     return GlassSurface(
       padding: EdgeInsets.zero,
       onTap: onTap,
-      child: IntrinsicHeight(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.stackLg),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: student.status.color,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
-                ),
-              ),
-            ),
+            _AvatarBadge(student: student, accent: accent),
+            const SizedBox(width: AppSpacing.stackMd),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackMd),
-                child: Column(
-                  children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: InkWell(
-                        onTap: onMenu,
-                        borderRadius: BorderRadius.circular(AppRadius.full),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(Icons.more_vert_rounded,
-                              size: 20, color: AppColors.onSurfaceVariant),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          student.name,
+                          style: AppTypography.titleLg
+                              .copyWith(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: student.status.color.withValues(alpha: 0.18),
-                      backgroundImage: student.avatarUrl != null
-                          ? NetworkImage(student.avatarUrl!)
-                          : null,
-                      child: student.avatarUrl == null
-                          ? Text(student.initials,
-                              style: AppTypography.headlineLg
-                                  .copyWith(color: student.status.color, fontSize: 22))
-                          : null,
-                    ),
-                    const SizedBox(height: AppSpacing.stackSm),
-                    Text(student.name,
-                        style: AppTypography.headlineLg.copyWith(fontSize: 22)),
-                    const SizedBox(height: 2),
-                    Text('Roll: #${student.roll}', style: AppTypography.bodyMd),
-                    const SizedBox(height: AppSpacing.stackMd),
-                    Row(
-                      children: [
-                        Expanded(child: _InfoPill(label: 'GRADE', value: student.grade)),
-                        const SizedBox(width: AppSpacing.stackSm),
-                        Expanded(child: _InfoPill(label: 'SECTION', value: student.section)),
-                      ],
-                    ),
-                  ],
-                ),
+                      _StatusPill(status: student.status),
+                      if (onMenu != null)
+                        InkResponse(
+                          onTap: onMenu,
+                          radius: 20,
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 6),
+                            child: Icon(Icons.more_vert_rounded,
+                                size: 20, color: AppColors.onSurfaceVariant),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text('Roll #${student.roll}',
+                      style: AppTypography.bodyMd
+                          .copyWith(color: AppColors.onSurfaceVariant)),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  Wrap(
+                    spacing: AppSpacing.stackSm,
+                    runSpacing: 6,
+                    children: [
+                      _Chip(icon: Icons.school_outlined, text: student.grade),
+                      _Chip(
+                          icon: Icons.groups_outlined,
+                          text: 'Sec ${student.section}'),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -84,25 +80,88 @@ class StudentCard extends StatelessWidget {
   }
 }
 
-class _InfoPill extends StatelessWidget {
-  final String label;
-  final String value;
-  const _InfoPill({required this.label, required this.value});
+class _AvatarBadge extends StatelessWidget {
+  final Student student;
+  final Color accent;
+  const _AvatarBadge({required this.student, required this.accent});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: accent.withValues(alpha: 0.35), width: 2),
+      ),
+      child: CircleAvatar(
+        radius: 28,
+        backgroundColor: accent.withValues(alpha: 0.18),
+        backgroundImage: student.avatarUrl != null
+            ? NetworkImage(student.avatarUrl!)
+            : null,
+        child: student.avatarUrl == null
+            ? Text(student.initials,
+                style: AppTypography.titleLg
+                    .copyWith(color: accent, fontWeight: FontWeight.w700))
+            : null,
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final StudentStatus status;
+  const _StatusPill({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: status.color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration:
+                BoxDecoration(color: status.color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(status.label,
+              style: AppTypography.labelMd
+                  .copyWith(color: status.color, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _Chip({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(color: AppColors.outlineVariant),
       ),
-      child: Column(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label,
-              style: AppTypography.labelCaps
-                  .copyWith(color: AppColors.onSurfaceVariant)),
-          Text(value, style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
+          Icon(icon, size: 14, color: AppColors.onSurfaceVariant),
+          const SizedBox(width: 6),
+          Text(text,
+              style: AppTypography.labelMd
+                  .copyWith(fontWeight: FontWeight.w600)),
         ],
       ),
     );

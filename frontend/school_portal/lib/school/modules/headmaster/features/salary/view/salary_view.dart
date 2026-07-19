@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../controller/salary_controller.dart';
 import '../models/salary_models.dart';
+import '../utils/money.dart';
 
 /// Teacher Salaries — set/edit base salary per teacher, generate monthly
 /// payslips, and mark them paid.
@@ -58,9 +59,6 @@ class SalaryView extends GetView<SalaryController> {
   }
 }
 
-String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
-
 class _StaffCard extends StatelessWidget {
   final SalaryStaff staff;
   final SalaryController controller;
@@ -82,7 +80,7 @@ class _StaffCard extends StatelessWidget {
                     Text(staff.name, style: AppTypography.bodyLg),
                     Text(
                       staff.hasSalary
-                          ? '${staff.designation ?? "Teacher"} · ${_money(staff.baseSalary ?? 0)}/mo'
+                          ? '${staff.designation ?? "Teacher"} · ${money(staff.baseSalary ?? 0)}/mo'
                           : 'No salary set',
                       style: AppTypography.bodyMd
                           .copyWith(color: AppColors.onSurfaceVariant),
@@ -124,35 +122,41 @@ class _PayslipCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPaid = payslip.status.toLowerCase() == 'paid';
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.stackMd),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppRadius.button),
-        border: Border.all(color: AppColors.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${payslip.month}/${payslip.year} · ${_money(payslip.net)} net',
-                    style: AppTypography.bodyMd),
-                Text('Gross ${_money(payslip.gross)} · ${payslip.status}',
-                    style: AppTypography.labelMd
-                        .copyWith(color: AppColors.onSurfaceVariant)),
-              ],
+    final monthName = SalaryController
+        .monthNames[(payslip.month - 1).clamp(0, 11)];
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.button),
+      onTap: () => controller.showPayslipDetail(payslip),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.stackMd),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          border: Border.all(color: AppColors.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$monthName ${payslip.year} · ${money(payslip.net)} net',
+                      style: AppTypography.bodyMd),
+                  Text('Gross ${money(payslip.gross)} · ${payslip.status}',
+                      style: AppTypography.labelMd
+                          .copyWith(color: AppColors.onSurfaceVariant)),
+                ],
+              ),
             ),
-          ),
-          if (isPaid)
-            const Icon(Icons.check_circle, color: AppColors.primary, size: 22)
-          else
-            TextButton(
-              onPressed: () => controller.markPaid(payslip),
-              child: const Text('Mark paid'),
-            ),
-        ],
+            if (isPaid)
+              const Icon(Icons.check_circle, color: AppColors.primary, size: 22)
+            else
+              TextButton(
+                onPressed: () => controller.markPaid(payslip),
+                child: const Text('Mark paid'),
+              ),
+          ],
+        ),
       ),
     );
   }

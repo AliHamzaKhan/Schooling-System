@@ -169,6 +169,8 @@ class UserService:
         full_name: str,
         phone: str | None,
         role_codes: list[str],
+        *,
+        profile_metadata: dict | None = None,
     ) -> User:
         if SystemRole.HEADMASTER.value in role_codes:
             raise bad_request("Use the create-headmaster endpoint to assign the Headmaster role")
@@ -178,7 +180,10 @@ class UserService:
         roles = await self._resolve_roles(school_id, role_codes)
         modules = {self._module_for_role(code) for code in role_codes}
         await self._authorize_write(actor, school_id, modules, PermissionAction.CREATE)
-        return await self._create_user(school_id, email, password, full_name, phone, roles)
+        return await self._create_user(
+            school_id, email, password, full_name, phone, roles,
+            profile_metadata=profile_metadata,
+        )
 
     async def _create_user(
         self,
@@ -188,6 +193,8 @@ class UserService:
         full_name: str,
         phone: str | None,
         roles: list[Role],
+        *,
+        profile_metadata: dict | None = None,
     ) -> User:
         email = email.lower()
         dupe = await self.db.scalar(select(User).where(User.email == email))
@@ -202,6 +209,7 @@ class UserService:
             phone=phone,
             is_active=True,
             roles=roles,
+            profile_metadata=profile_metadata,
         )
         self.db.add(user)
         await self.db.flush()

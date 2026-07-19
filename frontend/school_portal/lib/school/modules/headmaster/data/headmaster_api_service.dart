@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
@@ -7,7 +9,10 @@ import '../features/attendance/models/attendance_data.dart';
 import '../features/classes/models/classes_data.dart';
 import '../features/dashboard/models/dashboard_data.dart';
 import '../features/exams/models/exams_data.dart';
+import '../features/attendance/models/teacher_attendance_day.dart';
 import '../features/fees/models/fees_data.dart';
+import '../features/fees/models/student_fee_snapshot.dart';
+import '../features/timetable/models/timetable_slot.dart';
 import '../features/guardians/models/guardian.dart';
 import '../features/overview/models/overview_data.dart';
 import '../features/reports/models/reports_data.dart';
@@ -221,6 +226,173 @@ class HeadmasterApiService {
       outstandingCount: (f['overdue_count'] as num?)?.toInt() ?? 0,
       overdue: overdue,
     ));
+  }
+
+  /// Search students + their fee snapshot for the Record Payment / Overdue /
+  /// All-Students screens. [feeStatus] may be `overdue`, `pending`, `paid`, or
+  /// `no_dues`.
+  Future<ApiResponse<StudentFeePage>> searchStudentFees({
+    String query = '',
+    int limit = 20,
+    int offset = 0,
+    String? classId,
+    String? feeStatus,
+  }) {
+    return _api.request<StudentFeePage>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.feesStudents(_sid),
+      query: {
+        if (query.isNotEmpty) 'q': query,
+        'limit': '$limit',
+        'offset': '$offset',
+        if (classId != null) 'class_id': classId,
+        if (feeStatus != null) 'fee_status': feeStatus,
+      },
+      parser: (json) =>
+          StudentFeePage.fromJson((json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  /// List every subject in the school (for the timetable editor's dropdown).
+  Future<ApiResponse<List<SubjectOption>>> fetchSubjectOptions() {
+    return _api.request<List<SubjectOption>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.academicSubjects(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(SubjectOption.fromJson)
+          .toList(),
+    );
+  }
+
+  /// Timetable slots for a section (or every slot in the school if omitted).
+  Future<ApiResponse<List<TimetableSlot>>> fetchTimetableSlots({
+    String? sectionId,
+  }) {
+    return _api.request<List<TimetableSlot>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.academicTimetable(_sid),
+      query: {if (sectionId != null) 'section_id': sectionId},
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(TimetableSlot.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<TimetableSlot>> createTimetableSlot({
+    required String sectionId,
+    required String subjectId,
+    String? teacherId,
+    required int dayOfWeek,
+    required String startTime,
+    required String endTime,
+    String? room,
+  }) {
+    return _api.request<TimetableSlot>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.academicTimetable(_sid),
+      body: {
+        'section_id': sectionId,
+        'subject_id': subjectId,
+        if (teacherId != null) 'teacher_id': teacherId,
+        'day_of_week': dayOfWeek,
+        'start_time': startTime,
+        'end_time': endTime,
+        if (room != null) 'room': room,
+      },
+      parser: (json) =>
+          TimetableSlot.fromJson((json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  Future<ApiResponse<TimetableSlot>> updateTimetableSlot({
+    required String slotId,
+    String? subjectId,
+    String? teacherId,
+    int? dayOfWeek,
+    String? startTime,
+    String? endTime,
+    String? room,
+  }) {
+    return _api.request<TimetableSlot>(
+      method: HttpMethod.patch,
+      path: HeadmasterEndpoints.timetableSlot(_sid, slotId),
+      body: {
+        if (subjectId != null) 'subject_id': subjectId,
+        if (teacherId != null) 'teacher_id': teacherId,
+        if (dayOfWeek != null) 'day_of_week': dayOfWeek,
+        if (startTime != null) 'start_time': startTime,
+        if (endTime != null) 'end_time': endTime,
+        if (room != null) 'room': room,
+      },
+      parser: (json) =>
+          TimetableSlot.fromJson((json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> deleteTimetableSlot(String slotId) {
+    return _api.request<dynamic>(
+      method: HttpMethod.delete,
+      path: HeadmasterEndpoints.timetableSlot(_sid, slotId),
+      parser: (json) => json,
+    );
+  }
+
+  /// Teacher attendance for a given date (full roster + counts, filterable
+  /// to a single status).
+  Future<ApiResponse<TeacherAttendanceDay>> fetchTeacherAttendance({
+    required DateTime date,
+    String? status,
+  }) {
+    final iso =
+        '${date.year.toString().padLeft(4, "0")}-${date.month.toString().padLeft(2, "0")}-${date.day.toString().padLeft(2, "0")}';
+    return _api.request<TeacherAttendanceDay>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.hrTeacherAttendance(_sid),
+      query: {'date': iso, if (status != null) 'status': status},
+      parser: (json) => TeacherAttendanceDay.fromJson(
+          (json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  /// Bulk mark teacher attendance for one day. Each entry upserts by
+  /// `(teacher_id, date)`.
+  Future<ApiResponse<dynamic>> markTeacherAttendance({
+    required DateTime date,
+    required List<Map<String, dynamic>> entries,
+  }) {
+    final iso =
+        '${date.year.toString().padLeft(4, "0")}-${date.month.toString().padLeft(2, "0")}-${date.day.toString().padLeft(2, "0")}';
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.hrTeacherAttendance(_sid),
+      body: {
+        'entries': [
+          for (final e in entries) {...e, 'attendance_date': iso},
+        ],
+      },
+      parser: (json) => json,
+    );
+  }
+
+  /// Paginated overdue invoices, optionally scoped to a class.
+  Future<ApiResponse<List<Map<String, dynamic>>>> fetchOverdueInvoices({
+    String? classId,
+    int limit = 50,
+    int offset = 0,
+  }) {
+    return _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.feesInvoices(_sid),
+      query: {
+        'status': 'overdue',
+        if (classId != null) 'class_id': classId,
+        'limit': '$limit',
+        'offset': '$offset',
+      },
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
   }
 
   /// Live classes from `/schools/{id}/academic/classes` (list of `ClassOut`:
@@ -446,9 +618,10 @@ class HeadmasterApiService {
     );
   }
 
-  /// Live teachers from `/schools/{id}/users?role_code=teacher`. The backend
-  /// user payload has no department, so it defaults to "Faculty"; status comes
-  /// from `is_active`. The backend has no name search, so [query] filters
+  /// Live teachers from `/schools/{id}/users?role_code=teacher`. Specialization
+  /// is read from `profile_metadata.specialization` when the teacher was
+  /// registered with it; older accounts fall back to blank. Status comes from
+  /// `is_active`. The backend has no name search, so [query] filters
   /// client-side.
   Future<ApiResponse<List<Teacher>>> fetchTeachers({String query = ''}) {
     final q = query.trim().toLowerCase();
@@ -458,15 +631,20 @@ class HeadmasterApiService {
       query: {'role_code': 'teacher', 'limit': '200'},
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
-          .map((u) => Teacher(
-                id: '${u['id']}',
-                name: u['full_name'] as String? ?? '',
-                department: 'Faculty',
-                status: (u['is_active'] as bool? ?? true)
-                    ? TeacherStatus.active
-                    : TeacherStatus.onLeave,
-                accent: AppColors.primary,
-              ))
+          .map((u) {
+            final meta = (u['profile_metadata'] as Map?)?.cast<String, dynamic>();
+            final specialization =
+                (meta?['specialization'] as String?)?.trim() ?? '';
+            return Teacher(
+              id: '${u['id']}',
+              name: u['full_name'] as String? ?? '',
+              department: specialization,
+              status: (u['is_active'] as bool? ?? true)
+                  ? TeacherStatus.active
+                  : TeacherStatus.onLeave,
+              accent: AppColors.primary,
+            );
+          })
           .where((t) => q.isEmpty || t.name.toLowerCase().contains(q))
           .toList(),
     );
@@ -629,11 +807,16 @@ class HeadmasterApiService {
   }
 
   /// Create a school user (teacher / guardian / student) with one role.
+  ///
+  /// [phone] and [profileMetadata] are optional extended registration fields.
+  /// Any keys in [profileMetadata] are stored as-is on the user record.
   Future<ApiResponse<dynamic>> createUser({
     required String email,
     required String password,
     required String fullName,
     required String role,
+    String? phone,
+    Map<String, dynamic>? profileMetadata,
   }) {
     return _api.request<dynamic>(
       method: HttpMethod.post,
@@ -643,8 +826,36 @@ class HeadmasterApiService {
         'password': password,
         'full_name': fullName,
         'role_codes': [role],
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (profileMetadata != null && profileMetadata.isNotEmpty)
+          'profile_metadata': profileMetadata,
       },
       parser: (json) => json,
+    );
+  }
+
+  /// Upload an avatar image and return its public URL. Accepts either a file
+  /// path (native platforms) or in-memory bytes (web).
+  Future<ApiResponse<String>> uploadAvatar({
+    String? filePath,
+    List<int>? bytes,
+    String filename = 'avatar.jpg',
+    String contentType = 'image/jpeg',
+  }) {
+    return _api.request<String>(
+      method: HttpMethod.multipart,
+      path: HeadmasterEndpoints.uploads(_sid),
+      body: {'folder': 'avatars'},
+      files: [
+        MultipartUpload(
+          field: 'file',
+          filename: filename,
+          file: filePath == null ? null : File(filePath),
+          bytes: bytes,
+          contentType: contentType,
+        ),
+      ],
+      parser: (json) => (json as Map<String, dynamic>)['url'] as String,
     );
   }
 
@@ -666,11 +877,15 @@ class HeadmasterApiService {
     required String invoiceId,
     required double amount,
     required String method,
+    DateTime? paidOn,
   }) {
+    final d = paidOn ?? DateTime.now();
+    final iso =
+        '${d.year.toString().padLeft(4, "0")}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}';
     return _api.request<dynamic>(
       method: HttpMethod.post,
       path: HeadmasterEndpoints.invoicePayments(_sid, invoiceId),
-      body: {'amount': amount, 'method': method},
+      body: {'amount': amount, 'method': method, 'paid_on': iso},
       parser: (json) => json,
     );
   }
@@ -825,14 +1040,15 @@ class HeadmasterApiService {
   }
 
   /// Generate a payslip for a staff profile for a given month/year.
-  Future<ApiResponse<dynamic>> generatePayslip({
+  Future<ApiResponse<PayslipRow>> generatePayslip({
     required String profileId,
     required int month,
     required int year,
     double allowances = 0,
     double deductions = 0,
+    bool deductAbsences = false,
   }) {
-    return _api.request<dynamic>(
+    return _api.request<PayslipRow>(
       method: HttpMethod.post,
       path: HeadmasterEndpoints.hrStaffPayslips(_sid, profileId),
       body: {
@@ -840,8 +1056,26 @@ class HeadmasterApiService {
         'period_year': year,
         'allowances': allowances,
         'deductions': deductions,
+        'deduct_absences': deductAbsences,
       },
-      parser: (json) => json,
+      parser: (json) =>
+          PayslipRow.fromJson((json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  /// Monthly attendance roll-up for one teacher + the absence deduction a
+  /// payslip would apply. Powers the Generate Payslip screen.
+  Future<ApiResponse<MonthlyAttendanceSummary>> fetchTeacherMonthlyAttendance({
+    required String teacherId,
+    required int month,
+    required int year,
+  }) {
+    return _api.request<MonthlyAttendanceSummary>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.hrTeacherAttendanceSummary(_sid, teacherId),
+      query: {'month': '$month', 'year': '$year'},
+      parser: (json) => MonthlyAttendanceSummary.fromJson(
+          (json as Map).cast<String, dynamic>()),
     );
   }
 

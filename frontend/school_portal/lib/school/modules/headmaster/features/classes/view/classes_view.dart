@@ -11,15 +11,7 @@ import '../controller/classes_controller.dart';
 
 /// Class Directory — grades, sections, homeroom teacher assignments + KPIs.
 class ClassesView extends GetView<ClassesController> {
-  final VoidCallback? onManageStudents;
-  final VoidCallback? onManageGuardians;
-  final VoidCallback? onManageTeachers;
-  const ClassesView({
-    super.key,
-    this.onManageStudents,
-    this.onManageGuardians,
-    this.onManageTeachers,
-  });
+  const ClassesView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -48,50 +40,17 @@ class ClassesView extends GetView<ClassesController> {
                 Text('Class Directory',
                     style: AppTypography.displayLg.copyWith(fontSize: 32)),
                 const SizedBox(height: AppSpacing.stackSm),
-                Text('Manage grades, sections, and homeroom assignments.',
+                Text(
+                    'Create classes, add sections, and manage homeroom teachers. '
+                    'Enroll students into a section and link guardians from the '
+                    'student profile.',
                     style: AppTypography.bodyLg),
-                const SizedBox(height: AppSpacing.stackMd),
-                Row(
-                  children: const [
-                    _IconLink(icon: Icons.filter_list_rounded, label: 'All Grades'),
-                    SizedBox(width: AppSpacing.stackLg),
-                    _IconLink(icon: Icons.grid_view_rounded, label: 'View'),
-                  ],
-                ),
                 const SizedBox(height: AppSpacing.stackMd),
                 PrimaryButton(
                   label: 'New Class',
                   leadingIcon: Icons.add,
                   trailingIcon: null,
                   onPressed: controller.createClassFlow,
-                ),
-                const SizedBox(height: AppSpacing.stackMd),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _PeopleLink(
-                        icon: Icons.school_outlined,
-                        label: 'Students',
-                        onTap: onManageStudents,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.stackMd),
-                    Expanded(
-                      child: _PeopleLink(
-                        icon: Icons.record_voice_over_outlined,
-                        label: 'Teachers',
-                        onTap: onManageTeachers,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.stackMd),
-                    Expanded(
-                      child: _PeopleLink(
-                        icon: Icons.family_restroom_outlined,
-                        label: 'Guardians',
-                        onTap: onManageGuardians,
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
                 _statGrid(data.stats),
@@ -143,56 +102,3 @@ class ClassesView extends GetView<ClassesController> {
   }
 }
 
-class _PeopleLink extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-  const _PeopleLink({required this.icon, required this.label, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.button),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.stackMd),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(AppRadius.button),
-          border: Border.all(color: AppColors.outlineVariant, width: 1),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: AppColors.primary),
-            const SizedBox(width: AppSpacing.stackSm),
-            Expanded(
-              child: Text(label,
-                  style: AppTypography.labelMd
-                      .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
-            ),
-            const Icon(Icons.chevron_right_rounded,
-                size: 18, color: AppColors.onSurfaceVariant),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _IconLink extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _IconLink({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: AppColors.onSurfaceVariant),
-        const SizedBox(width: 6),
-        Text(label, style: AppTypography.labelMd),
-      ],
-    );
-  }
-}

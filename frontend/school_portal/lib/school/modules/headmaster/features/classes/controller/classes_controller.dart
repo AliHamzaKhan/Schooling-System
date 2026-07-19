@@ -51,9 +51,14 @@ class ClassesController extends GetxController {
         ),
       ],
       onSubmit: () async {
-        if (name.text.trim().isEmpty) return 'Class name is required';
+        final trimmed = name.text.trim();
+        if (trimmed.isEmpty) return 'Class name is required';
+        final existing = data.value?.grades ?? const [];
+        final dupe = existing.any(
+            (g) => g.className.toLowerCase() == trimmed.toLowerCase());
+        if (dupe) return 'A class named "$trimmed" already exists';
         final res = await _repo.createClass(
-          name: name.text.trim(),
+          name: trimmed,
           level: int.tryParse(level.text.trim()),
         );
         return res.success ? null : (res.error ?? 'Could not create class');

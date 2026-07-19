@@ -124,3 +124,44 @@ class FeeReport(BaseModel):
     total_outstanding: float
     overdue_count: int
     status_counts: dict[str, int]
+
+
+# --------------------------------------------------------------------------- #
+# Student fee snapshot (search for "record payment")
+# --------------------------------------------------------------------------- #
+
+
+class InvoiceSummary(BaseModel):
+    """Compact invoice view used inside a StudentFeeSnapshot list."""
+
+    id: uuid.UUID
+    title: str
+    amount: float
+    amount_paid: float
+    balance: float
+    status: str
+    due_date: date
+
+
+class StudentFeeSnapshot(BaseModel):
+    """One student + their live fee position, for the Record Payment screen."""
+
+    student_id: uuid.UUID
+    full_name: str
+    father_name: str | None = None
+    class_id: uuid.UUID | None = None
+    class_name: str | None = None
+    section_id: uuid.UUID | None = None
+    section_name: str | None = None
+    grade: int | None = None
+    outstanding_total: float
+    paid_total: float
+    has_overdue: bool
+    invoices: list[InvoiceSummary]
+
+
+class StudentFeePage(BaseModel):
+    """Paginated envelope for the student-fee search."""
+
+    total: int
+    items: list[StudentFeeSnapshot]

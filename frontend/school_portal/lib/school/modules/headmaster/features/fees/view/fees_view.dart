@@ -49,6 +49,15 @@ class FeesView extends GetView<FeesController> {
                   trailingIcon: null,
                   onPressed: controller.recordPaymentFlow,
                 ),
+                const SizedBox(height: AppSpacing.stackMd),
+                GhostButton(
+                  label: 'All Students · Fees',
+                  leadingIcon: Icons.groups_rounded,
+                  trailingIcon: Icons.chevron_right_rounded,
+                  expanded: true,
+                  onPressed: () =>
+                      Get.toNamed(HeadmasterRoutes.feesRoster),
+                ),
                 const SizedBox(height: AppSpacing.stackLg),
                 TotalCollectedCard(data: data),
                 const SizedBox(height: AppSpacing.stackLg),
@@ -57,10 +66,8 @@ class FeesView extends GetView<FeesController> {
                 SectionHeader(
                   title: 'Overdue Payments',
                   actionLabel: 'View All',
-                  onAction: () => Get.toNamed(
-                    HeadmasterRoutes.overduePayments,
-                    arguments: data.overdue,
-                  ),
+                  onAction: () =>
+                      Get.toNamed(HeadmasterRoutes.overduePayments),
                 ),
                 const SizedBox(height: AppSpacing.stackMd),
                 for (var i = 0; i < data.overdue.length; i++) ...[

@@ -2,19 +2,93 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
-import '../../../../../widgets/multi_line_chart.dart';
+import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/ring_chart.dart';
-import '../../../../../widgets/section_header.dart';
-import '../components/attendance_metric_tile.dart';
-import '../components/grade_breakdown_row.dart';
-import '../controller/attendance_controller.dart';
-import '../models/attendance_data.dart';
+import '../../../data/headmaster_repository.dart';
+import '../models/teacher_attendance_day.dart';
+import 'teacher_attendance_roster_view.dart';
 
-/// Attendance Overview — daily KPIs, rate rings, trend chart, grade breakdown.
-class AttendanceView extends GetView<AttendanceController> {
+/// Attendance — teacher attendance for a chosen date, backed entirely by
+/// `/hr/attendance`. Pick a date, see the split (present / absent / late /
+/// leave / unmarked), drill into any group, or jump to the marking screen.
+///
+/// Student-side attendance analytics are not wired to the API yet, so this
+/// screen deliberately shows only teacher data: every number here is real.
+class AttendanceView extends StatefulWidget {
   final VoidCallback? onAnalytics;
   const AttendanceView({super.key, this.onAnalytics});
+
+  @override
+  State<AttendanceView> createState() => _AttendanceViewState();
+}
+
+class _AttendanceViewState extends State<AttendanceView> {
+  final _repo = Get.find<HeadmasterRepository>();
+
+  final _date = Rx<DateTime>(DateTime.now());
+  final _day = Rxn<TeacherAttendanceDay>();
+  final _loading = true.obs;
+  final _error = RxnString();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<void> _fetch() async {
+    _loading.value = true;
+    _error.value = null;
+    final res = await _repo.loadTeacherAttendance(date: _date.value);
+    if (res.success && res.data != null) {
+      _day.value = res.data;
+    } else {
+      _error.value = res.error ?? 'Could not load attendance';
+    }
+    _loading.value = false;
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date.value,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+    );
+    if (picked != null && picked != _date.value) {
+      _date.value = picked;
+      await _fetch();
+    }
+  }
+
+  void _openRoster(TeacherAttendanceStatus status, String title) {
+    Get.toNamed(
+      HeadmasterRoutes.teacherAttendanceRoster,
+      arguments: TeacherAttendanceRosterArgs(
+        date: _date.value,
+        status: status,
+        title: title,
+      ),
+    );
+  }
+
+  Future<void> _openMarking() async {
+    await Get.toNamed(HeadmasterRoutes.teacherAttendance);
+    await _fetch();
+  }
+
+  String _fmtDate(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final today = DateTime.now();
+    final isToday =
+        d.year == today.year && d.month == today.month && d.day == today.day;
+    final label = '${d.day} ${months[d.month - 1]} ${d.year}';
+    return isToday ? 'Today, $label' : label;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,227 +97,156 @@ class AttendanceView extends GetView<AttendanceController> {
       children: [
         const PortalTopBar(showAvatar: true),
         Expanded(
-          child: Obx(() {
-            if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final data = controller.data.value;
-            if (data == null) {
-              return Center(
-                  child: Text(controller.error.value ?? 'No data',
-                      style: AppTypography.bodyLg));
-            }
-            return ListView(
+          child: RefreshIndicator(
+            onRefresh: _fetch,
+            child: ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  0,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                0,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
-                const _DatePill(label: 'Today, Oct 24'),
+                Obx(() => _DateSelector(
+                      label: _fmtDate(_date.value),
+                      onTap: _pickDate,
+                    )),
                 const SizedBox(height: AppSpacing.stackMd),
-                Text('Attendance\nOverview', style: AppTypography.headlineLg),
+                Text('Teacher\nAttendance', style: AppTypography.headlineLg),
                 const SizedBox(height: AppSpacing.stackSm),
-                Text('Daily check-ins for the entire island.',
+                Text('Daily check-ins for teaching staff.',
                     style: AppTypography.bodyLg),
-                const SizedBox(height: AppSpacing.stackMd),
-                Row(
-                  children: [
-                    Expanded(child: GhostButton(label: 'Filter', leadingIcon: Icons.filter_list_rounded, expanded: true, onPressed: () {})),
-                    const SizedBox(width: AppSpacing.stackMd),
-                    Expanded(
-                      child: PrimaryButton(
-                        label: 'Export',
-                        leadingIcon: Icons.download_rounded,
-                        trailingIcon: null,
-                        expanded: true,
-                        onPressed: () {},
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: AppSpacing.stackLg),
-                for (final m in data.metrics) ...[
-                  AttendanceMetricTile(metric: m),
-                  const SizedBox(height: AppSpacing.stackMd),
-                ],
-                const SizedBox(height: AppSpacing.stackSm),
 
-                // Daily rates rings.
-                GlassSurface(
-                  padding: const EdgeInsets.all(AppSpacing.stackLg),
-                  child: Column(
+                // Everything below depends on the fetched day. Scoping the Obx
+                // here (rather than around the whole list) keeps the header and
+                // date selector from flashing when the date changes.
+                Obx(() {
+                  if (_loading.value && _day.value == null) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 48),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final day = _day.value;
+                  if (day == null) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48),
+                      child: Center(
+                        child: Text(_error.value ?? 'No data',
+                            style: AppTypography.bodyLg),
+                      ),
+                    );
+                  }
+                  if (day.totalTeachers == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48),
+                      child: Center(
+                        child: Text('No teachers on the roster yet.',
+                            style: AppTypography.bodyLg),
+                      ),
+                    );
+                  }
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionHeader(title: 'Daily Rates'),
+                      _StatusTiles(day: day, onOpen: _openRoster),
                       const SizedBox(height: AppSpacing.stackLg),
-                      Center(
+                      GlassSurface(
+                        padding: const EdgeInsets.all(AppSpacing.stackLg),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            RingChart(
-                              progress: data.studentRatePercent / 100,
-                              color: AppColors.primary,
-                              value: '${data.studentRatePercent}%',
-                              caption: 'Students',
+                            Text('Present Rate',
+                                style: AppTypography.titleLg),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${day.present} of ${day.totalTeachers} teachers present',
+                              style: AppTypography.bodySm,
                             ),
-                            const SizedBox(height: AppSpacing.stackMd),
-                            RingChart(
-                              progress: data.teacherRatePercent / 100,
-                              color: const Color(0xFFE8A317),
-                              value: '${data.teacherRatePercent}%',
-                              caption: 'Teachers',
+                            const SizedBox(height: AppSpacing.stackLg),
+                            Center(
+                              child: RingChart(
+                                progress: day.presentRate,
+                                color: AppColors.tertiary,
+                                value:
+                                    '${(day.presentRate * 100).round()}%',
+                                caption: 'Teachers',
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.stackLg),
-
-                // Trend chart.
-                GlassSurface(
-                  padding: const EdgeInsets.all(AppSpacing.stackLg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text('Attendance\nTrend', style: AppTypography.titleLg),
+                      if (day.unmarked > 0) ...[
+                        const SizedBox(height: AppSpacing.stackMd),
+                        _UnmarkedBanner(
+                          count: day.unmarked,
+                          onTap: () => _openRoster(
+                            TeacherAttendanceStatus.unmarked,
+                            'Not Marked',
                           ),
-                          Obx(() => _RangeToggle(
-                                value: controller.range.value,
-                                onChanged: controller.selectRange,
-                              )),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.stackLg),
-                      PortalMultiLineChart(
-                        xLabels: data.trendLabels,
-                        series: [
-                          LineSeries(
-                              points: data.studentTrend,
-                              color: AppColors.primary,
-                              label: 'Students'),
-                          LineSeries(
-                              points: data.teacherTrend,
-                              color: const Color(0xFFE8A317),
-                              label: 'Teachers'),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.stackMd),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          _LegendDot(color: AppColors.primary, label: 'Students'),
-                          SizedBox(width: AppSpacing.stackLg),
-                          _LegendDot(color: Color(0xFFE8A317), label: 'Teachers'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.stackLg),
-
-                // Grade breakdown.
-                GlassSurface(
-                  padding: const EdgeInsets.all(AppSpacing.stackLg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SectionHeader(title: 'Grade Level Breakdown'),
-                      const SizedBox(height: AppSpacing.stackLg),
-                      for (final g in data.grades) ...[
-                        GradeBreakdownRow(grade: g),
-                        if (g != data.grades.last)
-                          const SizedBox(height: AppSpacing.stackMd),
+                        ),
                       ],
                       const SizedBox(height: AppSpacing.stackLg),
-                      GhostButton(label: 'View All Grades', expanded: true, onPressed: () {}),
+                      PrimaryButton(
+                        label: 'Record Attendance',
+                        leadingIcon: Icons.edit_calendar_outlined,
+                        trailingIcon: null,
+                        expanded: true,
+                        onPressed: _openMarking,
+                      ),
+                      const SizedBox(height: AppSpacing.stackMd),
+                      GhostButton(
+                        label: 'Open Reports & Analytics',
+                        trailingIcon: Icons.arrow_forward,
+                        expanded: true,
+                        onPressed: widget.onAnalytics,
+                      ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.stackLg),
-                PrimaryButton(
-                  label: 'Open Reports & Analytics',
-                  trailingIcon: Icons.arrow_forward,
-                  expanded: true,
-                  onPressed: onAnalytics,
-                ),
+                  );
+                }),
               ],
-            );
-          }),
+            ),
+          ),
         ),
       ],
     );
   }
 }
 
-class _DatePill extends StatelessWidget {
+class _DateSelector extends StatelessWidget {
   final String label;
-  const _DatePill({required this.label});
+  final VoidCallback onTap;
+  const _DateSelector({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.button),
-        border: Border.all(color: AppColors.outlineVariant, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Text(label, style: AppTypography.labelMd.copyWith(color: AppColors.primary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _RangeToggle extends StatelessWidget {
-  final AttendanceRange value;
-  final ValueChanged<AttendanceRange> onChanged;
-  const _RangeToggle({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _segment('Wk', value == AttendanceRange.week,
-              () => onChanged(AttendanceRange.week)),
-          _segment('Mo', value == AttendanceRange.month,
-              () => onChanged(AttendanceRange.month)),
-        ],
-      ),
-    );
-  }
-
-  Widget _segment(String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: AppMotion.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.full),
-        ),
-        child: Text(
-          label,
-          style: AppTypography.labelMd.copyWith(
-            color: selected ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.button),
+            border: Border.all(color: AppColors.outlineVariant),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.calendar_today_outlined,
+                  size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: AppTypography.labelMd
+                      .copyWith(color: AppColors.primary)),
+              const SizedBox(width: 4),
+              const Icon(Icons.expand_more_rounded,
+                  size: 16, color: AppColors.primary),
+            ],
           ),
         ),
       ),
@@ -251,20 +254,168 @@ class _RangeToggle extends StatelessWidget {
   }
 }
 
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _LegendDot({required this.color, required this.label});
+/// Present / Absent / Late / Leave tiles — each with its own icon and colour,
+/// and each drilling into the matching roster.
+class _StatusTiles extends StatelessWidget {
+  final TeacherAttendanceDay day;
+  final void Function(TeacherAttendanceStatus, String) onOpen;
+  const _StatusTiles({required this.day, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Column(
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Text(label, style: AppTypography.bodyMd),
+        Row(
+          children: [
+            Expanded(
+              child: _Tile(
+                label: 'Present',
+                value: day.present,
+                color: AppColors.tertiary,
+                icon: Icons.check_circle_outline,
+                onTap: day.present == 0
+                    ? null
+                    : () => onOpen(TeacherAttendanceStatus.present,
+                        'Present Teachers'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.stackSm),
+            Expanded(
+              child: _Tile(
+                label: 'Absent',
+                value: day.absent,
+                color: AppColors.error,
+                icon: Icons.person_off_outlined,
+                onTap: day.absent == 0
+                    ? null
+                    : () => onOpen(
+                        TeacherAttendanceStatus.absent, 'Absent Teachers'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.stackSm),
+        Row(
+          children: [
+            Expanded(
+              child: _Tile(
+                label: 'Late Comers',
+                value: day.late,
+                color: const Color(0xFFF59E0B),
+                icon: Icons.schedule_rounded,
+                onTap: day.late == 0
+                    ? null
+                    : () =>
+                        onOpen(TeacherAttendanceStatus.late, 'Late Comers'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.stackSm),
+            Expanded(
+              child: _Tile(
+                label: 'On Leave',
+                value: day.onLeave,
+                color: AppColors.primary,
+                icon: Icons.event_busy_outlined,
+                onTap: day.onLeave == 0
+                    ? null
+                    : () => onOpen(
+                        TeacherAttendanceStatus.onLeave, 'On Leave'),
+              ),
+            ),
+          ],
+        ),
       ],
+    );
+  }
+}
+
+class _Tile extends StatelessWidget {
+  final String label;
+  final int value;
+  final Color color;
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _Tile({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.stackMd),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(label,
+                      style: AppTypography.labelMd.copyWith(color: color),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ),
+                if (onTap != null)
+                  Icon(Icons.chevron_right_rounded, size: 16, color: color),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('$value',
+                style: AppTypography.headlineLg
+                    .copyWith(color: color, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UnmarkedBanner extends StatelessWidget {
+  final int count;
+  final VoidCallback onTap;
+  const _UnmarkedBanner({required this.count, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.button),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.stackMd),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          border: Border.all(color: AppColors.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.help_outline_rounded,
+                size: 18, color: AppColors.onSurfaceVariant),
+            const SizedBox(width: AppSpacing.stackSm),
+            Expanded(
+              child: Text(
+                '$count teacher${count == 1 ? "" : "s"} not yet marked',
+                style: AppTypography.bodyMd
+                    .copyWith(color: AppColors.onSurfaceVariant),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded,
+                size: 18, color: AppColors.onSurfaceVariant),
+          ],
+        ),
+      ),
     );
   }
 }

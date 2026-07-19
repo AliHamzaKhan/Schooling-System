@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import '../../widgets/portal_tab_scaffold.dart';
 import 'data/headmaster_repository.dart';
-import 'features/attendance/binding/attendance_binding.dart';
 import 'features/attendance/view/attendance_view.dart';
 import 'features/classes/binding/classes_binding.dart';
 import 'features/classes/view/classes_view.dart';
@@ -47,7 +46,8 @@ class _HeadmasterShellState extends State<HeadmasterShell> {
     ClassesBinding().dependencies();
     ExamsBinding().dependencies();
     FeesBinding().dependencies();
-    AttendanceBinding().dependencies();
+    // AttendanceView is self-contained (it reads teacher attendance straight
+    // from the repository), so it needs no binding of its own.
   }
 
   @override
@@ -55,15 +55,10 @@ class _HeadmasterShellState extends State<HeadmasterShell> {
     final tabs = <Widget>[
       DashboardView(
         onAnnouncements: () => Get.toNamed(HeadmasterRoutes.announcements),
-        onSchoolOverview: () => Get.toNamed(HeadmasterRoutes.schoolOverview),
         onSettings: () => Get.toNamed(HeadmasterRoutes.settings),
         onSalary: () => Get.toNamed(HeadmasterRoutes.salary),
       ),
-      ClassesView(
-        onManageStudents: () => Get.toNamed(HeadmasterRoutes.students),
-        onManageGuardians: () => Get.toNamed(HeadmasterRoutes.guardians),
-        onManageTeachers: () => Get.toNamed(HeadmasterRoutes.teachers),
-      ),
+      const ClassesView(),
       ExamsView(
         onTimetable: () => Get.toNamed(HeadmasterRoutes.timetable),
       ),

@@ -46,7 +46,7 @@ class TeachersView extends GetView<TeachersController> {
                         children: [
                           Expanded(
                             child: PortalSearchField(
-                              hint: 'Search by name or dept…',
+                              hint: 'Search by name…',
                               onChanged: controller.onSearch,
                             ),
                           ),

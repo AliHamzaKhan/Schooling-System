@@ -2,9 +2,61 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/action_form_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/salary_models.dart';
+import '../utils/money.dart';
+import '../utils/payslip_pdf.dart';
+import '../view/generate_payslip_view.dart';
+
+class _LabeledDropdown<T> extends StatelessWidget {
+  final String label;
+  final T value;
+  final List<T> items;
+  final ValueChanged<T?> onChanged;
+  final String Function(T) itemLabel;
+
+  const _LabeledDropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    required this.itemLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: AppTypography.labelMd
+                .copyWith(color: AppColors.onSurfaceVariant)),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(AppRadius.button),
+            border: Border.all(color: AppColors.outlineVariant),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              isExpanded: true,
+              value: value,
+              items: [
+                for (final i in items)
+                  DropdownMenuItem<T>(value: i, child: Text(itemLabel(i))),
+              ],
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// Drives the Teacher Salaries screen: lists teachers + their salary profiles,
 /// sets/edits salaries, generates payslips, and marks payslips paid.
@@ -40,20 +92,41 @@ class SalaryController extends GetxController {
     loading.value = false;
   }
 
+  /// Standard designation options — headmaster picks one when setting salary.
+  static const List<String> designationOptions = [
+    'Teacher',
+    'Senior Teacher',
+    'Head of Department',
+    'Vice Principal',
+    'Principal',
+    'Administrator',
+    'Librarian',
+    'Counsellor',
+  ];
+
+  static const List<String> monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
   /// Set or edit a teacher's salary (creates or updates their staff profile).
   Future<void> setSalaryFlow(SalaryStaff s) async {
-    final designation =
-        TextEditingController(text: s.designation ?? 'Teacher');
+    final initial =
+        designationOptions.contains(s.designation) ? s.designation! : 'Teacher';
+    final designation = initial.obs;
     final salary =
         TextEditingController(text: s.baseSalary?.toStringAsFixed(0) ?? '');
     final ok = await showActionFormSheet(
       title: s.hasSalary ? 'Edit Salary — ${s.name}' : 'Set Salary — ${s.name}',
       submitLabel: 'Save',
       fields: [
-        GlassInput(
-            label: 'Designation',
-            hint: 'e.g. Senior Teacher',
-            controller: designation),
+        Obx(() => _LabeledDropdown<String>(
+              label: 'Designation',
+              value: designation.value,
+              items: designationOptions,
+              onChanged: (v) => designation.value = v ?? 'Teacher',
+              itemLabel: (v) => v,
+            )),
         GlassInput(
             label: 'Base salary (monthly)',
             hint: 'e.g. 60000',
@@ -62,16 +135,15 @@ class SalaryController extends GetxController {
       ],
       onSubmit: () async {
         final value = double.tryParse(salary.text.trim());
-        if (designation.text.trim().isEmpty) return 'Designation is required';
         if (value == null || value < 0) return 'Enter a valid salary';
         final res = s.hasSalary
             ? await _repo.updateStaffProfile(
                 profileId: s.profileId!,
-                designation: designation.text.trim(),
+                designation: designation.value,
                 baseSalary: value)
             : await _repo.createStaffProfile(
                 userId: s.userId,
-                designation: designation.text.trim(),
+                designation: designation.value,
                 baseSalary: value);
         return res.success ? null : (res.error ?? 'Could not save salary');
       },
@@ -83,64 +155,124 @@ class SalaryController extends GetxController {
     }
   }
 
-  /// Generate a payslip for a teacher who has a salary profile.
+  /// Open the full-page Generate Payslip flow; reload on success.
   Future<void> generatePayslipFlow(SalaryStaff s) async {
     if (!s.hasSalary) {
       Get.snackbar('Set salary first', 'Add a base salary before generating a payslip.',
           snackPosition: SnackPosition.BOTTOM);
       return;
     }
-    final now = DateTime.now();
-    final month = TextEditingController(text: '${now.month}');
-    final year = TextEditingController(text: '${now.year}');
-    final allowances = TextEditingController(text: '0');
-    final deductions = TextEditingController(text: '0');
-    final ok = await showActionFormSheet(
-      title: 'Generate Payslip — ${s.name}',
-      submitLabel: 'Generate',
-      fields: [
-        GlassInput(
-            label: 'Month (1–12)',
-            hint: '${now.month}',
-            controller: month,
-            keyboardType: TextInputType.number),
-        GlassInput(
-            label: 'Year',
-            hint: '${now.year}',
-            controller: year,
-            keyboardType: TextInputType.number),
-        GlassInput(
-            label: 'Allowances',
-            hint: '0',
-            controller: allowances,
-            keyboardType: TextInputType.number),
-        GlassInput(
-            label: 'Deductions',
-            hint: '0',
-            controller: deductions,
-            keyboardType: TextInputType.number),
-      ],
-      onSubmit: () async {
-        final m = int.tryParse(month.text.trim());
-        final y = int.tryParse(year.text.trim());
-        if (m == null || m < 1 || m > 12) return 'Enter a month between 1 and 12';
-        if (y == null || y < 2000) return 'Enter a valid year';
-        final res = await _repo.generatePayslip(
-          profileId: s.profileId!,
-          month: m,
-          year: y,
-          allowances: double.tryParse(allowances.text.trim()) ?? 0,
-          deductions: double.tryParse(deductions.text.trim()) ?? 0,
-        );
-        return res.success ? null : (res.error ?? 'Could not generate payslip');
-      },
+    final ok = await Get.toNamed(
+      HeadmasterRoutes.generatePayslip,
+      arguments: GeneratePayslipArgs(s),
     );
-    if (ok == true) {
-      Get.snackbar('Payslip generated', 'The payslip was created.',
+    if (ok == true) await load();
+  }
+
+  /// Show payslip breakdown, with a Share-as-PDF action.
+  Future<void> showPayslipDetail(PayslipRow p) async {
+    final s = staff.firstWhereOrNull((s) => s.profileId == p.staffProfileId);
+    await Get.bottomSheet<void>(
+      Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(AppSpacing.stackLg),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Payslip Details', style: AppTypography.titleLg),
+              const SizedBox(height: AppSpacing.stackSm),
+              Text(
+                '${s?.name ?? "Teacher"} · ${monthNames[(p.month - 1).clamp(0, 11)]} ${p.year}',
+                style: AppTypography.bodyLg,
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              _kv('Status', p.status),
+              _kv('Gross', money(p.gross)),
+              if (p.absenceDeduction > 0)
+                _kv('Absence deduction',
+                    '- ${money(p.absenceDeduction)} (${p.absentDays}d)'),
+              _kv('Deductions', '- ${money(p.deductions)}'),
+              _kv('Net', money(p.net)),
+              _kv('Attendance',
+                  'P ${p.presentDays} · A ${p.absentDays} · L ${p.lateDays} · Lv ${p.leaveDays}'),
+              if (p.paidOn != null) _kv('Paid on', p.paidOn!),
+              const SizedBox(height: AppSpacing.stackLg),
+              Row(
+                children: [
+                  Expanded(
+                    child: GhostButton(
+                      label: 'Share PDF',
+                      leadingIcon: Icons.picture_as_pdf_outlined,
+                      onPressed: () async {
+                        Get.back();
+                        await sharePayslipPdf(p);
+                      },
+                    ),
+                  ),
+                  if (p.status.toLowerCase() != 'paid') ...[
+                    const SizedBox(width: AppSpacing.stackSm),
+                    Expanded(
+                      child: PrimaryButton(
+                        label: 'Mark paid',
+                        onPressed: () async {
+                          Get.back();
+                          await markPaid(p);
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  /// Render the payslip as a PDF (school name + logo header) and open the
+  /// platform share sheet.
+  Future<void> sharePayslipPdf(PayslipRow p) async {
+    final s = staff.firstWhereOrNull((st) => st.profileId == p.staffProfileId);
+    if (s == null) {
+      Get.snackbar('Could not build PDF', 'Staff record not found.',
           snackPosition: SnackPosition.BOTTOM);
-      await load();
+      return;
+    }
+    // School branding for the PDF header; a failure here is non-fatal.
+    final profileRes = await _repo.loadSchoolProfile();
+    try {
+      await PayslipPdf.share(
+        payslip: p,
+        staff: s,
+        school: profileRes.success ? profileRes.data : null,
+      );
+    } catch (e) {
+      Get.snackbar('Could not share PDF', '$e',
+          snackPosition: SnackPosition.BOTTOM);
     }
   }
+
+  static Widget _kv(String k, String v) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            SizedBox(
+                width: 90,
+                child: Text(k,
+                    style: AppTypography.labelMd
+                        .copyWith(color: AppColors.onSurfaceVariant))),
+            Expanded(child: Text(v, style: AppTypography.bodyMd)),
+          ],
+        ),
+      );
 
   Future<void> markPaid(PayslipRow p) async {
     final res = await _repo.markPayslipPaid(p.id);

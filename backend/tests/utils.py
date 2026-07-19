@@ -14,12 +14,22 @@ async def login(client: AsyncClient, email: str, password: str) -> dict[str, str
     return {"Authorization": f"Bearer {resp.json()['access_token']}"}
 
 
-async def create_user(client: AsyncClient, sid: str, hm: dict, role: str, password: str = "Passw0rd1") -> dict:
+async def create_user(
+    client: AsyncClient, sid: str, hm: dict, role: str,
+    password: str = "Passw0rd1",
+    full_name: str | None = None,
+    profile_metadata: dict | None = None,
+) -> dict:
     email = f"{role}-{uuid4().hex[:8]}@test.edu"
-    r = await client.post(
-        f"{API}/schools/{sid}/users", headers=hm,
-        json={"email": email, "password": password, "full_name": f"{role.title()} User", "role_codes": [role]},
-    )
+    payload = {
+        "email": email,
+        "password": password,
+        "full_name": full_name or f"{role.title()} User",
+        "role_codes": [role],
+    }
+    if profile_metadata is not None:
+        payload["profile_metadata"] = profile_metadata
+    r = await client.post(f"{API}/schools/{sid}/users", headers=hm, json=payload)
     assert r.status_code == 201, r.text
     return {"id": r.json()["id"], "email": email, "password": password}
 

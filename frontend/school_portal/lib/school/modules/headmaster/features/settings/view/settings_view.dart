@@ -48,19 +48,7 @@ class SettingsView extends GetView<SettingsController> {
             const SizedBox(height: AppSpacing.stackXl),
             Text('Branding', style: AppTypography.labelCaps),
             const SizedBox(height: AppSpacing.stackSm),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: GlassInput(
-                      label: 'Uniform colour (hex)',
-                      hint: '#1565C0',
-                      controller: controller.uniformColor),
-                ),
-                const SizedBox(width: AppSpacing.stackMd),
-                _ColorSwatch(controller: controller),
-              ],
-            ),
+            _UniformColorPicker(controller: controller),
             const SizedBox(height: AppSpacing.stackXl),
             Text('Fees', style: AppTypography.labelCaps),
             const SizedBox(height: AppSpacing.stackSm),
@@ -96,9 +84,80 @@ Color? _parseHex(String raw) {
   return v == null ? null : Color(v);
 }
 
-class _ColorSwatch extends StatelessWidget {
+String _hexOf(Color c) {
+  final v = ((c.a * 255).round() << 24) |
+      ((c.r * 255).round() << 16) |
+      ((c.g * 255).round() << 8) |
+      (c.b * 255).round();
+  final rgb = (v & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase();
+  return '#$rgb';
+}
+
+const List<Color> _kPalette = [
+  Color(0xFFF44336), Color(0xFFE91E63), Color(0xFF9C27B0), Color(0xFF673AB7),
+  Color(0xFF3F51B5), Color(0xFF2196F3), Color(0xFF03A9F4), Color(0xFF00BCD4),
+  Color(0xFF009688), Color(0xFF4CAF50), Color(0xFF8BC34A), Color(0xFFCDDC39),
+  Color(0xFFFFEB3B), Color(0xFFFFC107), Color(0xFFFF9800), Color(0xFFFF5722),
+  Color(0xFF795548), Color(0xFF9E9E9E), Color(0xFF607D8B), Color(0xFF1565C0),
+  Color(0xFF0D47A1), Color(0xFF212121), Color(0xFFFFFFFF), Color(0xFF000000),
+];
+
+class _UniformColorPicker extends StatelessWidget {
   final SettingsController controller;
-  const _ColorSwatch({required this.controller});
+  const _UniformColorPicker({required this.controller});
+
+  Future<void> _openPicker(BuildContext context, Color current) async {
+    final picked = await showModalBottomSheet<Color>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.stackLg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Pick uniform colour', style: AppTypography.titleLg),
+                const SizedBox(height: AppSpacing.stackMd),
+                GridView.count(
+                  crossAxisCount: 6,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: AppSpacing.stackSm,
+                  mainAxisSpacing: AppSpacing.stackSm,
+                  children: [
+                    for (final c in _kPalette)
+                      GestureDetector(
+                        onTap: () => Navigator.of(ctx).pop(c),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: c,
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.button),
+                            border: Border.all(
+                                color: current.value == c.value
+                                    ? AppColors.primary
+                                    : AppColors.outlineVariant,
+                                width: current.value == c.value ? 3 : 1),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (picked != null) {
+      controller.uniformColor.text = _hexOf(picked);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,13 +165,44 @@ class _ColorSwatch extends StatelessWidget {
       valueListenable: controller.uniformColor,
       builder: (context, value, _) {
         final color = _parseHex(value.text) ?? AppColors.surfaceContainerLowest;
-        return Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(AppRadius.button),
-            border: Border.all(color: AppColors.outlineVariant),
+        final label = value.text.trim().isEmpty ? 'Not set' : value.text.trim();
+        return InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          onTap: () => _openPicker(context, color),
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.stackMd),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              border: Border.all(color: AppColors.outlineVariant),
+              color: AppColors.surfaceContainerLowest,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                    border: Border.all(color: AppColors.outlineVariant),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.stackMd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Uniform colour', style: AppTypography.bodyLg),
+                      const SizedBox(height: 2),
+                      Text(label,
+                          style: AppTypography.bodyMd.copyWith(
+                              color: AppColors.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.palette_outlined),
+              ],
+            ),
           ),
         );
       },

@@ -10,8 +10,11 @@ import '../features/dashboard/models/dashboard_data.dart';
 import '../features/dashboard/models/dashboard_repository.dart';
 import '../features/exams/models/exams_data.dart';
 import '../features/exams/models/exams_repository.dart';
+import '../features/attendance/models/teacher_attendance_day.dart';
+import '../features/timetable/models/timetable_slot.dart';
 import '../features/fees/models/fees_data.dart';
 import '../features/fees/models/fees_repository.dart';
+import '../features/fees/models/student_fee_snapshot.dart';
 import '../features/guardians/models/guardian.dart';
 import '../features/guardians/models/guardians_repository.dart';
 import '../features/overview/models/overview_data.dart';
@@ -154,9 +157,30 @@ class HeadmasterRepository {
     required String password,
     required String fullName,
     required String role,
+    String? phone,
+    Map<String, dynamic>? profileMetadata,
   }) =>
       _api.createUser(
-          email: email, password: password, fullName: fullName, role: role);
+        email: email,
+        password: password,
+        fullName: fullName,
+        role: role,
+        phone: phone,
+        profileMetadata: profileMetadata,
+      );
+
+  Future<ApiResponse<String>> uploadAvatar({
+    String? filePath,
+    List<int>? bytes,
+    String filename = 'avatar.jpg',
+    String contentType = 'image/jpeg',
+  }) =>
+      _api.uploadAvatar(
+        filePath: filePath,
+        bytes: bytes,
+        filename: filename,
+        contentType: contentType,
+      );
 
   Future<ApiResponse<dynamic>> enrollStudent({
     required String sectionId,
@@ -164,12 +188,101 @@ class HeadmasterRepository {
   }) =>
       _api.enrollStudent(sectionId: sectionId, studentId: studentId);
 
+  Future<ApiResponse<StudentFeePage>> searchStudentFees({
+    String query = '',
+    int limit = 20,
+    int offset = 0,
+    String? classId,
+    String? feeStatus,
+  }) =>
+      _api.searchStudentFees(
+        query: query,
+        limit: limit,
+        offset: offset,
+        classId: classId,
+        feeStatus: feeStatus,
+      );
+
+  Future<ApiResponse<List<SubjectOption>>> loadSubjectOptions() =>
+      _api.fetchSubjectOptions();
+
+  Future<ApiResponse<List<TimetableSlot>>> loadTimetableSlots({
+    String? sectionId,
+  }) =>
+      _api.fetchTimetableSlots(sectionId: sectionId);
+
+  Future<ApiResponse<TimetableSlot>> createTimetableSlot({
+    required String sectionId,
+    required String subjectId,
+    String? teacherId,
+    required int dayOfWeek,
+    required String startTime,
+    required String endTime,
+    String? room,
+  }) =>
+      _api.createTimetableSlot(
+        sectionId: sectionId,
+        subjectId: subjectId,
+        teacherId: teacherId,
+        dayOfWeek: dayOfWeek,
+        startTime: startTime,
+        endTime: endTime,
+        room: room,
+      );
+
+  Future<ApiResponse<TimetableSlot>> updateTimetableSlot({
+    required String slotId,
+    String? subjectId,
+    String? teacherId,
+    int? dayOfWeek,
+    String? startTime,
+    String? endTime,
+    String? room,
+  }) =>
+      _api.updateTimetableSlot(
+        slotId: slotId,
+        subjectId: subjectId,
+        teacherId: teacherId,
+        dayOfWeek: dayOfWeek,
+        startTime: startTime,
+        endTime: endTime,
+        room: room,
+      );
+
+  Future<ApiResponse<dynamic>> deleteTimetableSlot(String slotId) =>
+      _api.deleteTimetableSlot(slotId);
+
+  Future<ApiResponse<TeacherAttendanceDay>> loadTeacherAttendance({
+    required DateTime date,
+    String? status,
+  }) =>
+      _api.fetchTeacherAttendance(date: date, status: status);
+
+  Future<ApiResponse<dynamic>> markTeacherAttendance({
+    required DateTime date,
+    required List<Map<String, dynamic>> entries,
+  }) =>
+      _api.markTeacherAttendance(date: date, entries: entries);
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> loadOverdueInvoices({
+    String? classId,
+    int limit = 50,
+    int offset = 0,
+  }) =>
+      _api.fetchOverdueInvoices(classId: classId, limit: limit, offset: offset);
+
   Future<ApiResponse<dynamic>> recordPayment({
     required String invoiceId,
     required double amount,
     required String method,
+    DateTime? paidOn,
   }) =>
-      _api.recordPayment(invoiceId: invoiceId, amount: amount, method: method);
+      _api.recordPayment(
+        invoiceId: invoiceId,
+        amount: amount,
+        method: method,
+        paidOn: paidOn,
+      );
 
   /// Compose a school-wide (or audience-scoped) announcement broadcast.
   Future<ApiResponse<dynamic>> createBroadcast({
@@ -229,19 +342,30 @@ class HeadmasterRepository {
       _api.updateStaffProfile(
           profileId: profileId, designation: designation, baseSalary: baseSalary);
 
-  Future<ApiResponse<dynamic>> generatePayslip({
+  Future<ApiResponse<PayslipRow>> generatePayslip({
     required String profileId,
     required int month,
     required int year,
     double allowances = 0,
     double deductions = 0,
+    bool deductAbsences = false,
   }) =>
       _api.generatePayslip(
-          profileId: profileId,
-          month: month,
-          year: year,
-          allowances: allowances,
-          deductions: deductions);
+        profileId: profileId,
+        month: month,
+        year: year,
+        allowances: allowances,
+        deductions: deductions,
+        deductAbsences: deductAbsences,
+      );
+
+  Future<ApiResponse<MonthlyAttendanceSummary>> loadTeacherMonthlyAttendance({
+    required String teacherId,
+    required int month,
+    required int year,
+  }) =>
+      _api.fetchTeacherMonthlyAttendance(
+          teacherId: teacherId, month: month, year: year);
 
   Future<ApiResponse<dynamic>> markPayslipPaid(String payslipId) =>
       _api.markPayslipPaid(payslipId);

@@ -43,7 +43,7 @@ class GradeCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.stackSm),
-          Text('Grade ${group.grade}',
+          Text(group.className.isNotEmpty ? group.className : 'Grade ${group.grade}',
               style: AppTypography.headlineLg
                   .copyWith(fontSize: 24, color: AppColors.primary)),
           const SizedBox(height: AppSpacing.stackMd),

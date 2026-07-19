@@ -1,5 +1,6 @@
 """User Management request/response schemas."""
 import uuid
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -24,6 +25,7 @@ class UserDetailOut(BaseModel):
     is_active: bool
     school_id: uuid.UUID | None = None
     roles: list[RoleOut] = []
+    profile_metadata: dict[str, Any] | None = None
 
 
 class HeadmasterCreate(BaseModel):
@@ -41,6 +43,7 @@ class UserCreate(BaseModel):
     # School role codes to assign (e.g. ["teacher"], ["guardian"]). Must already
     # be provisioned for the school.
     role_codes: list[str] = Field(min_length=1)
+    profile_metadata: dict[str, Any] | None = None
 
 
 class UserUpdate(BaseModel):

@@ -55,6 +55,7 @@ async def create_user(
     return await UserService(db).create_user(
         current_user, school_id, data.email, data.password,
         data.full_name, data.phone, data.role_codes,
+        profile_metadata=data.profile_metadata,
     )
 
 
