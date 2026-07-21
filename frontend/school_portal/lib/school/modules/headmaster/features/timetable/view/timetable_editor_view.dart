@@ -6,6 +6,7 @@ import '../../../data/headmaster_repository.dart';
 import '../../classes/models/classes_data.dart';
 import '../../teachers/models/teacher.dart';
 import '../models/timetable_slot.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Timetable editor. The headmaster picks a class + section, sees its weekly
 /// schedule broken down by day, taps a slot to edit or "+ Add slot" to
@@ -209,7 +210,7 @@ class _TimetableEditorViewState extends State<TimetableEditorView>
       }),
       body: Obx(() {
         if (_loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonForm(fields: 3, withSubmit: false));
         }
         if (_classes.isEmpty) {
           return Padding(
@@ -363,7 +364,7 @@ class _DaySlots extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SkeletonPage(withHeader: false, body: SkeletonForm(fields: 3));
     }
     if (slots.isEmpty) {
       return Center(

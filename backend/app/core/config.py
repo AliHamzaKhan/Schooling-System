@@ -49,8 +49,15 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET_KEY: str = "change-this-in-production"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # 5 hours. Long enough that a normal working session never hits a refresh,
+    # short enough that a leaked access token — stateless, so not revocable —
+    # expires the same day. Overall session length is governed by
+    # REFRESH_TOKEN_EXPIRE_DAYS, not this.
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 300
+    # 30 days. This — not the access-token lifetime — is what decides how long
+    # a user stays signed in. Rotation plus reuse detection means a stolen
+    # refresh token is single-use and trips session revocation on replay.
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # First super admin (created by the seed script)
     FIRST_SUPERADMIN_EMAIL: str = "admin@platform.com"
@@ -66,7 +73,16 @@ class Settings(BaseSettings):
     TWILIO_WHATSAPP_FROM: str = ""  # e.g. "whatsapp:+14155238886"
     TWILIO_SMS_FROM: str = ""       # e.g. "+14155238886"
     # Firebase Cloud Messaging (push). Legacy server key for simplicity.
+    # Legacy FCM server key. Google turned this API down in July 2024 — kept
+    # only so existing .env files don't fail validation. Ignored at runtime.
     FCM_SERVER_KEY: str = ""
+
+    # Firebase Cloud Messaging HTTP v1. Point FIREBASE_CREDENTIALS_FILE at the
+    # service-account JSON on disk (never commit it), or paste the file's
+    # contents into FIREBASE_CREDENTIALS_JSON for container/secret-manager
+    # deploys. The project id is read from whichever one is set.
+    FIREBASE_CREDENTIALS_FILE: str = ""
+    FIREBASE_CREDENTIALS_JSON: str = ""
     # Email (SMTP); blank => stub
     EMAIL_FROM: str = ""
 

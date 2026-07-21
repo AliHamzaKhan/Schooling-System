@@ -128,14 +128,19 @@ class HeadmasterRepository {
           : _guardiansMock.fetch(query: query);
 
   // ── Create actions (always live) ──
-  Future<ApiResponse<dynamic>> createClass({required String name, int? level}) =>
-      _api.createClass(name: name, level: level);
+  Future<ApiResponse<dynamic>> createClass({
+    required String name,
+    int? level,
+    String? roomNo,
+  }) =>
+      _api.createClass(name: name, level: level, roomNo: roomNo);
 
   Future<ApiResponse<dynamic>> createSection({
     required String classId,
     required String name,
+    String? roomNo,
   }) =>
-      _api.createSection(classId: classId, name: name);
+      _api.createSection(classId: classId, name: name, roomNo: roomNo);
 
   Future<ApiResponse<dynamic>> updateClass({
     required String classId,

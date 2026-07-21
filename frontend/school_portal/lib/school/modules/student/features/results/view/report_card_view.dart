@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../data/student_repository.dart';
 import '../models/exam_result.dart';
 import '../models/report_card.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Per-subject report card for one exam, reached by tapping an exam on the
 /// Results screen. The [ExamResultItem] is passed via [Get.arguments] for the
@@ -64,7 +65,7 @@ class _ReportCardViewState extends State<ReportCardView> {
       appBar: AppBar(title: Text(_exam?.examName ?? 'Report Card')),
       body: Builder(builder: (context) {
         if (_loading) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3, height: 120)]));
         }
         if (_error != null) {
           return Center(

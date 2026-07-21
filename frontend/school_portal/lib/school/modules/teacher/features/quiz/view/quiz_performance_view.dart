@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../controller/quiz_performance_controller.dart';
 import '../models/quiz_models.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Quiz Performance — each student's score for one quiz (highest first).
 class QuizPerformanceView extends GetView<QuizPerformanceController> {
@@ -15,7 +16,7 @@ class QuizPerformanceView extends GetView<QuizPerformanceController> {
       appBar: AppBar(title: Obx(() => Text(controller.title.value))),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonRosterList()]));
         }
         if (controller.error.value != null) {
           return Center(

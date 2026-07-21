@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import '../../../data/teacher_repository.dart';
 import '../models/performance_data.dart';
 
-class PerformanceController extends GetxController {
+class TeacherPerformanceController extends GetxController {
   final TeacherRepository _repo;
-  PerformanceController({TeacherRepository? repo})
+  TeacherPerformanceController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
   final loading = true.obs;

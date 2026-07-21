@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../data/student_report_service.dart';
 import 'section_students_view.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Arguments for [ClassStudentsView]: which class to list and its label.
 class ClassStudentsArgs {
@@ -71,7 +72,7 @@ class _ClassStudentsViewState extends State<ClassStudentsView> {
     return AppScaffold(
       appBar: AppBar(title: Text('${_args.title} — Students')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonPage(withHeader: false, body: SkeletonRosterList())
           : _error != null
               ? Center(child: Text(_error!, style: AppTypography.bodyLg))
               : _groups.isEmpty

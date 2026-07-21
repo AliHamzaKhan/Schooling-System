@@ -8,6 +8,7 @@ import '../../../../../widgets/ring_chart.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher_attendance_day.dart';
 import 'teacher_attendance_roster_view.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Attendance — teacher attendance for a chosen date, backed entirely by
 /// `/hr/attendance`. Pick a date, see the split (present / absent / late /
@@ -123,9 +124,8 @@ class _AttendanceViewState extends State<AttendanceView> {
                 // date selector from flashing when the date changes.
                 Obx(() {
                   if (_loading.value && _day.value == null) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48),
-                      child: Center(child: CircularProgressIndicator()),
+                    return const Shimmer(
+                      child: SkeletonCardList(count: 3, height: 96),
                     );
                   }
                   final day = _day.value;

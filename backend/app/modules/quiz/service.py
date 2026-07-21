@@ -1,5 +1,4 @@
 """Quiz service: authoring, student attempts, auto/manual grading, reports."""
-import json
 import uuid
 from datetime import datetime, timezone
 
@@ -18,6 +17,7 @@ from app.models.academic import Section, StudentEnrollment, Subject
 from app.models.quiz import Quiz, QuizAnswer, QuizAssignment, QuizAttempt, QuizQuestion
 from app.models.user import User
 from app.modules.ai.providers import ai_provider
+from app.modules.ai.service import _questions_schema
 from app.modules.quiz import schemas
 
 
@@ -501,68 +501,45 @@ class QuizService:
     ) -> list[schemas.GeneratedQuestion]:
         """Turn study material (e.g. extracted PDF text) into draft MCQs via the
         AI provider. The result is returned for the teacher to review/edit before
-        publishing — nothing is persisted here."""
+        publishing — nothing is persisted here.
+
+        Uses structured outputs so the model's reply is schema-valid JSON by
+        construction. The previous free-text prompt plus bracket-scraping parse
+        silently failed for larger requests: the shared provider caps output at
+        1024 tokens, which truncates somewhere around the fifth question, and a
+        truncated array is unparseable — so asking for 10 or 20 questions always
+        came back as "couldn't be parsed" rather than a partial result.
+        """
         text = source_text.strip()
         if len(text) < 40:
             raise bad_request("Not enough readable text to generate a quiz from.")
         n = max(1, min(num_questions, 20))
         system = (
             "You are a quiz author. From the provided study material, write "
-            f"{n} multiple-choice questions that test understanding. Respond with "
-            "ONLY a JSON array — no prose, no markdown fences. Each element must be "
-            '{"prompt": string, "options": array of 4 distinct strings, '
-            '"correct_answer": one of the options copied verbatim, '
-            '"marks": integer 1 or 2}.'
+            "multiple-choice questions that test understanding rather than recall "
+            "of trivia. Each question needs exactly 4 distinct options, and the "
+            "correct answer must be copied verbatim from those options."
         )
         prompt = (
-            f"Study material:\n\n{text[:8000]}\n\nGenerate {n} multiple-choice "
-            "questions as a JSON array."
+            f"Study material:\n\n{text[:8000]}\n\n"
+            f"Write exactly {n} multiple-choice questions about this material."
         )
-        result = await ai_provider.generate(prompt, system=system)
+        schema = _questions_schema(QuestionType.MCQ, n)
+        try:
+            result = await ai_provider.generate_json(prompt, schema, system=system)
+        except ValueError as exc:
+            raise bad_request(str(exc)) from exc
         if result.provider == "stub":
             raise bad_request(
                 "AI generation isn't configured. Set ANTHROPIC_API_KEY to enable "
                 "PDF-to-quiz generation."
             )
-        questions = self._parse_generated(result.text, n)
-        if not questions:
-            raise bad_request(
-                "The AI response couldn't be parsed into quiz questions. Please try again."
+        return [
+            schemas.GeneratedQuestion(
+                prompt=q["prompt"],
+                options=q.get("options") or [],
+                correct_answer=q.get("correct_answer") or "",
+                marks=float(q.get("marks") or 1.0),
             )
-        return questions
-
-    @staticmethod
-    def _parse_generated(raw: str, limit: int) -> list[schemas.GeneratedQuestion]:
-        """Extract a JSON array of MCQs from the model output, tolerating stray
-        prose or ```json fences, and keep only well-formed items."""
-        text = raw.strip()
-        start, end = text.find("["), text.rfind("]")
-        if start == -1 or end == -1 or end <= start:
-            return []
-        try:
-            data = json.loads(text[start : end + 1])
-        except json.JSONDecodeError:
-            return []
-        out: list[schemas.GeneratedQuestion] = []
-        for item in data if isinstance(data, list) else []:
-            if not isinstance(item, dict):
-                continue
-            prompt = str(item.get("prompt", "")).strip()
-            options = [
-                str(o).strip() for o in (item.get("options") or []) if str(o).strip()
-            ]
-            correct = str(item.get("correct_answer", "")).strip()
-            if not prompt or len(options) < 2 or correct not in options:
-                continue
-            try:
-                marks = float(item.get("marks", 1)) or 1.0
-            except (TypeError, ValueError):
-                marks = 1.0
-            out.append(
-                schemas.GeneratedQuestion(
-                    prompt=prompt, options=options, correct_answer=correct, marks=marks
-                )
-            )
-            if len(out) >= limit:
-                break
-        return out
+            for q in (result.data or {}).get("questions", [])
+        ]

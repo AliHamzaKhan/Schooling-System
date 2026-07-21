@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../../../../../config/headmaster_routes.dart';
 import '../data/student_report_service.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Arguments for [SectionStudentsView]: which section to list and its label.
 class SectionStudentsArgs {
@@ -63,7 +64,7 @@ class _SectionStudentsViewState extends State<SectionStudentsView> {
     return AppScaffold(
       appBar: AppBar(title: Text(_args.title)),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonPage(withHeader: false, body: SkeletonRosterList())
           : _error != null
               ? Center(child: Text(_error!, style: AppTypography.bodyLg))
               : _students.isEmpty

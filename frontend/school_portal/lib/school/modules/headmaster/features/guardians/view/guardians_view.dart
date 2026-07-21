@@ -8,6 +8,7 @@ import '../../../../../widgets/portal_top_bar.dart';
 import '../components/guardian_card.dart';
 import '../controller/guardians_controller.dart';
 import '../models/guardian.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Guardian Management — searchable list of guardians with linked students.
 class GuardiansView extends GetView<GuardiansController> {
@@ -23,7 +24,7 @@ class GuardiansView extends GetView<GuardiansController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: SkeletonRosterList());
               }
               return ListView(
                 padding: const EdgeInsets.fromLTRB(

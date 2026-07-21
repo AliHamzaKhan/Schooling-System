@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../controller/salary_controller.dart';
 import '../models/salary_models.dart';
 import '../utils/money.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Teacher Salaries — set/edit base salary per teacher, generate monthly
 /// payslips, and mark them paid.
@@ -20,7 +21,7 @@ class SalaryView extends GetView<SalaryController> {
       ),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonRosterList());
         }
         if (controller.error.value != null) {
           return Center(

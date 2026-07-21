@@ -9,9 +9,9 @@ import '../../exams/models/exam.dart';
 /// Aggregates the student's live assignments, exams and attendance into a single
 /// at-a-glance dashboard. Reuses the per-feature repository reads, so no new
 /// backend endpoint is required.
-class DashboardController extends GetxController {
+class StudentDashboardController extends GetxController {
   final StudentRepository _repo;
-  DashboardController({StudentRepository? repo})
+  StudentDashboardController({StudentRepository? repo})
       : _repo = repo ?? Get.find<StudentRepository>();
 
   final loading = true.obs;

@@ -7,7 +7,7 @@ class TimetableBinding extends Bindings {
   void dependencies() {
     // Replace any stale same-named controller from another role's module
     // (GetX keys instances by class name).
-    Get.delete<TimetableController>(force: true);
-    Get.lazyPut<TimetableController>(() => TimetableController());
+    Get.delete<HeadmasterTimetableController>(force: true);
+    Get.lazyPut<HeadmasterTimetableController>(() => HeadmasterTimetableController());
   }
 }

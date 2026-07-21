@@ -6,6 +6,7 @@ import '../../../../../widgets/filter_chips.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../controller/notification_controller.dart';
 import '../models/notification_item.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Notifications Center — the alert/notification UI system. Severity-coloured
 /// alert cards, an All/Unread filter, and mark-all-read. Used both as a tab
@@ -50,7 +51,7 @@ class NotificationView extends GetView<NotificationController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(withHeader: false, body: SkeletonThreadList());
             }
             final items = controller.visible;
             if (items.isEmpty) {

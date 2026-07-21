@@ -8,6 +8,7 @@ import '../../../../../widgets/status_pill.dart';
 import '../../../shared/widgets/child_switcher.dart';
 import '../controller/meeting_controller.dart';
 import '../models/meeting_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Meeting Schedule — drill-in screen for parent-teacher meetings. Shows
 /// upcoming and past meetings with status pills and a request action.
@@ -24,7 +25,7 @@ class MeetingView extends GetView<MeetingController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: SkeletonCardList(count: 4, height: 110));
               }
               final d = controller.data.value;
               if (d == null) return const SizedBox.shrink();

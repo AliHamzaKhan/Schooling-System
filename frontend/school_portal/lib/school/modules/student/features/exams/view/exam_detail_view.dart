@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../../../data/student_repository.dart';
 import '../models/exam.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Exam detail reached from the countdown / timeline cards. Shows the exam's
 /// identity plus the papers (subjects) the teacher/headmaster scheduled, each
@@ -91,10 +92,7 @@ class _ExamDetailViewState extends State<ExamDetailView> {
           Text('Papers', style: AppTypography.titleLg),
           const SizedBox(height: AppSpacing.stackMd),
           if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(AppSpacing.stackXl),
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const Shimmer(child: SkeletonCardList(count: 3, height: 72))
           else if (_error != null)
             Text(_error!, style: AppTypography.bodyLg)
           else if (_papers.isEmpty)

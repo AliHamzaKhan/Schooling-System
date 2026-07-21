@@ -1,15 +1,16 @@
 import 'package:shared/shared.dart';
 
+import '../features/performance/models/section_performance.dart';
 import '../features/assignments/models/assignment.dart';
 import '../features/assignments/models/assignments_repository.dart';
 import '../features/attendance/models/attendance_models.dart';
 import '../features/attendance/models/attendance_repository.dart';
 import '../features/classes/models/classes_repository.dart';
+import '../features/calendar/models/timetable_slot.dart';
 import '../features/classes/models/teaching_class.dart';
 import '../features/communication/models/communication_repository.dart';
 import '../features/communication/models/message_thread.dart';
 import '../features/dashboard/models/dashboard_data.dart';
-import '../features/dashboard/models/dashboard_repository.dart';
 import '../features/gradebook/models/gradebook_data.dart';
 import '../features/gradebook/models/gradebook_repository.dart';
 import '../features/performance/models/performance_data.dart';
@@ -25,7 +26,6 @@ import 'teacher_api_service.dart';
 class TeacherRepository {
   final TeacherApiService _api;
 
-  final _dashboardMock = DashboardRepository();
   final _classesMock = ClassesRepository();
   final _attendanceMock = AttendanceRepository();
   final _assignmentsMock = AssignmentsRepository();
@@ -49,10 +49,36 @@ class TeacherRepository {
   static const bool _liveCommunication = true;
 
   Future<ApiResponse<DashboardData>> loadDashboard() =>
-      _useMock ? _dashboardMock.load() : _api.fetchDashboard();
+      _api.fetchDashboard();
 
   Future<ApiResponse<List<TeachingClass>>> loadClasses() =>
       _liveClasses ? _api.fetchClasses() : _classesMock.fetch();
+
+  /// The signed-in teacher's weekly timetable — always live; the calendar has
+  /// no mock fixture because a week view needs real days and times.
+  /// Publishes an announcement (live only — always hits the backend).
+  Future<ApiResponse<dynamic>> createBroadcast({
+    required String channel,
+    required String audienceType,
+    String? audienceRef,
+    String? title,
+    required String body,
+  }) =>
+      _api.createBroadcast(
+        channel: channel,
+        audienceType: audienceType,
+        audienceRef: audienceRef,
+        title: title,
+        body: body,
+      );
+
+  /// Section roster ranked by attendance + marks (live only — no fixture).
+  Future<ApiResponse<SectionPerformance>> loadSectionPerformance(
+          String sectionId) =>
+      _api.fetchSectionPerformance(sectionId);
+
+  Future<ApiResponse<List<TeacherSlot>>> loadMyTimetable({DateTime? onDate}) =>
+      _api.fetchMyTimetable(onDate: onDate);
 
   /// Distinct subject names for the school (live only — no mock fixture).
   Future<ApiResponse<List<String>>> loadSubjects() => _api.fetchSubjects();

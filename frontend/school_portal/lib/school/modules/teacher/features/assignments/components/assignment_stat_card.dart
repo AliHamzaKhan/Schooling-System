@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
-/// Wide KPI card with a label, big value, trend caption, and a soft circular
-/// icon badge on the right.
+/// Compact KPI tile sized to sit three-across in a row.
+///
+/// Tappable: each stat routes somewhere that acts on it (the grading queue,
+/// the assignment list, class performance), with a chevron so the affordance
+/// is visible rather than guessed at.
 class AssignmentStatCard extends StatelessWidget {
   final String label;
   final String value;
@@ -10,6 +13,7 @@ class AssignmentStatCard extends StatelessWidget {
   final IconData icon;
   final Color accent;
   final Color trendColor;
+  final VoidCallback? onTap;
 
   const AssignmentStatCard({
     super.key,
@@ -19,40 +23,51 @@ class AssignmentStatCard extends StatelessWidget {
     required this.icon,
     required this.accent,
     required this.trendColor,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.stackLg, vertical: AppSpacing.stackLg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+    return GlassSurface(
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: AppTypography.bodyLg),
-                const SizedBox(height: 2),
-                Text(value,
-                    style: AppTypography.displayLg.copyWith(fontSize: 38)),
-                const SizedBox(height: 2),
-                Text(trend,
-                    style: AppTypography.bodyMd
-                        .copyWith(color: trendColor, fontWeight: FontWeight.w700)),
-              ],
-            ),
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                child: Icon(icon, color: accent, size: 16),
+              ),
+              const Spacer(),
+              if (onTap != null)
+                const Icon(Icons.chevron_right_rounded,
+                    size: 18, color: AppColors.onSurfaceVariant),
+            ],
           ),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: accent, size: 18),
+          const SizedBox(height: AppSpacing.stackSm),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value,
+                style: AppTypography.displayLg.copyWith(fontSize: 26)),
           ),
+          Text(label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.bodySm),
+          const SizedBox(height: 2),
+          Text(trend,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.labelMd
+                  .copyWith(color: trendColor, fontWeight: FontWeight.w700)),
         ],
       ),
     );

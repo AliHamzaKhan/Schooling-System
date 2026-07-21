@@ -7,6 +7,7 @@ import '../../../../../widgets/status_pill.dart';
 import '../../../shared/controller/guardian_session_controller.dart';
 import '../../../shared/models/child.dart';
 import '../../../shared/widgets/child_avatar.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Child Selection Screen — full-page list of the guardian's children. Picking
 /// one sets it active in the session and pops back to the dashboard.
@@ -23,7 +24,7 @@ class ChildSelectionView extends StatelessWidget {
           Expanded(
             child: Obx(() {
               if (session.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: SkeletonCardList(count: 3, height: 110));
               }
               return ListView(
                 padding: const EdgeInsets.fromLTRB(

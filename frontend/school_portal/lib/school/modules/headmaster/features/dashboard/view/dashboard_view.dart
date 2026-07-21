@@ -11,10 +11,11 @@ import '../components/pending_approval_row.dart';
 import '../components/recent_announcement_row.dart';
 import '../controller/dashboard_controller.dart';
 import '../models/dashboard_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Headmaster Dashboard — greeting, daily KPIs, pending approvals, and a
 /// preview of recent announcements with a quick "New" CTA.
-class DashboardView extends GetView<DashboardController> {
+class DashboardView extends GetView<HeadmasterDashboardController> {
   final VoidCallback? onAnnouncements;
   final VoidCallback? onSettings;
   final VoidCallback? onSalary;
@@ -35,7 +36,7 @@ class DashboardView extends GetView<DashboardController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
             }
             final data = controller.data.value;
             if (data == null) {

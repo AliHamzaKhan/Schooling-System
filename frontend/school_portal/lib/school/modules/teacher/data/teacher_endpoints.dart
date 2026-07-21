@@ -5,7 +5,7 @@ class TeacherEndpoints {
 
   static const _base = '/teacher';
 
-  static const dashboard = '$_base/dashboard';
+  // Live, school-scoped teacher home. See myDashboard() below.
   static const classes = '$_base/classes';
 
   static const attendanceClasses = '$_base/attendance/classes';
@@ -30,6 +30,16 @@ class TeacherEndpoints {
       '/schools/$schoolId/academic/classes';
   static String academicSubjects(String schoolId) =>
       '/schools/$schoolId/academic/subjects';
+
+  /// The signed-in teacher's own weekly timetable.
+  static String sectionPerformance(String schoolId, String sectionId) =>
+      '/schools/$schoolId/academic/sections/$sectionId/performance';
+
+  static String myDashboard(String schoolId) =>
+      '/schools/$schoolId/academic/me/dashboard';
+
+  static String myTimetable(String schoolId) =>
+      '/schools/$schoolId/academic/me/timetable';
   static String academicClassSections(String schoolId, String classId) =>
       '/schools/$schoolId/academic/classes/$classId/sections';
   static String homeworkAssignments(String schoolId) =>

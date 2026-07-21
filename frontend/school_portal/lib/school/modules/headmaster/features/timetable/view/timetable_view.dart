@@ -6,10 +6,11 @@ import '../../../../../widgets/portal_top_bar.dart';
 import '../components/dropdown_filter.dart';
 import '../components/timetable_grid.dart';
 import '../controller/timetable_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Timetable Management — class/teacher filters, a New Class CTA, and the
 /// weekly schedule grid with horizontal day scrolling.
-class TimetableView extends GetView<TimetableController> {
+class TimetableView extends GetView<HeadmasterTimetableController> {
   const TimetableView({super.key});
 
   @override
@@ -22,7 +23,7 @@ class TimetableView extends GetView<TimetableController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: SkeletonCardList(count: 5, height: 76));
               }
               final data = controller.data.value;
               if (data == null) {
@@ -47,14 +48,14 @@ class TimetableView extends GetView<TimetableController> {
                   DropdownFilter(
                     icon: Icons.filter_list_rounded,
                     value: controller.classFilter.value,
-                    options: TimetableController.classOptions,
+                    options: HeadmasterTimetableController.classOptions,
                     onChanged: controller.selectClass,
                   ),
                   const SizedBox(height: AppSpacing.stackSm),
                   DropdownFilter(
                     icon: Icons.person_outline_rounded,
                     value: controller.teacherFilter.value,
-                    options: TimetableController.teacherOptions,
+                    options: HeadmasterTimetableController.teacherOptions,
                     onChanged: controller.selectTeacher,
                   ),
                   const SizedBox(height: AppSpacing.stackMd),

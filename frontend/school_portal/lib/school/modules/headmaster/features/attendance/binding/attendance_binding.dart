@@ -5,7 +5,7 @@ import '../controller/attendance_controller.dart';
 class AttendanceBinding extends Bindings {
   @override
   void dependencies() {
-    Get.delete<AttendanceController>(force: true);
-    Get.lazyPut<AttendanceController>(() => AttendanceController());
+    Get.delete<HeadmasterAttendanceController>(force: true);
+    Get.lazyPut<HeadmasterAttendanceController>(() => HeadmasterAttendanceController());
   }
 }

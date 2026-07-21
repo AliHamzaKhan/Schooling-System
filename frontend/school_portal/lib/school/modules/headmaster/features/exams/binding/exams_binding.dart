@@ -5,7 +5,7 @@ import '../controller/exams_controller.dart';
 class ExamsBinding extends Bindings {
   @override
   void dependencies() {
-    Get.delete<ExamsController>(force: true);
-    Get.lazyPut<ExamsController>(() => ExamsController());
+    Get.delete<HeadmasterExamsController>(force: true);
+    Get.lazyPut<HeadmasterExamsController>(() => HeadmasterExamsController());
   }
 }

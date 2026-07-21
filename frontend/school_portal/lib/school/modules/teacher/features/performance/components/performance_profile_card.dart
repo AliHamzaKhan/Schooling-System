@@ -8,14 +8,10 @@ import '../models/performance_data.dart';
 /// stats (Current GPA, Attendance).
 class PerformanceProfileCard extends StatelessWidget {
   final StudentDetail student;
-  final VoidCallback? onMessage;
-  final VoidCallback? onPortfolio;
 
   const PerformanceProfileCard({
     super.key,
     required this.student,
-    this.onMessage,
-    this.onPortfolio,
   });
 
   @override
@@ -46,28 +42,6 @@ class PerformanceProfileCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.stackSm),
           Text('Student ID: #${student.id}', style: AppTypography.bodyMd),
-          const SizedBox(height: AppSpacing.stackMd),
-          Row(
-            children: [
-              Expanded(
-                child: PrimaryButton(
-                  label: 'Message Student',
-                  leadingIcon: Icons.chat_bubble_outline_rounded,
-                  trailingIcon: null,
-                  expanded: true,
-                  onPressed: onMessage,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.stackSm),
-              Expanded(
-                child: GhostButton(
-                  label: 'View Portfolio',
-                  expanded: true,
-                  onPressed: onPortfolio,
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: AppSpacing.stackLg),
           const Divider(height: 1, color: AppColors.outlineVariant),
           const SizedBox(height: AppSpacing.stackMd),

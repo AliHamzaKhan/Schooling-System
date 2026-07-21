@@ -4,9 +4,10 @@ import 'package:shared/shared.dart';
 
 import '../controller/timetable_controller.dart';
 import '../models/timetable_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Student Timetable — a weekday selector and that day's periods.
-class TimetableView extends GetView<TimetableController> {
+class TimetableView extends GetView<StudentTimetableController> {
   const TimetableView({super.key});
 
   @override
@@ -15,7 +16,7 @@ class TimetableView extends GetView<TimetableController> {
       appBar: AppBar(title: const Text('My Timetable')),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonCardList(count: 6, height: 72));
         }
         if (controller.error.value != null) {
           return Center(

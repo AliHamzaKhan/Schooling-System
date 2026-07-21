@@ -7,9 +7,9 @@ import '../models/timetable_data.dart';
 /// Loads the active child's weekly timetable; reloads on child switch via
 /// [ChildScopedController]. Tracks which day column is selected ([selectedDay]),
 /// defaulting to "today" whenever new data arrives.
-class TimetableController extends ChildScopedController<TimetableData> {
+class GuardianTimetableController extends ChildScopedController<TimetableData> {
   final GuardianRepository _repo;
-  TimetableController({GuardianRepository? repo})
+  GuardianTimetableController({GuardianRepository? repo})
       : _repo = repo ?? Get.find<GuardianRepository>();
 
   final selectedDay = 0.obs;

@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../controller/take_quiz_controller.dart';
 import '../models/quiz_models.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Take Quiz — renders questions to answer, then a result card with the
 /// auto-graded score once submitted.
@@ -13,10 +14,10 @@ class TakeQuizView extends GetView<TakeQuizController> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: Obx(() => Text(controller.title))),
+      appBar: AppBar(title: Text(controller.title)),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(withHeader: false, body: SkeletonCardList(count: 4, height: 150));
         }
         if (controller.result.value != null) {
           return _ResultBody(

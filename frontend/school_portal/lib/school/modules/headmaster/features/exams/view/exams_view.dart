@@ -8,9 +8,10 @@ import '../components/exam_schedule_row.dart';
 import '../components/exam_stat_card.dart';
 import '../components/grade_distribution_chart.dart';
 import '../controller/exams_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Exams & Results — manage assessments and review performance.
-class ExamsView extends GetView<ExamsController> {
+class ExamsView extends GetView<HeadmasterExamsController> {
   final VoidCallback? onTimetable;
   const ExamsView({super.key, this.onTimetable});
 
@@ -23,7 +24,7 @@ class ExamsView extends GetView<ExamsController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4)]));
             }
             final data = controller.data.value;
             if (data == null) {

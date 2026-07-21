@@ -11,6 +11,7 @@ import '../../../shared/widgets/child_switcher.dart';
 import '../components/activity_timeline.dart';
 import '../components/summary_card.dart';
 import '../controller/dashboard_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Guardian Dashboard — multi-child switcher, per-child summary cards, quick
 /// links to drill-in screens, and a timeline-based activity feed.
@@ -43,7 +44,7 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
         Expanded(
           child: Obx(() {
             if (session.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
             }
             final child = session.selected;
             if (child == null) {
@@ -82,9 +83,8 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
                       const SizedBox(height: AppSpacing.stackMd),
                       Obx(() {
                         if (controller.loadingFeed.value) {
-                          return const Padding(
-                            padding: EdgeInsets.all(AppSpacing.stackLg),
-                            child: Center(child: CircularProgressIndicator()),
+                          return const Shimmer(
+                            child: SkeletonCardList(count: 3, height: 56),
                           );
                         }
                         return ActivityTimeline(items: controller.feed);

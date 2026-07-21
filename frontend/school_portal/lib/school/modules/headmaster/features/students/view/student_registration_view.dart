@@ -6,6 +6,7 @@ import '../../../../../widgets/action_form_sheet.dart';
 import '../../../../../widgets/avatar_picker_field.dart';
 import '../../../data/headmaster_api_service.dart' show PickerOption;
 import '../../../data/headmaster_repository.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Full-page student registration form — collects account credentials,
 /// personal details, guardian info, and section enrollment in one flow.
@@ -212,7 +213,7 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
       ),
       body: Obx(() {
         if (_sectionsLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(withHeader: false, body: SkeletonForm(fields: 6));
         }
         if (_sections.isEmpty) {
           return Padding(

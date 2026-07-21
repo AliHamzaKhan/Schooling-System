@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../../../config/headmaster_routes.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/student_fee_snapshot.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Class-tabbed listing of every student with their fee position, filterable
 /// by paid / pending / overdue. Tap a row → Record Payment for that student.
@@ -146,7 +147,7 @@ class _FeesRosterViewState extends State<FeesRosterView> {
           Expanded(
             child: Obx(() {
               if (_loading.value && _items.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: SkeletonRosterList());
               }
               if (_error.value != null && _items.isEmpty) {
                 return Center(

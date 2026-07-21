@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../features/performance/models/section_performance.dart';
 import '../features/assignments/models/assignment.dart';
 import '../features/attendance/models/attendance_models.dart';
+import '../features/calendar/models/timetable_slot.dart';
 import '../features/classes/models/teaching_class.dart';
 import '../features/communication/models/message_thread.dart';
 import '../features/dashboard/models/dashboard_data.dart';
@@ -23,10 +25,12 @@ class TeacherApiService {
   /// The signed-in teacher's school id — every live endpoint is scoped to it.
   String get _sid => Get.find<AuthService>().schoolId ?? '';
 
+  /// The teacher home screen — schedule, to-dos, and recent activity, all
+  /// database-derived. No fixture behind it.
   Future<ApiResponse<DashboardData>> fetchDashboard() {
     return _api.request<DashboardData>(
       method: HttpMethod.get,
-      path: TeacherEndpoints.dashboard,
+      path: TeacherEndpoints.myDashboard(_sid),
       parser: (json) => DashboardData.fromJson(json as Map<String, dynamic>),
     );
   }
@@ -66,6 +70,37 @@ class TeacherApiService {
           .cast<Map<String, dynamic>>()
           .map((s) => s['name'] as String? ?? '')
           .where((n) => n.isNotEmpty)
+          .toList(),
+    );
+  }
+
+  /// Every active student in a section with attendance + marks, already
+  /// ranked best-first by the backend.
+  Future<ApiResponse<SectionPerformance>> fetchSectionPerformance(
+      String sectionId) {
+    return _api.request<SectionPerformance>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.sectionPerformance(_sid, sectionId),
+      parser: (json) =>
+          SectionPerformance.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// The teacher's weekly timetable. Pass [onDate] to have each period report
+  /// whether its attendance is already marked that day.
+  Future<ApiResponse<List<TeacherSlot>>> fetchMyTimetable({DateTime? onDate}) {
+    return _api.request<List<TeacherSlot>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.myTimetable(_sid),
+      query: onDate == null
+          ? null
+          : {
+              'on_date':
+                  '${onDate.year.toString().padLeft(4, '0')}-${onDate.month.toString().padLeft(2, '0')}-${onDate.day.toString().padLeft(2, '0')}',
+            },
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(TeacherSlot.fromJson)
           .toList(),
     );
   }
@@ -142,6 +177,28 @@ class TeacherApiService {
           assignments: items,
         );
       },
+    );
+  }
+
+  /// Publishes an announcement via `POST /communication/broadcasts`.
+  Future<ApiResponse<dynamic>> createBroadcast({
+    required String channel,
+    required String audienceType,
+    String? audienceRef,
+    String? title,
+    required String body,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: TeacherEndpoints.broadcasts(_sid),
+      body: {
+        'channel': channel,
+        'audience_type': audienceType,
+        'audience_ref': ?audienceRef,
+        'title': ?title,
+        'body': body,
+      },
+      parser: (json) => json,
     );
   }
 

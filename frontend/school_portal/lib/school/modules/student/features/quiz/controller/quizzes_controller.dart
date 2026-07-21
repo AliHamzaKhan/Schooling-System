@@ -5,9 +5,9 @@ import '../models/quiz_models.dart';
 
 /// Lists the published quizzes available to the student, each annotated with
 /// their own attempt (score) if they've taken it.
-class QuizzesController extends GetxController {
+class StudentQuizzesController extends GetxController {
   final StudentRepository _repo;
-  QuizzesController({StudentRepository? repo})
+  StudentQuizzesController({StudentRepository? repo})
       : _repo = repo ?? Get.find<StudentRepository>();
 
   final loading = true.obs;

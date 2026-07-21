@@ -5,7 +5,9 @@ import '../modules/teacher/features/attendance/view/attendance_mark_view.dart';
 import '../modules/teacher/features/calendar/view/calendar_view.dart';
 import '../modules/teacher/features/classes/view/class_detail_view.dart';
 import '../modules/teacher/features/communication/binding/communication_binding.dart';
+import '../modules/teacher/features/communication/binding/create_announcement_binding.dart';
 import '../modules/teacher/features/communication/view/communication_view.dart';
+import '../modules/teacher/features/communication/view/create_announcement_view.dart';
 import '../modules/teacher/features/exams/binding/create_exam_binding.dart';
 import '../modules/teacher/features/exams/view/create_exam_view.dart';
 import '../modules/teacher/features/gradebook/binding/gradebook_binding.dart';
@@ -48,6 +50,12 @@ class TeacherPages {
       name: TeacherRoutes.chat,
       page: () => const CommunicationView(),
       binding: CommunicationBinding(),
+    ),
+    GetPage(
+      name: TeacherRoutes.createAnnouncement,
+      page: () => const CreateAnnouncementView(),
+      binding: CreateAnnouncementBinding(),
+      fullscreenDialog: true,
     ),
     GetPage(
       name: TeacherRoutes.gradebook,

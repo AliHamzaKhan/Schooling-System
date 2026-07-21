@@ -7,9 +7,10 @@ import '../../../../../widgets/portal_top_bar.dart';
 import '../components/countdown_card.dart';
 import '../components/timeline_card.dart';
 import '../controller/exams_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Student Exam Schedule — countdown to the next exam + an upcoming timeline.
-class ExamsView extends GetView<ExamsController> {
+class ExamsView extends GetView<StudentExamsController> {
   final VoidCallback? onNotifications;
   const ExamsView({super.key, this.onNotifications});
 
@@ -21,7 +22,7 @@ class ExamsView extends GetView<ExamsController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: SkeletonCardList(count: 5, height: 96));
             }
             final data = controller.data.value;
             if (data == null) return const SizedBox.shrink();

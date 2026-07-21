@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../../../widgets/action_form_sheet.dart';
 import '../controller/create_quiz_controller.dart';
 import '../models/quiz_models.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Create Quiz — title + section/subject pickers, an MCQ question builder, a
 /// running total, and a Save & Publish action.
@@ -17,7 +18,7 @@ class CreateQuizView extends GetView<CreateQuizController> {
       appBar: AppBar(title: const Text('Create Quiz')),
       body: Obx(() {
         if (controller.loadingOptions.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(withHeader: false, body: SkeletonForm(fields: 4));
         }
         return ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -87,7 +88,7 @@ class CreateQuizView extends GetView<CreateQuizController> {
               if (controller.loadingRoster.value) {
                 return const Padding(
                   padding: EdgeInsets.only(top: AppSpacing.stackMd),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Shimmer(child: SkeletonRosterList(count: 4)),
                 );
               }
               if (controller.roster.isEmpty) {

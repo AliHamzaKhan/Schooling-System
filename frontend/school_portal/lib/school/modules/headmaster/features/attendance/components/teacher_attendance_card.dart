@@ -6,6 +6,7 @@ import '../../../../../config/headmaster_routes.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher_attendance_day.dart';
 import '../view/teacher_attendance_roster_view.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Reports-section card: today's teacher attendance summary with drill-in
 /// cards for absent / late-comers and a "Record Attendance" CTA.
@@ -109,10 +110,7 @@ class _TeacherAttendanceReportCardState
             ),
             const SizedBox(height: AppSpacing.stackMd),
             if (_loading.value)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
+              const Shimmer(child: SkeletonCardList(count: 2, height: 44))
             else if (_day.value == null)
               Text(_error.value ?? 'No data', style: AppTypography.bodyMd)
             else ...[

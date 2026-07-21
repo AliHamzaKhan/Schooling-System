@@ -7,9 +7,10 @@ import '../components/assignment_card.dart';
 import '../components/weekly_progress_card.dart';
 import '../controller/assignments_controller.dart';
 import '../models/assignment.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Student My Assignments — weekly progress card + active assignments list.
-class AssignmentsView extends GetView<AssignmentsController> {
+class AssignmentsView extends GetView<StudentAssignmentsController> {
   final ValueChanged<StudentAssignment>? onOpenAssignment;
   final VoidCallback? onNotifications;
 
@@ -23,7 +24,7 @@ class AssignmentsView extends GetView<AssignmentsController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: SkeletonCardList(count: 5, height: 104));
             }
             final data = controller.data.value;
             if (data == null) return const SizedBox.shrink();

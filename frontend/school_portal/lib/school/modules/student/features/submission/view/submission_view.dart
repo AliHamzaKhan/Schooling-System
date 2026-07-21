@@ -6,6 +6,7 @@ import '../../../../../widgets/portal_form_field.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/dashed_upload_box.dart';
 import '../controller/submission_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Assignment Detail / Submission — subject pill, title, due line, points
 /// badge, instructions, optional reference materials, then a "Submit
@@ -32,7 +33,7 @@ class SubmissionView extends GetView<SubmissionController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(withHeader: false, body: SkeletonCardList(count: 3, height: 130));
               }
               final a = controller.assignment.value;
               if (a == null) return const SizedBox.shrink();

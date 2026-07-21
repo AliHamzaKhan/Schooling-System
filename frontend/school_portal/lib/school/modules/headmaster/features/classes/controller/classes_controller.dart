@@ -7,9 +7,9 @@ import '../../../data/headmaster_repository.dart';
 import '../models/classes_data.dart';
 
 /// Drives the Class Directory: filter dropdown placeholder + data load.
-class ClassesController extends GetxController {
+class HeadmasterClassesController extends GetxController {
   final HeadmasterRepository _repo;
-  ClassesController({HeadmasterRepository? repo})
+  HeadmasterClassesController({HeadmasterRepository? repo})
       : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;
@@ -38,6 +38,7 @@ class ClassesController extends GetxController {
   Future<void> createClassFlow() async {
     final name = TextEditingController();
     final level = TextEditingController();
+    final room = TextEditingController();
     final ok = await showActionFormSheet(
       title: 'New Class',
       submitLabel: 'Create Class',
@@ -48,6 +49,11 @@ class ClassesController extends GetxController {
           hint: 'e.g. 5',
           controller: level,
           keyboardType: TextInputType.number,
+        ),
+        GlassInput(
+          label: 'Room no (optional)',
+          hint: 'e.g. B-12',
+          controller: room,
         ),
       ],
       onSubmit: () async {
@@ -60,6 +66,7 @@ class ClassesController extends GetxController {
         final res = await _repo.createClass(
           name: trimmed,
           level: int.tryParse(level.text.trim()),
+          roomNo: room.text.trim().isEmpty ? null : room.text.trim(),
         );
         return res.success ? null : (res.error ?? 'Could not create class');
       },
@@ -74,16 +81,25 @@ class ClassesController extends GetxController {
   /// Opens the "Add Section" form for a class; reloads on success.
   Future<void> addSectionFlow(String classId, String className) async {
     final name = TextEditingController();
+    final room = TextEditingController();
     final ok = await showActionFormSheet(
       title: 'Add Section to $className',
       submitLabel: 'Add Section',
       fields: [
         GlassInput(label: 'Section name', hint: 'e.g. A', controller: name),
+        GlassInput(
+          label: 'Room no (optional)',
+          hint: 'Defaults to the class room',
+          controller: room,
+        ),
       ],
       onSubmit: () async {
         if (name.text.trim().isEmpty) return 'Section name is required';
-        final res =
-            await _repo.createSection(classId: classId, name: name.text.trim());
+        final res = await _repo.createSection(
+          classId: classId,
+          name: name.text.trim(),
+          roomNo: room.text.trim().isEmpty ? null : room.text.trim(),
+        );
         return res.success ? null : (res.error ?? 'Could not add section');
       },
     );

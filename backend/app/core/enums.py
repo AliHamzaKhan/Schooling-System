@@ -164,6 +164,10 @@ class AudienceType(str, Enum):
     TEACHERS = "teachers"
     GUARDIANS = "guardians"
     STUDENTS = "students"
+    # The guardians of one specific student; audience_ref is that student's id.
+    # Used for per-student alerts such as an absence mark.
+    STUDENT_GUARDIANS = "student_guardians"
+
 
 
 class MessageStatus(str, Enum):

@@ -6,10 +6,11 @@ import '../../../../../config/teacher_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../controller/attendance_controller.dart';
 import '../models/attendance_models.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Attendance tab — pick a class to take attendance for, then drill into the
 /// marking screen.
-class AttendanceClassesView extends GetView<AttendanceController> {
+class AttendanceClassesView extends GetView<TeacherAttendanceController> {
   const AttendanceClassesView({super.key});
 
   @override
@@ -21,7 +22,7 @@ class AttendanceClassesView extends GetView<AttendanceController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: SkeletonCardList(count: 4, height: 96));
             }
             return ListView(
               padding: const EdgeInsets.fromLTRB(

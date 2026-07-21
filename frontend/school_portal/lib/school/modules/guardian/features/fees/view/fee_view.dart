@@ -8,6 +8,7 @@ import '../../../../../widgets/status_pill.dart';
 import '../../../shared/widgets/child_switcher.dart';
 import '../controller/fee_controller.dart';
 import '../models/fee_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Fee Status — drill-in screen. Outstanding-balance hero, paid-to-date, and a
 /// report-style invoice ledger with paid / due / overdue pills.
@@ -24,7 +25,7 @@ class FeeView extends GetView<FeeController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4)]));
               }
               final d = controller.data.value;
               if (d == null) return const SizedBox.shrink();

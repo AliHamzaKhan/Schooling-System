@@ -8,6 +8,7 @@ import '../../../../../widgets/status_pill.dart';
 import '../../../shared/widgets/child_switcher.dart';
 import '../controller/report_card_controller.dart';
 import '../models/report_card_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Report Card — drill-in screen showing the active child's term results
 /// (per-subject letter grade + percent), the term GPA, and a GPA trend chart.
@@ -24,7 +25,7 @@ class ReportCardView extends GetView<ReportCardController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3, height: 120)]));
               }
               final d = controller.data.value;
               if (d == null) return const SizedBox.shrink();

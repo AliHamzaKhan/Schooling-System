@@ -9,6 +9,7 @@ import '../components/outstanding_card.dart';
 import '../components/overdue_row.dart';
 import '../components/total_collected_card.dart';
 import '../controller/fees_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Fee Management — collection KPIs, outstanding balances, and overdue list.
 class FeesView extends GetView<FeesController> {
@@ -23,7 +24,7 @@ class FeesView extends GetView<FeesController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4)]));
             }
             final data = controller.data.value;
             if (data == null) {

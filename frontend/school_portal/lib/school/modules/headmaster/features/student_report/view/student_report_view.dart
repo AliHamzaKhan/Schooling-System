@@ -7,6 +7,7 @@ import '../../../../../widgets/section_header.dart';
 import '../controller/student_report_controller.dart';
 import '../models/student_report.dart';
 import 'message_history_view.dart' show MessageHistoryArgs;
+import '../../../../../widgets/skeletons.dart';
 
 /// Student Report — a 360-degree view of one student (attendance, exams,
 /// assignments, quizzes, total points) plus guardian actions.
@@ -25,7 +26,7 @@ class StudentReportView extends GetView<StudentReportController> {
       ),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
         }
         if (controller.error.value != null) {
           return Center(

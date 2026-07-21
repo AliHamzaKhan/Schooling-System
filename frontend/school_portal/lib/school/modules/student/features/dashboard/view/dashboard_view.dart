@@ -10,11 +10,12 @@ import '../../assignments/models/assignment.dart';
 import '../../attendance/components/monthly_average_card.dart';
 import '../../exams/components/countdown_card.dart';
 import '../controller/dashboard_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Student Dashboard — a live at-a-glance summary: attendance, assignments due
 /// soon, and the next exam. Aggregates the student's own live data.
 /// The bell on the top bar opens the Notifications Center.
-class DashboardView extends GetView<DashboardController> {
+class DashboardView extends GetView<StudentDashboardController> {
   final VoidCallback? onNotifications;
   final ValueChanged<StudentAssignment>? onOpenAssignment;
   final VoidCallback? onOpenQuizzes;
@@ -33,7 +34,7 @@ class DashboardView extends GetView<DashboardController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
             }
             if (controller.error.value != null) {
               return Center(

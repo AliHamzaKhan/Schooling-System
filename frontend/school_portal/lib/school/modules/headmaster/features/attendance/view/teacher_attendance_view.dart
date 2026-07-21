@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher_attendance_day.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Teacher Attendance — headmaster marks each teacher present / absent / late
 /// (with arrival time) for the selected date, then saves in bulk.
@@ -151,7 +152,7 @@ class _TeacherAttendanceViewState extends State<TeacherAttendanceView> {
       ),
       body: Obx(() {
         if (_loading.value && _day.value == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonRosterList());
         }
         if (_error.value != null && _day.value == null) {
           return Center(

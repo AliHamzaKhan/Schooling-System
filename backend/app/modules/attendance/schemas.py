@@ -43,7 +43,16 @@ class AttendanceEntry(BaseModel):
 class AttendanceMarkRequest(BaseModel):
     section_id: uuid.UUID
     attendance_date: date
+    # Omit for the daily register (class teacher only). Set to mark attendance
+    # for a single subject/period, which any teacher of that subject may do.
+    subject_id: uuid.UUID | None = None
+    timetable_slot_id: uuid.UUID | None = None
+    period_label: str | None = Field(default=None, max_length=50)
     entries: list[AttendanceEntry] = Field(min_length=1)
+
+    @property
+    def is_daily(self) -> bool:
+        return self.subject_id is None
 
 
 class AttendanceRecordOut(BaseModel):
@@ -54,6 +63,9 @@ class AttendanceRecordOut(BaseModel):
     section_id: uuid.UUID
     student_id: uuid.UUID
     attendance_date: date
+    subject_id: uuid.UUID | None = None
+    timetable_slot_id: uuid.UUID | None = None
+    period_label: str | None = None
     status: str
     check_in_time: time | None = None
     check_out_time: time | None = None
@@ -64,5 +76,6 @@ class AttendanceRecordOut(BaseModel):
 class AttendanceSummary(BaseModel):
     section_id: uuid.UUID
     attendance_date: date
+    subject_id: uuid.UUID | None = None
     total: int
     counts: dict[str, int]

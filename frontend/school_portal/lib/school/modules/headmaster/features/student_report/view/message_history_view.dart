@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../data/student_report_service.dart';
 import '../models/direct_message_item.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Arguments for [MessageHistoryView].
 class MessageHistoryArgs {
@@ -62,7 +63,7 @@ class _MessageHistoryViewState extends State<MessageHistoryView> {
     return AppScaffold(
       appBar: AppBar(title: Text('Messages · ${_args.studentName}')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonPage(withHeader: false, body: SkeletonThreadList())
           : _error != null
               ? Center(child: Text(_error!, style: AppTypography.bodyLg))
               : _messages.isEmpty

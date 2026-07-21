@@ -5,11 +5,13 @@ import 'package:shared/shared.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../controller/dashboard_controller.dart';
+import '../../calendar/models/timetable_slot.dart';
 import '../models/dashboard_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Teacher Dashboard — greeting, quick action stack, today's schedule,
 /// to-do list with urgent count badge, and a "Recent Activity" section.
-class DashboardView extends GetView<DashboardController> {
+class DashboardView extends GetView<TeacherDashboardController> {
   final VoidCallback? onChat;
   final VoidCallback? onMarkAttendance;
   final VoidCallback? onAddAssignment;
@@ -48,7 +50,7 @@ class DashboardView extends GetView<DashboardController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
             }
             final data = controller.data.value;
             if (data == null) {
@@ -75,12 +77,12 @@ class DashboardView extends GetView<DashboardController> {
                       vertical: AppSpacing.stackMd),
                   child: Column(
                     children: [
-                      for (var i = 0; i < data.actions.length; i++) ...[
+                      for (var i = 0; i < _quickActions.length; i++) ...[
                         _QuickActionRow(
-                          action: data.actions[i],
-                          onTap: _actionTap(data.actions[i]),
+                          action: _quickActions[i],
+                          onTap: _actionTap(_quickActions[i]),
                         ),
-                        if (i != data.actions.length - 1)
+                        if (i != _quickActions.length - 1)
                           const SizedBox(height: AppSpacing.stackSm),
                       ],
                     ],
@@ -116,14 +118,23 @@ class DashboardView extends GetView<DashboardController> {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.stackMd),
-                      for (final t in data.todos) ...[
-                        _TodoRow(
-                          todo: t,
-                          done: controller.isDone(t),
-                          onToggle: () => controller.toggle(t),
-                        ),
-                        const SizedBox(height: AppSpacing.stackMd),
-                      ],
+                      if (data.todos.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.stackMd),
+                          child: Text('Nothing outstanding — you\u2019re all caught up.',
+                              style: AppTypography.bodyMd),
+                        )
+                      else
+                        for (final t in data.todos) ...[
+                          _TodoRow(
+                            todo: t,
+                            onTap: t.kind == 'grading'
+                                ? onViewAllTasks
+                                : onViewAllTasks,
+                          ),
+                          const SizedBox(height: AppSpacing.stackMd),
+                        ],
                       GhostButton(
                         label: 'View All Tasks',
                         expanded: true,
@@ -160,10 +171,14 @@ class DashboardView extends GetView<DashboardController> {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.stackLg),
-                      Text('Latest Uploads',
+                      Text('Latest Activity',
                           style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
                       const SizedBox(height: AppSpacing.stackSm),
-                      for (final u in data.uploads) _UploadRow(upload: u),
+                      if (data.recentActivity.isEmpty)
+                        Text('Nothing posted yet.', style: AppTypography.bodyMd)
+                      else
+                        for (final a in data.recentActivity)
+                          _ActivityRow(activity: a),
                     ],
                   ),
                 ),
@@ -175,6 +190,30 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 }
+
+/// Navigation shortcuts. These are routes, not records — there is nothing for
+/// the backend to return, so they live with the UI rather than being faked into
+/// the dashboard payload.
+const _quickActions = <QuickAction>[
+  QuickAction(
+    label: 'Mark Attendance',
+    subtitle: 'Take today\u2019s register',
+    icon: Icons.fact_check_outlined,
+    color: AppColors.tertiary,
+  ),
+  QuickAction(
+    label: 'Add Assignment',
+    subtitle: 'Homework, exam or quiz',
+    icon: Icons.assignment_outlined,
+    color: AppColors.primary,
+  ),
+  QuickAction(
+    label: 'Announce',
+    subtitle: 'Send a class update',
+    icon: Icons.campaign_outlined,
+    color: AppColors.aiAccent,
+  ),
+];
 
 class _QuickActionRow extends StatelessWidget {
   final QuickAction action;
@@ -225,14 +264,13 @@ class _QuickActionRow extends StatelessWidget {
 }
 
 class _ScheduleRow extends StatelessWidget {
-  final ScheduleItem item;
+  final TeacherSlot item;
   const _ScheduleRow({required this.item});
 
   @override
   Widget build(BuildContext context) {
     return GlassSurface(
       padding: EdgeInsets.zero,
-      fill: item.isPlanning ? AppColors.surfaceContainerLow : null,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -240,7 +278,7 @@ class _ScheduleRow extends StatelessWidget {
             Container(
               width: 5,
               decoration: BoxDecoration(
-                color: item.railColor,
+                color: item.isClassTeacher ? AppColors.primary : AppColors.tertiary,
                 borderRadius: const BorderRadius.horizontal(
                   left: Radius.circular(AppRadius.card),
                 ),
@@ -251,10 +289,10 @@ class _ScheduleRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.time,
+                  Text(item.timeRange.split(' – ').first,
                       style: AppTypography.titleLg
                           .copyWith(fontWeight: FontWeight.w800)),
-                  Text(item.period,
+                  Text('${item.className} ${item.sectionName}',
                       style: AppTypography.labelCaps
                           .copyWith(color: AppColors.onSurfaceVariant)),
                 ],
@@ -276,13 +314,13 @@ class _ScheduleRow extends StatelessWidget {
                         const Icon(Icons.location_on_outlined,
                             size: 13, color: AppColors.onSurfaceVariant),
                         const SizedBox(width: 4),
-                        Text(item.location, style: AppTypography.bodySm),
-                        if (item.students > 0) ...[
+                        Text(item.room ?? '—', style: AppTypography.bodySm),
+                        if (item.studentCount > 0) ...[
                           const SizedBox(width: AppSpacing.stackMd),
                           const Icon(Icons.people_alt_outlined,
                               size: 13, color: AppColors.onSurfaceVariant),
                           const SizedBox(width: 4),
-                          Text('${item.students} Students',
+                          Text('${item.studentCount} Students',
                               style: AppTypography.bodySm),
                         ],
                       ],
@@ -319,25 +357,25 @@ class _UrgentBadge extends StatelessWidget {
 
 class _TodoRow extends StatelessWidget {
   final TodoItem todo;
-  final bool done;
-  final VoidCallback onToggle;
-  const _TodoRow({required this.todo, required this.done, required this.onToggle});
+  final VoidCallback? onTap;
+  const _TodoRow({required this.todo, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final titleColor = done ? AppColors.onSurfaceVariant : AppColors.onSurface;
+    // Derived work can't be "ticked off" — the icon reflects what kind of work
+    // it is, and tapping takes you where it gets resolved.
+    final icon = todo.kind == 'exam'
+        ? Icons.event_note_rounded
+        : Icons.grading_rounded;
+    final tint = todo.urgent ? AppColors.error : AppColors.primary;
     return InkWell(
-      onTap: onToggle,
+      onTap: onTap,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Icon(
-              done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              size: 20,
-              color: done ? AppColors.primary : AppColors.outline,
-            ),
+            child: Icon(icon, size: 20, color: tint),
           ),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
@@ -345,27 +383,21 @@ class _TodoRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(todo.title,
-                    style: AppTypography.bodyLg.copyWith(
-                      color: titleColor,
-                      fontWeight: FontWeight.w600,
-                      decoration: done ? TextDecoration.lineThrough : null,
+                    style: AppTypography.bodyLg
+                        .copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(todo.dueLine,
+                    style: AppTypography.bodySm.copyWith(
+                      color: todo.urgent
+                          ? AppColors.error
+                          : AppColors.onSurfaceVariant,
+                      fontWeight: todo.urgent ? FontWeight.w700 : null,
                     )),
-                if (todo.urgent && !done)
-                  Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          size: 13, color: AppColors.error),
-                      const SizedBox(width: 4),
-                      Text(todo.dueLine,
-                          style: AppTypography.bodySm
-                              .copyWith(color: AppColors.error)),
-                    ],
-                  )
-                else
-                  Text(todo.dueLine, style: AppTypography.bodySm),
               ],
             ),
           ),
+          const Icon(Icons.chevron_right_rounded,
+              size: 18, color: AppColors.onSurfaceVariant),
         ],
       ),
     );
@@ -398,21 +430,28 @@ class _ActivityStat extends StatelessWidget {
   }
 }
 
-class _UploadRow extends StatelessWidget {
-  final RecentUpload upload;
-  const _UploadRow({required this.upload});
+class _ActivityRow extends StatelessWidget {
+  final RecentActivity activity;
+  const _ActivityRow({required this.activity});
 
   @override
   Widget build(BuildContext context) {
+    final icon = activity.kind == 'announcement'
+        ? Icons.campaign_outlined
+        : Icons.assignment_outlined;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          const Icon(Icons.insert_drive_file_outlined,
-              size: 16, color: AppColors.onSurfaceVariant),
+          Icon(icon, size: 16, color: AppColors.onSurfaceVariant),
           const SizedBox(width: 6),
-          Expanded(child: Text(upload.label, style: AppTypography.bodyMd)),
-          Text(upload.time, style: AppTypography.bodySm),
+          Expanded(
+            child: Text(activity.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodyMd),
+          ),
+          Text(activity.relative, style: AppTypography.bodySm),
         ],
       ),
     );

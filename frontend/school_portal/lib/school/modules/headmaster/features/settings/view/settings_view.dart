@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../controller/settings_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Headmaster School Settings — edit name, logo, uniform colour and the monthly
 /// fee due day. Branding values persist in the school `settings` blob.
@@ -18,7 +19,7 @@ class SettingsView extends GetView<SettingsController> {
       ),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonForm(fields: 4));
         }
         if (controller.error.value != null) {
           return Center(

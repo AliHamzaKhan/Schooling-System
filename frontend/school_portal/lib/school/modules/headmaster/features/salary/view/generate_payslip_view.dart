@@ -6,6 +6,7 @@ import '../../../data/headmaster_repository.dart';
 import '../controller/salary_controller.dart';
 import '../models/salary_models.dart';
 import '../utils/money.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Arguments for [GeneratePayslipView] — the teacher whose payslip we build.
 class GeneratePayslipArgs {
@@ -186,9 +187,8 @@ class _GeneratePayslipViewState extends State<GeneratePayslipView> {
           const SizedBox(height: AppSpacing.stackSm),
           Obx(() {
             if (_summaryLoading.value) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
+              return const Shimmer(
+                child: SkeletonStatRow(count: 3, height: 64),
               );
             }
             final s = _summary.value;

@@ -4,9 +4,9 @@ import '../../../data/headmaster_repository.dart';
 import '../models/attendance_data.dart';
 
 /// Drives Attendance Overview: range toggle + data load.
-class AttendanceController extends GetxController {
+class HeadmasterAttendanceController extends GetxController {
   final HeadmasterRepository _repo;
-  AttendanceController({HeadmasterRepository? repo})
+  HeadmasterAttendanceController({HeadmasterRepository? repo})
       : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;

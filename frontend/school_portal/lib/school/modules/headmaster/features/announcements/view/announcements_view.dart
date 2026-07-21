@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/announcement_card.dart';
 import '../controller/announcements_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Announcements Hub — filterable feed of announcements with a FAB to compose
 /// a new one.
@@ -44,9 +45,8 @@ class AnnouncementsView extends GetView<AnnouncementsController> {
                     const SizedBox(height: AppSpacing.stackLg),
                     Obx(() {
                       if (controller.loading.value) {
-                        return const Padding(
-                          padding: EdgeInsets.all(AppSpacing.stackXl),
-                          child: Center(child: CircularProgressIndicator()),
+                        return const Shimmer(
+                          child: SkeletonCardList(count: 4, height: 110),
                         );
                       }
                       if (controller.items.isEmpty) {

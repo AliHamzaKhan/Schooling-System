@@ -6,9 +6,9 @@ import '../../../data/teacher_repository.dart';
 import '../models/attendance_models.dart';
 
 /// Drives the class-list (entry-point) view.
-class AttendanceController extends GetxController {
+class TeacherAttendanceController extends GetxController {
   final TeacherRepository _repo;
-  AttendanceController({TeacherRepository? repo})
+  TeacherAttendanceController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
   final loading = true.obs;

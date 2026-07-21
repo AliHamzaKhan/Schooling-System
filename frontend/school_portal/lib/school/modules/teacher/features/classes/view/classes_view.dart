@@ -5,12 +5,13 @@ import 'package:shared/shared.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/class_card.dart';
 import '../controller/classes_controller.dart';
-import '../models/teaching_class.dart';
+import '../models/my_class.dart';
+import '../../../../../widgets/skeletons.dart';
 
-/// My Classes — list of active classes the teacher owns.
-class ClassesView extends GetView<ClassesController> {
-  /// Opens the detail screen for a class (View Class / card menu).
-  final ValueChanged<TeachingClass>? onOpenClass;
+/// My Classes — the sections this teacher actually takes, one per row.
+class ClassesView extends GetView<TeacherClassesController> {
+  /// Opens the detail screen for a section.
+  final ValueChanged<MyClass>? onOpenClass;
 
   const ClassesView({super.key, this.onOpenClass});
 
@@ -23,71 +24,104 @@ class ClassesView extends GetView<ClassesController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: SkeletonCardList(count: 5, height: 104, gap: AppSpacing.stackSm));
             }
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  0,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
-              children: [
-                Text('My Classes',
-                    style: AppTypography.displayLg.copyWith(fontSize: 32)),
-                const SizedBox(height: AppSpacing.stackSm),
-                Text('Manage your current active classes and students.',
-                    style: AppTypography.bodyLg),
-                const SizedBox(height: AppSpacing.stackLg),
-                for (final c in controller.classes) ...[
-                  ClassCard(
-                    item: c,
-                    onView: () => onOpenClass?.call(c),
-                    onMenu: () => _showClassMenu(context, c),
+            final items = controller.classes;
+            return RefreshIndicator(
+              onRefresh: controller.load,
+              child: CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.containerPaddingMobile,
+                        0,
+                        AppSpacing.containerPaddingMobile,
+                        AppSpacing.stackLg),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('My Classes',
+                              style:
+                                  AppTypography.displayLg.copyWith(fontSize: 32)),
+                          const SizedBox(height: AppSpacing.stackSm),
+                          Text(
+                            items.isEmpty
+                                ? 'Sections you teach will appear here.'
+                                : '${items.length} section${items.length == 1 ? '' : 's'} on your timetable.',
+                            style: AppTypography.bodyLg,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.stackMd),
+                  if (controller.error.value != null)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _Message(
+                        icon: Icons.cloud_off_rounded,
+                        text: controller.error.value!,
+                        onRetry: controller.load,
+                      ),
+                    )
+                  else if (items.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _Message(
+                        icon: Icons.class_outlined,
+                        text: 'No sections are timetabled to you yet.',
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.containerPaddingMobile,
+                          0,
+                          AppSpacing.containerPaddingMobile,
+                          AppSpacing.stackXl),
+                      // One card per row, each sized by its own content — a
+                      // fixed-height grid clipped long subject lists.
+                      sliver: SliverList.separated(
+                        itemCount: items.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSpacing.stackSm),
+                        itemBuilder: (context, i) => ClassCard(
+                          item: items[i],
+                          onTap: () => onOpenClass?.call(items[i]),
+                        ),
+                      ),
+                    ),
                 ],
-              ],
+              ),
             );
           }),
         ),
       ],
     );
   }
+}
 
-  Future<void> _showClassMenu(BuildContext context, TeachingClass c) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+class _Message extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final VoidCallback? onRetry;
+  const _Message({required this.icon, required this.text, this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.stackXl),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 40, color: AppColors.outline),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text(text, style: AppTypography.bodyLg, textAlign: TextAlign.center),
+          if (onRetry != null) ...[
             const SizedBox(height: AppSpacing.stackMd),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.stackSm),
-            ListTile(
-              leading: const Icon(Icons.visibility_outlined,
-                  color: AppColors.primary),
-              title: const Text('View Class'),
-              subtitle: Text('${c.grade} · ${c.subject}'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                onOpenClass?.call(c);
-              },
-            ),
-            const SizedBox(height: AppSpacing.stackSm),
+            TextButton(onPressed: onRetry, child: const Text('Try again')),
           ],
-        ),
+        ],
       ),
     );
   }

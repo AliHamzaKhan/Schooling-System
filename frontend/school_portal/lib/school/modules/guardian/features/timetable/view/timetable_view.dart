@@ -6,11 +6,12 @@ import '../../../../../widgets/portal_top_bar.dart';
 import '../../../shared/widgets/child_switcher.dart';
 import '../controller/timetable_controller.dart';
 import '../models/timetable_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Timetable — drill-in screen showing the active child's weekly schedule: a
 /// horizontal day selector and the selected day's periods as a timeline of
 /// class cards (with the in-session period highlighted).
-class TimetableView extends GetView<TimetableController> {
+class TimetableView extends GetView<GuardianTimetableController> {
   const TimetableView({super.key});
 
   @override
@@ -23,7 +24,7 @@ class TimetableView extends GetView<TimetableController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: SkeletonCardList(count: 6, height: 72));
               }
               final d = controller.data.value;
               if (d == null || d.days.isEmpty) {

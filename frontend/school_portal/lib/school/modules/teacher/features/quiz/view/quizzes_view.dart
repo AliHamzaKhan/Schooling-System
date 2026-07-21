@@ -5,10 +5,11 @@ import 'package:shared/shared.dart';
 import '../../../../../config/teacher_routes.dart';
 import '../controller/quizzes_controller.dart';
 import '../models/quiz_models.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Teacher Quizzes — list of created quizzes with status, and a FAB to author a
 /// new one.
-class QuizzesView extends GetView<QuizzesController> {
+class QuizzesView extends GetView<TeacherQuizzesController> {
   const QuizzesView({super.key});
 
   @override
@@ -29,7 +30,7 @@ class QuizzesView extends GetView<QuizzesController> {
       ),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonCardList(count: 5, height: 110));
         }
         if (controller.error.value != null) {
           return Center(

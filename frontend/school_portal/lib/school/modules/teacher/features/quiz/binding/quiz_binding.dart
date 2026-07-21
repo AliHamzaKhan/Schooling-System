@@ -7,8 +7,8 @@ import '../controller/quizzes_controller.dart';
 class QuizzesBinding extends Bindings {
   @override
   void dependencies() {
-    Get.delete<QuizzesController>(force: true);
-    Get.lazyPut<QuizzesController>(() => QuizzesController());
+    Get.delete<TeacherQuizzesController>(force: true);
+    Get.lazyPut<TeacherQuizzesController>(() => TeacherQuizzesController());
   }
 }
 

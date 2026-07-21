@@ -7,6 +7,7 @@ import 'package:shared/shared.dart';
 import '../../../../../widgets/portal_search_field.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/student_fee_snapshot.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Record Payment — full-page. Headmaster searches by student name / father /
 /// class, picks a student, and either marks a specific invoice paid in full
@@ -110,7 +111,7 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
                 );
               }
               if (_loading.value && _results.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(withHeader: false, body: SkeletonForm(fields: 3));
               }
               if (_error.value != null) {
                 return Center(

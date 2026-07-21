@@ -1,15 +1,18 @@
 import 'package:get/get.dart';
 
 import '../../../data/teacher_repository.dart';
-import '../models/teaching_class.dart';
+import '../models/my_class.dart';
 
-class ClassesController extends GetxController {
+/// Drives "My Classes" off the teacher's real timetable, so the list is the
+/// sections they actually teach rather than every class in the school.
+class TeacherClassesController extends GetxController {
   final TeacherRepository _repo;
-  ClassesController({TeacherRepository? repo})
+  TeacherClassesController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
   final loading = true.obs;
-  final classes = <TeachingClass>[].obs;
+  final error = RxnString();
+  final classes = <MyClass>[].obs;
 
   @override
   void onInit() {
@@ -19,8 +22,13 @@ class ClassesController extends GetxController {
 
   Future<void> load() async {
     loading.value = true;
-    final res = await _repo.loadClasses();
-    if (res.success && res.data != null) classes.assignAll(res.data!);
+    error.value = null;
+    final res = await _repo.loadMyTimetable();
+    if (res.success) {
+      classes.assignAll(MyClass.fromSlots(res.data ?? const []));
+    } else {
+      error.value = res.error ?? 'Could not load your classes.';
+    }
     loading.value = false;
   }
 }

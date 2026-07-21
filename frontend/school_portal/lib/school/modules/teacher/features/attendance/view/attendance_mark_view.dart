@@ -6,6 +6,7 @@ import '../../../../../widgets/portal_search_field.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/attendance_student_row.dart';
 import '../controller/attendance_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Attendance Marking — class header, totals row, mark-all CTA + search, then
 /// the student list. Submit FAB pops a result.
@@ -21,7 +22,7 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(withHeader: false, body: SkeletonRosterList());
               }
               return ListView(
                 padding: const EdgeInsets.fromLTRB(

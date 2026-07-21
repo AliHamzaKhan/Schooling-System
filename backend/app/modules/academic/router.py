@@ -5,10 +5,11 @@ by require_school_permission (caller must belong to the path school, or be Super
 Admin).
 """
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import DbDep, require_school_permission, verify_student_access
+from app.core.deps import CurrentUser, DbDep, require_school_permission, verify_student_access
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.academic import schemas
 from app.modules.academic.service import AcademicService
@@ -113,6 +114,60 @@ async def list_slots(
     school_id: uuid.UUID, db: DbDep, section_id: uuid.UUID | None = Query(default=None)
 ) -> list[schemas.TimetableSlotOut]:
     return await AcademicService(db).list_slots(school_id, section_id)
+
+
+@router.get(
+    "/sections/{section_id}/performance",
+    response_model=schemas.SectionPerformanceOut,
+    dependencies=[_view],
+)
+async def section_performance(
+    school_id: uuid.UUID, section_id: uuid.UUID, db: DbDep
+) -> schemas.SectionPerformanceOut:
+    """Every active student in a section ranked by attendance and marks.
+
+    Powers the teacher Performance tab; also usable by school leadership.
+    """
+    return await AcademicService(db).section_performance(school_id, section_id)
+
+
+@router.get(
+    "/me/dashboard",
+    response_model=schemas.TeacherDashboard,
+    dependencies=[_view],
+)
+async def my_dashboard(
+    school_id: uuid.UUID, db: DbDep, current_user: CurrentUser
+) -> schemas.TeacherDashboard:
+    """The signed-in teacher's home screen, assembled from real records.
+
+    Schedule comes from the timetable, the to-do list from submissions actually
+    awaiting a grade plus upcoming exams, and recent activity from what this
+    teacher created. Empty lists mean genuinely nothing outstanding.
+    """
+    return await AcademicService(db).teacher_dashboard(school_id, current_user.id)
+
+
+@router.get(
+    "/me/timetable",
+    response_model=list[schemas.TeacherTimetableSlot],
+    dependencies=[_view],
+)
+async def my_timetable(
+    school_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+    on_date: date | None = Query(
+        default=None,
+        description="When given, each slot reports whether its attendance is already marked that day.",
+    ),
+) -> list[schemas.TeacherTimetableSlot]:
+    """The signed-in teacher's own weekly timetable.
+
+    Scoped to the caller rather than taking a teacher id, so one teacher cannot
+    read another's schedule.
+    """
+    return await AcademicService(db).teacher_timetable(school_id, current_user.id, on_date)
 
 
 @router.get(

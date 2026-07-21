@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher_attendance_day.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Read-only roster for a given date + status filter (Absent / Late / …).
 /// Reached from the Reports drill-in cards. Args:
@@ -75,7 +76,7 @@ class _TeacherAttendanceRosterViewState
       ),
       body: Obx(() {
         if (_loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonRosterList());
         }
         if (_error.value != null) {
           return Center(

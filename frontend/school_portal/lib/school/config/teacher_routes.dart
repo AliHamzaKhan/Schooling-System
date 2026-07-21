@@ -14,6 +14,7 @@ class TeacherRoutes {
   static const createQuiz = '$_base/quizzes/new';
   static const quizPerformance = '$_base/quizzes/performance';
   static const chat = '$_base/chat';                       // Communication Center
+  static const createAnnouncement = '$_base/chat/announce'; // compose broadcast
   static const gradebook = '$_base/gradebook/marks';       // Marks Entry
   static const studentPerformance = '$_base/performance/student';
   static const calendar = '$_base/calendar';               // schedule calendar

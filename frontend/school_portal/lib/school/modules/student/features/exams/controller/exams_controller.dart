@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import '../../../data/student_repository.dart';
 import '../models/exam.dart';
 
-class ExamsController extends GetxController {
+class StudentExamsController extends GetxController {
   final StudentRepository _repo;
-  ExamsController({StudentRepository? repo})
+  StudentExamsController({StudentRepository? repo})
       : _repo = repo ?? Get.find<StudentRepository>();
 
   final loading = true.obs;

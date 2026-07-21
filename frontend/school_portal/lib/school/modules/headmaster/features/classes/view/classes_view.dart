@@ -8,9 +8,10 @@ import '../../student_report/view/section_students_view.dart';
 import '../components/class_stat_tile.dart';
 import '../components/grade_card.dart';
 import '../controller/classes_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Class Directory — grades, sections, homeroom teacher assignments + KPIs.
-class ClassesView extends GetView<ClassesController> {
+class ClassesView extends GetView<HeadmasterClassesController> {
   const ClassesView({super.key});
 
   @override
@@ -22,7 +23,7 @@ class ClassesView extends GetView<ClassesController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3, height: 130)]));
             }
             final data = controller.data.value;
             if (data == null) {

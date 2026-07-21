@@ -8,7 +8,7 @@ import '../models/dashboard_data.dart';
 
 /// Full "Pending Approvals" list, reached from the dashboard's View All. The
 /// list is passed in via [Get.arguments]; approve/reject reuse the shell's
-/// [DashboardController].
+/// [HeadmasterDashboardController].
 class ApprovalsView extends StatelessWidget {
   const ApprovalsView({super.key});
 
@@ -20,7 +20,7 @@ class ApprovalsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final approvals = _approvals;
-    final controller = Get.find<DashboardController>();
+    final controller = Get.find<HeadmasterDashboardController>();
     return AppScaffold(
       appBar: AppBar(title: const Text('Pending Approvals')),
       body: approvals.isEmpty

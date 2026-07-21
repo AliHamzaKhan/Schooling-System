@@ -715,11 +715,12 @@ class HeadmasterApiService {
   Future<ApiResponse<dynamic>> createClass({
     required String name,
     int? level,
+    String? roomNo,
   }) {
     return _api.request<dynamic>(
       method: HttpMethod.post,
       path: HeadmasterEndpoints.academicClasses(_sid),
-      body: {'name': name, 'level': ?level},
+      body: {'name': name, 'level': ?level, 'room_no': ?roomNo},
       parser: (json) => json,
     );
   }
@@ -728,11 +729,12 @@ class HeadmasterApiService {
   Future<ApiResponse<dynamic>> createSection({
     required String classId,
     required String name,
+    String? roomNo,
   }) {
     return _api.request<dynamic>(
       method: HttpMethod.post,
       path: HeadmasterEndpoints.classSections(_sid, classId),
-      body: {'name': name},
+      body: {'name': name, 'room_no': ?roomNo},
       parser: (json) => json,
     );
   }

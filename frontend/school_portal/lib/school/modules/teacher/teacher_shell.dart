@@ -14,7 +14,7 @@ import 'features/classes/view/classes_view.dart';
 import 'features/dashboard/binding/dashboard_binding.dart';
 import 'features/dashboard/view/dashboard_view.dart';
 import 'features/performance/binding/performance_binding.dart';
-import 'features/performance/view/performance_view.dart';
+import 'features/performance/view/class_performance_view.dart';
 
 /// Teacher module shell — hosts the 5 tabs (Home / Classes / Attendance /
 /// Tasks / Performance) behind a persistent dark bottom nav. Drill-in screens
@@ -39,6 +39,7 @@ class _TeacherShellState extends State<TeacherShell> {
   // Tab indices, so dashboard quick actions can jump between tabs.
   static const _attendanceTab = 2;
   static const _tasksTab = 3;
+  static const _performanceTab = 4;
 
   // Owned here (rather than by the scaffold) so the dashboard can switch tabs.
   final PersistentTabController _tabController =
@@ -88,9 +89,10 @@ class _TeacherShellState extends State<TeacherShell> {
         onCreateExam: () => Get.toNamed(TeacherRoutes.createExam),
         onCreateQuiz: () => Get.toNamed(TeacherRoutes.createQuiz),
         onOpenGradebook: () => Get.toNamed(TeacherRoutes.gradebook),
+        onOpenPerformance: () => _goToTab(_performanceTab),
         onOpenQuizzes: () => Get.toNamed(TeacherRoutes.quizzes),
       ),
-      const StudentPerformanceView(),
+      const ClassPerformanceView(),
     ];
 
     return PortalTabScaffold(

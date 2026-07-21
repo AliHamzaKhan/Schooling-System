@@ -4,9 +4,9 @@ import '../../../data/teacher_repository.dart';
 import '../models/quiz_models.dart';
 
 /// Lists the teacher's quizzes (draft + published).
-class QuizzesController extends GetxController {
+class TeacherQuizzesController extends GetxController {
   final TeacherRepository _repo;
-  QuizzesController({TeacherRepository? repo})
+  TeacherQuizzesController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
   final loading = true.obs;

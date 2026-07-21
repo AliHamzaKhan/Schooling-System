@@ -29,6 +29,8 @@ class SchoolClass(Base, UUIDMixin, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     level: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Default room for the whole grade; a section may override it.
+    room_no: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     sections: Mapped[list["Section"]] = relationship(
         back_populates="school_class", cascade="all, delete-orphan"
@@ -50,6 +52,8 @@ class Section(Base, UUIDMixin, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("classes.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(50), nullable=False)
+    # Home room for this section; falls back to the class room when unset.
+    room_no: Mapped[str | None] = mapped_column(String(50), nullable=True)
     class_teacher_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

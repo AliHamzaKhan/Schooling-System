@@ -4,9 +4,9 @@ import '../../../data/headmaster_repository.dart';
 import '../models/dashboard_data.dart';
 
 /// Drives the Headmaster Dashboard.
-class DashboardController extends GetxController {
+class HeadmasterDashboardController extends GetxController {
   final HeadmasterRepository _repo;
-  DashboardController({HeadmasterRepository? repo})
+  HeadmasterDashboardController({HeadmasterRepository? repo})
       : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;

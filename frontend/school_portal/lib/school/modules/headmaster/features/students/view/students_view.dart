@@ -4,24 +4,41 @@ import 'package:shared/shared.dart';
 
 import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/entity_detail_sheet.dart';
+import '../../../../../widgets/portal_filter_button.dart';
 import '../../../../../widgets/portal_search_field.dart';
 import '../components/student_card.dart';
 import '../controller/students_controller.dart';
 import '../models/student.dart';
+import '../../../../../widgets/skeletons.dart';
 
-/// Student Roster — search + grade/section dropdowns, status legend, paginated
-/// student cards.
+/// Student Roster — search + filter sheet, status legend, paginated student
+/// cards, with enrolment on a bottom-anchored action button.
 class StudentsView extends GetView<StudentsController> {
   const StudentsView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
-          _Header(),
-          Expanded(child: _list(context)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Header(),
+              Expanded(child: _list(context)),
+            ],
+          ),
+          Positioned(
+            right: AppSpacing.stackLg,
+            bottom: AppSpacing.stackLg,
+            child: FloatingActionButton.extended(
+              onPressed: controller.enrollStudentFlow,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Enroll Student'),
+            ),
+          ),
         ],
       ),
     );
@@ -47,17 +64,40 @@ class StudentsView extends GetView<StudentsController> {
   Widget _list(BuildContext context) {
     return Obx(() {
       if (controller.loading.value) {
-        return const Center(child: CircularProgressIndicator());
+        return const SkeletonPage(withHeader: false, body: SkeletonRosterList());
       }
       final items = controller.pageItems;
       return ListView(
+        // Bottom padding clears the floating "Enroll Student" button.
         padding: const EdgeInsets.fromLTRB(
             AppSpacing.containerPaddingMobile,
             0,
             AppSpacing.containerPaddingMobile,
-            AppSpacing.stackXl),
+            120),
         children: [
-          _Filters(controller: controller),
+          Row(
+            children: [
+              Expanded(
+                child: PortalSearchField(
+                  hint: 'Search by name or roll number…',
+                  onChanged: controller.onSearch,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.stackSm),
+              PortalFilterButton(
+                onTap: controller.openFilter,
+                count: controller.activeFilterCount,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Wrap(
+            spacing: AppSpacing.stackMd,
+            runSpacing: 6,
+            children: [
+              for (final s in StudentStatus.values) _LegendDot(status: s),
+            ],
+          ),
           const SizedBox(height: AppSpacing.stackLg),
           if (items.isEmpty)
             Padding(
@@ -123,124 +163,8 @@ class _Header extends StatelessWidget {
           Text('Manage and monitor student profiles across the island.',
               style: AppTypography.bodyLg),
           const SizedBox(height: AppSpacing.stackMd),
-          PrimaryButton(
-            label: 'Enroll Student',
-            leadingIcon: Icons.person_add_alt_1_rounded,
-            trailingIcon: null,
-            expanded: true,
-            onPressed: () => Get.find<StudentsController>().enrollStudentFlow(),
-          ),
         ],
       ),
-    );
-  }
-}
-
-class _Filters extends StatelessWidget {
-  final StudentsController controller;
-  const _Filters({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassSurface(
-      padding: const EdgeInsets.all(AppSpacing.stackLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Search Students', style: AppTypography.titleMd),
-          const SizedBox(height: AppSpacing.stackSm),
-          PortalSearchField(
-            hint: 'Search by name or roll number…',
-            onChanged: controller.onSearch,
-          ),
-          const SizedBox(height: AppSpacing.stackMd),
-          Row(
-            children: [
-              Expanded(
-                child: _Dropdown(
-                  label: 'Grade',
-                  value: controller.grade.value,
-                  items: StudentsController.grades,
-                  onChanged: controller.selectGrade,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.stackMd),
-              Expanded(
-                child: _Dropdown(
-                  label: 'Section',
-                  value: controller.section.value,
-                  items: StudentsController.sections,
-                  onChanged: controller.selectSection,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.stackMd),
-          Wrap(
-            spacing: AppSpacing.stackMd,
-            runSpacing: 6,
-            children: [
-              for (final s in StudentStatus.values) _LegendDot(status: s),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Dropdown extends StatelessWidget {
-  final String label;
-  final String value;
-  final List<String> items;
-  final ValueChanged<String?> onChanged;
-
-  const _Dropdown({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTypography.bodyMd),
-        const SizedBox(height: 4),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded,
-              color: AppColors.onSurfaceVariant),
-          style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.surfaceContainerLowest,
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.button),
-              borderSide: const BorderSide(color: AppColors.outlineVariant),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.button),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.button),
-              borderSide: const BorderSide(color: AppColors.outlineVariant),
-            ),
-          ),
-          items: [
-            for (final it in items)
-              DropdownMenuItem<String>(value: it, child: Text(it)),
-          ],
-          onChanged: onChanged,
-        ),
-      ],
     );
   }
 }

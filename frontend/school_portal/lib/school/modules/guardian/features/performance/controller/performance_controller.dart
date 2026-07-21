@@ -4,9 +4,9 @@ import '../../../data/guardian_repository.dart';
 import '../../../shared/controller/child_scoped_controller.dart';
 import '../models/performance_data.dart';
 
-class PerformanceController extends ChildScopedController<PerformanceData> {
+class GuardianPerformanceController extends ChildScopedController<PerformanceData> {
   final GuardianRepository _repo;
-  PerformanceController({GuardianRepository? repo})
+  GuardianPerformanceController({GuardianRepository? repo})
       : _repo = repo ?? Get.find<GuardianRepository>();
 
   @override

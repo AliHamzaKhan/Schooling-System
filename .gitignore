@@ -33,3 +33,10 @@ backend/uploads/
 .idea/
 .vscode/
 .DS_Store
+
+# Firebase service-account keys — live credentials, never commit.
+# Match anywhere in the name — Firebase names keys like
+# "<project>-firebase-adminsdk-<hash>.json", so a leading anchor misses them.
+*serviceAccount*.json
+*firebase-adminsdk*.json
+*firebase-service-account*.json

@@ -7,7 +7,9 @@ and reports success without making a network call. This keeps the whole
 Communication module runnable and testable without secrets, and live the moment
 credentials are added to .env.
 """
+import json
 import logging
+import time
 from dataclasses import dataclass
 
 from app.core.config import settings
@@ -16,8 +18,21 @@ from app.core.enums import Channel, DeliveryStatus
 logger = logging.getLogger("communication")
 
 TWILIO_BASE = "https://api.twilio.com/2010-04-01"
-FCM_LEGACY_URL = "https://fcm.googleapis.com/fcm/send"
+FCM_V1_URL = "https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
+FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 _TIMEOUT = 15.0
+
+# Service-account key, parsed once. Reading a few KB of JSON per push would be
+# wasteful and the contents never change while the process runs.
+_fcm_key: dict | None = None
+
+# Cached OAuth2 access token as (token, expires_at_epoch). Google's tokens last
+# an hour; minting one per push would add a round trip to every notification.
+_fcm_token: tuple[str, float] | None = None
+
+# Refresh this many seconds before actual expiry, so a token can't lapse
+# mid-flight between the check and the send.
+_FCM_TOKEN_SKEW = 120
 
 
 @dataclass
@@ -39,7 +54,9 @@ class Notifier:
 
     @staticmethod
     def _fcm_ready() -> bool:
-        return bool(settings.FCM_SERVER_KEY)
+        return bool(
+            settings.FIREBASE_CREDENTIALS_FILE or settings.FIREBASE_CREDENTIALS_JSON
+        )
 
     # ------------------------------ dispatch ----------------------------- #
 
@@ -93,24 +110,101 @@ class Notifier:
 
     # ------------------------------- FCM --------------------------------- #
 
+    @staticmethod
+    def _load_fcm_key() -> dict:
+        """The service-account key, from a file path or raw JSON. Parsed once."""
+        global _fcm_key
+        if _fcm_key is None:
+            if settings.FIREBASE_CREDENTIALS_JSON:
+                _fcm_key = json.loads(settings.FIREBASE_CREDENTIALS_JSON)
+            else:
+                with open(settings.FIREBASE_CREDENTIALS_FILE) as fh:
+                    _fcm_key = json.load(fh)
+        return _fcm_key
+
+    @classmethod
+    async def _fcm_access_token(cls) -> str:
+        """A valid OAuth2 access token for FCM, cached until near expiry.
+
+        Implements Google's service-account flow directly — sign a short-lived
+        JWT assertion with the key, then exchange it at the token endpoint.
+        google-auth would do this too, but only through a synchronous
+        `requests` transport; doing it here keeps the call async and avoids
+        pulling in an HTTP stack the project doesn't otherwise use.
+        """
+        global _fcm_token
+        now = time.time()
+        if _fcm_token is not None and _fcm_token[1] - _FCM_TOKEN_SKEW > now:
+            return _fcm_token[0]
+
+        import httpx
+        from jose import jwt as jose_jwt
+
+        key = cls._load_fcm_key()
+        token_uri = key.get("token_uri", "https://oauth2.googleapis.com/token")
+        assertion = jose_jwt.encode(
+            {
+                "iss": key["client_email"],
+                "scope": FCM_SCOPE,
+                "aud": token_uri,
+                "iat": int(now),
+                "exp": int(now) + 3600,
+            },
+            key["private_key"],
+            algorithm="RS256",
+            headers={"kid": key.get("private_key_id")},
+        )
+
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(
+                token_uri,
+                data={
+                    "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                    "assertion": assertion,
+                },
+            )
+        resp.raise_for_status()
+        payload = resp.json()
+        access_token = payload["access_token"]
+        _fcm_token = (access_token, now + float(payload.get("expires_in", 3600)))
+        return access_token
+
     async def _fcm(self, token: str, title: str | None, body: str) -> DeliveryResult:
+        """Send one push via FCM HTTP v1.
+
+        The legacy `fcm.googleapis.com/fcm/send` endpoint this used to call was
+        shut down by Google in July 2024; v1 needs a short-lived OAuth2 token
+        minted from the service account rather than a static server key.
+        """
         if not self._fcm_ready():
             logger.info("[STUB fcm] token=%s title=%r body=%r", token[:12], title, body)
             return DeliveryResult(status=DeliveryStatus.SENT.value, provider="stub", stub=True)
 
         import httpx
 
-        payload = {"to": token, "notification": {"title": title or "", "body": body}}
+        access_token = await self._fcm_access_token()
+        project_id = self._load_fcm_key()["project_id"]
+        url = FCM_V1_URL.format(project_id=project_id)
+        payload = {
+            "message": {
+                "token": token,
+                "notification": {"title": title or "", "body": body},
+            }
+        }
         headers = {
-            "Authorization": f"key={settings.FCM_SERVER_KEY}",
-            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json; UTF-8",
         }
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-            resp = await client.post(FCM_LEGACY_URL, json=payload, headers=headers)
+            resp = await client.post(url, json=payload, headers=headers)
+
         if resp.status_code >= 400:
+            # UNREGISTERED / INVALID_ARGUMENT mean the device token is dead —
+            # surfaced verbatim so the caller can prune it from device_tokens.
+            detail = resp.text[:200]
             return DeliveryResult(
                 status=DeliveryStatus.FAILED.value, provider="fcm",
-                error=f"HTTP {resp.status_code}: {resp.text[:200]}",
+                error=f"HTTP {resp.status_code}: {detail}",
             )
         return DeliveryResult(status=DeliveryStatus.SENT.value, provider="fcm")
 

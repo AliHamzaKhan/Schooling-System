@@ -6,6 +6,7 @@ import '../../../../../config/teacher_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/mark_entry_row.dart';
 import '../controller/gradebook_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Marks Entry / Gradebook — breadcrumb + exam title, Export CSV, scrollable
 /// list of student rows with Obtained inputs, and a sticky footer showing the
@@ -22,7 +23,7 @@ class GradebookView extends GetView<GradebookController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(withHeader: false, body: SkeletonRosterList());
               }
               final book = controller.book.value;
               if (book == null) return const SizedBox.shrink();

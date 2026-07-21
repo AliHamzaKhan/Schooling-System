@@ -4,9 +4,9 @@ import '../../../../../widgets/filter_sheet.dart';
 import '../../../data/student_repository.dart';
 import '../models/assignment.dart';
 
-class AssignmentsController extends GetxController {
+class StudentAssignmentsController extends GetxController {
   final StudentRepository _repo;
-  AssignmentsController({StudentRepository? repo})
+  StudentAssignmentsController({StudentRepository? repo})
       : _repo = repo ?? Get.find<StudentRepository>();
 
   final loading = true.obs;

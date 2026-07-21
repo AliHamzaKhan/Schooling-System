@@ -8,6 +8,7 @@ import '../components/enrollment_distribution_chart.dart';
 import '../components/report_metric_card.dart';
 import '../controller/reports_controller.dart';
 import '../models/reports_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Reports & Analytics — high-level insights with sparkline KPIs, a YoY
 /// performance line chart, and an enrollment distribution bar chart.
@@ -23,7 +24,7 @@ class ReportsView extends GetView<ReportsController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 2, height: 160)]));
               }
               final data = controller.data.value;
               if (data == null) {

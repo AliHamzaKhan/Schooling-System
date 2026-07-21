@@ -8,10 +8,11 @@ import '../../../../../widgets/status_pill.dart';
 import '../../../shared/widgets/child_switcher.dart';
 import '../controller/performance_controller.dart';
 import '../models/performance_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Academic Performance — GPA + class rank headline, subject-by-subject grade
 /// report with term-over-term trend pills. Clean report-style layout.
-class PerformanceView extends GetView<PerformanceController> {
+class PerformanceView extends GetView<GuardianPerformanceController> {
   final VoidCallback? onNotifications;
   final VoidCallback? onManageChildren;
   const PerformanceView(
@@ -26,7 +27,7 @@ class PerformanceView extends GetView<PerformanceController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 2, height: 170)]));
             }
             final d = controller.data.value;
             if (d == null) return const SizedBox.shrink();

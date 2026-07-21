@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/notification_card.dart';
 import '../controller/notifications_controller.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Notifications Center — title + new-alerts count, then a card per
 /// notification (assignment / exam result / school announcement).
@@ -29,7 +30,7 @@ class NotificationsView extends GetView<NotificationsController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonPage(withHeader: false, body: SkeletonThreadList());
               }
               return ListView(
                 padding: const EdgeInsets.fromLTRB(

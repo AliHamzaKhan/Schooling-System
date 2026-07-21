@@ -94,8 +94,12 @@ async def list_section_attendance(
     db: DbDep,
     section_id: uuid.UUID = Query(...),
     attendance_date: date = Query(...),
+    subject_id: uuid.UUID | None = Query(default=None),
+    daily_only: bool = Query(default=False),
 ) -> list[schemas.AttendanceRecordOut]:
-    return await AttendanceService(db).list_for_section_date(school_id, section_id, attendance_date)
+    return await AttendanceService(db).list_for_section_date(
+        school_id, section_id, attendance_date, subject_id, daily_only
+    )
 
 
 @router.get(
@@ -108,8 +112,11 @@ async def attendance_summary(
     db: DbDep,
     section_id: uuid.UUID = Query(...),
     attendance_date: date = Query(...),
+    subject_id: uuid.UUID | None = Query(default=None),
 ) -> schemas.AttendanceSummary:
-    return await AttendanceService(db).summary(school_id, section_id, attendance_date)
+    return await AttendanceService(db).summary(
+        school_id, section_id, attendance_date, subject_id
+    )
 
 
 @router.get(

@@ -5,7 +5,7 @@ import '../controller/performance_controller.dart';
 class PerformanceBinding extends Bindings {
   @override
   void dependencies() {
-    Get.delete<PerformanceController>(force: true);
-    Get.lazyPut<PerformanceController>(() => PerformanceController());
+    Get.delete<GuardianPerformanceController>(force: true);
+    Get.lazyPut<GuardianPerformanceController>(() => GuardianPerformanceController());
   }
 }

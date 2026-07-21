@@ -5,10 +5,11 @@ import 'package:shared/shared.dart';
 import '../../../../../config/student_routes.dart';
 import '../controller/quizzes_controller.dart';
 import '../models/quiz_models.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Student Quizzes — published quizzes to play, showing the score for any the
 /// student has already attempted.
-class QuizzesView extends GetView<QuizzesController> {
+class QuizzesView extends GetView<StudentQuizzesController> {
   const QuizzesView({super.key});
 
   @override
@@ -17,7 +18,7 @@ class QuizzesView extends GetView<QuizzesController> {
       appBar: AppBar(title: const Text('Quizzes')),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonCardList(count: 5, height: 110));
         }
         if (controller.error.value != null) {
           return Center(

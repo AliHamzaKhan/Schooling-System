@@ -6,9 +6,9 @@ import '../../../../../widgets/action_form_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/timetable_data.dart';
 
-class TimetableController extends GetxController {
+class HeadmasterTimetableController extends GetxController {
   final HeadmasterRepository _repo;
-  TimetableController({HeadmasterRepository? repo})
+  HeadmasterTimetableController({HeadmasterRepository? repo})
       : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   static const classOptions = ['All Classes', 'Class 8A', 'Class 8B', 'Class 9A'];

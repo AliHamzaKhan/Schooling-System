@@ -90,6 +90,7 @@ class LoginView extends GetView<LoginController> {
           Obx(() => RememberMeCheckbox(
                 value: controller.rememberMe.value,
                 onChanged: controller.toggleRemember,
+                canStorePassword: controller.canRememberPassword,
               )),
 
           // Error.

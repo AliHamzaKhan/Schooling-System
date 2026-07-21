@@ -8,6 +8,7 @@ import '../../../../../widgets/status_pill.dart';
 import '../../../shared/widgets/child_switcher.dart';
 import '../controller/attendance_controller.dart';
 import '../models/attendance_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Attendance Tracking — per-child monthly summary, present/absent/late
 /// breakdown, and a report-style list of recent daily records.
@@ -26,7 +27,7 @@ class GuardianAttendanceView extends GetView<GuardianAttendanceController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4, height: 76)]));
             }
             final d = controller.data.value;
             if (d == null) return const SizedBox.shrink();

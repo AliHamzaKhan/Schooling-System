@@ -5,9 +5,9 @@ import '../../../data/headmaster_repository.dart';
 import '../models/exams_data.dart';
 
 /// Drives Exams & Results: data load + search query state.
-class ExamsController extends GetxController {
+class HeadmasterExamsController extends GetxController {
   final HeadmasterRepository _repo;
-  ExamsController({HeadmasterRepository? repo})
+  HeadmasterExamsController({HeadmasterRepository? repo})
       : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;

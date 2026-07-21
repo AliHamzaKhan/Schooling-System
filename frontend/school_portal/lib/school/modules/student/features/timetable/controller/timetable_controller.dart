@@ -4,9 +4,9 @@ import '../../../data/student_repository.dart';
 import '../models/timetable_data.dart';
 
 /// Loads the student's own weekly timetable and tracks the selected day.
-class TimetableController extends GetxController {
+class StudentTimetableController extends GetxController {
   final StudentRepository _repo;
-  TimetableController({StudentRepository? repo})
+  StudentTimetableController({StudentRepository? repo})
       : _repo = repo ?? Get.find<StudentRepository>();
 
   final loading = true.obs;

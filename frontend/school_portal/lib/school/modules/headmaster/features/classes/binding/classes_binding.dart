@@ -8,8 +8,8 @@ class ClassesBinding extends Bindings {
     // Do NOT delete an existing instance: the tab-shell registers the same
     // controller and expects it to survive when the standalone `/classes`
     // route (opened from the dashboard) is popped.
-    if (!Get.isRegistered<ClassesController>()) {
-      Get.lazyPut<ClassesController>(() => ClassesController());
+    if (!Get.isRegistered<HeadmasterClassesController>()) {
+      Get.lazyPut<HeadmasterClassesController>(() => HeadmasterClassesController());
     }
   }
 }

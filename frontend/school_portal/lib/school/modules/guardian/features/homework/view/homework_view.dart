@@ -8,6 +8,7 @@ import '../../../../../widgets/status_pill.dart';
 import '../../../shared/widgets/child_switcher.dart';
 import '../controller/homework_controller.dart';
 import '../models/homework_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Homework Tracking — pending/submitted counters and a per-child list of
 /// assignments with status pills and grades when available.
@@ -26,7 +27,7 @@ class HomeworkView extends GetView<HomeworkController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: SkeletonCardList(count: 5, height: 104));
             }
             final d = controller.data.value;
             if (d == null) return const SizedBox.shrink();

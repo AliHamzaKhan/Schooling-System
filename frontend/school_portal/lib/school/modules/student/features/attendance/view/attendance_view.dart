@@ -6,10 +6,11 @@ import '../../../../../widgets/portal_top_bar.dart';
 import '../components/monthly_average_card.dart';
 import '../controller/attendance_controller.dart';
 import '../models/attendance_data.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// My Attendance — used as the Profile tab content. Monthly average card,
 /// Recent Absences (empty-state with smiley), Late Arrivals list.
-class AttendanceView extends GetView<AttendanceController> {
+class AttendanceView extends GetView<StudentAttendanceController> {
   final VoidCallback? onNotifications;
   const AttendanceView({super.key, this.onNotifications});
 
@@ -21,7 +22,7 @@ class AttendanceView extends GetView<AttendanceController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4, height: 76)]));
             }
             final data = controller.data.value;
             if (data == null) return const SizedBox.shrink();

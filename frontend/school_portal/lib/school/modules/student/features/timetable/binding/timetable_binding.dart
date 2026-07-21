@@ -6,7 +6,7 @@ class TimetableBinding extends Bindings {
   @override
   void dependencies() {
     // Replace any stale same-named controller from another role's module.
-    Get.delete<TimetableController>(force: true);
-    Get.lazyPut<TimetableController>(() => TimetableController());
+    Get.delete<StudentTimetableController>(force: true);
+    Get.lazyPut<StudentTimetableController>(() => StudentTimetableController());
   }
 }

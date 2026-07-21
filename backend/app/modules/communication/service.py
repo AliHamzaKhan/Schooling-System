@@ -15,6 +15,7 @@ from app.core.enums import (
 )
 from app.core.exceptions import bad_request, not_found
 from app.models.academic import Section, StudentEnrollment
+from app.models.associations import guardian_students
 from app.models.communication import (
     DeviceToken,
     Message,
@@ -149,11 +150,78 @@ class CommunicationService:
                 stmt = stmt.join(Section, Section.id == StudentEnrollment.section_id).where(
                     Section.class_id == audience_ref
                 )
+        elif audience_type == AudienceType.STUDENT_GUARDIANS.value:
+            if audience_ref is None:
+                raise bad_request(
+                    "audience_ref (the student id) is required for "
+                    f"audience_type '{audience_type}'"
+                )
+            stmt = (
+                select(User)
+                .join(guardian_students, guardian_students.c.guardian_id == User.id)
+                .where(
+                    guardian_students.c.student_id == audience_ref,
+                    User.school_id == school_id,
+                    User.is_active.is_(True),
+                )
+            )
         else:
             raise bad_request(f"Unsupported audience_type '{audience_type}'")
 
         result = await self.db.execute(stmt)
         return list(result.scalars().unique().all())
+
+    # -------------------------- event notifications ---------------------- #
+
+    async def channels_for_event(self, school_id: uuid.UUID, event: str) -> list[str]:
+        """Channels a school has enabled for ``event``; empty when opted out.
+
+        An absent config means the event is off, so a school must opt in before
+        any guardian is messaged.
+        """
+        config = await self.db.scalar(
+            select(NotificationConfig).where(
+                NotificationConfig.school_id == school_id,
+                NotificationConfig.event == event,
+            )
+        )
+        if config is None or not config.enabled:
+            return []
+        return list(config.channels or [])
+
+    async def notify_student_guardians(
+        self,
+        school_id: uuid.UUID,
+        student_id: uuid.UUID,
+        *,
+        event: str,
+        title: str,
+        body: str,
+        created_by: uuid.UUID | None = None,
+    ) -> list[Message]:
+        """Message a student's guardians on every channel enabled for ``event``.
+
+        Returns one [Message] per channel (empty when the school has not enabled
+        the event), each dispatched and logged through the normal delivery
+        pipeline so failures are visible and retryable.
+        """
+        messages: list[Message] = []
+        for channel in await self.channels_for_event(school_id, event):
+            message = Message(
+                school_id=school_id,
+                title=title,
+                body=body,
+                channel=channel,
+                audience_type=AudienceType.STUDENT_GUARDIANS.value,
+                audience_ref=student_id,
+                created_by=created_by,
+                status=MessageStatus.PENDING.value,
+            )
+            self.db.add(message)
+            await self.db.flush()
+            await self._send(message)
+            messages.append(message)
+        return messages
 
     @staticmethod
     def _address_for(channel: str, user: User) -> str | None:

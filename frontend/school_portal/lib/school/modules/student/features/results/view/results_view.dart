@@ -6,6 +6,7 @@ import '../../../../../config/student_routes.dart';
 import '../../quiz/models/quiz_models.dart';
 import '../controller/results_controller.dart';
 import '../models/exam_result.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Student academic results — published exam grades + attempted quiz scores.
 class ResultsView extends GetView<ResultsController> {
@@ -17,7 +18,7 @@ class ResultsView extends GetView<ResultsController> {
       appBar: AppBar(title: const Text('My Results')),
       body: Obx(() {
         if (controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonPage(body: SkeletonCardList(count: 5, height: 92));
         }
         if (controller.error.value != null) {
           return Center(

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -41,6 +43,51 @@ class DataStoreService {
   Future<void> deleteRefreshToken() => _secure.delete(key: _refreshKey);
 
   Future<void> clearSecure() => _secure.deleteAll();
+
+  // ── "Remember me" credentials ───────────────────────────────
+  // Email is a preference; the password is a credential and lives in secure
+  // storage (Keychain on iOS, EncryptedSharedPreferences on Android).
+  //
+  // The password is deliberately NEVER persisted on web: there,
+  // FlutterSecureStorage falls back to unencrypted browser storage, so a saved
+  // password would sit in plaintext and be readable by any XSS or by anyone
+  // on a shared machine. On web we remember the email only — the refresh token
+  // already keeps the user signed in, so the practical UX is the same.
+  static const _rememberEmailKey = 'remember_email';
+  static const _rememberFlagKey = 'remember_me';
+  static const _rememberPasswordKey = 'remember_password';
+
+  /// True when the password can be stored on this platform.
+  static bool get canStorePassword => !kIsWeb;
+
+  bool get rememberMe => read<bool>(_rememberFlagKey, defaultValue: false) ?? false;
+  String? get rememberedEmail => read<String>(_rememberEmailKey);
+
+  Future<String?> readRememberedPassword() async {
+    if (!canStorePassword) return null;
+    return _secure.read(key: _rememberPasswordKey);
+  }
+
+  /// Persists the credentials for prefill. Password is skipped on web.
+  Future<void> saveRememberedCredentials({
+    required String email,
+    required String password,
+  }) async {
+    await write(_rememberFlagKey, true);
+    await write(_rememberEmailKey, email);
+    // An empty password means "nothing to keep" (web, or restoring after a
+    // logout where none was stored) — don't write a blank entry.
+    if (canStorePassword && password.isNotEmpty) {
+      await _secure.write(key: _rememberPasswordKey, value: password);
+    }
+  }
+
+  /// Forgets everything "remember me" saved.
+  Future<void> clearRememberedCredentials() async {
+    await write(_rememberFlagKey, false);
+    await _prefs.remove(_rememberEmailKey);
+    await _secure.delete(key: _rememberPasswordKey);
+  }
 
   // ── Generic K/V (preferences) ───────────────────────────────
   /// Write any JSON-encodable value: String, num, bool, List, Map.
@@ -90,8 +137,19 @@ class DataStoreService {
   }
 
   /// Nuke both stores — use on full logout.
+  /// Wipes the session. "Remember me" survives on purpose: logging out should
+  /// bring you back to a login screen with your details prefilled, not force a
+  /// full retype. Only unticking the checkbox clears them.
   Future<void> clearAll() async {
+    final remembered = rememberMe;
+    final email = rememberedEmail;
+    final password = remembered ? await readRememberedPassword() : null;
+
     await clearSecure();
     if (_ready) await clearPreferences();
+
+    if (remembered && email != null) {
+      await saveRememberedCredentials(email: email, password: password ?? '');
+    }
   }
 }

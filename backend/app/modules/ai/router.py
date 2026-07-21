@@ -23,6 +23,25 @@ async def generate(school_id: uuid.UUID, data: schemas.GenerateRequest, db: DbDe
     )
 
 
+@router.post(
+    "/quiz-questions",
+    response_model=schemas.QuizGenerateResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[_create],
+)
+async def generate_quiz_questions(
+    school_id: uuid.UUID,
+    data: schemas.QuizGenerateRequest,
+    db: DbDep,
+    current_user: CurrentUser,
+) -> schemas.QuizGenerateResponse:
+    """Draft quiz questions for a teacher to review, edit, and then save.
+
+    Returns drafts only — no quiz or question rows are created here.
+    """
+    return await AIService(db).generate_quiz_questions(school_id, data, current_user.id)
+
+
 @router.get("/interactions", response_model=list[schemas.InteractionOut], dependencies=[_view])
 async def list_interactions(school_id: uuid.UUID, db: DbDep) -> list[schemas.InteractionOut]:
     return await AIService(db).list_interactions(school_id)

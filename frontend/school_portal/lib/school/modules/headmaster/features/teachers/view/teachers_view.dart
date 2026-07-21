@@ -3,11 +3,13 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../../../../../widgets/entity_detail_sheet.dart';
+import '../../../../../widgets/portal_filter_button.dart';
 import '../../../../../widgets/portal_search_field.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/teacher_card.dart';
 import '../controller/teachers_controller.dart';
 import '../models/teacher.dart';
+import '../../../../../widgets/skeletons.dart';
 
 /// Teacher Roster — search + filter teachers with quick-contact actions and an
 /// "Add Teacher" FAB.
@@ -26,7 +28,7 @@ class TeachersView extends GetView<TeachersController> {
               Expanded(
                 child: Obx(() {
                   if (controller.loading.value) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const SkeletonPage(body: SkeletonRosterList());
                   }
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(
@@ -51,7 +53,7 @@ class TeachersView extends GetView<TeachersController> {
                             ),
                           ),
                           const SizedBox(width: AppSpacing.stackSm),
-                          _FilterButton(
+                          PortalFilterButton(
                             onTap: controller.openFilter,
                             count: controller.activeFilterCount,
                           ),
@@ -85,11 +87,12 @@ class TeachersView extends GetView<TeachersController> {
           Positioned(
             right: AppSpacing.stackLg,
             bottom: AppSpacing.stackLg,
-            child: FloatingActionButton(
+            child: FloatingActionButton.extended(
               onPressed: controller.addTeacherFlow,
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.onPrimary,
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Add Teacher'),
             ),
           ),
         ],
@@ -112,44 +115,4 @@ void _showTeacher(BuildContext context, Teacher t) {
       DetailField(Icons.apartment_outlined, 'Department', t.department),
     ],
   );
-}
-
-class _FilterButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final int count;
-  const _FilterButton({required this.onTap, this.count = 0});
-
-  @override
-  Widget build(BuildContext context) {
-    final active = count > 0;
-    return Material(
-      color: AppColors.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(AppRadius.full),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.full),
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.full),
-            border: Border.all(
-              color: active ? AppColors.primary : AppColors.outlineVariant,
-              width: active ? 1.5 : 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.tune_rounded, size: 18, color: AppColors.primary),
-              const SizedBox(width: 6),
-              Text(active ? 'Filter ($count)' : 'Filter',
-                  style: AppTypography.labelMd
-                      .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
