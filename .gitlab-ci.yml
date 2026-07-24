@@ -34,7 +34,9 @@ backend:lint:
   extends: .backend
   stage: lint
   script:
-    - pip install ruff
+    # Pin ruff — an unpinned install lets a newer release fail lint on
+    # unchanged code (newly-stabilised rules), blocking deploys.
+    - pip install "ruff==0.13.0"
     - ruff check app
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
