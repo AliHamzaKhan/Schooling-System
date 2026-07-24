@@ -335,3 +335,44 @@ async def test_section_performance_ranks_students(client, school):
     assert len(students) == 3
     assert students[-1]["full_name"] == "Aaa New"
     assert students[-1]["grade"] == "—"
+
+
+async def test_paper_gradebook_lists_whole_roster(client, school):
+    """The marks sheet shows every enrolled student, marked or not."""
+    sid, hm = school["id"], school["hm"]
+    ac = await make_academics(client, sid, hm)
+    marked = await create_user(client, sid, hm, "student", full_name="Zoe Marked")
+    unmarked = await create_user(client, sid, hm, "student", full_name="Adam Unmarked")
+    for s in (marked, unmarked):
+        await enroll(client, sid, hm, ac["section_id"], s["id"])
+
+    rex = await client.post(f"{API}/schools/{sid}/exams", headers=hm, json={
+        "class_id": ac["class_id"], "name": "Unit Test",
+        "start_date": "2026-09-01", "end_date": "2026-09-02",
+    })
+    exam_id = rex.json()["id"]
+    rp = await client.post(f"{API}/schools/{sid}/exams/{exam_id}/papers", headers=hm,
+                           json={"subject_id": ac["subject_id"], "max_marks": 50,
+                                 "pass_marks": 20})
+    paper_id = rp.json()["id"]
+
+    # Only one of the two students has a mark.
+    await client.post(f"{API}/schools/{sid}/exams/papers/{paper_id}/marks", headers=hm,
+                      json={"entries": [{"student_id": marked["id"], "marks_obtained": 45}]})
+
+    r = await client.get(f"{API}/schools/{sid}/exams/papers/{paper_id}/gradebook",
+                         headers=hm)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["exam_name"] == "Unit Test"
+    assert body["subject_name"] == "Mathematics"
+    assert body["max_marks"] == 50
+    assert body["total_students"] == 2
+    assert body["marked_count"] == 1
+
+    # Both students appear, sorted by name — the unmarked one is not dropped.
+    names = [s["student_name"] for s in body["students"]]
+    assert names == ["Adam Unmarked", "Zoe Marked"]
+    by_name = {s["student_name"]: s for s in body["students"]}
+    assert by_name["Zoe Marked"]["marks_obtained"] == 45
+    assert by_name["Adam Unmarked"]["marks_obtained"] is None

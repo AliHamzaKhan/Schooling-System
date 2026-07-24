@@ -1,0 +1,22 @@
+# Release signing config for the Android app.
+#
+# Copy this file to `android/key.properties` (which is gitignored) and fill in
+# the real values. NEVER commit key.properties or the keystore itself.
+#
+# 1. Generate an upload keystore (choose your own passwords when prompted):
+#
+#      keytool -genkey -v \
+#        -keystore ~/taleem-hub-upload.jks \
+#        -keyalg RSA -keysize 2048 -validity 10000 \
+#        -alias upload
+#
+# 2. Point storeFile at that file below. A path relative to the `android/`
+#    directory (e.g. app/upload-keystore.jks) or an absolute path both work.
+#
+# 3. Keep a secure backup of the keystore. If you lose it you can no longer
+#    ship updates to an app already published under this key.
+
+storePassword=your-keystore-password
+keyPassword=your-key-password
+keyAlias=upload
+storeFile=/absolute/path/to/taleem-hub-upload.jks

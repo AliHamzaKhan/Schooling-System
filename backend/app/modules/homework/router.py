@@ -47,6 +47,23 @@ async def list_assignments(
     )
 
 
+@router.get(
+    "/assignments/{assignment_id}",
+    response_model=schemas.AssignmentListOut,
+    dependencies=[_view],
+)
+async def get_assignment(
+    school_id: uuid.UUID,
+    assignment_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+) -> schemas.AssignmentListOut:
+    """One assignment with subject name and the caller's own submission."""
+    return await HomeworkService(db).get_assignment_detail(
+        school_id, assignment_id, current_user_id=current_user.id
+    )
+
+
 @router.patch("/assignments/{assignment_id}", response_model=schemas.AssignmentOut, dependencies=[_edit])
 async def update_assignment(
     school_id: uuid.UUID, assignment_id: uuid.UUID, data: schemas.AssignmentUpdate, db: DbDep

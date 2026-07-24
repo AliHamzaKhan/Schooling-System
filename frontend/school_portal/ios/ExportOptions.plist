@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Options for `flutter build ipa --export-options-plist=ios/ExportOptions.plist`.
+	     `app-store-connect` produces an upload-ready archive; change `method`
+	     to `ad-hoc` or `development` for internal distribution. -->
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>teamID</key>
+	<string>YK9VUFZJ83</string>
+	<!-- Let Xcode manage provisioning profiles automatically. Set to false and
+	     add a `provisioningProfiles` dict if you sign with manual profiles. -->
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>uploadSymbols</key>
+	<true/>
+	<key>destination</key>
+	<string>export</string>
+</dict>
+</plist>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Apple Push Notification environment for Firebase Cloud Messaging.
+	     "development" is used for debug builds; Xcode automatically switches
+	     this to "production" for App Store / TestFlight archives. Enable the
+	     "Push Notifications" capability in Xcode (Runner target → Signing &
+	     Capabilities → + Capability) to register this App ID for push and wire
+	     this file via CODE_SIGN_ENTITLEMENTS. -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

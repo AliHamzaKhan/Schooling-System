@@ -20,8 +20,8 @@ class TeacherEndpoints {
   static const messages = '$_base/messages';
 
   static String gradebook(String examId) => '$_base/gradebook/$examId';
-  static String studentPerformance(String studentId) =>
-      '$_base/students/$studentId/performance';
+  static String studentPerformance(String schoolId, String studentId) =>
+      '/schools/$schoolId/academic/students/$studentId/performance';
 
   // ── Live, school-scoped backend paths (`/schools/{school_id}/...`) ──
   // Wired teacher reads. The aggregate paths above stay for the still-mock
@@ -34,6 +34,19 @@ class TeacherEndpoints {
   /// The signed-in teacher's own weekly timetable.
   static String sectionPerformance(String schoolId, String sectionId) =>
       '/schools/$schoolId/academic/sections/$sectionId/performance';
+
+  static String sectionStudents(String schoolId, String sectionId) =>
+      '/schools/$schoolId/sections/$sectionId/students';
+
+  static String attendance(String schoolId) => '/schools/$schoolId/attendance';
+
+  static String schoolExams(String schoolId) => '/schools/$schoolId/exams';
+  static String examPapers(String schoolId, String examId) =>
+      '/schools/$schoolId/exams/$examId/papers';
+  static String paperGradebook(String schoolId, String paperId) =>
+      '/schools/$schoolId/exams/papers/$paperId/gradebook';
+  static String paperMarks(String schoolId, String paperId) =>
+      '/schools/$schoolId/exams/papers/$paperId/marks';
 
   static String myDashboard(String schoolId) =>
       '/schools/$schoolId/academic/me/dashboard';

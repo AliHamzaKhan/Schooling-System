@@ -32,7 +32,9 @@ class StudentPerformanceView extends GetView<TeacherPerformanceController> {
               final s = controller.student.value;
               if (s == null) {
                 return Center(
-                    child: Text('Pick a student to view performance.',
+                    child: Text(
+                        controller.error.value ??
+                            'Pick a student to view performance.',
                         style: AppTypography.bodyLg));
               }
               return ListView(

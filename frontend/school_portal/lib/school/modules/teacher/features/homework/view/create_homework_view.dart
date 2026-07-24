@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../../../../../widgets/portal_form_field.dart';
 import '../../../../../widgets/portal_top_bar.dart';
+import '../../quiz/models/quiz_models.dart' show IdLabel;
 import '../controller/create_homework_controller.dart';
 
 /// Create Homework — minimal form: title, description, class, due date, points,
@@ -112,12 +113,35 @@ class _LogisticsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Obx(() => PortalDropdownField<String>(
-                          label: 'Assign To Class',
-                          hint: 'Select a class',
-                          value: controller.selectedClass.value,
-                          items: CreateHomeworkController.classes,
-                          labelOf: (s) => s,
-                          onChanged: controller.selectClass,
+                          label: 'Assign To Section',
+                          hint: controller.loadingOptions.value
+                              ? 'Loading…'
+                              : 'Select a section',
+                          value: controller.selectedSection.value,
+                          items: controller.sections.map((s) => s.id).toList(),
+                          labelOf: (id) => controller.sections
+                              .firstWhere((s) => s.id == id,
+                                  orElse: () => controller.sections.isEmpty
+                                      ? const IdLabel('', '')
+                                      : controller.sections.first)
+                              .label,
+                          onChanged: controller.selectSection,
+                        )),
+                    const SizedBox(height: AppSpacing.stackLg),
+                    Obx(() => PortalDropdownField<String>(
+                          label: 'Subject',
+                          hint: controller.loadingOptions.value
+                              ? 'Loading…'
+                              : 'Select a subject',
+                          value: controller.selectedSubject.value,
+                          items: controller.subjects.map((s) => s.id).toList(),
+                          labelOf: (id) => controller.subjects
+                              .firstWhere((s) => s.id == id,
+                                  orElse: () => controller.subjects.isEmpty
+                                      ? const IdLabel('', '')
+                                      : controller.subjects.first)
+                              .label,
+                          onChanged: controller.selectSubject,
                         )),
                     const SizedBox(height: AppSpacing.stackLg),
                     PortalFormField(

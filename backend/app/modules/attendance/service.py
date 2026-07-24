@@ -87,15 +87,35 @@ class AttendanceService:
 
     async def list_enrollments(
         self, school_id: uuid.UUID, section_id: uuid.UUID
-    ) -> list[StudentEnrollment]:
+    ) -> list[schemas.EnrollmentOut]:
+        """Active enrollments with the student's name resolved.
+
+        The name is joined in so a marking roster renders from this single
+        call — otherwise the client would have to fetch each student
+        separately just to show who it is marking.
+        """
         await self._get_section(school_id, section_id)
-        result = await self.db.execute(
-            select(StudentEnrollment).where(
+        rows = (await self.db.execute(
+            select(StudentEnrollment, User.full_name)
+            .join(User, User.id == StudentEnrollment.student_id)
+            .where(
                 StudentEnrollment.section_id == section_id,
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
             )
-        )
-        return list(result.scalars().all())
+            .order_by(User.full_name)
+        )).all()
+        return [
+            schemas.EnrollmentOut(
+                id=e.id,
+                school_id=e.school_id,
+                section_id=e.section_id,
+                student_id=e.student_id,
+                session_id=e.session_id,
+                status=e.status,
+                student_name=name,
+            )
+            for e, name in rows
+        ]
 
     async def unenroll(
         self, school_id: uuid.UUID, section_id: uuid.UUID, student_id: uuid.UUID

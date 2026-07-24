@@ -90,6 +90,18 @@ async def enter_marks(
     return await ExaminationService(db).enter_marks(school_id, paper_id, data, current_user.id)
 
 
+@router.get(
+    "/papers/{paper_id}/gradebook",
+    response_model=schemas.GradebookOut,
+    dependencies=[_exam_view],
+)
+async def paper_gradebook(
+    school_id: uuid.UUID, paper_id: uuid.UUID, db: DbDep
+) -> schemas.GradebookOut:
+    """Full marks sheet for a paper — every enrolled student, marked or not."""
+    return await ExaminationService(db).gradebook(school_id, paper_id)
+
+
 @router.get("/papers/{paper_id}/marks", response_model=list[schemas.MarkOut], dependencies=[_exam_view])
 async def list_marks(school_id: uuid.UUID, paper_id: uuid.UUID, db: DbDep) -> list[schemas.MarkOut]:
     return await ExaminationService(db).list_marks(school_id, paper_id)

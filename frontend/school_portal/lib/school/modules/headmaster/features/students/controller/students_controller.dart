@@ -6,15 +6,15 @@ import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/filter_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/student.dart';
-// Imported only for the [StudentsRepository.pageSize] constant; data access goes
-// through [HeadmasterRepository].
-import '../models/students_repository.dart' show StudentsRepository;
 
 /// Drives the Student Roster: search + grade/section filters + pagination.
 class StudentsController extends GetxController {
   final HeadmasterRepository _repo;
   StudentsController({HeadmasterRepository? repo})
       : _repo = repo ?? Get.find<HeadmasterRepository>();
+
+  /// Student cards shown per page.
+  static const pageSize = 4;
 
   static const anyGrade = 'All Grades';
   static const anySection = 'All Sections';
@@ -41,11 +41,11 @@ class StudentsController extends GetxController {
   }
 
   int get totalPages =>
-      (_all.length / StudentsRepository.pageSize).ceil().clamp(1, 999);
+      (_all.length / pageSize).ceil().clamp(1, 999);
 
   List<Student> get pageItems {
-    final start = (page.value - 1) * StudentsRepository.pageSize;
-    return _all.skip(start).take(StudentsRepository.pageSize).toList();
+    final start = (page.value - 1) * pageSize;
+    return _all.skip(start).take(pageSize).toList();
   }
 
   void onSearch(String v) {

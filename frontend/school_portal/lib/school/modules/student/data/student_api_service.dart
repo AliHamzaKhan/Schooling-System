@@ -93,31 +93,40 @@ class StudentApiService {
   /// [StudentAssignment.subject] is blank, status is "Not Started", and points
   /// come from `max_marks`. Summary counts derive from the list (none known
   /// complete).
+  /// Maps a raw homework `AssignmentListOut` row into the student-facing
+  /// [StudentAssignment] (folds `my_submission.status` into a simple
+  /// submitted / not-started flag). Shared by the list and single-item fetches
+  /// so both render identically.
+  static StudentAssignment _assignmentFromRow(Map<String, dynamic> a) {
+    final due = a['due_date'] as String?;
+    final sub = a['my_submission'] as Map<String, dynamic>?;
+    final subStatus = (sub?['status'] as String?)?.toLowerCase();
+    final status = switch (subStatus) {
+      'submitted' || 'late' || 'graded' || 'approved' =>
+        StudentAssignmentStatus.submitted,
+      _ => StudentAssignmentStatus.notStarted,
+    };
+    return StudentAssignment(
+      id: '${a['id']}',
+      subject: a['subject_name'] as String? ?? '',
+      title: a['title'] as String? ?? '',
+      description: a['description'] as String? ?? '',
+      dueLine: due == null ? '' : 'Due $due',
+      status: status,
+      accent: status.color,
+      points: (a['max_marks'] as num?)?.toInt() ?? 0,
+    );
+  }
+
   Future<ApiResponse<AssignmentsData>> fetchAssignments() {
     return _api.request<AssignmentsData>(
       method: HttpMethod.get,
       path: StudentEndpoints.homeworkAssignments(_sid),
       parser: (json) {
-        final items = (json as List).cast<Map<String, dynamic>>().map((a) {
-          final due = a['due_date'] as String?;
-          final sub = a['my_submission'] as Map<String, dynamic>?;
-          final subStatus = (sub?['status'] as String?)?.toLowerCase();
-          final status = switch (subStatus) {
-            'submitted' || 'late' || 'graded' || 'approved' =>
-              StudentAssignmentStatus.submitted,
-            _ => StudentAssignmentStatus.notStarted,
-          };
-          return StudentAssignment(
-            id: '${a['id']}',
-            subject: a['subject_name'] as String? ?? '',
-            title: a['title'] as String? ?? '',
-            description: a['description'] as String? ?? '',
-            dueLine: due == null ? '' : 'Due $due',
-            status: status,
-            accent: status.color,
-            points: (a['max_marks'] as num?)?.toInt() ?? 0,
-          );
-        }).toList();
+        final items = (json as List)
+            .cast<Map<String, dynamic>>()
+            .map(_assignmentFromRow)
+            .toList();
         final completed = items
             .where((i) => i.status == StudentAssignmentStatus.submitted)
             .length;
@@ -137,9 +146,8 @@ class StudentApiService {
   Future<ApiResponse<StudentAssignment>> fetchAssignment(String id) {
     return _api.request<StudentAssignment>(
       method: HttpMethod.get,
-      path: StudentEndpoints.assignment(id),
-      parser: (json) =>
-          StudentAssignment.fromJson(json as Map<String, dynamic>),
+      path: StudentEndpoints.homeworkAssignment(_sid, id),
+      parser: (json) => _assignmentFromRow(json as Map<String, dynamic>),
     );
   }
 

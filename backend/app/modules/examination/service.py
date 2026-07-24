@@ -10,6 +10,7 @@ from app.core.enums import EnrollmentStatus, ExamStatus, ResultStatus
 from app.core.exceptions import bad_request, not_found
 from app.models.academic import Section, SchoolClass, StudentEnrollment, Subject
 from app.models.examination import Exam, ExamResult, ExamSeat, ExamSubject, Mark
+from app.models.user import User
 from app.modules.examination import schemas
 
 
@@ -167,6 +168,58 @@ class ExaminationService:
 
         await self.db.flush()
         return marks
+
+    async def gradebook(
+        self, school_id: uuid.UUID, paper_id: uuid.UUID
+    ) -> schemas.GradebookOut:
+        """The full marks sheet for a paper: every enrolled student, marked or not.
+
+        Built for the marks-entry screen. Existing marks are merged onto the
+        roster so a teacher sees who is still outstanding rather than only the
+        students already graded.
+        """
+        paper = await self._get_scoped(ExamSubject, school_id, paper_id, "Exam paper")
+        exam = await self.db.get(Exam, paper.exam_id)
+        subject = await self.db.get(Subject, paper.subject_id)
+        school_class = await self.db.get(SchoolClass, exam.class_id) if exam else None
+
+        student_ids = await self._class_student_ids(exam.class_id) if exam else set()
+        names = dict((await self.db.execute(
+            select(User.id, User.full_name).where(User.id.in_(student_ids))
+        )).all()) if student_ids else {}
+
+        existing = {
+            m.student_id: m
+            for m in (await self.db.execute(
+                select(Mark).where(Mark.exam_subject_id == paper_id)
+            )).scalars().all()
+        }
+
+        rows = [
+            schemas.GradebookRow(
+                student_id=sid,
+                student_name=names.get(sid, "Student"),
+                marks_obtained=existing[sid].marks_obtained if sid in existing else None,
+                is_absent=existing[sid].is_absent if sid in existing else False,
+                remarks=existing[sid].remarks if sid in existing else None,
+            )
+            for sid in student_ids
+        ]
+        rows.sort(key=lambda r: r.student_name.lower())
+
+        return schemas.GradebookOut(
+            paper_id=paper.id,
+            exam_name=exam.name if exam else "Exam",
+            subject_name=subject.name if subject else "Subject",
+            class_name=school_class.name if school_class else "Class",
+            max_marks=paper.max_marks,
+            pass_marks=paper.pass_marks,
+            total_students=len(rows),
+            marked_count=sum(
+                1 for r in rows if r.marks_obtained is not None or r.is_absent
+            ),
+            students=rows,
+        )
 
     async def list_marks(self, school_id: uuid.UUID, paper_id: uuid.UUID) -> list[Mark]:
         await self._get_scoped(ExamSubject, school_id, paper_id, "Exam paper")

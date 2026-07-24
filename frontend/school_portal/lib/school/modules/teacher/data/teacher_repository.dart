@@ -2,61 +2,45 @@ import 'package:shared/shared.dart';
 
 import '../features/performance/models/section_performance.dart';
 import '../features/assignments/models/assignment.dart';
-import '../features/assignments/models/assignments_repository.dart';
 import '../features/attendance/models/attendance_models.dart';
-import '../features/attendance/models/attendance_repository.dart';
-import '../features/classes/models/classes_repository.dart';
 import '../features/calendar/models/timetable_slot.dart';
 import '../features/classes/models/teaching_class.dart';
-import '../features/communication/models/communication_repository.dart';
 import '../features/communication/models/message_thread.dart';
 import '../features/dashboard/models/dashboard_data.dart';
 import '../features/gradebook/models/gradebook_data.dart';
-import '../features/gradebook/models/gradebook_repository.dart';
 import '../features/performance/models/performance_data.dart';
-import '../features/performance/models/performance_repository.dart';
 import '../features/quiz/models/quiz_models.dart';
 import 'teacher_api_service.dart';
+
+/// One subject paper to attach to a new exam.
+class ExamPaperDraft {
+  final String subjectId;
+  final double maxMarks;
+  final double passMarks;
+  const ExamPaperDraft({
+    required this.subjectId,
+    required this.maxMarks,
+    required this.passMarks,
+  });
+}
 
 /// Single data gateway for the Teacher module. Every Teacher controller depends
 /// on this class (never on [TeacherApiService] or [ApiService] directly).
 ///
-/// Flip [_useMock] to `false` to route through the live [TeacherApiService];
-/// while `true` the methods return the bundled per-feature mock fixtures.
+/// Every method reads/writes live backend data through [TeacherApiService].
 class TeacherRepository {
   final TeacherApiService _api;
 
-  final _classesMock = ClassesRepository();
-  final _attendanceMock = AttendanceRepository();
-  final _assignmentsMock = AssignmentsRepository();
-  final _communicationMock = CommunicationRepository();
-  final _gradebookMock = GradebookRepository();
-  final _performanceMock = PerformanceRepository();
-
   TeacherRepository({TeacherApiService? api})
       : _api = api ?? TeacherApiService();
-
-  // Aggregate/complex + write features (dashboard/attendance/gradebook/
-  // performance/communication, createHomework/createExam) have no usable
-  // backend mapping yet → stay on mock. Writes need real section/subject/class
-  // UUIDs the forms don't collect.
-  static const bool _useMock = true;
-
-  // Per-feature live flags: these map to real `/schools/{id}/...` reads (with
-  // documented field losses — see TeacherApiService). Flip to false to revert.
-  static const bool _liveClasses = true;
-  static const bool _liveAssignments = true;
-  static const bool _liveCommunication = true;
 
   Future<ApiResponse<DashboardData>> loadDashboard() =>
       _api.fetchDashboard();
 
   Future<ApiResponse<List<TeachingClass>>> loadClasses() =>
-      _liveClasses ? _api.fetchClasses() : _classesMock.fetch();
+      _api.fetchClasses();
 
-  /// The signed-in teacher's weekly timetable — always live; the calendar has
-  /// no mock fixture because a week view needs real days and times.
-  /// Publishes an announcement (live only — always hits the backend).
+  /// Publishes an announcement.
   Future<ApiResponse<dynamic>> createBroadcast({
     required String channel,
     required String audienceType,
@@ -84,54 +68,87 @@ class TeacherRepository {
   Future<ApiResponse<List<String>>> loadSubjects() => _api.fetchSubjects();
 
   Future<ApiResponse<List<AttendanceClass>>> loadAttendanceClasses() =>
-      _useMock ? _attendanceMock.fetchClasses() : _api.fetchAttendanceClasses();
+      _api.fetchAttendanceClasses();
 
   Future<ApiResponse<List<AttendanceStudent>>> loadAttendanceStudents(
           String classId) =>
-      _useMock
-          ? _attendanceMock.fetchStudents(classId)
-          : _api.fetchAttendanceStudents(classId);
+      _api.fetchAttendanceStudents(classId);
 
   Future<ApiResponse<void>> saveAttendanceMarks(
-      String classId, Map<String, String> marks) async {
-    if (!_useMock) return _api.saveAttendanceMarks(classId, marks);
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    return ApiResponse.ok(null);
-  }
+          String sectionId, Map<String, String> marks) =>
+      _api.saveAttendanceMarks(sectionId, marks);
 
   Future<ApiResponse<AssignmentsData>> loadAssignments({String? classFilter}) =>
-      _liveAssignments
-          ? _api.fetchAssignments(classFilter: classFilter)
-          : _assignmentsMock.load(classFilter: classFilter);
+      _api.fetchAssignments(classFilter: classFilter);
 
   Future<ApiResponse<List<MessageThread>>> loadMessages({
     String query = '',
     ThreadParty? party,
   }) =>
-      _liveCommunication
-          ? _api.fetchMessages(query: query, party: party?.name)
-          : _communicationMock.fetch(query: query, party: party);
+      _api.fetchMessages(query: query, party: party?.name);
 
-  Future<ApiResponse<Gradebook>> loadGradebook(String? examId) =>
-      _useMock
-          ? _gradebookMock.load(examId)
-          : _api.fetchGradebook(examId ?? '');
+  /// Papers available to grade (live only — no fixture).
+  Future<ApiResponse<List<GradablePaper>>> loadGradablePapers() =>
+      _api.fetchGradablePapers();
 
-  Future<ApiResponse<StudentDetail>> loadStudentPerformance(
-          String? studentId) =>
-      _useMock
-          ? _performanceMock.load(studentId)
-          : _api.fetchStudentPerformance(studentId ?? '');
+  Future<ApiResponse<Gradebook>> loadGradebook(String paperId) =>
+      _api.fetchGradebook(paperId);
 
-  Future<ApiResponse<void>> createHomework(Map<String, dynamic> payload) async {
-    if (!_useMock) return _api.createHomework(payload);
-    await Future<void>.delayed(const Duration(milliseconds: 450));
-    return ApiResponse.ok(null);
-  }
+  Future<ApiResponse<void>> saveMarks(String paperId, Map<String, double> marks) =>
+      _api.saveMarks(paperId, marks);
 
-  Future<ApiResponse<void>> createExam(Map<String, dynamic> payload) async {
-    if (!_useMock) return _api.createExam(payload);
-    await Future<void>.delayed(const Duration(milliseconds: 450));
+  Future<ApiResponse<StudentDetail>> loadStudentPerformance(String studentId) =>
+      _api.fetchStudentPerformance(studentId);
+
+  Future<ApiResponse<void>> createHomework({
+    required String sectionId,
+    required String subjectId,
+    required String title,
+    String? description,
+    required String dueDate,
+    double? maxMarks,
+  }) =>
+      _api.createHomework(
+        sectionId: sectionId,
+        subjectId: subjectId,
+        title: title,
+        description: description,
+        dueDate: dueDate,
+        maxMarks: maxMarks,
+      );
+
+  /// Creates an exam and its subject papers in one call: POST the exam shell,
+  /// then POST each paper. Returns the first failure encountered, so a partial
+  /// create surfaces an error rather than a false success.
+  Future<ApiResponse<void>> createExam({
+    required String classId,
+    required String name,
+    String? startDate,
+    String? endDate,
+    required List<ExamPaperDraft> papers,
+  }) async {
+    final examRes = await _api.createExam(
+      classId: classId,
+      name: name,
+      startDate: startDate,
+      endDate: endDate,
+    );
+    if (!examRes.success || examRes.data == null) {
+      return ApiResponse.fail(examRes.error ?? 'Could not create the exam.');
+    }
+    final examId = examRes.data!;
+    for (final p in papers) {
+      final paperRes = await _api.addExamPaper(
+        examId: examId,
+        subjectId: p.subjectId,
+        maxMarks: p.maxMarks,
+        passMarks: p.passMarks,
+      );
+      if (!paperRes.success) {
+        return ApiResponse.fail(
+            paperRes.error ?? 'Exam created, but a paper failed to save.');
+      }
+    }
     return ApiResponse.ok(null);
   }
 

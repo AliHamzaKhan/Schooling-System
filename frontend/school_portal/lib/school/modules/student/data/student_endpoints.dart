@@ -16,6 +16,8 @@ class StudentEndpoints {
   // attendance / notifications / assignment-detail features.
   static String homeworkAssignments(String schoolId) =>
       '/schools/$schoolId/homework/assignments';
+  static String homeworkAssignment(String schoolId, String id) =>
+      '/schools/$schoolId/homework/assignments/$id';
   static String examsList(String schoolId) => '/schools/$schoolId/exams';
   static String examPapers(String schoolId, String examId) =>
       '/schools/$schoolId/exams/$examId/papers';

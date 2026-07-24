@@ -273,6 +273,149 @@ class AcademicService:
         await self.db.delete(slot)
         await self.db.flush()
 
+    async def student_performance(
+        self, school_id: uuid.UUID, student_id: uuid.UUID
+    ) -> schemas.StudentPerformanceDetail:
+        """One student's performance dashboard, entirely database-derived.
+
+        Attendance is the daily register; the trend and recent grades come from
+        the marks the student has actually been given. Empty sections mean the
+        student has no data yet, not that data is missing.
+        """
+        user = await self.db.get(User, student_id)
+        if user is None or user.school_id != school_id:
+            raise not_found("Student not found in this school")
+
+        # ---- enrolment: which section / class the student is in ---- #
+        section = None
+        enrolment = (await self.db.execute(
+            select(Section)
+            .join(StudentEnrollment, StudentEnrollment.section_id == Section.id)
+            .where(
+                StudentEnrollment.student_id == student_id,
+                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+            )
+            .limit(1)
+        )).scalars().first()
+        section = enrolment
+        class_name = ""
+        if section is not None:
+            school_class = await self.db.get(SchoolClass, section.class_id)
+            class_name = (
+                f"{school_class.name} {section.name}" if school_class else section.name
+            )
+
+        # ---- attendance over the daily register ---- #
+        att_rows = (await self.db.execute(
+            select(AttendanceRecord.status, AttendanceRecord.attendance_date)
+            .where(
+                AttendanceRecord.school_id == school_id,
+                AttendanceRecord.student_id == student_id,
+                AttendanceRecord.subject_id.is_(None),
+            )
+            .order_by(AttendanceRecord.attendance_date)
+        )).all()
+
+        attended = {
+            AttendanceStatus.PRESENT.value,
+            AttendanceStatus.LATE.value,
+            AttendanceStatus.EARLY_DEPARTURE.value,
+        }
+        present = sum(1 for st, _ in att_rows if st in attended)
+        total_days = len(att_rows)
+        attendance_pct = round(present / total_days * 100) if total_days else 0
+
+        # Last 7 register days as a mini week strip.
+        week = [
+            schemas.PerfWeekDay(
+                label=d.strftime("%a"),
+                mark="present" if st in attended else "absent",
+            )
+            for st, d in att_rows[-7:]
+        ]
+
+        # ---- marks: per-exam percentage trend + recent grades ---- #
+        mark_rows = (await self.db.execute(
+            select(
+                Exam.id,
+                Exam.name,
+                Exam.start_date,
+                Subject.name,
+                Mark.marks_obtained,
+                ExamSubject.max_marks,
+                Mark.created_at,
+            )
+            .join(ExamSubject, ExamSubject.id == Mark.exam_subject_id)
+            .join(Exam, Exam.id == ExamSubject.exam_id)
+            .join(Subject, Subject.id == ExamSubject.subject_id)
+            .where(
+                Mark.school_id == school_id,
+                Mark.student_id == student_id,
+                Mark.marks_obtained.is_not(None),
+                Mark.is_absent.is_(False),
+                ExamSubject.max_marks > 0,
+            )
+            .order_by(Mark.created_at)
+        )).all()
+
+        # Trend: one point per exam (average across its papers), oldest first.
+        per_exam: dict[uuid.UUID, dict] = {}
+        subjects: set[str] = set()
+        for exam_id, exam_name, start, subj, obtained, max_marks, _created in mark_rows:
+            subjects.add(subj)
+            e = per_exam.setdefault(
+                exam_id,
+                {"name": exam_name, "start": start, "obtained": 0.0, "max": 0.0},
+            )
+            e["obtained"] += float(obtained)
+            e["max"] += float(max_marks)
+
+        ordered = sorted(
+            per_exam.values(),
+            key=lambda e: (e["start"] is None, e["start"]),
+        )
+        trend_labels = [e["name"] for e in ordered]
+        trend_scores = [
+            round(e["obtained"] / e["max"] * 100, 1) if e["max"] else 0.0
+            for e in ordered
+        ]
+
+        overall_pct = (
+            sum(e["obtained"] for e in ordered)
+            / sum(e["max"] for e in ordered) * 100
+            if ordered and sum(e["max"] for e in ordered)
+            else None
+        )
+
+        # Recent graded papers, newest first.
+        recent = []
+        for exam_id, exam_name, _start, subj, obtained, max_marks, created in reversed(
+            mark_rows[-5:]
+        ):
+            pct = round(obtained / max_marks * 100) if max_marks else 0
+            recent.append(
+                schemas.PerfGrade(
+                    id=f"{exam_id}:{subj}",
+                    title=f"{subj} — {exam_name}",
+                    date_line=created.strftime("%d %b %Y") if created else "",
+                    quote=f"{obtained:g} / {max_marks:g} · {pct}%",
+                    grade=grade_for(pct),
+                )
+            )
+
+        return schemas.StudentPerformanceDetail(
+            id=student_id,
+            name=user.full_name,
+            grade=class_name,
+            subject=", ".join(sorted(subjects)),
+            current_gpa=grade_for(overall_pct) if overall_pct is not None else "—",
+            attendance_percent=f"{attendance_pct}%",
+            trend_labels=trend_labels,
+            trend_scores=trend_scores,
+            week=week,
+            recent=recent,
+        )
+
     async def section_performance(
         self, school_id: uuid.UUID, section_id: uuid.UUID
     ) -> schemas.SectionPerformanceOut:

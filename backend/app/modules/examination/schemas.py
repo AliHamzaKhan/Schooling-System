@@ -84,6 +84,36 @@ class MarksEntryRequest(BaseModel):
     entries: list[MarkEntry] = Field(min_length=1)
 
 
+class GradebookRow(BaseModel):
+    """One student on a marks-entry sheet, marked or not."""
+
+    student_id: uuid.UUID
+    student_name: str
+    marks_obtained: float | None = None
+    is_absent: bool = False
+    remarks: str | None = None
+
+
+class GradebookOut(BaseModel):
+    """Everything a marks-entry screen needs, in one call.
+
+    ``list_marks`` alone is not enough: it returns only students who already
+    have a mark, so an unmarked class comes back empty and the teacher has
+    nobody to grade. This returns the full enrolled roster with existing marks
+    merged in.
+    """
+
+    paper_id: uuid.UUID
+    exam_name: str
+    subject_name: str
+    class_name: str
+    max_marks: float
+    pass_marks: float
+    total_students: int
+    marked_count: int
+    students: list[GradebookRow] = []
+
+
 class MarkOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

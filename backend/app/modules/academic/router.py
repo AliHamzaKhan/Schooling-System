@@ -171,6 +171,20 @@ async def my_timetable(
 
 
 @router.get(
+    "/students/{student_id}/performance",
+    response_model=schemas.StudentPerformanceDetail,
+    dependencies=[_view, Depends(verify_student_access)],
+)
+async def student_performance(
+    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+) -> schemas.StudentPerformanceDetail:
+    """One student's performance dashboard (attendance + marks), all real.
+
+    Reachable by staff with timetable view, the student, or their guardian."""
+    return await AcademicService(db).student_performance(school_id, student_id)
+
+
+@router.get(
     "/students/{student_id}/timetable",
     response_model=list[schemas.StudentTimetableSlot],
     dependencies=[_view, Depends(verify_student_access)],

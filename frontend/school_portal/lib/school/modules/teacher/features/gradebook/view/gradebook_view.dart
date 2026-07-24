@@ -26,7 +26,9 @@ class GradebookView extends GetView<GradebookController> {
                 return const SkeletonPage(withHeader: false, body: SkeletonRosterList());
               }
               final book = controller.book.value;
-              if (book == null) return const SizedBox.shrink();
+              // No paper chosen yet — offer the real list of papers rather
+              // than a blank screen.
+              if (book == null) return _PaperPicker(controller: controller);
               return ListView(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.containerPaddingMobile,
@@ -143,6 +145,103 @@ class _Footer extends StatelessWidget {
                 )),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+/// Shown until a paper is chosen. Lists real exam papers; an empty list means
+/// the school genuinely has no papers set up yet.
+class _PaperPicker extends StatelessWidget {
+  final GradebookController controller;
+  const _PaperPicker({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final err = controller.error.value;
+      final papers = controller.papers;
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.containerPaddingMobile,
+            0,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackXl),
+        children: [
+          Text('Marks Entry',
+              style: AppTypography.headlineLg.copyWith(color: AppColors.primary)),
+          const SizedBox(height: AppSpacing.stackSm),
+          Text('Choose an exam paper to grade.', style: AppTypography.bodyLg),
+          const SizedBox(height: AppSpacing.stackLg),
+          if (err != null)
+            _Empty(
+              icon: Icons.cloud_off_rounded,
+              text: err,
+              onRetry: controller.loadPapers,
+            )
+          else if (papers.isEmpty)
+            const _Empty(
+              icon: Icons.fact_check_outlined,
+              text: 'No exam papers have been set up yet.',
+            )
+          else
+            for (final p in papers) ...[
+              GlassSurface(
+                padding: const EdgeInsets.all(AppSpacing.stackMd),
+                onTap: () => controller.selectPaper(p.paperId),
+                child: Row(
+                  children: [
+                    const Icon(Icons.menu_book_outlined,
+                        color: AppColors.primary),
+                    const SizedBox(width: AppSpacing.stackSm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(p.label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.titleMd
+                                  .copyWith(fontWeight: FontWeight.w700)),
+                          Text('Out of ${p.maxMarks.toStringAsFixed(0)}',
+                              style: AppTypography.bodySm),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: AppColors.onSurfaceVariant),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.stackSm),
+            ],
+        ],
+      );
+    });
+  }
+}
+
+class _Empty extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final VoidCallback? onRetry;
+  const _Empty({required this.icon, required this.text, this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.stackXl),
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: AppColors.outline),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text(text, style: AppTypography.bodyLg, textAlign: TextAlign.center),
+          if (onRetry != null) ...[
+            const SizedBox(height: AppSpacing.stackMd),
+            TextButton(onPressed: onRetry, child: const Text('Try again')),
+          ],
+        ],
       ),
     );
   }

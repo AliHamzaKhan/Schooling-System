@@ -26,6 +26,10 @@ class EnrollmentOut(BaseModel):
     session_id: uuid.UUID | None = None
     status: str
 
+    # Resolved so a marking roster can be rendered from this one call. Additive
+    # and optional, so existing consumers are unaffected.
+    student_name: str | None = None
+
 
 # --------------------------------------------------------------------------- #
 # Attendance

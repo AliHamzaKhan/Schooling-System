@@ -133,6 +133,34 @@ class TimetableSlotOut(BaseModel):
     room: str | None = None
 
 
+class PerfWeekDay(BaseModel):
+    label: str          # "Mon", "Tue", ...
+    mark: str           # "present" | "absent"
+
+
+class PerfGrade(BaseModel):
+    id: str
+    title: str          # subject — exam
+    date_line: str
+    quote: str          # e.g. "45 / 50 · 90%"
+    grade: str
+
+
+class StudentPerformanceDetail(BaseModel):
+    """A single student's performance dashboard, all database-derived."""
+
+    id: uuid.UUID
+    name: str
+    grade: str          # class + section, e.g. "Grade 5 A"
+    subject: str        # comma-joined subjects the student sits
+    current_gpa: str    # letter grade from the marks average, or "—"
+    attendance_percent: str
+    trend_labels: list[str] = []    # exam names, oldest → newest
+    trend_scores: list[float] = []  # matching percentages
+    week: list[PerfWeekDay] = []    # last 7 days of the daily register
+    recent: list[PerfGrade] = []    # most recent graded papers
+
+
 class SectionStudentPerformance(BaseModel):
     """One student's standing within a section, for the teacher's ranking view."""
 

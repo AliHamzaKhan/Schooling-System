@@ -46,10 +46,18 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Take a photo for the profile picture.</string>
+	<string>Taleem Hub uses the camera to take profile photos and to share your video during live online classes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Choose a profile picture from your photo library.</string>
+	<string>Taleem Hub lets you choose a profile picture and attach files from your photo library.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Not used — required by image_picker on some platforms.</string>
+	<string>Taleem Hub uses the microphone so you can speak during live online classes.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Taleem Hub uses Face ID to let you sign in quickly and securely.</string>
+	<!-- Lets Firebase Cloud Messaging deliver attendance and announcement
+	     notifications while the app is in the background. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

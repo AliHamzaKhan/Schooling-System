@@ -132,6 +132,54 @@ class HomeworkService:
             )
         return out
 
+    async def get_assignment_detail(
+        self,
+        school_id: uuid.UUID,
+        assignment_id: uuid.UUID,
+        current_user_id: uuid.UUID | None = None,
+    ) -> schemas.AssignmentListOut:
+        """One assignment, enriched like the list rows.
+
+        Resolves the subject name, counts submissions, and — for a student —
+        embeds their own submission, so the detail screen renders real state
+        instead of a fixture.
+        """
+        a = await self._get_scoped(Assignment, school_id, assignment_id, "Assignment")
+
+        subject = await self.db.get(Subject, a.subject_id)
+        count = int((await self.db.scalar(
+            select(func.count()).where(Submission.assignment_id == a.id)
+        )) or 0)
+
+        submission = None
+        if current_user_id is not None:
+            submission = (await self.db.execute(
+                select(Submission).where(
+                    Submission.assignment_id == a.id,
+                    Submission.student_id == current_user_id,
+                )
+            )).scalars().first()
+
+        return schemas.AssignmentListOut(
+            id=a.id,
+            school_id=a.school_id,
+            section_id=a.section_id,
+            subject_id=a.subject_id,
+            title=a.title,
+            description=a.description,
+            assigned_on=a.assigned_on,
+            due_date=a.due_date,
+            max_marks=a.max_marks,
+            assigned_by=a.assigned_by,
+            subject_name=subject.name if subject else None,
+            submission_count=count,
+            my_submission=(
+                schemas.SubmissionBrief.model_validate(submission)
+                if submission is not None
+                else None
+            ),
+        )
+
     async def update_assignment(
         self, school_id: uuid.UUID, assignment_id: uuid.UUID, data: schemas.AssignmentUpdate
     ) -> Assignment:

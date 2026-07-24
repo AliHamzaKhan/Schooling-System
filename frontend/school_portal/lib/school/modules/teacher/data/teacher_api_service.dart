@@ -105,33 +105,75 @@ class TeacherApiService {
     );
   }
 
-  Future<ApiResponse<List<AttendanceClass>>> fetchAttendanceClasses() {
-    return _api.request<List<AttendanceClass>>(
-      method: HttpMethod.get,
-      path: TeacherEndpoints.attendanceClasses,
-      parser: (json) => (json as List)
-          .map((e) => AttendanceClass.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
+  /// Sections the teacher takes, folded up from their own timetable.
+  ///
+  /// There is no aggregate "/teacher/attendance/classes" endpoint — the real
+  /// source is the timetable, grouped by section, which also gives the true
+  /// head-count per section.
+  Future<ApiResponse<List<AttendanceClass>>> fetchAttendanceClasses() async {
+    final res = await fetchMyTimetable();
+    if (!res.success) {
+      return ApiResponse.fail(res.error ?? 'Could not load your classes.');
+    }
+    final bySection = <String, List<TeacherSlot>>{};
+    for (final slot in res.data ?? const <TeacherSlot>[]) {
+      bySection.putIfAbsent(slot.sectionId, () => []).add(slot);
+    }
+    final classes = bySection.values.map((group) {
+      final first = group.first;
+      final subjects = group.map((s) => s.subject).toSet().toList()..sort();
+      return AttendanceClass(
+        id: first.sectionId,
+        subject: subjects.join(', '),
+        grade: '${first.className} ${first.sectionName}',
+        students: first.studentCount,
+        icon: Icons.class_outlined,
+        color: AppColors.primary,
+      );
+    }).toList()
+      ..sort((a, b) => a.grade.compareTo(b.grade));
+    return ApiResponse.ok(classes);
   }
 
+  /// The section's active roster, names included.
   Future<ApiResponse<List<AttendanceStudent>>> fetchAttendanceStudents(
-      String classId) {
+      String sectionId) {
     return _api.request<List<AttendanceStudent>>(
       method: HttpMethod.get,
-      path: TeacherEndpoints.attendanceStudents(classId),
+      path: TeacherEndpoints.sectionStudents(_sid, sectionId),
       parser: (json) => (json as List)
-          .map((e) => AttendanceStudent.fromJson(e as Map<String, dynamic>))
+          .cast<Map<String, dynamic>>()
+          .map((e) => AttendanceStudent(
+                id: '${e['student_id']}',
+                name: e['student_name'] as String? ?? 'Student',
+                accent: AppColors.primary,
+              ))
           .toList(),
     );
   }
 
+  /// Saves the daily register for a section.
+  ///
+  /// Unmarked students are skipped rather than defaulted, so a half-finished
+  /// register never records an absence nobody entered.
   Future<ApiResponse<void>> saveAttendanceMarks(
-      String classId, Map<String, String> marks) {
+      String sectionId, Map<String, String> marks) {
+    final entries = [
+      for (final e in marks.entries)
+        if (e.value != 'unmarked')
+          {'student_id': e.key, 'status': e.value},
+    ];
+    final today = DateTime.now();
+    final date =
+        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     return _api.request<void>(
       method: HttpMethod.post,
-      path: TeacherEndpoints.attendanceMarks(classId),
-      body: {'marks': marks},
+      path: TeacherEndpoints.attendance(_sid),
+      body: {
+        'section_id': sectionId,
+        'attendance_date': date,
+        'entries': entries,
+      },
     );
   }
 
@@ -235,35 +277,139 @@ class TeacherApiService {
     );
   }
 
-  Future<ApiResponse<Gradebook>> fetchGradebook(String examId) {
+  /// Papers the teacher can grade, across every exam in the school.
+  ///
+  /// Exams don't record which teacher owns a paper, so this lists all of them
+  /// and lets the teacher choose — rather than inventing an ownership rule the
+  /// data can't support.
+  Future<ApiResponse<List<GradablePaper>>> fetchGradablePapers() async {
+    final exams = await _api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.schoolExams(_sid),
+      parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+    );
+    if (!exams.success) {
+      return ApiResponse.fail(exams.error ?? 'Could not load exams.');
+    }
+
+    final subjects = await fetchSubjectOptions();
+    final subjectNames = {
+      for (final s in subjects.data ?? const <IdLabel>[]) s.id: s.label,
+    };
+
+    final papers = <GradablePaper>[];
+    for (final exam in exams.data ?? const <Map<String, dynamic>>[]) {
+      final examId = '${exam['id']}';
+      final res = await _api.request<List<Map<String, dynamic>>>(
+        method: HttpMethod.get,
+        path: TeacherEndpoints.examPapers(_sid, examId),
+        parser: (json) => (json as List).cast<Map<String, dynamic>>(),
+      );
+      for (final paper in res.data ?? const <Map<String, dynamic>>[]) {
+        papers.add(GradablePaper(
+          paperId: '${paper['id']}',
+          examName: exam['name'] as String? ?? 'Exam',
+          subjectName: subjectNames['${paper['subject_id']}'] ?? 'Subject',
+          maxMarks: (paper['max_marks'] as num?)?.toDouble() ?? 0,
+        ));
+      }
+    }
+    return ApiResponse.ok(papers);
+  }
+
+  /// The full marks sheet for one paper.
+  Future<ApiResponse<Gradebook>> fetchGradebook(String paperId) {
     return _api.request<Gradebook>(
       method: HttpMethod.get,
-      path: TeacherEndpoints.gradebook(examId),
+      path: TeacherEndpoints.paperGradebook(_sid, paperId),
       parser: (json) => Gradebook.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Persists entered marks. Students left blank are omitted, so a partly
+  /// filled sheet never records a zero nobody typed.
+  Future<ApiResponse<void>> saveMarks(
+      String paperId, Map<String, double> marks) {
+    return _api.request<void>(
+      method: HttpMethod.post,
+      path: TeacherEndpoints.paperMarks(_sid, paperId),
+      body: {
+        'entries': [
+          for (final e in marks.entries)
+            {'student_id': e.key, 'marks_obtained': e.value},
+        ],
+      },
     );
   }
 
   Future<ApiResponse<StudentDetail>> fetchStudentPerformance(String studentId) {
     return _api.request<StudentDetail>(
       method: HttpMethod.get,
-      path: TeacherEndpoints.studentPerformance(studentId),
+      path: TeacherEndpoints.studentPerformance(_sid, studentId),
       parser: (json) => StudentDetail.fromJson(json as Map<String, dynamic>),
     );
   }
 
-  Future<ApiResponse<void>> createHomework(Map<String, dynamic> payload) {
+  /// Posts a homework assignment to `/schools/{id}/homework/assignments`.
+  Future<ApiResponse<void>> createHomework({
+    required String sectionId,
+    required String subjectId,
+    required String title,
+    String? description,
+    required String dueDate,
+    double? maxMarks,
+  }) {
     return _api.request<void>(
       method: HttpMethod.post,
-      path: TeacherEndpoints.homework,
-      body: payload,
+      path: TeacherEndpoints.homeworkAssignments(_sid),
+      body: {
+        'section_id': sectionId,
+        'subject_id': subjectId,
+        'title': title,
+        'description': ?((description != null && description.isEmpty) ? null : description),
+        'due_date': dueDate,
+        'max_marks': ?maxMarks,
+      },
     );
   }
 
-  Future<ApiResponse<void>> createExam(Map<String, dynamic> payload) {
+  /// Creates an exam shell and returns its id, so papers can be attached.
+  Future<ApiResponse<String>> createExam({
+    required String classId,
+    required String name,
+    String? startDate,
+    String? endDate,
+  }) {
+    return _api.request<String>(
+      method: HttpMethod.post,
+      path: TeacherEndpoints.schoolExams(_sid),
+      body: {
+        'class_id': classId,
+        'name': name,
+        'start_date': ?startDate,
+        'end_date': ?endDate,
+      },
+      parser: (json) => '${(json as Map<String, dynamic>)['id']}',
+    );
+  }
+
+  /// Adds one subject paper (with its marks) to an exam.
+  Future<ApiResponse<void>> addExamPaper({
+    required String examId,
+    required String subjectId,
+    required double maxMarks,
+    required double passMarks,
+    String? examDate,
+  }) {
     return _api.request<void>(
       method: HttpMethod.post,
-      path: TeacherEndpoints.exams,
-      body: payload,
+      path: TeacherEndpoints.examPapers(_sid, examId),
+      body: {
+        'subject_id': subjectId,
+        'max_marks': maxMarks,
+        'pass_marks': passMarks,
+        'exam_date': ?examDate,
+      },
     );
   }
 
