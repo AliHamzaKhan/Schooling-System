@@ -8,7 +8,15 @@ import '../models/analytics_data.dart';
 /// then the label and a bold value beneath.
 class AnalyticsMetricCard extends StatelessWidget {
   final AnalyticsMetric metric;
-  const AnalyticsMetricCard({super.key, required this.metric});
+
+  /// Hidden when there is no trend series to show (avoids a fake 0% pill).
+  final bool showTrend;
+
+  const AnalyticsMetricCard({
+    super.key,
+    required this.metric,
+    this.showTrend = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +45,7 @@ class AnalyticsMetricCard extends StatelessWidget {
               ],
             ),
           ),
-          StatusPill.trend(metric.trendPercent),
+          if (showTrend) StatusPill.trend(metric.trendPercent),
         ],
       ),
     );

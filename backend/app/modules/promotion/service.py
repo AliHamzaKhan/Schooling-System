@@ -6,9 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import EnrollmentStatus, PromotionOutcome, ResultStatus
 from app.core.exceptions import bad_request, not_found
-from app.models.academic import Section, StudentEnrollment
+from app.models.academic import SchoolClass, Section, StudentEnrollment
 from app.models.examination import Exam, ExamResult
 from app.models.promotion import PromotionRecord
+from app.models.user import User
 from app.modules.promotion import schemas
 
 
@@ -56,14 +57,37 @@ class PromotionService:
         if not results:
             raise bad_request("No results found for this exam; publish results first")
 
+        # Resolve student names and current class+section labels in bulk.
+        student_ids = [r.student_id for r in results]
+        names = dict(
+            (
+                await self.db.execute(
+                    select(User.id, User.full_name).where(User.id.in_(student_ids))
+                )
+            ).all()
+        )
+
         rows: list[schemas.PromotionPreviewRow] = []
         for r in results:
             enrollment = await self._active_enrollment(school_id, r.student_id)
+            section_label: str | None = None
+            if enrollment is not None:
+                labels = (
+                    await self.db.execute(
+                        select(SchoolClass.name, Section.name)
+                        .join(Section, Section.class_id == SchoolClass.id)
+                        .where(Section.id == enrollment.section_id)
+                    )
+                ).first()
+                if labels is not None:
+                    section_label = f"{labels[0]} · {labels[1]}"
             passed = r.status == ResultStatus.PASS.value
             rows.append(
                 schemas.PromotionPreviewRow(
                     student_id=r.student_id,
+                    student_name=names.get(r.student_id),
                     current_section_id=enrollment.section_id if enrollment else None,
+                    current_section_label=section_label,
                     total_marks=r.total_marks,
                     percentage=r.percentage,
                     result_status=r.status,

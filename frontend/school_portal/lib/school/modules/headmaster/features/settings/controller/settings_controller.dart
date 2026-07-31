@@ -19,6 +19,7 @@ class SettingsController extends GetxController {
   final logoUrl = TextEditingController();
   final uniformColor = TextEditingController();
   final feeDueDay = TextEditingController();
+  final salaryDay = TextEditingController();
 
   @override
   void onInit() {
@@ -43,6 +44,14 @@ class SettingsController extends GetxController {
     logoUrl.text = p.logoUrl ?? '';
     uniformColor.text = p.uniformColor ?? '';
     feeDueDay.text = p.feeDueDay?.toString() ?? '';
+    salaryDay.text = p.salaryDay?.toString() ?? '';
+  }
+
+  int? _validDay(TextEditingController c) {
+    final raw = c.text.trim();
+    if (raw.isEmpty) return null;
+    final v = int.tryParse(raw);
+    return (v != null && v >= 1 && v <= 31) ? v : -1; // -1 = invalid sentinel
   }
 
   Future<void> save() async {
@@ -51,9 +60,15 @@ class SettingsController extends GetxController {
           snackPosition: SnackPosition.BOTTOM);
       return;
     }
-    final day = int.tryParse(feeDueDay.text.trim());
-    if (feeDueDay.text.trim().isNotEmpty && (day == null || day < 1 || day > 31)) {
+    final day = _validDay(feeDueDay);
+    if (day == -1) {
       Get.snackbar('Invalid fee day', 'Enter a day between 1 and 31.',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    final salary = _validDay(salaryDay);
+    if (salary == -1) {
+      Get.snackbar('Invalid salary day', 'Enter a day between 1 and 31.',
           snackPosition: SnackPosition.BOTTOM);
       return;
     }
@@ -64,6 +79,7 @@ class SettingsController extends GetxController {
       uniformColor:
           uniformColor.text.trim().isEmpty ? null : uniformColor.text.trim(),
       feeDueDay: day,
+      salaryDay: salary,
     );
     saving.value = false;
     if (res.success) {
@@ -82,6 +98,7 @@ class SettingsController extends GetxController {
     logoUrl.dispose();
     uniformColor.dispose();
     feeDueDay.dispose();
+    salaryDay.dispose();
     super.onClose();
   }
 }

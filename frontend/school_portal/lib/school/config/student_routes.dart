@@ -15,4 +15,17 @@ class StudentRoutes {
   static const reportCard = '$_base/results/report-card';
   static const timetable = '$_base/timetable';
   static const notifications = '$_base/notifications';
+
+  // ── Courses ──
+  static const courses = '$_base/courses';
+  static const courseDetail = '$_base/courses/detail';
+  static const courseBook = '$_base/courses/book';
+  static const courseNotes = '$_base/courses/notes';
+  static const courseReader = '$_base/courses/reader';
+
+  // ── Leave ──
+  static const leave = '$_base/leave';
+
+  // ── School info ──
+  static const schoolInfo = '$_base/school';
 }

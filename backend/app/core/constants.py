@@ -46,6 +46,13 @@ PLAN_NAMES: dict[PlanCode, str] = {
     PlanCode.PREMIUM: "Premium Plan",
 }
 
+# Default monthly list price seeded per plan (admin-editable at runtime).
+PLAN_PRICES: dict[PlanCode, float] = {
+    PlanCode.BASIC: 299.0,
+    PlanCode.STANDARD: 799.0,
+    PlanCode.PREMIUM: 1499.0,
+}
+
 # --------------------------------------------------------------------------- #
 # Role provisioning
 # --------------------------------------------------------------------------- #

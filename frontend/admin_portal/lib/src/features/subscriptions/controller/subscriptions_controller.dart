@@ -1,32 +1,26 @@
 import 'package:get/get.dart';
 
-import '../models/subscription_plan.dart';
-import '../models/subscriptions_repository.dart';
+import '../models/plans_repository.dart';
+import '../models/subscription_models.dart';
 
-enum BillingCycle { monthly, yearly }
-
-/// Drives the Subscription Management screen: the billing-cycle toggle and the
-/// list of pricing tiers.
+/// Drives the Subscription Plans screen: lists the live, editable plans and
+/// creates / updates / archives them via the backend.
 class SubscriptionsController extends GetxController {
-  final SubscriptionsRepository _repo;
-  SubscriptionsController({SubscriptionsRepository? repo})
-      : _repo = repo ?? SubscriptionsRepository();
+  SubscriptionsController({PlansRepository? repo})
+      : _repo = repo ?? PlansRepository();
+
+  final PlansRepository _repo;
 
   final loading = true.obs;
   final error = RxnString();
-  final plans = <SubscriptionPlan>[].obs;
-  final cycle = BillingCycle.monthly.obs;
+  final plans = <SubscriptionPlanModel>[].obs;
+  final saving = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     fetch();
   }
-
-  void setCycle(BillingCycle c) => cycle.value = c;
-
-  String priceFor(SubscriptionPlan p) =>
-      cycle.value == BillingCycle.monthly ? p.monthlyPrice : p.yearlyPrice;
 
   Future<void> fetch() async {
     loading.value = true;
@@ -38,5 +32,53 @@ class SubscriptionsController extends GetxController {
       error.value = res.error ?? 'Could not load plans.';
     }
     loading.value = false;
+  }
+
+  /// Creates a plan (create form) or updates [existing] when provided. Returns
+  /// true on success so the caller can dismiss its form.
+  Future<bool> savePlan({
+    SubscriptionPlanModel? existing,
+    required String name,
+    required double price,
+    required BillingPeriod billingPeriod,
+    String? description,
+  }) async {
+    saving.value = true;
+    final res = existing == null
+        ? await _repo.create(
+            name: name,
+            price: price,
+            billingPeriod: billingPeriod,
+            description: description,
+          )
+        : await _repo.update(
+            existing.id,
+            name: name,
+            price: price,
+            billingPeriod: billingPeriod,
+            description: description,
+          );
+    saving.value = false;
+    if (res.success) {
+      await fetch();
+      Get.snackbar('Saved', '$name saved.',
+          snackPosition: SnackPosition.BOTTOM);
+      return true;
+    }
+    Get.snackbar('Error', res.error ?? 'Could not save the plan.',
+        snackPosition: SnackPosition.BOTTOM);
+    return false;
+  }
+
+  Future<void> archivePlan(SubscriptionPlanModel plan) async {
+    final res = await _repo.archive(plan.id);
+    if (res.success) {
+      await fetch();
+      Get.snackbar('Archived', '${plan.name} archived.',
+          snackPosition: SnackPosition.BOTTOM);
+    } else {
+      Get.snackbar('Error', res.error ?? 'Could not archive the plan.',
+          snackPosition: SnackPosition.BOTTOM);
+    }
   }
 }

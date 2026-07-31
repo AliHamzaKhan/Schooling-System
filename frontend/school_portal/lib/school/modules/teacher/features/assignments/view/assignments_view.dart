@@ -23,6 +23,9 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
   /// Opens the Performance tab — the turn-in-rate stat drills into it.
   final VoidCallback? onOpenPerformance;
 
+  /// Opens the grading screen for a tapped assignment.
+  final ValueChanged<Assignment>? onOpenAssignment;
+
   const AssignmentsView({
     super.key,
     this.onCreateHomework,
@@ -31,6 +34,7 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
     this.onOpenGradebook,
     this.onOpenQuizzes,
     this.onOpenPerformance,
+    this.onOpenAssignment,
   });
 
   @override
@@ -58,6 +62,7 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
               onOpenGradebook: onOpenGradebook,
               onOpenQuizzes: onOpenQuizzes,
               onOpenPerformance: onOpenPerformance,
+              onOpenAssignment: onOpenAssignment,
             );
           }),
         ),
@@ -127,6 +132,7 @@ class _AssignmentsList extends StatefulWidget {
   final VoidCallback? onOpenGradebook;
   final VoidCallback? onOpenQuizzes;
   final VoidCallback? onOpenPerformance;
+  final ValueChanged<Assignment>? onOpenAssignment;
 
   const _AssignmentsList({
     required this.controller,
@@ -134,6 +140,7 @@ class _AssignmentsList extends StatefulWidget {
     this.onOpenGradebook,
     this.onOpenQuizzes,
     this.onOpenPerformance,
+    this.onOpenAssignment,
   });
 
   @override
@@ -201,7 +208,9 @@ class _AssignmentsListState extends State<_AssignmentsList> {
                 padding: const EdgeInsets.only(bottom: AppSpacing.stackLg),
                 child: AssignmentCard(
                   assignment: visible[i - 1],
-                  onTap: widget.onOpenGradebook,
+                  onTap: widget.onOpenAssignment != null
+                      ? () => widget.onOpenAssignment!(visible[i - 1])
+                      : widget.onOpenGradebook,
                 ),
               );
             }

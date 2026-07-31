@@ -10,7 +10,19 @@ class StatCard extends StatelessWidget {
   final StatMetric metric;
   final Color accent;
 
-  const StatCard({super.key, required this.metric, required this.accent});
+  /// When set, the whole card is tappable (e.g. drill into schools / revenue).
+  final VoidCallback? onTap;
+
+  /// Whether to show the trend pill. Hidden when no trend data is tracked.
+  final bool showTrend;
+
+  const StatCard({
+    super.key,
+    required this.metric,
+    required this.accent,
+    this.onTap,
+    this.showTrend = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +30,7 @@ class StatCard extends StatelessWidget {
       level: GlassLevel.l1,
       padding: EdgeInsets.zero,
       borderRadius: AppRadius.card,
+      onTap: onTap,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,7 +62,11 @@ class StatCard extends StatelessWidget {
                             style: AppTypography.displayLg.copyWith(fontSize: 30),
                           ),
                         ),
-                        StatusPill.trend(metric.trendPercent),
+                        if (showTrend)
+                          StatusPill.trend(metric.trendPercent)
+                        else if (onTap != null)
+                          const Icon(Icons.chevron_right_rounded,
+                              color: AppColors.onSurfaceVariant),
                       ],
                     ),
                     if (metric.spark.isNotEmpty) ...[

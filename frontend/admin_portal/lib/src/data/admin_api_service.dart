@@ -3,7 +3,9 @@ import 'package:shared/shared.dart';
 
 import '../features/headmasters/models/headmaster.dart';
 import '../features/schools/models/school.dart';
+import '../features/subscriptions/models/subscription_models.dart';
 import 'admin_endpoints.dart';
+import 'models/admin_metrics.dart';
 
 /// Network layer for the admin portal. Owns every admin HTTP call: it builds
 /// requests through the shared [ApiService] (auth headers, base URL, error
@@ -172,6 +174,145 @@ class AdminApiService {
       method: HttpMethod.post,
       path: '${AdminEndpoints.schoolUsers(schoolId)}/$userId/deactivate',
       parser: (json) => _headmasterFromUser(json as Map<String, dynamic>, schoolId),
+    );
+  }
+
+  // ── Platform metrics ────────────────────────────────────────
+  /// Live KPIs for the admin Dashboard (total schools, active subs, revenue).
+  Future<ApiResponse<AdminDashboardData>> fetchDashboard() {
+    return _api.request<AdminDashboardData>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.adminDashboard,
+      parser: (json) => AdminDashboardData.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Revenue grouped by calendar month (oldest → newest).
+  Future<ApiResponse<RevenueReport>> fetchRevenue({int months = 12}) {
+    return _api.request<RevenueReport>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.adminRevenue,
+      query: {'months': '$months'},
+      parser: (json) => RevenueReport.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Billing overview: totals, pending, recent payments, revenue trend.
+  Future<ApiResponse<BillingReport>> fetchBilling() {
+    return _api.request<BillingReport>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.adminBilling,
+      parser: (json) => BillingReport.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Platform metrics: KPIs, churn, plan distribution, revenue trend.
+  Future<ApiResponse<MetricsReport>> fetchMetrics() {
+    return _api.request<MetricsReport>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.adminMetrics,
+      parser: (json) => MetricsReport.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ── Subscription plans (editable products) ──────────────────
+  Future<ApiResponse<List<SubscriptionPlanModel>>> fetchPlans({
+    bool includeArchived = false,
+  }) {
+    return _api.request<List<SubscriptionPlanModel>>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.subscriptionPlans,
+      query: {'include_archived': '$includeArchived'},
+      parser: (json) => (json as List)
+          .map((e) => SubscriptionPlanModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<SubscriptionPlanModel>> createPlan(
+    Map<String, dynamic> payload,
+  ) {
+    return _api.request<SubscriptionPlanModel>(
+      method: HttpMethod.post,
+      path: AdminEndpoints.subscriptionPlans,
+      body: payload,
+      parser: (json) => SubscriptionPlanModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<SubscriptionPlanModel>> updatePlan(
+    String id,
+    Map<String, dynamic> payload,
+  ) {
+    return _api.request<SubscriptionPlanModel>(
+      method: HttpMethod.patch,
+      path: AdminEndpoints.subscriptionPlan(id),
+      body: payload,
+      parser: (json) => SubscriptionPlanModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Archives (soft-deletes) a plan.
+  Future<ApiResponse<SubscriptionPlanModel>> archivePlan(String id) {
+    return _api.request<SubscriptionPlanModel>(
+      method: HttpMethod.delete,
+      path: AdminEndpoints.subscriptionPlan(id),
+      parser: (json) => SubscriptionPlanModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ── Subscription instances (per-school) ─────────────────────
+  /// `statusFilter` = all | active | pending | history.
+  Future<ApiResponse<List<SchoolSubscriptionModel>>> fetchSubscriptions({
+    String statusFilter = 'all',
+  }) {
+    return _api.request<List<SchoolSubscriptionModel>>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.subscriptions,
+      query: {'status_filter': statusFilter},
+      parser: (json) => (json as List)
+          .map((e) => SchoolSubscriptionModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  /// Assigns a plan to a school with an optional discount, creating the
+  /// subscription instance + initial payment.
+  Future<ApiResponse<SchoolSubscriptionModel>> assignSubscriptionInstance({
+    required String schoolId,
+    required String planId,
+    String discountType = 'none',
+    double discountValue = 0,
+    bool activate = true,
+  }) {
+    return _api.request<SchoolSubscriptionModel>(
+      method: HttpMethod.post,
+      path: AdminEndpoints.subscriptions,
+      body: {
+        'school_id': schoolId,
+        'plan_id': planId,
+        'discount_type': discountType,
+        'discount_value': discountValue,
+        'activate': activate,
+      },
+      parser: (json) => SchoolSubscriptionModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<SchoolSubscriptionModel>> renewSubscription(String id) {
+    return _api.request<SchoolSubscriptionModel>(
+      method: HttpMethod.post,
+      path: AdminEndpoints.subscriptionRenew(id),
+      body: const {},
+      parser: (json) => SchoolSubscriptionModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<SchoolSubscriptionModel>> cancelSubscription(String id) {
+    return _api.request<SchoolSubscriptionModel>(
+      method: HttpMethod.post,
+      path: AdminEndpoints.subscriptionCancel(id),
+      parser: (json) => SchoolSubscriptionModel.fromJson(json as Map<String, dynamic>),
     );
   }
 }

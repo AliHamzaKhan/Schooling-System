@@ -36,12 +36,26 @@ class EnvConfig {
     if (_apiBaseUrlOverride.isNotEmpty) return _apiBaseUrlOverride;
     switch (_current) {
       case Environment.debug:
-        return 'http://10.211.26.169:8000/api/v1';
+        return 'http://192.168.0.41:8000/api/v1';
       case Environment.staging:
         return 'https://staging.api.schooling.app/api/v1';
       case Environment.prod:
         return 'https://api.schooling.app/api/v1';
     }
+  }
+
+  /// The server origin (scheme + host + port), i.e. [apiBaseUrl] without its
+  /// `/api/vN` suffix. Static assets under `/media/...` hang off this.
+  static String get serverOrigin =>
+      apiBaseUrl.replaceFirst(RegExp(r'/api/v\d+/?$'), '');
+
+  /// Resolves a possibly-relative media path (e.g. `/media/uniform/x.png`) to an
+  /// absolute URL. Absolute URLs and empty values are returned unchanged.
+  static String mediaUrl(String pathOrUrl) {
+    if (pathOrUrl.isEmpty || pathOrUrl.startsWith('http')) return pathOrUrl;
+    final base = serverOrigin;
+    final sep = pathOrUrl.startsWith('/') ? '' : '/';
+    return '$base$sep$pathOrUrl';
   }
 
   /// Default per-request timeout (individual calls may override).

@@ -18,6 +18,24 @@ class SubmissionController extends GetxController {
   final submitting = false.obs;
   final error = RxnString();
 
+  /// When the assignment is already submitted the screen shows a read-only
+  /// status view. The student can opt into replacing their submission (allowed
+  /// by the backend until it's graded), which flips this on to reveal the form.
+  final resubmit = false.obs;
+
+  void startResubmit() {
+    error.value = null;
+    resubmit.value = true;
+  }
+
+  void cancelResubmit() {
+    clearFile();
+    resubmit.value = false;
+  }
+
+  /// Whether the submit form should be shown instead of the status view.
+  bool get showForm => !(assignment.value?.isSubmitted ?? false) || resubmit.value;
+
   // Bytes of the picked file, uploaded to storage on submit.
   List<int>? _pickedBytes;
 

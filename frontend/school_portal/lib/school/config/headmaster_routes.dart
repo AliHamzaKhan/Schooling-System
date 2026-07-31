@@ -39,4 +39,20 @@ class HeadmasterRoutes {
   static const settings = '$_base/settings';
   static const salary = '$_base/salary';
   static const generatePayslip = '$_base/salary/payslip/new';
+
+  // Courses authoring.
+  static const coursesAdmin = '$_base/courses';
+  static const courseContent = '$_base/courses/content';
+  static const bookAdmin = '$_base/courses/book';
+
+  // School info authoring.
+  static const schoolInfoEdit = '$_base/school-info';
+
+  // Leave review.
+  static const leaveReview = '$_base/leave';
+
+  // Examination authoring: categories + student promotion.
+  static const examCategories = '$_base/exams/categories';
+  static const examTimetable = '$_base/exams/timetable';
+  static const promotion = '$_base/exams/promotion';
 }

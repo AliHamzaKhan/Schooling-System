@@ -106,3 +106,19 @@ async def record_payment(
 @router.get("/report", response_model=schemas.FeeReport, dependencies=[_export])
 async def fee_report(school_id: uuid.UUID, db: DbDep) -> schemas.FeeReport:
     return await FeeService(db).report(school_id)
+
+
+# ----------------------------- fee reminders ---------------------------- #
+
+
+@router.post("/send-reminders", dependencies=[_create])
+async def send_fee_reminders(
+    school_id: uuid.UUID, db: DbDep, current_user: CurrentUser
+) -> dict:
+    """Manually notify guardians of every student with outstanding fees.
+
+    The same reminder runs automatically 5 days before the salary payout day via
+    the ``/jobs/fee-reminders`` cron endpoint; this lets a headmaster fire it on
+    demand."""
+    count = await FeeService(db).send_fee_reminders(school_id, current_user.id)
+    return {"notified_students": count}

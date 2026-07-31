@@ -23,7 +23,7 @@ if (hasReleaseSigning) {
 }
 
 android {
-    namespace = "com.ahkstudios.taleem_hub"
+        namespace = "com.ahkstudios.taleem_hub"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

@@ -29,6 +29,48 @@ _result_view = Depends(require_school_permission(Module.RESULTS, PA.VIEW))
 _result_publish = Depends(require_school_permission(Module.RESULTS, PA.APPROVE))
 
 
+# --------------------------- exam categories ---------------------------- #
+
+
+@router.post("/categories", response_model=schemas.ExamCategoryOut, status_code=status.HTTP_201_CREATED, dependencies=[_exam_create])
+async def create_exam_category(
+    school_id: uuid.UUID, data: schemas.ExamCategoryCreate, db: DbDep
+) -> schemas.ExamCategoryOut:
+    return await ExaminationService(db).create_category(school_id, data)
+
+
+@router.get("/categories", response_model=list[schemas.ExamCategoryOut], dependencies=[_exam_view])
+async def list_exam_categories(
+    school_id: uuid.UUID, db: DbDep
+) -> list[schemas.ExamCategoryOut]:
+    return await ExaminationService(db).list_categories(school_id)
+
+
+@router.patch("/categories/{category_id}", response_model=schemas.ExamCategoryOut, dependencies=[_exam_edit])
+async def update_exam_category(
+    school_id: uuid.UUID, category_id: uuid.UUID, data: schemas.ExamCategoryUpdate, db: DbDep
+) -> schemas.ExamCategoryOut:
+    return await ExaminationService(db).update_category(school_id, category_id, data)
+
+
+@router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[_exam_delete])
+async def delete_exam_category(school_id: uuid.UUID, category_id: uuid.UUID, db: DbDep) -> None:
+    await ExaminationService(db).delete_category(school_id, category_id)
+
+
+@router.post("/categories/{category_id}/announce", response_model=schemas.ExamCategoryOut, dependencies=[_exam_create])
+async def announce_exam_category(
+    school_id: uuid.UUID,
+    category_id: uuid.UUID,
+    data: schemas.ExamCategoryAnnounce,
+    db: DbDep,
+    current_user: CurrentUser,
+) -> schemas.ExamCategoryOut:
+    return await ExaminationService(db).announce_category(
+        school_id, category_id, data, current_user.id
+    )
+
+
 # -------------------------------- exams --------------------------------- #
 
 

@@ -2,9 +2,56 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.core.enums import ExamStatus
+
+# --------------------------------------------------------------------------- #
+# Exam category (term/type, e.g. Mid Term / Final Term)
+# --------------------------------------------------------------------------- #
+
+
+class ExamCategoryCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    start_date: date | None = None
+    end_date: date | None = None
+
+    @model_validator(mode="after")
+    def _check_dates(self) -> "ExamCategoryCreate":
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValueError("end_date cannot be before start_date")
+        return self
+
+
+class ExamCategoryUpdate(BaseModel):
+    """All fields optional so the client can patch just the name or just dates."""
+
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    start_date: date | None = None
+    end_date: date | None = None
+
+
+class ExamCategoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    school_id: uuid.UUID
+    name: str
+    start_date: date | None = None
+    end_date: date | None = None
+    announced_at: datetime | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def can_announce(self) -> bool:
+        """True once the term has started — the Announce button unlocks."""
+        return self.start_date is not None and self.start_date <= date.today()
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def announced(self) -> bool:
+        return self.announced_at is not None
+
 
 # --------------------------------------------------------------------------- #
 # Exam
@@ -14,6 +61,7 @@ from app.core.enums import ExamStatus
 class ExamCreate(BaseModel):
     class_id: uuid.UUID
     name: str = Field(min_length=2, max_length=150)
+    category_id: uuid.UUID | None = None
     session_id: uuid.UUID | None = None
     start_date: date | None = None
     end_date: date | None = None
@@ -22,6 +70,7 @@ class ExamCreate(BaseModel):
 class ExamUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=150)
     status: ExamStatus | None = None
+    category_id: uuid.UUID | None = None
     start_date: date | None = None
     end_date: date | None = None
 
@@ -32,6 +81,7 @@ class ExamOut(BaseModel):
     id: uuid.UUID
     school_id: uuid.UUID
     class_id: uuid.UUID
+    category_id: uuid.UUID | None = None
     session_id: uuid.UUID | None = None
     name: str
     status: str
@@ -49,6 +99,7 @@ class ExamSubjectCreate(BaseModel):
     max_marks: float = Field(gt=0)
     pass_marks: float = Field(ge=0)
     exam_date: date | None = None
+    exam_time: str | None = Field(default=None, max_length=20)
 
     @model_validator(mode="after")
     def _check(self) -> "ExamSubjectCreate":
@@ -66,6 +117,15 @@ class ExamSubjectOut(BaseModel):
     max_marks: float
     pass_marks: float
     exam_date: date | None = None
+    exam_time: str | None = None
+
+
+class ExamCategoryAnnounce(BaseModel):
+    """Optional overrides for the announcement message. Sensible defaults are
+    derived from the category name/dates when omitted."""
+
+    title: str | None = Field(default=None, max_length=200)
+    body: str | None = Field(default=None, max_length=1000)
 
 
 # --------------------------------------------------------------------------- #

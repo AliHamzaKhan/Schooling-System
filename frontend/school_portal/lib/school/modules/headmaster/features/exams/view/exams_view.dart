@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../components/exam_schedule_row.dart';
@@ -92,6 +93,23 @@ class ExamsView extends GetView<HeadmasterExamsController> {
                   trailingIcon: Icons.chevron_right_rounded,
                   expanded: true,
                   onPressed: onTimetable,
+                ),
+                const SizedBox(height: AppSpacing.stackSm),
+                GhostButton(
+                  label: 'Exam Categories',
+                  leadingIcon: Icons.event_note_rounded,
+                  trailingIcon: Icons.chevron_right_rounded,
+                  expanded: true,
+                  onPressed: () =>
+                      Get.toNamed(HeadmasterRoutes.examCategories),
+                ),
+                const SizedBox(height: AppSpacing.stackSm),
+                GhostButton(
+                  label: 'Student Promotion',
+                  leadingIcon: Icons.trending_up_rounded,
+                  trailingIcon: Icons.chevron_right_rounded,
+                  expanded: true,
+                  onPressed: () => Get.toNamed(HeadmasterRoutes.promotion),
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
 

@@ -3,6 +3,9 @@ import 'package:shared/shared.dart';
 
 import '../features/assignments/models/assignment.dart';
 import '../features/attendance/models/attendance_data.dart';
+import '../features/courses/models/course_models.dart';
+import '../features/leave/models/leave_models.dart';
+import '../features/school_info/models/school_info_models.dart';
 import '../features/exams/models/exam.dart';
 import '../features/notifications/models/notification_item.dart';
 import '../features/results/models/exam_result.dart';
@@ -100,8 +103,9 @@ class StudentApiService {
   static StudentAssignment _assignmentFromRow(Map<String, dynamic> a) {
     final due = a['due_date'] as String?;
     final sub = a['my_submission'] as Map<String, dynamic>?;
-    final subStatus = (sub?['status'] as String?)?.toLowerCase();
-    final status = switch (subStatus) {
+    final submission =
+        sub == null ? null : StudentSubmission.fromJson(sub);
+    final status = switch (submission?.status) {
       'submitted' || 'late' || 'graded' || 'approved' =>
         StudentAssignmentStatus.submitted,
       _ => StudentAssignmentStatus.notStarted,
@@ -115,6 +119,7 @@ class StudentApiService {
       status: status,
       accent: status.color,
       points: (a['max_marks'] as num?)?.toInt() ?? 0,
+      submission: submission,
     );
   }
 
@@ -460,6 +465,152 @@ class StudentApiService {
         ],
       },
       parser: (json) => QuizResult.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ─────────────────────────── Courses ───────────────────────────
+
+  /// Available courses for the school, from `/schools/{id}/courses`.
+  Future<ApiResponse<List<Course>>> fetchCourses() {
+    return _api.request<List<Course>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.courses(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(Course.fromJson)
+          .toList(),
+    );
+  }
+
+  /// Books within a course (each with its chapter count).
+  Future<ApiResponse<List<CourseBook>>> fetchCourseBooks(String courseId) {
+    return _api.request<List<CourseBook>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.courseBooks(_sid, courseId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(CourseBook.fromJson)
+          .toList(),
+    );
+  }
+
+  /// A book's chapter list (table of contents — titles only).
+  Future<ApiResponse<List<ChapterBrief>>> fetchBookChapters(String bookId) {
+    return _api.request<List<ChapterBrief>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.bookChapters(_sid, bookId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(ChapterBrief.fromJson)
+          .toList(),
+    );
+  }
+
+  /// One chapter with its full text body.
+  Future<ApiResponse<Chapter>> fetchChapter(String chapterId) {
+    return _api.request<Chapter>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.chapter(_sid, chapterId),
+      parser: (json) => Chapter.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Notes within a course (titles only).
+  Future<ApiResponse<List<NoteBrief>>> fetchCourseNotes(String courseId) {
+    return _api.request<List<NoteBrief>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.courseNotes(_sid, courseId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(NoteBrief.fromJson)
+          .toList(),
+    );
+  }
+
+  /// One note with its full text body.
+  Future<ApiResponse<Note>> fetchNote(String noteId) {
+    return _api.request<Note>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.note(_sid, noteId),
+      parser: (json) => Note.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// The caller's saved reading position for a book/note (page 0 if none).
+  Future<ApiResponse<ReadingProgress>> fetchReadingProgress({
+    required String resourceType,
+    required String resourceId,
+  }) {
+    return _api.request<ReadingProgress>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.readingProgressLookup(_sid),
+      query: {'resource_type': resourceType, 'resource_id': resourceId},
+      parser: (json) => ReadingProgress.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Persists the caller's reading position for a book/note.
+  Future<ApiResponse<ReadingProgress>> saveReadingProgress({
+    required String resourceType,
+    required String resourceId,
+    String? chapterId,
+    required int page,
+  }) {
+    return _api.request<ReadingProgress>(
+      method: HttpMethod.put,
+      path: StudentEndpoints.readingProgress(_sid),
+      body: {
+        'resource_type': resourceType,
+        'resource_id': resourceId,
+        'chapter_id': ?chapterId,
+        'page': page,
+      },
+      parser: (json) => ReadingProgress.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ─────────────────────────── Leave ───────────────────────────
+
+  /// The student's own leave applications, newest state first.
+  Future<ApiResponse<List<LeaveRequest>>> fetchMyLeave() {
+    return _api.request<List<LeaveRequest>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.leaveMine(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(LeaveRequest.fromJson)
+          .toList(),
+    );
+  }
+
+  /// Submits a new leave application; it is routed to reviewers server-side.
+  Future<ApiResponse<LeaveRequest>> submitLeave({
+    String? leaveType,
+    required String startDate,
+    required String endDate,
+    String? reason,
+  }) {
+    return _api.request<LeaveRequest>(
+      method: HttpMethod.post,
+      path: StudentEndpoints.leaveRequests(_sid),
+      body: {
+        'leave_type': ?leaveType,
+        'start_date': startDate,
+        'end_date': endDate,
+        'reason': ?reason,
+      },
+      parser: (json) => LeaveRequest.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ─────────────────────────── School info ───────────────────────────
+
+  /// The public school profile (about, achievements, uniform, contacts).
+  Future<ApiResponse<SchoolInfo>> fetchSchoolInfo() {
+    return _api.request<SchoolInfo>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.schoolInfo(_sid),
+      parser: (json) => SchoolInfo.fromJson(json as Map<String, dynamic>),
     );
   }
 }

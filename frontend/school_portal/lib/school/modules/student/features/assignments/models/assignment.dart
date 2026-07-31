@@ -17,6 +17,49 @@ extension StudentAssignmentStatusX on StudentAssignmentStatus {
       };
 }
 
+/// The student's own submission for an assignment, when one exists. Mirrors the
+/// backend `my_submission` (SubmissionBrief) so the detail screen can render the
+/// real turned-in state instead of reopening the submit form.
+class StudentSubmission {
+  /// Raw backend status: submitted | late | graded | approved | rejected.
+  final String status;
+  final String submittedOn;
+  final String? attachmentUrl;
+  final double? marksObtained;
+  final String? feedback;
+
+  /// When the teacher first opened this submission (the read receipt), or null.
+  final String? seenAt;
+
+  const StudentSubmission({
+    required this.status,
+    required this.submittedOn,
+    this.attachmentUrl,
+    this.marksObtained,
+    this.feedback,
+    this.seenAt,
+  });
+
+  bool get isLate => status == 'late';
+  bool get isGraded => status == 'graded';
+  bool get isReviewed =>
+      status == 'graded' || status == 'approved' || status == 'rejected';
+  bool get isRejected => status == 'rejected';
+
+  /// The teacher has opened this submission (read receipt) or already acted.
+  bool get isSeen => (seenAt ?? '').isNotEmpty || isReviewed;
+
+  factory StudentSubmission.fromJson(Map<String, dynamic> json) =>
+      StudentSubmission(
+        status: (json['status'] as String? ?? '').toLowerCase(),
+        submittedOn: json['submitted_on'] as String? ?? '',
+        attachmentUrl: json['attachment_url'] as String?,
+        marksObtained: (json['marks_obtained'] as num?)?.toDouble(),
+        feedback: json['feedback'] as String?,
+        seenAt: json['seen_at'] as String?,
+      );
+}
+
 class StudentAssignment {
   final String id;
   final String subject;
@@ -31,6 +74,9 @@ class StudentAssignment {
   /// Filename of an attached reference, if any.
   final String? attachment;
 
+  /// The student's own submission, when they have turned this in.
+  final StudentSubmission? submission;
+
   const StudentAssignment({
     required this.id,
     required this.subject,
@@ -42,7 +88,10 @@ class StudentAssignment {
     required this.points,
     this.dueIsUrgent = false,
     this.attachment,
+    this.submission,
   });
+
+  bool get isSubmitted => submission != null;
 
   factory StudentAssignment.fromJson(Map<String, dynamic> json) {
     final status = StudentAssignmentStatus.values.firstWhere(

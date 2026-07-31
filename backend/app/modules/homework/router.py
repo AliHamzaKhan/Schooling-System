@@ -93,7 +93,9 @@ async def submit_assignment(
 
 @router.get("/assignments/{assignment_id}/submissions", response_model=list[schemas.SubmissionOut], dependencies=[_view])
 async def list_submissions(school_id: uuid.UUID, assignment_id: uuid.UUID, db: DbDep) -> list[schemas.SubmissionOut]:
-    return await HomeworkService(db).list_submissions(school_id, assignment_id)
+    """A teacher viewing an assignment's submissions marks each as seen (the
+    student's read receipt)."""
+    return await HomeworkService(db).list_submissions(school_id, assignment_id, mark_seen=True)
 
 
 @router.patch("/submissions/{submission_id}/grade", response_model=schemas.SubmissionOut, dependencies=[_edit])

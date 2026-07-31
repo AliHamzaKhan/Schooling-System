@@ -1,5 +1,6 @@
 """Shared FastAPI dependencies: current user and permission enforcement."""
 import uuid
+from datetime import date
 from typing import Annotated
 
 from fastapi import Depends
@@ -10,10 +11,23 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.enums import Module, PermissionAction, SystemRole
-from app.core.exceptions import credentials_exception, forbidden
+from app.core.enums import (
+    Module,
+    PermissionAction,
+    SchoolStatus,
+    SubscriptionStatus,
+    SystemRole,
+)
+from app.core.exceptions import (
+    credentials_exception,
+    forbidden,
+    not_found,
+    payment_required,
+)
 from app.core.security import ACCESS_TOKEN, JWTError, decode_token
 from app.models.role import Role
+from app.models.school import School
+from app.models.subscription import SchoolSubscription
 from app.models.user import User
 from app.modules.permissions.service import PermissionService
 
@@ -158,3 +172,81 @@ def require_school_permission(module: Module, action: PermissionAction):
         return user
 
     return checker
+
+
+async def _subscription_active(db: AsyncSession, school: School) -> bool:
+    """Whether the school currently holds an active, non-expired subscription.
+
+    A school is allowed through when it has an `active` [SchoolSubscription] whose
+    `end_date` has not passed. If the school has subscription rows but none are
+    currently active, access is blocked (expired / cancelled). Schools with **no**
+    subscription rows at all are grandfathered on their legacy plan assignment
+    (`subscription_plan`) so pre-existing tenants keep working; a brand-new tenant
+    provisioned through the wizard always has a real subscription row.
+    """
+    today = date.today()
+    active = await db.scalar(
+        select(SchoolSubscription.id)
+        .where(
+            SchoolSubscription.school_id == school.id,
+            SchoolSubscription.status == SubscriptionStatus.ACTIVE.value,
+            SchoolSubscription.end_date >= today,
+        )
+        .limit(1)
+    )
+    if active is not None:
+        return True
+    any_sub = await db.scalar(
+        select(SchoolSubscription.id)
+        .where(SchoolSubscription.school_id == school.id)
+        .limit(1)
+    )
+    if any_sub is not None:
+        return False  # has subscriptions, but all expired / cancelled
+    return school.subscription_plan is not None  # legacy grandfather
+
+
+async def enforce_school_context(
+    school_id: uuid.UUID, user: CurrentUser, db: DbDep
+) -> User:
+    """Baseline gate for every school-scoped route (applied router-wide in
+    `main.py`). Enforces the three tenant-security invariants on **every**
+    protected endpoint:
+
+    1. **Tenant isolation** — the caller must belong to the `school_id` in the
+       path (their own "Headmaster"/tenant). Cross-tenant access is rejected.
+    2. **Account status** — the caller's account must be active (blocked /
+       deactivated accounts are already rejected at authentication; re-checked
+       here defensively).
+    3. **Subscription status** — the school must be active and hold a live
+       subscription; expired / cancelled / suspended tenants are blocked (402).
+
+    The Super Admin bypasses all three. Per-endpoint permission dependencies
+    (`require_school_permission`, …) still run on top of this for authorization.
+    """
+    if PermissionService.is_super_admin(user):
+        return user
+
+    # 1. Tenant isolation.
+    if user.school_id != school_id:
+        raise forbidden("You can only access data within your own school")
+
+    # 2. Account status.
+    if not user.is_active:
+        raise forbidden("Your account is inactive")
+
+    school = await db.get(School, school_id)
+    if school is None:
+        raise not_found("School not found")
+
+    # 3a. School lifecycle status (pending / suspended are blocked).
+    if school.status != SchoolStatus.ACTIVE.value:
+        raise forbidden(f"This school is {school.status}")
+
+    # 3b. Subscription must be active / non-expired.
+    if not await _subscription_active(db, school):
+        raise payment_required(
+            "This school's subscription has expired. Please renew to continue."
+        )
+
+    return user

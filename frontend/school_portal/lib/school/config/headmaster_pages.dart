@@ -20,6 +20,20 @@ import '../modules/headmaster/features/reports/view/reports_view.dart';
 import '../modules/headmaster/features/salary/binding/salary_binding.dart';
 import '../modules/headmaster/features/salary/view/generate_payslip_view.dart';
 import '../modules/headmaster/features/salary/view/salary_view.dart';
+import '../modules/headmaster/features/courses/binding/courses_admin_binding.dart';
+import '../modules/headmaster/features/courses/view/book_admin_view.dart';
+import '../modules/headmaster/features/courses/view/course_content_view.dart';
+import '../modules/headmaster/features/courses/view/courses_admin_view.dart';
+import '../modules/headmaster/features/leave/binding/leave_review_binding.dart';
+import '../modules/headmaster/features/leave/view/leave_review_view.dart';
+import '../modules/headmaster/features/exams/binding/exam_categories_binding.dart';
+import '../modules/headmaster/features/exams/binding/exam_timetable_binding.dart';
+import '../modules/headmaster/features/exams/view/exam_categories_view.dart';
+import '../modules/headmaster/features/exams/view/exam_timetable_view.dart';
+import '../modules/headmaster/features/promotion/binding/promotion_binding.dart';
+import '../modules/headmaster/features/promotion/view/promotion_view.dart';
+import '../modules/headmaster/features/schoolinfo/binding/school_info_edit_binding.dart';
+import '../modules/headmaster/features/schoolinfo/view/school_info_edit_view.dart';
 import '../modules/headmaster/features/settings/binding/settings_binding.dart';
 import '../modules/headmaster/features/settings/view/settings_view.dart';
 import '../modules/headmaster/features/student_report/binding/student_report_binding.dart';
@@ -150,6 +164,54 @@ class HeadmasterPages {
     GetPage(
       name: HeadmasterRoutes.generatePayslip,
       page: () => const GeneratePayslipView(),
+    ),
+
+    // Courses authoring.
+    GetPage(
+      name: HeadmasterRoutes.coursesAdmin,
+      page: () => const CoursesAdminView(),
+      binding: CoursesAdminBinding(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.courseContent,
+      page: () => const CourseContentView(),
+      binding: CourseContentBinding(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.bookAdmin,
+      page: () => const BookAdminView(),
+      binding: BookAdminBinding(),
+    ),
+
+    // School info authoring.
+    GetPage(
+      name: HeadmasterRoutes.schoolInfoEdit,
+      page: () => const SchoolInfoEditView(),
+      binding: SchoolInfoEditBinding(),
+    ),
+
+    // Leave review.
+    GetPage(
+      name: HeadmasterRoutes.leaveReview,
+      page: () => const LeaveReviewView(),
+      binding: LeaveReviewBinding(),
+    ),
+
+    // Examination: categories + student promotion.
+    GetPage(
+      name: HeadmasterRoutes.examCategories,
+      page: () => const ExamCategoriesView(),
+      binding: ExamCategoriesBinding(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.examTimetable,
+      page: () => const ExamTimetableView(),
+      binding: ExamTimetableBinding(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.promotion,
+      page: () => const PromotionView(),
+      binding: PromotionBinding(),
     ),
   ];
 }

@@ -9,9 +9,9 @@ import asyncio
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.constants import PLAN_MODULES, PLAN_NAMES
+from app.core.constants import PLAN_MODULES, PLAN_NAMES, PLAN_PRICES
 from app.core.database import AsyncSessionLocal, engine
-from app.core.enums import Module, PermissionAction, SystemRole
+from app.core.enums import BillingPeriod, Module, PermissionAction, SystemRole
 from app.core.security import hash_password
 from app.models import Base
 from app.models.role import Role, RolePermission
@@ -30,11 +30,23 @@ async def _seed_plans(db) -> None:
     for code, modules in PLAN_MODULES.items():
         existing = await db.scalar(select(SubscriptionPlan).where(SubscriptionPlan.code == code.value))
         module_values = [m.value for m in modules]
+        price = PLAN_PRICES[code]
         if existing is None:
-            db.add(SubscriptionPlan(code=code.value, name=PLAN_NAMES[code], modules=module_values))
+            db.add(
+                SubscriptionPlan(
+                    code=code.value,
+                    name=PLAN_NAMES[code],
+                    modules=module_values,
+                    price=price,
+                    billing_period=BillingPeriod.MONTHLY.value,
+                )
+            )
         else:
             existing.modules = module_values
             existing.name = PLAN_NAMES[code]
+            # Only seed a price if one hasn't been set yet (don't clobber admin edits).
+            if not existing.price:
+                existing.price = price
 
 
 def _full_permission(module: str) -> RolePermission:

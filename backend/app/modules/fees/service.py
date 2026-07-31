@@ -416,3 +416,53 @@ class FeeService:
             overdue_count=overdue,
             status_counts=status_counts,
         )
+
+    # -------------------------- fee reminders ---------------------------- #
+
+    async def outstanding_student_ids(self, school_id: uuid.UUID) -> list[uuid.UUID]:
+        """Distinct students in the school with at least one unpaid/partial
+        invoice (any remaining balance)."""
+        rows = await self.db.execute(
+            select(Invoice.student_id)
+            .where(
+                Invoice.school_id == school_id,
+                Invoice.status != InvoiceStatus.PAID.value,
+            )
+            .distinct()
+        )
+        return [r[0] for r in rows.all()]
+
+    async def send_fee_reminders(
+        self, school_id: uuid.UUID, created_by: uuid.UUID | None = None
+    ) -> int:
+        """Notify the guardians of every student with outstanding fees. Returns
+        the number of students whose guardians were messaged.
+
+        Routed through the communication service's ``fee_due_reminder`` event, so
+        it only sends on the channels the school has enabled for that event.
+        """
+        # Local import avoids a module-level cycle (communication imports fees
+        # schemas indirectly via shared enums).
+        from app.core.enums import NotificationEvent
+        from app.modules.communication.service import CommunicationService
+
+        student_ids = await self.outstanding_student_ids(school_id)
+        if not student_ids:
+            return 0
+        comms = CommunicationService(self.db)
+        notified = 0
+        for student_id in student_ids:
+            messages = await comms.notify_student_guardians(
+                school_id,
+                student_id,
+                event=NotificationEvent.FEE_DUE_REMINDER.value,
+                title="Fee reminder",
+                body=(
+                    "This is a reminder that fees are outstanding. Please clear "
+                    "any dues at your earliest convenience."
+                ),
+                created_by=created_by,
+            )
+            if messages:
+                notified += 1
+        return notified

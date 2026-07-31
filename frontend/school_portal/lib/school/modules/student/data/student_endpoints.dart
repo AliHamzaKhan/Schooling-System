@@ -48,4 +48,32 @@ class StudentEndpoints {
       '/schools/$schoolId/exams/$examId/students/$studentId/report-card';
   static String studentTimetable(String schoolId, String studentId) =>
       '/schools/$schoolId/academic/students/$studentId/timetable';
+
+  // ── Courses (reading material) ──
+  static String courses(String schoolId) => '/schools/$schoolId/courses';
+  static String course(String schoolId, String courseId) =>
+      '/schools/$schoolId/courses/$courseId';
+  static String courseBooks(String schoolId, String courseId) =>
+      '/schools/$schoolId/courses/$courseId/books';
+  static String bookChapters(String schoolId, String bookId) =>
+      '/schools/$schoolId/courses/books/$bookId/chapters';
+  static String chapter(String schoolId, String chapterId) =>
+      '/schools/$schoolId/courses/chapters/$chapterId';
+  static String courseNotes(String schoolId, String courseId) =>
+      '/schools/$schoolId/courses/$courseId/notes';
+  static String note(String schoolId, String noteId) =>
+      '/schools/$schoolId/courses/notes/$noteId';
+  static String readingProgressLookup(String schoolId) =>
+      '/schools/$schoolId/courses/progress/lookup';
+  static String readingProgress(String schoolId) =>
+      '/schools/$schoolId/courses/progress';
+
+  // ── Leave applications ──
+  static String leaveRequests(String schoolId) =>
+      '/schools/$schoolId/leave/requests';
+  static String leaveMine(String schoolId) =>
+      '/schools/$schoolId/leave/requests/mine';
+
+  // ── School info ──
+  static String schoolInfo(String schoolId) => '/schools/$schoolId/info';
 }

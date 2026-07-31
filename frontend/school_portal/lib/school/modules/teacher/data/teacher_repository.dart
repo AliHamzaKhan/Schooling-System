@@ -1,5 +1,7 @@
 import 'package:shared/shared.dart';
 
+import '../../../widgets/leave_review.dart';
+import '../features/grading/models/submission_row.dart';
 import '../features/performance/models/section_performance.dart';
 import '../features/assignments/models/assignment.dart';
 import '../features/attendance/models/attendance_models.dart';
@@ -196,4 +198,27 @@ class TeacherRepository {
 
   Future<ApiResponse<List<IdLabel>>> loadSubjectOptions() =>
       _api.fetchSubjectOptions();
+
+  // ── Homework grading ──
+  Future<ApiResponse<List<SubmissionRow>>> loadSubmissions(String assignmentId) =>
+      _api.fetchSubmissions(assignmentId);
+
+  Future<ApiResponse<dynamic>> gradeSubmission({
+    required String submissionId,
+    required double marks,
+    String? feedback,
+  }) =>
+      _api.gradeSubmission(
+          submissionId: submissionId, marks: marks, feedback: feedback);
+
+  // ── Leave review ──
+  Future<ApiResponse<List<LeaveReviewItem>>> loadLeaveReview() =>
+      _api.fetchLeaveReview();
+
+  Future<ApiResponse<dynamic>> reviewLeave({
+    required String leaveId,
+    required bool approve,
+    String? note,
+  }) =>
+      _api.reviewLeave(leaveId: leaveId, approve: approve, note: note);
 }

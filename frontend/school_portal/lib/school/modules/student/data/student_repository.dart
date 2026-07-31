@@ -2,6 +2,9 @@ import 'package:shared/shared.dart';
 
 import '../features/assignments/models/assignment.dart';
 import '../features/attendance/models/attendance_data.dart';
+import '../features/courses/models/course_models.dart';
+import '../features/leave/models/leave_models.dart';
+import '../features/school_info/models/school_info_models.dart';
 import '../features/exams/models/exam.dart';
 import '../features/notifications/models/notification_item.dart';
 import '../features/quiz/models/quiz_models.dart';
@@ -68,4 +71,60 @@ class StudentRepository {
   Future<ApiResponse<QuizResult>> submitQuiz(
           String quizId, Map<String, String> answers) =>
       _api.submitQuiz(quizId, answers);
+
+  // ── Courses ──
+  Future<ApiResponse<List<Course>>> loadCourses() => _api.fetchCourses();
+
+  Future<ApiResponse<List<CourseBook>>> loadCourseBooks(String courseId) =>
+      _api.fetchCourseBooks(courseId);
+
+  Future<ApiResponse<List<ChapterBrief>>> loadBookChapters(String bookId) =>
+      _api.fetchBookChapters(bookId);
+
+  Future<ApiResponse<Chapter>> loadChapter(String chapterId) =>
+      _api.fetchChapter(chapterId);
+
+  Future<ApiResponse<List<NoteBrief>>> loadCourseNotes(String courseId) =>
+      _api.fetchCourseNotes(courseId);
+
+  Future<ApiResponse<Note>> loadNote(String noteId) => _api.fetchNote(noteId);
+
+  Future<ApiResponse<ReadingProgress>> loadReadingProgress({
+    required String resourceType,
+    required String resourceId,
+  }) =>
+      _api.fetchReadingProgress(
+          resourceType: resourceType, resourceId: resourceId);
+
+  Future<ApiResponse<ReadingProgress>> saveReadingProgress({
+    required String resourceType,
+    required String resourceId,
+    String? chapterId,
+    required int page,
+  }) =>
+      _api.saveReadingProgress(
+        resourceType: resourceType,
+        resourceId: resourceId,
+        chapterId: chapterId,
+        page: page,
+      );
+
+  // ── Leave ──
+  Future<ApiResponse<List<LeaveRequest>>> loadMyLeave() => _api.fetchMyLeave();
+
+  Future<ApiResponse<LeaveRequest>> submitLeave({
+    String? leaveType,
+    required String startDate,
+    required String endDate,
+    String? reason,
+  }) =>
+      _api.submitLeave(
+        leaveType: leaveType,
+        startDate: startDate,
+        endDate: endDate,
+        reason: reason,
+      );
+
+  // ── School info ──
+  Future<ApiResponse<SchoolInfo>> loadSchoolInfo() => _api.fetchSchoolInfo();
 }

@@ -94,30 +94,55 @@ class DashboardView extends GetView<StudentDashboardController> {
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
 
-                  GhostButton(
-                    label: 'Quizzes',
-                    leadingIcon: Icons.quiz_outlined,
-                    trailingIcon: Icons.chevron_right_rounded,
-                    expanded: true,
-                    onPressed: onOpenQuizzes,
+                  // Quick actions.
+                  const SectionHeader(title: 'Quick Actions'),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  _ActionTile(
+                    icon: Icons.quiz_rounded,
+                    title: 'Quizzes',
+                    subtitle: 'Practice and assigned quizzes',
+                    accent: AppColors.primary,
+                    onTap: onOpenQuizzes,
                   ),
-                  const SizedBox(height: AppSpacing.stackLg),
-
-                  // Academic results (exams + quizzes).
-                  GhostButton(
-                    label: 'My Results',
-                    leadingIcon: Icons.grading_rounded,
-                    trailingIcon: Icons.chevron_right_rounded,
-                    expanded: true,
-                    onPressed: () => Get.toNamed(StudentRoutes.results),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  _ActionTile(
+                    icon: Icons.menu_book_rounded,
+                    title: 'Courses',
+                    subtitle: 'Books and notes to read',
+                    accent: AppColors.aiAccent,
+                    onTap: () => Get.toNamed(StudentRoutes.courses),
                   ),
-                  const SizedBox(height: AppSpacing.stackSm),
-                  GhostButton(
-                    label: 'My Timetable',
-                    leadingIcon: Icons.calendar_view_week_rounded,
-                    trailingIcon: Icons.chevron_right_rounded,
-                    expanded: true,
-                    onPressed: () => Get.toNamed(StudentRoutes.timetable),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  _ActionTile(
+                    icon: Icons.event_busy_rounded,
+                    title: 'Leave Application',
+                    subtitle: 'Apply for leave and track status',
+                    accent: AppColors.secondary,
+                    onTap: () => Get.toNamed(StudentRoutes.leave),
+                  ),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  _ActionTile(
+                    icon: Icons.apartment_rounded,
+                    title: 'My School',
+                    subtitle: 'About, achievements, uniform, contact',
+                    accent: const Color(0xFFE8A317),
+                    onTap: () => Get.toNamed(StudentRoutes.schoolInfo),
+                  ),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  _ActionTile(
+                    icon: Icons.grading_rounded,
+                    title: 'My Results',
+                    subtitle: 'Exam and quiz scores',
+                    accent: const Color(0xFFE8A317),
+                    onTap: () => Get.toNamed(StudentRoutes.results),
+                  ),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  _ActionTile(
+                    icon: Icons.calendar_view_week_rounded,
+                    title: 'My Timetable',
+                    subtitle: 'Your weekly class schedule',
+                    accent: AppColors.tertiary,
+                    onTap: () => Get.toNamed(StudentRoutes.timetable),
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
 
@@ -191,6 +216,63 @@ class _StatTile extends StatelessWidget {
           Text(label,
               style: AppTypography.bodySm
                   .copyWith(color: AppColors.onSurfaceVariant)),
+        ],
+      ),
+    );
+  }
+}
+
+/// A glass action tile used for the dashboard's primary navigation. An accent
+/// icon chip, a title + supporting line, and a trailing chevron — richer and
+/// more scannable than a flat row of identical buttons.
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final VoidCallback? onTap;
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassSurface(
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.button),
+            ),
+            child: Icon(icon, color: accent, size: 22),
+          ),
+          const SizedBox(width: AppSpacing.stackMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: AppTypography.titleMd
+                        .copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(subtitle,
+                    style: AppTypography.bodySm
+                        .copyWith(color: AppColors.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.stackSm),
+          const Icon(Icons.chevron_right_rounded,
+              color: AppColors.onSurfaceVariant, size: 22),
         ],
       ),
     );

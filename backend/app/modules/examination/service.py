@@ -6,10 +6,23 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import grade_for
-from app.core.enums import EnrollmentStatus, ExamStatus, ResultStatus
+from app.core.enums import (
+    AudienceType,
+    Channel,
+    EnrollmentStatus,
+    ExamStatus,
+    ResultStatus,
+)
 from app.core.exceptions import bad_request, not_found
 from app.models.academic import Section, SchoolClass, StudentEnrollment, Subject
-from app.models.examination import Exam, ExamResult, ExamSeat, ExamSubject, Mark
+from app.models.examination import (
+    Exam,
+    ExamCategory,
+    ExamResult,
+    ExamSeat,
+    ExamSubject,
+    Mark,
+)
 from app.models.user import User
 from app.modules.examination import schemas
 
@@ -37,13 +50,130 @@ class ExaminationService:
         )
         return set(result.scalars().all())
 
+    # -------------------------- exam categories -------------------------- #
+
+    async def create_category(
+        self, school_id: uuid.UUID, data: schemas.ExamCategoryCreate
+    ) -> ExamCategory:
+        existing = await self.db.scalar(
+            select(ExamCategory).where(
+                ExamCategory.school_id == school_id,
+                ExamCategory.name == data.name,
+            )
+        )
+        if existing is not None:
+            raise bad_request(f'An exam category named "{data.name}" already exists')
+        category = ExamCategory(
+            school_id=school_id,
+            name=data.name,
+            start_date=data.start_date,
+            end_date=data.end_date,
+        )
+        self.db.add(category)
+        await self.db.flush()
+        return category
+
+    async def list_categories(self, school_id: uuid.UUID) -> list[ExamCategory]:
+        return list(
+            (
+                await self.db.execute(
+                    select(ExamCategory)
+                    .where(ExamCategory.school_id == school_id)
+                    .order_by(ExamCategory.name)
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    async def update_category(
+        self, school_id: uuid.UUID, category_id: uuid.UUID, data: schemas.ExamCategoryUpdate
+    ) -> ExamCategory:
+        category = await self._get_scoped(ExamCategory, school_id, category_id, "Exam category")
+        payload = data.model_dump(exclude_unset=True)
+        if "name" in payload and payload["name"] is not None:
+            clash = await self.db.scalar(
+                select(ExamCategory).where(
+                    ExamCategory.school_id == school_id,
+                    ExamCategory.name == payload["name"],
+                    ExamCategory.id != category_id,
+                )
+            )
+            if clash is not None:
+                raise bad_request(f'An exam category named "{payload["name"]}" already exists')
+        for field in ("name", "start_date", "end_date"):
+            if field in payload:
+                setattr(category, field, payload[field])
+        if category.start_date and category.end_date and category.end_date < category.start_date:
+            raise bad_request("end_date cannot be before start_date")
+        await self.db.flush()
+        return category
+
+    async def delete_category(self, school_id: uuid.UUID, category_id: uuid.UUID) -> None:
+        category = await self._get_scoped(ExamCategory, school_id, category_id, "Exam category")
+        await self.db.delete(category)  # exams.category_id => SET NULL
+        await self.db.flush()
+
+    async def announce_category(
+        self,
+        school_id: uuid.UUID,
+        category_id: uuid.UUID,
+        data: schemas.ExamCategoryAnnounce,
+        created_by: uuid.UUID,
+    ) -> ExamCategory:
+        """Push an announcement about the exam category to the whole school.
+
+        Only allowed once the term has started (start_date reached), matching the
+        Headmaster UI where the Announce button unlocks on the start date.
+        """
+        category = await self._get_scoped(ExamCategory, school_id, category_id, "Exam category")
+        today = datetime.now(timezone.utc).date()
+        if category.start_date is None or category.start_date > today:
+            raise bad_request("This exam category can only be announced on or after its start date")
+
+        title = data.title or f"{category.name} exams announced"
+        if data.body:
+            body = data.body
+        else:
+            when = ""
+            if category.start_date and category.end_date:
+                when = f" from {category.start_date.isoformat()} to {category.end_date.isoformat()}"
+            elif category.start_date:
+                when = f" starting {category.start_date.isoformat()}"
+            body = (
+                f"{category.name} examinations have been scheduled{when}. "
+                "Please check the exam timetable for subject-wise dates."
+            )
+
+        # Imported here to avoid a circular import at module load.
+        from app.modules.communication.schemas import BroadcastCreate
+        from app.modules.communication.service import CommunicationService
+
+        comms = CommunicationService(self.db)
+        await comms.create_broadcast(
+            school_id,
+            BroadcastCreate(
+                channel=Channel.PUSH,
+                audience_type=AudienceType.ENTIRE_SCHOOL,
+                title=title,
+                body=body,
+            ),
+            created_by,
+        )
+        category.announced_at = datetime.now(timezone.utc)
+        await self.db.flush()
+        return category
+
     # ------------------------------- exams ------------------------------- #
 
     async def create_exam(self, school_id: uuid.UUID, data: schemas.ExamCreate) -> Exam:
         await self._get_scoped(SchoolClass, school_id, data.class_id, "Class")
+        if data.category_id is not None:
+            await self._get_scoped(ExamCategory, school_id, data.category_id, "Exam category")
         exam = Exam(
             school_id=school_id,
             class_id=data.class_id,
+            category_id=data.category_id,
             session_id=data.session_id,
             name=data.name,
             status=ExamStatus.DRAFT.value,
@@ -99,6 +229,7 @@ class ExaminationService:
             max_marks=data.max_marks,
             pass_marks=data.pass_marks,
             exam_date=data.exam_date,
+            exam_time=data.exam_time,
         )
         self.db.add(paper)
         await self.db.flush()

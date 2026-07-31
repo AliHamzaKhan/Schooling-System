@@ -91,6 +91,8 @@ class _TeacherShellState extends State<TeacherShell> {
         onOpenGradebook: () => Get.toNamed(TeacherRoutes.gradebook),
         onOpenPerformance: () => _goToTab(_performanceTab),
         onOpenQuizzes: () => Get.toNamed(TeacherRoutes.quizzes),
+        onOpenAssignment: (a) =>
+            Get.toNamed(TeacherRoutes.grading, arguments: a),
       ),
       const ClassPerformanceView(),
     ];

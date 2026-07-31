@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/teacher_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../controller/dashboard_controller.dart';
@@ -85,6 +86,27 @@ class DashboardView extends GetView<TeacherDashboardController> {
                         if (i != _quickActions.length - 1)
                           const SizedBox(height: AppSpacing.stackSm),
                       ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.stackLg),
+
+                // Leave requests from this teacher's section students.
+                GlassSurface(
+                  onTap: () => Get.toNamed(TeacherRoutes.leaveReview),
+                  padding: const EdgeInsets.all(AppSpacing.stackLg),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event_available_outlined,
+                          color: AppColors.primary),
+                      const SizedBox(width: AppSpacing.stackMd),
+                      Expanded(
+                        child: Text('Leave Requests',
+                            style: AppTypography.titleMd
+                                .copyWith(fontWeight: FontWeight.w700)),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: AppColors.onSurfaceVariant),
                     ],
                   ),
                 ),

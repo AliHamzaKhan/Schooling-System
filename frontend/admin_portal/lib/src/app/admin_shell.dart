@@ -54,6 +54,10 @@ class _AdminShellState extends State<AdminShell> with TickerProviderStateMixin {
         DashboardView(
           onCreateSchool: () => _tabController.jumpToTab(1),
           onManageHeadmasters: () => Get.toNamed(AdminRoutes.headmasters),
+          onViewSchools: () => _tabController.jumpToTab(1),
+          onViewSubscriptions: () =>
+              Get.toNamed(AdminRoutes.subscriptionManagement),
+          onViewRevenue: () => Get.toNamed(AdminRoutes.revenue),
         ),
         const SchoolsView(),
         const PaymentsView(),

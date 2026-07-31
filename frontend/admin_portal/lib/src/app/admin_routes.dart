@@ -20,6 +20,10 @@ import '../features/schools/create/binding/create_school_binding.dart';
 import '../features/schools/create/view/create_school_view.dart';
 import '../features/subscriptions/binding/subscriptions_binding.dart';
 import '../features/subscriptions/view/subscriptions_view.dart';
+import '../features/subscription_management/binding/subscription_management_binding.dart';
+import '../features/subscription_management/view/subscription_management_view.dart';
+import '../features/revenue/binding/revenue_binding.dart';
+import '../features/revenue/view/revenue_view.dart';
 import 'admin_shell.dart';
 
 /// Route names + GetPages for the admin portal's authenticated area.
@@ -33,6 +37,8 @@ class AdminRoutes {
   static const home = '/home';
   static const createSchool = '/schools/create';
   static const subscriptions = '/subscriptions';
+  static const subscriptionManagement = '/subscriptions/manage';
+  static const revenue = '/revenue';
   static const headmasters = '/headmasters';
   static const rolePolicy = '/permissions/role';
   static const schoolPermissions = '/permissions/schools';
@@ -54,6 +60,16 @@ class AdminRoutes {
       name: subscriptions,
       page: () => const SubscriptionsView(),
       binding: SubscriptionsBinding(),
+    ),
+    GetPage(
+      name: subscriptionManagement,
+      page: () => const SubscriptionManagementView(),
+      binding: SubscriptionManagementBinding(),
+    ),
+    GetPage(
+      name: revenue,
+      page: () => const RevenueView(),
+      binding: RevenueBinding(),
     ),
     GetPage(
       name: headmasters,

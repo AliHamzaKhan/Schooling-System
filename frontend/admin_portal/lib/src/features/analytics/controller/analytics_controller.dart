@@ -1,17 +1,18 @@
 import 'package:get/get.dart';
 
-import '../models/analytics_data.dart';
+import '../../../data/models/admin_metrics.dart';
 import '../models/analytics_repository.dart';
 
-/// Drives the Analytics Overview screen.
+/// Drives the System Metrics screen (live `/admin/metrics`).
 class AnalyticsController extends GetxController {
-  final AnalyticsRepository _repo;
   AnalyticsController({AnalyticsRepository? repo})
       : _repo = repo ?? AnalyticsRepository();
 
+  final AnalyticsRepository _repo;
+
   final loading = true.obs;
   final error = RxnString();
-  final data = Rxn<AnalyticsData>();
+  final data = Rxn<MetricsReport>();
 
   @override
   void onInit() {
@@ -26,7 +27,7 @@ class AnalyticsController extends GetxController {
     if (res.success && res.data != null) {
       data.value = res.data;
     } else {
-      error.value = res.error ?? 'Could not load analytics.';
+      error.value = res.error ?? 'Could not load metrics.';
     }
     loading.value = false;
   }

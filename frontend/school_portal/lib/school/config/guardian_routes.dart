@@ -14,4 +14,5 @@ class GuardianRoutes {
   static const reportCard = '$_base/report-card';
   static const timetable = '$_base/timetable';
   static const notifications = '$_base/notifications';
+  static const leave = '$_base/leave';
 }

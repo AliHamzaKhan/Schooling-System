@@ -1,6 +1,6 @@
 """Homework & Assignment Service."""
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +9,7 @@ from app.core.enums import EnrollmentStatus, SubmissionStatus
 from app.core.exceptions import bad_request, forbidden, not_found
 from app.models.academic import Section, StudentEnrollment, Subject
 from app.models.homework import Assignment, Submission
+from app.models.user import User
 from app.modules.homework import schemas
 
 
@@ -244,13 +245,33 @@ class HomeworkService:
         return submission
 
     async def list_submissions(
-        self, school_id: uuid.UUID, assignment_id: uuid.UUID
+        self, school_id: uuid.UUID, assignment_id: uuid.UUID, *, mark_seen: bool = False
     ) -> list[Submission]:
         await self._get_scoped(Assignment, school_id, assignment_id, "Assignment")
         result = await self.db.execute(
             select(Submission).where(Submission.assignment_id == assignment_id)
         )
-        return list(result.scalars().all())
+        submissions = list(result.scalars().all())
+
+        # A teacher opening the list "reads" every submission (records a receipt
+        # the student sees). Only stamps the first time.
+        if mark_seen:
+            now = datetime.now(timezone.utc)
+            for s in submissions:
+                if s.seen_at is None:
+                    s.seen_at = now
+            await self.db.flush()
+
+        # Attach the submitting student's name for the grading UI.
+        student_ids = {s.student_id for s in submissions}
+        if student_ids:
+            rows = await self.db.execute(
+                select(User.id, User.full_name).where(User.id.in_(student_ids))
+            )
+            names = {r[0]: r[1] for r in rows.all()}
+            for s in submissions:
+                s.student_name = names.get(s.student_id)
+        return submissions
 
     async def grade(
         self,

@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared/shared.dart';
 
+import '../../../data/headmaster_repository.dart';
 import '../controller/settings_controller.dart';
 import '../../../../../widgets/skeletons.dart';
 
@@ -39,13 +42,7 @@ class SettingsView extends GetView<SettingsController> {
                 hint: 'e.g. Test High School',
                 controller: controller.name),
             const SizedBox(height: AppSpacing.stackMd),
-            GlassInput(
-                label: 'Logo URL',
-                hint: 'https://…/logo.png',
-                controller: controller.logoUrl,
-                keyboardType: TextInputType.url),
-            const SizedBox(height: AppSpacing.stackMd),
-            _LogoPreview(controller: controller),
+            _LogoPickerField(controller: controller),
             const SizedBox(height: AppSpacing.stackXl),
             Text('Branding', style: AppTypography.labelCaps),
             const SizedBox(height: AppSpacing.stackSm),
@@ -62,13 +59,24 @@ class SettingsView extends GetView<SettingsController> {
             Text('Invoices generated each month will be due on this day.',
                 style: AppTypography.bodyMd
                     .copyWith(color: AppColors.onSurfaceVariant)),
+            const SizedBox(height: AppSpacing.stackMd),
+            GlassInput(
+                label: 'Salary payout day (1–31)',
+                hint: 'e.g. 1',
+                controller: controller.salaryDay,
+                keyboardType: TextInputType.number),
+            const SizedBox(height: AppSpacing.stackSm),
+            Text(
+                'Guardians with outstanding fees are reminded automatically '
+                '5 days before this salary day.',
+                style: AppTypography.bodyMd
+                    .copyWith(color: AppColors.onSurfaceVariant)),
             const SizedBox(height: AppSpacing.stackXl),
             Obx(() => PrimaryButton(
                   label: 'Save Settings',
                   isLoading: controller.saving.value,
                   expanded: true,
-                  onPressed:
-                      controller.saving.value ? null : controller.save,
+                  onPressed: controller.saving.value ? null : controller.save,
                 )),
           ],
         );
@@ -103,138 +111,318 @@ const List<Color> _kPalette = [
   Color(0xFF0D47A1), Color(0xFF212121), Color(0xFFFFFFFF), Color(0xFF000000),
 ];
 
-class _UniformColorPicker extends StatelessWidget {
+/// An inline uniform-colour picker: an HSV wheel-free picker built from hue /
+/// saturation / brightness sliders plus quick-pick swatches — no bottom sheet.
+/// Reads/writes the hex value in [SettingsController.uniformColor].
+class _UniformColorPicker extends StatefulWidget {
   final SettingsController controller;
   const _UniformColorPicker({required this.controller});
 
-  Future<void> _openPicker(BuildContext context, Color current) async {
-    final picked = await showModalBottomSheet<Color>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  @override
+  State<_UniformColorPicker> createState() => _UniformColorPickerState();
+}
+
+class _UniformColorPickerState extends State<_UniformColorPicker> {
+  late HSVColor _hsv;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = _parseHex(widget.controller.uniformColor.text) ??
+        const Color(0xFF2196F3);
+    _hsv = HSVColor.fromColor(c);
+  }
+
+  void _set(HSVColor next) {
+    setState(() => _hsv = next);
+    widget.controller.uniformColor.text = _hexOf(next.toColor());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hsv.toColor();
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.button),
+        border: Border.all(color: AppColors.outlineVariant),
+        color: AppColors.surfaceContainerLowest,
       ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.stackLg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Pick uniform colour', style: AppTypography.titleLg),
-                const SizedBox(height: AppSpacing.stackMd),
-                GridView.count(
-                  crossAxisCount: 6,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: AppSpacing.stackSm,
-                  mainAxisSpacing: AppSpacing.stackSm,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  border: Border.all(color: AppColors.outlineVariant),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.stackMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final c in _kPalette)
-                      GestureDetector(
-                        onTap: () => Navigator.of(ctx).pop(c),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: c,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.button),
-                            border: Border.all(
-                                color: current.value == c.value
-                                    ? AppColors.primary
-                                    : AppColors.outlineVariant,
-                                width: current.value == c.value ? 3 : 1),
-                          ),
-                        ),
-                      ),
+                    Text('Uniform colour', style: AppTypography.bodyLg),
+                    const SizedBox(height: 2),
+                    Text(_hexOf(color),
+                        style: AppTypography.bodyMd.copyWith(
+                            color: AppColors.onSurfaceVariant)),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const Icon(Icons.palette_outlined),
+            ],
           ),
-        );
-      },
+          const SizedBox(height: AppSpacing.stackMd),
+          _ColorSlider(
+            label: 'Hue',
+            value: _hsv.hue,
+            max: 360,
+            activeColor: HSVColor.fromAHSV(1, _hsv.hue, 1, 1).toColor(),
+            onChanged: (v) => _set(_hsv.withHue(v)),
+          ),
+          _ColorSlider(
+            label: 'Saturation',
+            value: _hsv.saturation,
+            max: 1,
+            activeColor: color,
+            onChanged: (v) => _set(_hsv.withSaturation(v)),
+          ),
+          _ColorSlider(
+            label: 'Brightness',
+            value: _hsv.value,
+            max: 1,
+            activeColor: color,
+            onChanged: (v) => _set(_hsv.withValue(v)),
+          ),
+          const SizedBox(height: AppSpacing.stackSm),
+          Wrap(
+            spacing: AppSpacing.stackSm,
+            runSpacing: AppSpacing.stackSm,
+            children: [
+              for (final c in _kPalette)
+                GestureDetector(
+                  onTap: () => _set(HSVColor.fromColor(c)),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: c,
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                      border: Border.all(
+                          color: _sameColor(c, color)
+                              ? AppColors.primary
+                              : AppColors.outlineVariant,
+                          width: _sameColor(c, color) ? 3 : 1),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
-    if (picked != null) {
-      controller.uniformColor.text = _hexOf(picked);
+  }
+
+  bool _sameColor(Color a, Color b) =>
+      _hexOf(a).toUpperCase() == _hexOf(b).toUpperCase();
+}
+
+class _ColorSlider extends StatelessWidget {
+  final String label;
+  final double value;
+  final double max;
+  final Color activeColor;
+  final ValueChanged<double> onChanged;
+  const _ColorSlider({
+    required this.label,
+    required this.value,
+    required this.max,
+    required this.activeColor,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 78,
+          child: Text(label,
+              style: AppTypography.bodySm
+                  .copyWith(color: AppColors.onSurfaceVariant)),
+        ),
+        Expanded(
+          child: Slider(
+            value: value.clamp(0, max),
+            max: max,
+            activeColor: activeColor,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Tappable logo tile: pick an image file from the gallery, upload it, and store
+/// the resulting URL in [SettingsController.logoUrl]. Replaces the old
+/// paste-a-URL field.
+class _LogoPickerField extends StatefulWidget {
+  final SettingsController controller;
+  const _LogoPickerField({required this.controller});
+
+  @override
+  State<_LogoPickerField> createState() => _LogoPickerFieldState();
+}
+
+class _LogoPickerFieldState extends State<_LogoPickerField> {
+  final _picker = ImagePicker();
+  final _repo = Get.find<HeadmasterRepository>();
+  bool _uploading = false;
+  String? _error;
+  Uint8List? _preview;
+
+  Future<void> _pick() async {
+    setState(() => _error = null);
+    try {
+      final xfile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 90,
+      );
+      if (xfile == null) return;
+      final bytes = await xfile.readAsBytes();
+      setState(() {
+        _preview = bytes;
+        _uploading = true;
+      });
+      final res = await _repo.uploadAvatar(
+        filePath: kIsWeb ? null : xfile.path,
+        bytes: kIsWeb ? bytes : null,
+        filename: xfile.name,
+        contentType: xfile.mimeType ?? 'image/png',
+      );
+      if (!mounted) return;
+      if (res.success && res.data != null) {
+        widget.controller.logoUrl.text = res.data!;
+        setState(() => _uploading = false);
+      } else {
+        setState(() {
+          _uploading = false;
+          _preview = null;
+          _error = res.error ?? 'Could not upload logo';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _uploading = false;
+        _preview = null;
+        _error = 'Could not pick logo: $e';
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: controller.uniformColor,
+      valueListenable: widget.controller.logoUrl,
       builder: (context, value, _) {
-        final color = _parseHex(value.text) ?? AppColors.surfaceContainerLowest;
-        final label = value.text.trim().isEmpty ? 'Not set' : value.text.trim();
-        return InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.button),
-          onTap: () => _openPicker(context, color),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.stackMd),
-            decoration: BoxDecoration(
+        final url = value.text.trim();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
               borderRadius: BorderRadius.circular(AppRadius.button),
-              border: Border.all(color: AppColors.outlineVariant),
-              color: AppColors.surfaceContainerLowest,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(AppRadius.button),
-                    border: Border.all(color: AppColors.outlineVariant),
-                  ),
+              onTap: _uploading ? null : _pick,
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.stackMd),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  border: Border.all(color: AppColors.outlineVariant),
+                  color: AppColors.surfaceContainerLowest,
                 ),
-                const SizedBox(width: AppSpacing.stackMd),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Uniform colour', style: AppTypography.bodyLg),
-                      const SizedBox(height: 2),
-                      Text(label,
-                          style: AppTypography.bodyMd.copyWith(
-                              color: AppColors.onSurfaceVariant)),
-                    ],
-                  ),
+                child: Row(
+                  children: [
+                    _LogoThumb(preview: _preview, url: url),
+                    const SizedBox(width: AppSpacing.stackMd),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('School logo', style: AppTypography.bodyLg),
+                          const SizedBox(height: 2),
+                          Text(
+                            _uploading
+                                ? 'Uploading…'
+                                : (url.isEmpty
+                                    ? 'Tap to choose an image'
+                                    : 'Tap to change'),
+                            style: AppTypography.bodyMd.copyWith(
+                                color: AppColors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_uploading)
+                      const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                    else
+                      const Icon(Icons.upload_rounded),
+                  ],
                 ),
-                const Icon(Icons.palette_outlined),
-              ],
+              ),
             ),
-          ),
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.stackSm),
+              Text(_error!,
+                  style:
+                      AppTypography.bodySm.copyWith(color: AppColors.error)),
+            ],
+          ],
         );
       },
     );
   }
 }
 
-class _LogoPreview extends StatelessWidget {
-  final SettingsController controller;
-  const _LogoPreview({required this.controller});
+class _LogoThumb extends StatelessWidget {
+  final Uint8List? preview;
+  final String url;
+  const _LogoThumb({required this.preview, required this.url});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: controller.logoUrl,
-      builder: (context, value, _) {
-        final url = value.text.trim();
-        if (url.isEmpty) return const SizedBox.shrink();
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.button),
-          child: Image.network(
-            url,
-            height: 72,
-            fit: BoxFit.contain,
-            alignment: Alignment.centerLeft,
-            errorBuilder: (_, _, _) => Text('Could not load logo preview',
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onSurfaceVariant)),
-          ),
-        );
-      },
+    Widget child;
+    if (preview != null) {
+      child = Image.memory(preview!, fit: BoxFit.contain);
+    } else if (url.isNotEmpty) {
+      child = Image.network(url,
+          fit: BoxFit.contain,
+          errorBuilder: (_, _, _) =>
+              const Icon(Icons.image_not_supported_outlined));
+    } else {
+      child = const Icon(Icons.apartment_rounded);
+    }
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.button),
+        border: Border.all(color: AppColors.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
     );
   }
 }

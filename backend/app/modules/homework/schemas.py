@@ -1,6 +1,6 @@
 """Homework & Assignment schemas."""
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -48,6 +48,7 @@ class SubmissionBrief(BaseModel):
     attachment_url: str | None = None
     marks_obtained: float | None = None
     feedback: str | None = None
+    seen_at: datetime | None = None
 
 
 class AssignmentListOut(AssignmentOut):
@@ -82,6 +83,7 @@ class SubmissionOut(BaseModel):
     school_id: uuid.UUID
     assignment_id: uuid.UUID
     student_id: uuid.UUID
+    student_name: str | None = None
     submitted_on: date
     content: str | None = None
     attachment_url: str | None = None
@@ -89,3 +91,4 @@ class SubmissionOut(BaseModel):
     marks_obtained: float | None = None
     feedback: str | None = None
     graded_by: uuid.UUID | None = None
+    seen_at: datetime | None = None

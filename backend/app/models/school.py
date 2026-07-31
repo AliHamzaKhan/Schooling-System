@@ -37,6 +37,9 @@ class School(Base, UUIDMixin, TimestampMixin):
     sessions: Mapped[list["AcademicSession"]] = relationship(
         back_populates="school", cascade="all, delete-orphan"
     )
+    subscriptions: Mapped[list["SchoolSubscription"]] = relationship(  # noqa: F821
+        back_populates="school", cascade="all, delete-orphan"
+    )
 
 
 class SchoolModule(Base, UUIDMixin, TimestampMixin):

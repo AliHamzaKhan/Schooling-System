@@ -1,5 +1,6 @@
 import 'package:shared/shared.dart';
 
+import '../../../widgets/leave_review.dart';
 import '../features/attendance/models/attendance_data.dart';
 import '../features/dashboard/models/activity_item.dart';
 import '../features/exams/models/exam_data.dart';
@@ -62,4 +63,23 @@ class GuardianRepository {
   /// Marks a direct message read for the signed-in guardian.
   Future<ApiResponse<dynamic>> markMessageRead(String messageId) =>
       _api.markMessageRead(messageId);
+
+  // ── Leave (for a child) ──
+  Future<ApiResponse<List<LeaveReviewItem>>> loadMyLeave() =>
+      _api.fetchMyLeave();
+
+  Future<ApiResponse<dynamic>> submitLeave({
+    required String studentId,
+    String? leaveType,
+    required String startDate,
+    required String endDate,
+    String? reason,
+  }) =>
+      _api.submitLeave(
+        studentId: studentId,
+        leaveType: leaveType,
+        startDate: startDate,
+        endDate: endDate,
+        reason: reason,
+      );
 }

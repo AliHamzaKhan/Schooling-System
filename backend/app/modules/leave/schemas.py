@@ -10,6 +10,9 @@ class LeaveSubmit(BaseModel):
     start_date: date
     end_date: date
     reason: str | None = None
+    # The student the leave concerns. Required when a guardian applies for a
+    # child; ignored for a student's own request (defaults to themselves).
+    student_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
     def _check(self) -> "LeaveSubmit":
@@ -28,6 +31,13 @@ class LeaveOut(BaseModel):
     id: uuid.UUID
     school_id: uuid.UUID
     requester_id: uuid.UUID
+    student_id: uuid.UUID | None = None
+    # Composed for review lists (subject student + who submitted); may be absent.
+    student_name: str | None = None
+    requester_name: str | None = None
+    # The subject student's current class + section, for the review card.
+    student_class: str | None = None
+    student_section: str | None = None
     leave_type: str | None = None
     start_date: date
     end_date: date

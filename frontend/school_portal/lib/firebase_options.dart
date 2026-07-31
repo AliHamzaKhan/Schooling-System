@@ -57,16 +57,14 @@ class DefaultFirebaseOptions {
     projectId: 'taleem-hub-831ec',
     storageBucket: 'taleem-hub-831ec.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAZDM6AbRLndVGjxvYBipY3Sl1A-tIzQnI',
-    appId: '1:819214502545:ios:95b980bdee51b98a9acd30',
+    appId: '1:819214502545:ios:b2dd08ad41f60f7e9acd30',
     messagingSenderId: '819214502545',
     projectId: 'taleem-hub-831ec',
     storageBucket: 'taleem-hub-831ec.firebasestorage.app',
-    iosBundleId: 'com.schoolingsystem.schoolPortal',
+    iosBundleId: 'com.ahkstudios.taleemHub',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAZDM6AbRLndVGjxvYBipY3Sl1A-tIzQnI',
     appId: '1:819214502545:ios:95b980bdee51b98a9acd30',

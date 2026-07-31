@@ -72,4 +72,18 @@ class TeacherEndpoints {
       '/schools/$schoolId/quizzes/generate-questions';
   static String quizSectionStudents(String schoolId, String sectionId) =>
       '/schools/$schoolId/quizzes/sections/$sectionId/students';
+
+  // ── Homework grading ──
+  static String assignmentSubmissions(String schoolId, String assignmentId) =>
+      '/schools/$schoolId/homework/assignments/$assignmentId/submissions';
+  static String gradeSubmission(String schoolId, String submissionId) =>
+      '/schools/$schoolId/homework/submissions/$submissionId/grade';
+
+  // ── Leave review (class teacher) ──
+  static String leaveForReview(String schoolId) =>
+      '/schools/$schoolId/leave/requests/for-review';
+  static String leaveApprove(String schoolId, String leaveId) =>
+      '/schools/$schoolId/leave/requests/$leaveId/approve';
+  static String leaveReject(String schoolId, String leaveId) =>
+      '/schools/$schoolId/leave/requests/$leaveId/reject';
 }

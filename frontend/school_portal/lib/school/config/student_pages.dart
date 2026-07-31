@@ -1,6 +1,16 @@
 import 'package:get/get.dart';
 
+import '../modules/student/features/courses/binding/courses_binding.dart';
+import '../modules/student/features/courses/view/book_chapters_view.dart';
+import '../modules/student/features/courses/view/course_detail_view.dart';
+import '../modules/student/features/courses/view/courses_view.dart';
+import '../modules/student/features/courses/view/notes_list_view.dart';
+import '../modules/student/features/courses/view/reader_view.dart';
 import '../modules/student/features/exams/view/exam_detail_view.dart';
+import '../modules/student/features/leave/binding/leave_binding.dart';
+import '../modules/student/features/leave/view/leave_view.dart';
+import '../modules/student/features/school_info/binding/school_info_binding.dart';
+import '../modules/student/features/school_info/view/school_info_view.dart';
 import '../modules/student/features/notifications/binding/notifications_binding.dart';
 import '../modules/student/features/notifications/view/notifications_view.dart';
 import '../modules/student/features/quiz/binding/quiz_binding.dart';
@@ -59,6 +69,46 @@ class StudentPages {
       name: StudentRoutes.notifications,
       page: () => const NotificationsView(),
       binding: NotificationsBinding(),
+    ),
+
+    // ── Courses ──
+    GetPage(
+      name: StudentRoutes.courses,
+      page: () => const CoursesView(),
+      binding: CoursesBinding(),
+    ),
+    GetPage(
+      name: StudentRoutes.courseDetail,
+      page: () => const CourseDetailView(),
+    ),
+    GetPage(
+      name: StudentRoutes.courseBook,
+      page: () => const BookChaptersView(),
+      binding: BookChaptersBinding(),
+    ),
+    GetPage(
+      name: StudentRoutes.courseNotes,
+      page: () => const NotesListView(),
+      binding: NotesBinding(),
+    ),
+    GetPage(
+      name: StudentRoutes.courseReader,
+      page: () => const ReaderView(),
+      binding: ReaderBinding(),
+    ),
+
+    // ── Leave ──
+    GetPage(
+      name: StudentRoutes.leave,
+      page: () => const LeaveView(),
+      binding: LeaveBinding(),
+    ),
+
+    // ── School info ──
+    GetPage(
+      name: StudentRoutes.schoolInfo,
+      page: () => const SchoolInfoView(),
+      binding: SchoolInfoBinding(),
     ),
   ];
 }

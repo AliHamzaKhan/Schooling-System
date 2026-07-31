@@ -4,11 +4,13 @@ import 'package:shared/shared.dart';
 
 import '../../../../ui/admin_widgets/numbered_stepper.dart';
 import '../components/step_contact_info.dart';
+import '../components/step_headmaster.dart';
 import '../components/step_initial_plan.dart';
 import '../components/step_school_details.dart';
 import '../controller/create_school_controller.dart';
 
-/// New School Profile — a 3-step wizard (details → contact → plan).
+/// New School Profile — a wizard (details → contact → subscription →
+/// headmaster). Edit mode drops the headmaster step.
 class CreateSchoolView extends GetView<CreateSchoolController> {
   const CreateSchoolView({super.key});
 
@@ -36,7 +38,7 @@ class CreateSchoolView extends GetView<CreateSchoolController> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackXl),
             child: Obx(() => NumberedStepper(
-                  steps: CreateSchoolController.steps,
+                  steps: controller.steps,
                   current: controller.step.value,
                 )),
           ),
@@ -46,7 +48,8 @@ class CreateSchoolView extends GetView<CreateSchoolController> {
               final content = switch (controller.step.value) {
                 0 => StepSchoolDetails(controller: controller),
                 1 => StepContactInfo(controller: controller),
-                _ => StepInitialPlan(controller: controller),
+                2 => StepInitialPlan(controller: controller),
+                _ => StepHeadmaster(controller: controller),
               };
               return SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(

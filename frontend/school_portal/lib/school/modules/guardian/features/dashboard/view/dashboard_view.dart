@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../config/guardian_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../../../shared/controller/guardian_session_controller.dart';
@@ -69,6 +70,25 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
                       _SummaryGrid(
                         child: child,
                         onOpenFees: onOpenFees,
+                      ),
+                      const SizedBox(height: AppSpacing.stackLg),
+                      GlassSurface(
+                        onTap: () => Get.toNamed(GuardianRoutes.leave),
+                        padding: const EdgeInsets.all(AppSpacing.stackLg),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.event_busy_rounded,
+                                color: AppColors.primary),
+                            const SizedBox(width: AppSpacing.stackMd),
+                            Expanded(
+                              child: Text('Leave Application',
+                                  style: AppTypography.titleMd
+                                      .copyWith(fontWeight: FontWeight.w700)),
+                            ),
+                            const Icon(Icons.chevron_right_rounded,
+                                color: AppColors.onSurfaceVariant),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.stackLg),
                       _QuickLinks(

@@ -17,6 +17,10 @@ import '../modules/teacher/features/homework/view/create_homework_view.dart';
 import '../modules/teacher/features/performance/binding/performance_binding.dart';
 import '../modules/teacher/features/performance/view/performance_view.dart';
 import '../modules/teacher/features/quiz/binding/quiz_binding.dart';
+import '../modules/teacher/features/grading/binding/grading_binding.dart';
+import '../modules/teacher/features/grading/view/grading_view.dart';
+import '../modules/teacher/features/leave/binding/leave_review_binding.dart';
+import '../modules/teacher/features/leave/view/leave_review_view.dart';
 import '../modules/teacher/features/quiz/view/create_quiz_view.dart';
 import '../modules/teacher/features/quiz/view/quiz_performance_view.dart';
 import '../modules/teacher/features/quiz/view/quizzes_view.dart';
@@ -90,6 +94,16 @@ class TeacherPages {
       name: TeacherRoutes.quizPerformance,
       page: () => const QuizPerformanceView(),
       binding: QuizPerformanceBinding(),
+    ),
+    GetPage(
+      name: TeacherRoutes.leaveReview,
+      page: () => const TeacherLeaveReviewView(),
+      binding: TeacherLeaveReviewBinding(),
+    ),
+    GetPage(
+      name: TeacherRoutes.grading,
+      page: () => const GradingView(),
+      binding: GradingBinding(),
     ),
   ];
 }

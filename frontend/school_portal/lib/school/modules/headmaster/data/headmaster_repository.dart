@@ -3,8 +3,14 @@ import 'package:shared/shared.dart';
 import '../features/announcements/models/announcement.dart';
 import '../features/attendance/models/attendance_data.dart';
 import '../features/classes/models/classes_data.dart';
+import '../features/courses/models/admin_course_models.dart';
 import '../features/dashboard/models/dashboard_data.dart';
+import '../features/dashboard/models/subscription_status.dart';
+import '../../../widgets/leave_review.dart';
 import '../features/exams/models/exams_data.dart';
+import '../features/exams/models/exam_category.dart';
+import '../features/exams/models/exam_paper.dart';
+import '../features/promotion/models/promotion_models.dart';
 import '../features/attendance/models/teacher_attendance_day.dart';
 import '../features/timetable/models/timetable_slot.dart';
 import '../features/fees/models/fees_data.dart';
@@ -31,6 +37,9 @@ class HeadmasterRepository {
       : _api = api ?? HeadmasterApiService();
 
   Future<ApiResponse<DashboardData>> loadDashboard() => _api.fetchDashboard();
+
+  Future<ApiResponse<SubscriptionStatus>> loadSubscriptionStatus() =>
+      _api.fetchSubscriptionStatus();
 
   Future<ApiResponse<OverviewData>> loadOverview() => _api.fetchOverview();
 
@@ -255,12 +264,14 @@ class HeadmasterRepository {
     String? logoUrl,
     String? uniformColor,
     int? feeDueDay,
+    int? salaryDay,
   }) =>
       _api.updateSchoolProfile(
         name: name,
         logoUrl: logoUrl,
         uniformColor: uniformColor,
         feeDueDay: feeDueDay,
+        salaryDay: salaryDay,
       );
 
   // ── Salary / HR ──
@@ -312,4 +323,162 @@ class HeadmasterRepository {
 
   Future<ApiResponse<dynamic>> markPayslipPaid(String payslipId) =>
       _api.markPayslipPaid(payslipId);
+
+  // ── Exam categories + promotion ──
+  Future<ApiResponse<List<ExamCategory>>> loadExamCategories() =>
+      _api.fetchExamCategories();
+  Future<ApiResponse<dynamic>> createExamCategory(
+    String name, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      _api.createExamCategory(name, startDate: startDate, endDate: endDate);
+  Future<ApiResponse<dynamic>> updateExamCategory(
+    String id, {
+    String? name,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      _api.updateExamCategory(id,
+          name: name, startDate: startDate, endDate: endDate);
+  Future<ApiResponse<dynamic>> announceExamCategory(String id) =>
+      _api.announceExamCategory(id);
+  Future<ApiResponse<dynamic>> deleteExamCategory(String id) =>
+      _api.deleteExamCategory(id);
+
+  // ── Exam timetable ──
+  Future<ApiResponse<List<PickerOption>>> loadClassOptions() =>
+      _api.fetchClassOptions();
+  Future<ApiResponse<String>> createExam({
+    required String classId,
+    required String name,
+    String? categoryId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      _api.createExam(
+        classId: classId,
+        name: name,
+        categoryId: categoryId,
+        startDate: startDate,
+        endDate: endDate,
+      );
+  Future<ApiResponse<List<ExamPaper>>> loadExamPapers(String examId) =>
+      _api.fetchExamPapers(examId);
+  Future<ApiResponse<ExamPaper>> addExamPaper({
+    required String examId,
+    required String subjectId,
+    required double maxMarks,
+    required double passMarks,
+    DateTime? examDate,
+    String? examTime,
+  }) =>
+      _api.addExamPaper(
+        examId: examId,
+        subjectId: subjectId,
+        maxMarks: maxMarks,
+        passMarks: passMarks,
+        examDate: examDate,
+        examTime: examTime,
+      );
+
+  Future<ApiResponse<List<ExamListItem>>> loadExamList() =>
+      _api.fetchExamList();
+  Future<ApiResponse<List<PromotionPreviewRow>>> loadPromotionPreview(
+          String examId) =>
+      _api.fetchPromotionPreview(examId);
+  Future<ApiResponse<dynamic>> applyPromotions({
+    required String examId,
+    required List<Map<String, dynamic>> items,
+  }) =>
+      _api.applyPromotions(examId: examId, items: items);
+
+  // ── Courses (authoring) ──
+  Future<ApiResponse<List<AdminCourse>>> loadCourses() => _api.fetchCourses();
+
+  Future<ApiResponse<dynamic>> createCourse({
+    required String title,
+    String? subject,
+    String? description,
+    String? sectionId,
+    String? subjectId,
+  }) =>
+      _api.createCourse(
+        title: title,
+        subject: subject,
+        description: description,
+        sectionId: sectionId,
+        subjectId: subjectId,
+      );
+
+  Future<ApiResponse<List<AdminBook>>> loadBooks(String courseId) =>
+      _api.fetchBooks(courseId);
+
+  Future<ApiResponse<dynamic>> createBook({
+    required String courseId,
+    required String title,
+    String? description,
+  }) =>
+      _api.createBook(courseId: courseId, title: title, description: description);
+
+  Future<ApiResponse<List<AdminChapter>>> loadChapters(String bookId) =>
+      _api.fetchChapters(bookId);
+
+  Future<ApiResponse<dynamic>> createChapter({
+    required String bookId,
+    required String title,
+    required String content,
+  }) =>
+      _api.createChapter(bookId: bookId, title: title, content: content);
+
+  Future<ApiResponse<List<AdminNote>>> loadNotes(String courseId) =>
+      _api.fetchNotes(courseId);
+
+  Future<ApiResponse<dynamic>> createNote({
+    required String courseId,
+    required String title,
+    required String content,
+  }) =>
+      _api.createNote(courseId: courseId, title: title, content: content);
+
+  // ── School info (authoring) ──
+  Future<ApiResponse<Map<String, dynamic>>> loadSchoolInfo() =>
+      _api.fetchSchoolInfo();
+
+  Future<ApiResponse<String>> uploadImage({
+    required String folder,
+    String? filePath,
+    List<int>? bytes,
+    String filename = 'image.jpg',
+    String contentType = 'image/jpeg',
+  }) =>
+      _api.uploadImage(
+        folder: folder,
+        filePath: filePath,
+        bytes: bytes,
+        filename: filename,
+        contentType: contentType,
+      );
+
+  Future<ApiResponse<dynamic>> saveSchoolInfo({
+    String? about,
+    List<Map<String, dynamic>>? achievements,
+    String? uniformImageUrl,
+  }) =>
+      _api.saveSchoolInfo(
+        about: about,
+        achievements: achievements,
+        uniformImageUrl: uniformImageUrl,
+      );
+
+  // ── Leave review ──
+  Future<ApiResponse<List<LeaveReviewItem>>> loadLeaveReview() =>
+      _api.fetchLeaveReview();
+
+  Future<ApiResponse<dynamic>> reviewLeave({
+    required String leaveId,
+    required bool approve,
+    String? note,
+  }) =>
+      _api.reviewLeave(leaveId: leaveId, approve: approve, note: note);
 }

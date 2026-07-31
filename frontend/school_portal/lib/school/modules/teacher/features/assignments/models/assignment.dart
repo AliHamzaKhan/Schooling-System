@@ -34,6 +34,7 @@ class Assignment {
   final int total;
   final IconData icon;
   final Color iconAccent;
+  final double? maxMarks;
 
   const Assignment({
     required this.id,
@@ -45,6 +46,7 @@ class Assignment {
     required this.total,
     required this.icon,
     required this.iconAccent,
+    this.maxMarks,
   });
 
   double get progress => total == 0 ? 0 : turnedIn / total;

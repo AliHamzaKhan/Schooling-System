@@ -11,9 +11,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import Module, PlanCode, SchoolStatus
 from app.core.exceptions import bad_request, not_found
+from app.models.examination import ExamCategory
 from app.models.school import AcademicSession, School, SchoolModule
 from app.models.subscription import SubscriptionPlan
 from app.modules.schools import schemas
+
+# Every new school starts with these exam terms so the Headmaster has something
+# to schedule against out of the box. They are independent per-school rows the
+# Headmaster can rename, re-date, add to, or delete.
+_DEFAULT_EXAM_CATEGORIES = ("First Term", "Mid Term", "Final Term")
 
 
 class SchoolService:
@@ -56,6 +62,9 @@ class SchoolService:
             school.subscription_plan = await self._get_plan(data.subscription_plan_code)
 
         self.db.add(school)
+        await self.db.flush()
+        for name in _DEFAULT_EXAM_CATEGORIES:
+            self.db.add(ExamCategory(school_id=school.id, name=name))
         await self.db.flush()
         await self.db.refresh(school)
         return school

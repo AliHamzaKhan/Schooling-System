@@ -11,7 +11,9 @@ from app.core.enums import PromotionOutcome
 
 class PromotionPreviewRow(BaseModel):
     student_id: uuid.UUID
+    student_name: str | None = None
     current_section_id: uuid.UUID | None = None
+    current_section_label: str | None = None  # "Grade 5 · A"
     total_marks: float | None = None
     percentage: float | None = None
     result_status: str | None = None  # pass / fail / None if no result

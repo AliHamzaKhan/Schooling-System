@@ -15,10 +15,31 @@ class DashboardView extends GetView<DashboardController> {
   final VoidCallback? onCreateSchool;
   final VoidCallback? onManageHeadmasters;
 
-  const DashboardView({super.key, this.onCreateSchool, this.onManageHeadmasters});
+  /// KPI card taps: Total Schools / Active Subscriptions / Monthly Revenue.
+  final VoidCallback? onViewSchools;
+  final VoidCallback? onViewSubscriptions;
+  final VoidCallback? onViewRevenue;
+
+  const DashboardView({
+    super.key,
+    this.onCreateSchool,
+    this.onManageHeadmasters,
+    this.onViewSchools,
+    this.onViewSubscriptions,
+    this.onViewRevenue,
+  });
 
   /// Accent rail color per KPI card, cycled by index.
   static const _accents = [AppColors.primary, Color(0xFFE8A317), AppColors.aiAccent];
+
+  /// Maps a KPI card index to its drill-in action (0=schools, 1=subscriptions,
+  /// 2=revenue), matching the order the metrics are built in the repository.
+  VoidCallback? _cardAction(int index) => switch (index) {
+        0 => onViewSchools,
+        1 => onViewSubscriptions,
+        2 => onViewRevenue,
+        _ => null,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -47,36 +68,40 @@ class DashboardView extends GetView<DashboardController> {
                   AppSpacing.stackXl,
                 ),
                 children: [
-                  // ── KPI cards ──────────────────────────────────
+                  // ── KPI cards (tap to drill into the matching screen) ──
                   for (var i = 0; i < controller.metrics.length; i++) ...[
                     StatCard(
                       metric: controller.metrics[i],
                       accent: _accents[i % _accents.length],
+                      showTrend: false,
+                      onTap: _cardAction(i),
                     ),
                     const SizedBox(height: AppSpacing.stackMd),
                   ],
                   const SizedBox(height: AppSpacing.stackSm),
 
-                  // ── Recent alerts ──────────────────────────────
-                  GlassSurface(
-                    padding: const EdgeInsets.all(AppSpacing.stackLg),
-                    child: Column(
-                      children: [
-                        SectionHeader(
-                          title: 'Recent Alerts',
-                          actionLabel: 'View All',
-                          onAction: () {},
-                        ),
-                        const SizedBox(height: AppSpacing.stackMd),
-                        for (final alert in controller.alerts) ...[
-                          AlertTile(alert: alert),
-                          if (alert != controller.alerts.last)
-                            const SizedBox(height: AppSpacing.stackSm),
+                  // ── Recent alerts (only when the feed has entries) ──
+                  if (controller.alerts.isNotEmpty) ...[
+                    GlassSurface(
+                      padding: const EdgeInsets.all(AppSpacing.stackLg),
+                      child: Column(
+                        children: [
+                          SectionHeader(
+                            title: 'Recent Alerts',
+                            actionLabel: 'View All',
+                            onAction: () {},
+                          ),
+                          const SizedBox(height: AppSpacing.stackMd),
+                          for (final alert in controller.alerts) ...[
+                            AlertTile(alert: alert),
+                            if (alert != controller.alerts.last)
+                              const SizedBox(height: AppSpacing.stackSm),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.stackLg),
+                    const SizedBox(height: AppSpacing.stackLg),
+                  ],
 
                   // ── Quick actions ──────────────────────────────
                   QuickActionCard(

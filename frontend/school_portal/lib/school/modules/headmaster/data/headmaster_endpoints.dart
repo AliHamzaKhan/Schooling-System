@@ -63,6 +63,18 @@ class HeadmasterEndpoints {
       '/schools/$schoolId/fees/invoices/$invoiceId/payments';
   static String examResultsPublish(String schoolId, String examId) =>
       '/schools/$schoolId/exams/$examId/results/publish';
+  static String examCategories(String schoolId) =>
+      '/schools/$schoolId/exams/categories';
+  static String examCategory(String schoolId, String categoryId) =>
+      '/schools/$schoolId/exams/categories/$categoryId';
+  static String examCategoryAnnounce(String schoolId, String categoryId) =>
+      '/schools/$schoolId/exams/categories/$categoryId/announce';
+  static String examPapers(String schoolId, String examId) =>
+      '/schools/$schoolId/exams/$examId/papers';
+  static String promotionsPreview(String schoolId) =>
+      '/schools/$schoolId/promotions/preview';
+  static String promotions(String schoolId) =>
+      '/schools/$schoolId/promotions';
   static String studentReport(String schoolId, String studentId) =>
       '/schools/$schoolId/reports/students/$studentId';
   static String meetings(String schoolId) => '/schools/$schoolId/meetings';
@@ -84,4 +96,28 @@ class HeadmasterEndpoints {
   static String hrPayslips(String schoolId) => '/schools/$schoolId/hr/payslips';
   static String hrPayslipPay(String schoolId, String payslipId) =>
       '/schools/$schoolId/hr/payslips/$payslipId/pay';
+
+  // ── Courses (authoring) ──
+  static String courses(String schoolId) => '/schools/$schoolId/courses';
+  static String courseBooks(String schoolId, String courseId) =>
+      '/schools/$schoolId/courses/$courseId/books';
+  static String bookChapters(String schoolId, String bookId) =>
+      '/schools/$schoolId/courses/books/$bookId/chapters';
+  static String courseNotes(String schoolId, String courseId) =>
+      '/schools/$schoolId/courses/$courseId/notes';
+
+  // ── School info (authoring) ──
+  static String schoolInfo(String schoolId) => '/schools/$schoolId/info';
+
+  // ── Subscription status (expiry alert) ──
+  static String subscriptionStatus(String schoolId) =>
+      '/schools/$schoolId/subscription/status';
+
+  // ── Leave review ──
+  static String leaveForReview(String schoolId) =>
+      '/schools/$schoolId/leave/requests/for-review';
+  static String leaveApprove(String schoolId, String leaveId) =>
+      '/schools/$schoolId/leave/requests/$leaveId/approve';
+  static String leaveReject(String schoolId, String leaveId) =>
+      '/schools/$schoolId/leave/requests/$leaveId/reject';
 }

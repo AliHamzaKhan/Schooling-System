@@ -60,6 +60,44 @@ class PlanCode(str, Enum):
     PREMIUM = "premium"
 
 
+class BillingPeriod(str, Enum):
+    """How long a single subscription term lasts before renewal is due."""
+
+    MONTHLY = "monthly"
+    SIX_MONTH = "six_month"
+    ANNUAL = "annual"
+
+    @property
+    def months(self) -> int:
+        return {
+            BillingPeriod.MONTHLY: 1,
+            BillingPeriod.SIX_MONTH: 6,
+            BillingPeriod.ANNUAL: 12,
+        }[self]
+
+
+class SubscriptionStatus(str, Enum):
+    """Lifecycle of a per-school subscription instance.
+
+    `pending` — assigned but not yet started/paid. `active` — running.
+    `expired` — past its end date. `cancelled` — ended early by an admin.
+    History tab = expired + cancelled.
+    """
+
+    PENDING = "pending"
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+class DiscountType(str, Enum):
+    """How a discount is applied when assigning a subscription."""
+
+    NONE = "none"
+    PERCENT = "percent"
+    FIXED = "fixed"
+
+
 class SchoolStatus(str, Enum):
     PENDING = "pending"
     ACTIVE = "active"
@@ -130,6 +168,10 @@ class PromotionOutcome(str, Enum):
     PROMOTED = "promoted"
     RETAINED = "retained"
     GRADUATED = "graduated"
+    # A failed student the headmaster has flagged for a re-examination rather
+    # than promoting (bypass) or plainly retaining. Enrollment is left in the
+    # current section, like RETAINED, but the intent is tracked distinctly.
+    REEXAM = "reexam"
 
 
 class QuestionType(str, Enum):

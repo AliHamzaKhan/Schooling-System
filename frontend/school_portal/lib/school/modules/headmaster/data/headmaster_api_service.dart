@@ -7,8 +7,14 @@ import 'package:shared/shared.dart';
 import '../features/announcements/models/announcement.dart';
 import '../features/attendance/models/attendance_data.dart';
 import '../features/classes/models/classes_data.dart';
+import '../features/courses/models/admin_course_models.dart';
+import '../../../widgets/leave_review.dart';
 import '../features/dashboard/models/dashboard_data.dart';
+import '../features/dashboard/models/subscription_status.dart';
 import '../features/exams/models/exams_data.dart';
+import '../features/exams/models/exam_category.dart';
+import '../features/exams/models/exam_paper.dart';
+import '../features/promotion/models/promotion_models.dart';
 import '../features/attendance/models/teacher_attendance_day.dart';
 import '../features/fees/models/fees_data.dart';
 import '../features/fees/models/student_fee_snapshot.dart';
@@ -85,6 +91,17 @@ class HeadmasterApiService {
       approvals: const [],
       announcements: announcements,
     ));
+  }
+
+  /// Subscription status for the Headmaster's school — drives the expiry alert
+  /// (days remaining + is-expiring-soon flag).
+  Future<ApiResponse<SubscriptionStatus>> fetchSubscriptionStatus() {
+    return _api.request<SubscriptionStatus>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.subscriptionStatus(_sid),
+      parser: (json) =>
+          SubscriptionStatus.fromJson((json as Map).cast<String, dynamic>()),
+    );
   }
 
   /// School Overview — identity from `/schools/{id}` and KPI pulse from
@@ -261,6 +278,18 @@ class HeadmasterApiService {
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
           .map(SubjectOption.fromJson)
+          .toList(),
+    );
+  }
+
+  /// Simple id/name list of the school's classes, for the exam timetable picker.
+  Future<ApiResponse<List<PickerOption>>> fetchClassOptions() {
+    return _api.request<List<PickerOption>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.academicClasses(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map((c) => PickerOption(id: '${c['id']}', label: c['name'] as String? ?? ''))
           .toList(),
     );
   }
@@ -792,6 +821,7 @@ class HeadmasterApiService {
     String? logoUrl,
     String? uniformColor,
     int? feeDueDay,
+    int? salaryDay,
   }) {
     return _api.request<SchoolProfile>(
       method: HttpMethod.patch,
@@ -802,6 +832,7 @@ class HeadmasterApiService {
           'logo_url': ?logoUrl,
           'uniform_color': ?uniformColor,
           'fee_due_day': ?feeDueDay,
+          'salary_day': ?salaryDay,
         },
       },
       parser: (json) => SchoolProfile.fromJson(json as Map<String, dynamic>),
@@ -848,6 +879,32 @@ class HeadmasterApiService {
       method: HttpMethod.multipart,
       path: HeadmasterEndpoints.uploads(_sid),
       body: {'folder': 'avatars'},
+      files: [
+        MultipartUpload(
+          field: 'file',
+          filename: filename,
+          file: filePath == null ? null : File(filePath),
+          bytes: bytes,
+          contentType: contentType,
+        ),
+      ],
+      parser: (json) => (json as Map<String, dynamic>)['url'] as String,
+    );
+  }
+
+  /// Upload an image to a given [folder] and return its public URL. Used for
+  /// the school uniform photo (and reusable for other image uploads).
+  Future<ApiResponse<String>> uploadImage({
+    required String folder,
+    String? filePath,
+    List<int>? bytes,
+    String filename = 'image.jpg',
+    String contentType = 'image/jpeg',
+  }) {
+    return _api.request<String>(
+      method: HttpMethod.multipart,
+      path: HeadmasterEndpoints.uploads(_sid),
+      body: {'folder': folder},
       files: [
         MultipartUpload(
           field: 'file',
@@ -1098,6 +1155,328 @@ class HeadmasterApiService {
     return _api.request<dynamic>(
       method: HttpMethod.post,
       path: HeadmasterEndpoints.hrPayslipPay(_sid, payslipId),
+      parser: (json) => json,
+    );
+  }
+
+  // ─────────────────────── Courses (authoring) ───────────────────────
+
+  // ── Exam categories (terms) ──
+  Future<ApiResponse<List<ExamCategory>>> fetchExamCategories() {
+    return _api.request<List<ExamCategory>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.examCategories(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(ExamCategory.fromJson)
+          .toList(),
+    );
+  }
+
+  static String? _ymd(DateTime? d) =>
+      d == null ? null : d.toIso8601String().split('T').first;
+
+  Future<ApiResponse<dynamic>> createExamCategory(
+    String name, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.examCategories(_sid),
+      body: {
+        'name': name,
+        if (startDate != null) 'start_date': _ymd(startDate),
+        if (endDate != null) 'end_date': _ymd(endDate),
+      },
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<dynamic>> updateExamCategory(
+    String id, {
+    String? name,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.patch,
+      path: HeadmasterEndpoints.examCategory(_sid, id),
+      body: {
+        if (name != null) 'name': name,
+        if (startDate != null) 'start_date': _ymd(startDate),
+        if (endDate != null) 'end_date': _ymd(endDate),
+      },
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<dynamic>> announceExamCategory(String id) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.examCategoryAnnounce(_sid, id),
+      body: const {},
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<dynamic>> deleteExamCategory(String id) {
+    return _api.request<dynamic>(
+      method: HttpMethod.delete,
+      path: HeadmasterEndpoints.examCategory(_sid, id),
+      parser: (json) => json,
+    );
+  }
+
+  // ── Exam timetable: create a per-class exam under a category, then add
+  //    subject papers each with a date + optional time. ──
+  Future<ApiResponse<String>> createExam({
+    required String classId,
+    required String name,
+    String? categoryId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    return _api.request<String>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.examsList(_sid),
+      body: {
+        'class_id': classId,
+        'name': name,
+        if (categoryId != null) 'category_id': categoryId,
+        if (startDate != null) 'start_date': _ymd(startDate),
+        if (endDate != null) 'end_date': _ymd(endDate),
+      },
+      parser: (json) => '${(json as Map<String, dynamic>)['id']}',
+    );
+  }
+
+  Future<ApiResponse<List<ExamPaper>>> fetchExamPapers(String examId) {
+    return _api.request<List<ExamPaper>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.examPapers(_sid, examId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(ExamPaper.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<ExamPaper>> addExamPaper({
+    required String examId,
+    required String subjectId,
+    required double maxMarks,
+    required double passMarks,
+    DateTime? examDate,
+    String? examTime,
+  }) {
+    return _api.request<ExamPaper>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.examPapers(_sid, examId),
+      body: {
+        'subject_id': subjectId,
+        'max_marks': maxMarks,
+        'pass_marks': passMarks,
+        if (examDate != null) 'exam_date': _ymd(examDate),
+        if (examTime != null && examTime.isNotEmpty) 'exam_time': examTime,
+      },
+      parser: (json) => ExamPaper.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ── Exam list (for the promotion picker) ──
+  Future<ApiResponse<List<ExamListItem>>> fetchExamList() {
+    return _api.request<List<ExamListItem>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.examsList(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(ExamListItem.fromJson)
+          .toList(),
+    );
+  }
+
+  // ── Promotion flow ──
+  Future<ApiResponse<List<PromotionPreviewRow>>> fetchPromotionPreview(
+      String examId) {
+    return _api.request<List<PromotionPreviewRow>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.promotionsPreview(_sid),
+      query: {'exam_id': examId},
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(PromotionPreviewRow.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> applyPromotions({
+    required String examId,
+    required List<Map<String, dynamic>> items,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.promotions(_sid),
+      body: {'exam_id': examId, 'items': items},
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<List<AdminCourse>>> fetchCourses() {
+    return _api.request<List<AdminCourse>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.courses(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(AdminCourse.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> createCourse({
+    required String title,
+    String? subject,
+    String? description,
+    String? sectionId,
+    String? subjectId,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.courses(_sid),
+      body: {
+        'title': title,
+        'subject': ?subject,
+        'description': ?description,
+        'section_id': ?sectionId,
+        'subject_id': ?subjectId,
+      },
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<List<AdminBook>>> fetchBooks(String courseId) {
+    return _api.request<List<AdminBook>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.courseBooks(_sid, courseId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(AdminBook.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> createBook({
+    required String courseId,
+    required String title,
+    String? description,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.courseBooks(_sid, courseId),
+      body: {'title': title, 'description': ?description},
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<List<AdminChapter>>> fetchChapters(String bookId) {
+    return _api.request<List<AdminChapter>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.bookChapters(_sid, bookId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(AdminChapter.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> createChapter({
+    required String bookId,
+    required String title,
+    required String content,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.bookChapters(_sid, bookId),
+      body: {'title': title, 'content': content},
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<List<AdminNote>>> fetchNotes(String courseId) {
+    return _api.request<List<AdminNote>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.courseNotes(_sid, courseId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(AdminNote.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> createNote({
+    required String courseId,
+    required String title,
+    required String content,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.courseNotes(_sid, courseId),
+      body: {'title': title, 'content': content},
+      parser: (json) => json,
+    );
+  }
+
+  // ─────────────────────── School info (authoring) ───────────────────────
+
+  Future<ApiResponse<Map<String, dynamic>>> fetchSchoolInfo() {
+    return _api.request<Map<String, dynamic>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.schoolInfo(_sid),
+      parser: (json) => (json as Map).cast<String, dynamic>(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> saveSchoolInfo({
+    String? about,
+    List<Map<String, dynamic>>? achievements,
+    String? uniformImageUrl,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.put,
+      path: HeadmasterEndpoints.schoolInfo(_sid),
+      body: {
+        'about': ?about,
+        'achievements': ?achievements,
+        'uniform_image_url': ?uniformImageUrl,
+      },
+      parser: (json) => json,
+    );
+  }
+
+  // ─────────────────────── Leave review ───────────────────────
+
+  Future<ApiResponse<List<LeaveReviewItem>>> fetchLeaveReview() {
+    return _api.request<List<LeaveReviewItem>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.leaveForReview(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(LeaveReviewItem.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> reviewLeave({
+    required String leaveId,
+    required bool approve,
+    String? note,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: approve
+          ? HeadmasterEndpoints.leaveApprove(_sid, leaveId)
+          : HeadmasterEndpoints.leaveReject(_sid, leaveId),
+      body: {'note': ?note},
       parser: (json) => json,
     );
   }

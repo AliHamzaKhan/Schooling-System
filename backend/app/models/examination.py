@@ -10,6 +10,27 @@ from app.core.enums import ExamStatus
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
+class ExamCategory(Base, UUIDMixin, TimestampMixin):
+    """A reusable exam type/term, e.g. "Mid Term" or "Final Term". Exams are
+    created under a category so results can be grouped and compared by term."""
+
+    __tablename__ = "exam_categories"
+    __table_args__ = (
+        UniqueConstraint("school_id", "name", name="uq_exam_category_school_name"),
+    )
+
+    school_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("schools.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Optional window for the term. When start_date is reached the Headmaster can
+    # announce the exam category to the school.
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Set the first time the category is announced (so the button reads "announced").
+    announced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class Exam(Base, UUIDMixin, TimestampMixin):
     """An examination event for a class, e.g. "Midterm 2026"."""
 
@@ -20,6 +41,9 @@ class Exam(Base, UUIDMixin, TimestampMixin):
     )
     class_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("classes.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("exam_categories.id", ondelete="SET NULL"), nullable=True, index=True
     )
     session_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("academic_sessions.id", ondelete="SET NULL"), nullable=True
@@ -50,6 +74,9 @@ class ExamSubject(Base, UUIDMixin, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False
     )
     exam_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Optional clock time for the paper, stored as "HH:MM" (24h). Free-form so the
+    # UI can present it however the school prefers.
+    exam_time: Mapped[str | None] = mapped_column(String(20), nullable=True)
     max_marks: Mapped[float] = mapped_column(Float, nullable=False)
     pass_marks: Mapped[float] = mapped_column(Float, nullable=False)
 

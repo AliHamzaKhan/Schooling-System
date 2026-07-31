@@ -11,6 +11,7 @@ import '../components/pending_approval_row.dart';
 import '../components/recent_announcement_row.dart';
 import '../controller/dashboard_controller.dart';
 import '../models/dashboard_data.dart';
+import '../models/subscription_status.dart';
 import '../../../../../widgets/skeletons.dart';
 
 /// Headmaster Dashboard — greeting, daily KPIs, pending approvals, and a
@@ -57,6 +58,12 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                     style: AppTypography.bodyLg),
                 const SizedBox(height: AppSpacing.stackLg),
 
+                // Subscription expiry alert (only near/after expiry).
+                if (_ExpiryAlert.shouldShow(controller.subscription.value)) ...[
+                  _ExpiryAlert(status: controller.subscription.value!),
+                  const SizedBox(height: AppSpacing.stackLg),
+                ],
+
                 // Admin quick actions.
                 Row(
                   children: [
@@ -73,6 +80,26 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                         icon: Icons.payments_outlined,
                         label: 'Teacher Salaries',
                         onTap: onSalary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.stackMd),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _AdminAction(
+                        icon: Icons.apartment_rounded,
+                        label: 'School Info',
+                        onTap: () => Get.toNamed(HeadmasterRoutes.schoolInfoEdit),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.stackMd),
+                    Expanded(
+                      child: _AdminAction(
+                        icon: Icons.event_available_outlined,
+                        label: 'Leave Requests',
+                        onTap: () => Get.toNamed(HeadmasterRoutes.leaveReview),
                       ),
                     ),
                   ],
@@ -207,7 +234,7 @@ _MetricMeta _metricMetaFor(String label) {
     return _MetricMeta(
       icon: Icons.menu_book_rounded,
       color: AppColors.tertiary,
-      route: HeadmasterRoutes.classes,
+      route: HeadmasterRoutes.coursesAdmin,
     );
   }
   return const _MetricMeta(
@@ -317,6 +344,69 @@ class _NewButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Prominent red banner shown on the Headmaster home when the school's
+/// subscription is near or past expiry. Stays visible until the subscription is
+/// renewed (moving its end date out) or fully lapses.
+class _ExpiryAlert extends StatelessWidget {
+  final SubscriptionStatus status;
+  const _ExpiryAlert({required this.status});
+
+  /// Only render for a real subscription that is expiring soon or expired.
+  static bool shouldShow(SubscriptionStatus? s) =>
+      s != null && s.hasSubscription && (s.isExpiringSoon || s.isExpired);
+
+  String get _message {
+    if (status.isExpired) {
+      return 'Your subscription has expired. Please renew to restore access.';
+    }
+    final days = status.daysRemaining ?? 0;
+    final unit = days == 1 ? 'day' : 'days';
+    return 'Your subscription will expire in $days $unit. '
+        'Please renew to avoid service interruption.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.error, width: 1.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: AppColors.error),
+          const SizedBox(width: AppSpacing.stackSm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  status.isExpired
+                      ? 'Subscription expired'
+                      : 'Subscription expiring soon',
+                  style: AppTypography.titleMd
+                      .copyWith(color: AppColors.error, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(_message, style: AppTypography.bodyMd),
+                if (status.planName != null) ...[
+                  const SizedBox(height: 2),
+                  Text('Plan: ${status.planName}',
+                      style: AppTypography.bodySm
+                          .copyWith(color: AppColors.onSurfaceVariant)),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

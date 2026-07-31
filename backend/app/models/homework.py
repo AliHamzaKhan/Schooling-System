@@ -1,8 +1,8 @@
 """Homework & assignment models: assignments and student submissions."""
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import Date, Float, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Date, DateTime, Float, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -64,5 +64,8 @@ class Submission(Base, UUIDMixin, TimestampMixin):
     graded_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    # When a teacher first opened this submission — powers the student's "read"
+    # receipt on their submission status timeline.
+    seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     assignment: Mapped["Assignment"] = relationship(back_populates="submissions")

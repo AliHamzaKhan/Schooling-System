@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../widgets/leave_review.dart';
 import '../features/attendance/models/attendance_data.dart';
 import '../features/dashboard/models/activity_item.dart';
 import '../features/exams/models/exam_data.dart';
@@ -527,6 +528,40 @@ class GuardianApiService {
     return _api.request<dynamic>(
       method: HttpMethod.patch,
       path: '${GuardianEndpoints.directMessages(_sid)}/$messageId/read',
+      parser: (json) => json,
+    );
+  }
+
+  // ─────────────────────── Leave (for a child) ───────────────────────
+
+  Future<ApiResponse<List<LeaveReviewItem>>> fetchMyLeave() {
+    return _api.request<List<LeaveReviewItem>>(
+      method: HttpMethod.get,
+      path: GuardianEndpoints.leaveMine(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(LeaveReviewItem.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> submitLeave({
+    required String studentId,
+    String? leaveType,
+    required String startDate,
+    required String endDate,
+    String? reason,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: GuardianEndpoints.leaveRequests(_sid),
+      body: {
+        'student_id': studentId,
+        'leave_type': ?leaveType,
+        'start_date': startDate,
+        'end_date': endDate,
+        'reason': ?reason,
+      },
       parser: (json) => json,
     );
   }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../widgets/leave_review.dart';
+import '../features/grading/models/submission_row.dart';
 import '../features/performance/models/section_performance.dart';
 import '../features/assignments/models/assignment.dart';
 import '../features/attendance/models/attendance_models.dart';
@@ -199,10 +201,11 @@ class TeacherApiService {
             dueLabel: a['due_date'] as String? ?? '',
             status:
                 isClosed ? AssignmentStatus.closed : AssignmentStatus.active,
-            turnedIn: 0,
+            turnedIn: (a['submission_count'] as num?)?.toInt() ?? 0,
             total: 0,
             icon: Icons.assignment_outlined,
             iconAccent: AppColors.primary,
+            maxMarks: (a['max_marks'] as num?)?.toDouble(),
           );
         }).toList();
         final active =
@@ -560,6 +563,60 @@ class TeacherApiService {
           .cast<Map<String, dynamic>>()
           .map((s) => IdLabel('${s['id']}', s['name'] as String? ?? ''))
           .toList(),
+    );
+  }
+
+  // ─────────────────────── Homework grading ───────────────────────
+
+  Future<ApiResponse<List<SubmissionRow>>> fetchSubmissions(String assignmentId) {
+    return _api.request<List<SubmissionRow>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.assignmentSubmissions(_sid, assignmentId),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(SubmissionRow.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> gradeSubmission({
+    required String submissionId,
+    required double marks,
+    String? feedback,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.patch,
+      path: TeacherEndpoints.gradeSubmission(_sid, submissionId),
+      body: {'marks_obtained': marks, 'feedback': ?feedback},
+      parser: (json) => json,
+    );
+  }
+
+  // ─────────────────────── Leave review ───────────────────────
+
+  Future<ApiResponse<List<LeaveReviewItem>>> fetchLeaveReview() {
+    return _api.request<List<LeaveReviewItem>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.leaveForReview(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(LeaveReviewItem.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> reviewLeave({
+    required String leaveId,
+    required bool approve,
+    String? note,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: approve
+          ? TeacherEndpoints.leaveApprove(_sid, leaveId)
+          : TeacherEndpoints.leaveReject(_sid, leaveId),
+      body: {'note': ?note},
+      parser: (json) => json,
     );
   }
 }

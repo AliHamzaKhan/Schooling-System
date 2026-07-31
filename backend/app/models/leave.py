@@ -20,6 +20,12 @@ class LeaveRequest(Base, UUIDMixin, TimestampMixin):
     requester_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # The student the leave concerns. For a student's own request this equals
+    # requester_id; for a guardian's request it is the child. Drives routing to
+    # that student's class teacher.
+    student_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     leave_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)

@@ -7,6 +7,7 @@ class SchoolProfile {
   final String? logoUrl;
   final String? uniformColor; // hex string, e.g. "#1565C0"
   final int? feeDueDay; // day of month monthly fees are due (1–31)
+  final int? salaryDay; // day of month staff salaries are paid (1–31)
 
   const SchoolProfile({
     required this.id,
@@ -15,6 +16,7 @@ class SchoolProfile {
     this.logoUrl,
     this.uniformColor,
     this.feeDueDay,
+    this.salaryDay,
   });
 
   factory SchoolProfile.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class SchoolProfile {
       logoUrl: settings['logo_url'] as String?,
       uniformColor: settings['uniform_color'] as String?,
       feeDueDay: (settings['fee_due_day'] as num?)?.toInt(),
+      salaryDay: (settings['salary_day'] as num?)?.toInt(),
     );
   }
 }

@@ -90,6 +90,14 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     AI_MODEL: str = "claude-opus-4-8"
 
+    # --- Scheduled jobs (driven by an external cron hitting /jobs/*) --- #
+    # Shared secret an external scheduler sends in the `X-Cron-Secret` header to
+    # authorize job endpoints. Blank => the job endpoints are disabled (403).
+    CRON_SECRET: str = ""
+    # Days before a school's salary payout day that outstanding-fee reminders go
+    # out to guardians.
+    FEE_REMINDER_LEAD_DAYS: int = 5
+
     # --- File storage --- #
     # Pluggable object storage. The app depends only on the StorageBackend
     # interface (app/core/storage.py), so the provider can be swapped without

@@ -9,7 +9,14 @@ from app.models.academic import (
 from app.models.associations import user_roles
 from app.models.attendance import AttendanceRecord
 from app.models.teacher_attendance import TeacherAttendance
-from app.models.examination import Exam, ExamResult, ExamSeat, ExamSubject, Mark
+from app.models.examination import (
+    Exam,
+    ExamCategory,
+    ExamResult,
+    ExamSeat,
+    ExamSubject,
+    Mark,
+)
 from app.models.fees import FeeStructure, Invoice, Payment
 from app.models.communication import (
     DeviceToken,
@@ -17,6 +24,13 @@ from app.models.communication import (
     MessageDelivery,
     NotificationConfig,
     NotificationTemplate,
+)
+from app.models.course import (
+    BookChapter,
+    Course,
+    CourseBook,
+    CourseNote,
+    ReadingProgress,
 )
 from app.models.direct_message import DirectMessage
 from app.models.homework import Assignment, Submission
@@ -37,8 +51,13 @@ from app.models.transport import Route, RouteStop, TransportAssignment, Vehicle
 from app.models.base import Base
 from app.models.role import Role, RolePermission
 from app.models.school import AcademicSession, School, SchoolModule
+from app.models.school_info import SchoolInfo
 from app.models.session import RefreshSession
-from app.models.subscription import SubscriptionPlan
+from app.models.subscription import (
+    SchoolSubscription,
+    SubscriptionPayment,
+    SubscriptionPlan,
+)
 from app.models.user import User
 
 __all__ = [
@@ -50,6 +69,8 @@ __all__ = [
     "School",
     "SchoolModule",
     "SubscriptionPlan",
+    "SchoolSubscription",
+    "SubscriptionPayment",
     "User",
     "RefreshSession",
     "SchoolClass",
@@ -60,6 +81,7 @@ __all__ = [
     "AttendanceRecord",
     "TeacherAttendance",
     "Exam",
+    "ExamCategory",
     "ExamSubject",
     "Mark",
     "ExamResult",
@@ -69,6 +91,12 @@ __all__ = [
     "Payment",
     "Assignment",
     "Submission",
+    "Course",
+    "CourseBook",
+    "BookChapter",
+    "CourseNote",
+    "ReadingProgress",
+    "SchoolInfo",
     "NotificationTemplate",
     "NotificationConfig",
     "Message",

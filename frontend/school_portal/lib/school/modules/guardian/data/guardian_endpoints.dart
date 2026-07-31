@@ -42,4 +42,10 @@ class GuardianEndpoints {
   /// Direct messages/complaints addressed to the signed-in guardian.
   static String directMessages(String schoolId) =>
       '${_base(schoolId)}/messages';
+
+  // ── Leave applications (submitted for a child) ──
+  static String leaveRequests(String schoolId) =>
+      '${_base(schoolId)}/leave/requests';
+  static String leaveMine(String schoolId) =>
+      '${_base(schoolId)}/leave/requests/mine';
 }
