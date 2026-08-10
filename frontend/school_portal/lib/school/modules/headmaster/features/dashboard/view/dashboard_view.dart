@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../../../../../config/headmaster_routes.dart';
+import '../../../../../widgets/dashboard_kit.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../../attendance/components/teacher_attendance_card.dart';
@@ -14,8 +15,14 @@ import '../models/dashboard_data.dart';
 import '../models/subscription_status.dart';
 import '../../../../../widgets/skeletons.dart';
 
-/// Headmaster Dashboard — greeting, daily KPIs, pending approvals, and a
-/// preview of recent announcements with a quick "New" CTA.
+/// Headmaster Dashboard — the shared dashboard shape (identity, the numbers,
+/// the primary action, then shortcuts), then the campus-wide sections only this
+/// module has: teacher attendance, pending approvals, recent announcements.
+///
+/// The KPI grid keeps [DashboardMetricCard] rather than the shared stat card:
+/// it is the same 2-per-row shape and the same visual family, but it also
+/// carries a trend pill and a "+ create" affordance, and swapping it for the
+/// plain card would have quietly removed both.
 class DashboardView extends GetView<HeadmasterDashboardController> {
   final VoidCallback? onAnnouncements;
   final VoidCallback? onSettings;
@@ -52,10 +59,11 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                   AppSpacing.containerPaddingMobile,
                   AppSpacing.stackXl),
               children: [
-                Text(data.greeting, style: AppTypography.headlineLg),
                 const SizedBox(height: AppSpacing.stackSm),
-                Text("Here's what's happening on campus today.",
-                    style: AppTypography.bodyLg),
+                DashboardIdentityCard(
+                  title: controller.headmasterName,
+                  subtitle: "Here's what's happening on campus today.",
+                ),
                 const SizedBox(height: AppSpacing.stackLg),
 
                 // Subscription expiry alert (only near/after expiry).
@@ -64,43 +72,33 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                   const SizedBox(height: AppSpacing.stackLg),
                 ],
 
-                // Admin quick actions.
-                Row(
-                  children: [
-                    Expanded(
-                      child: _AdminAction(
-                        icon: Icons.settings_outlined,
-                        label: 'School Settings',
-                        onTap: onSettings,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.stackMd),
-                    Expanded(
-                      child: _AdminAction(
-                        icon: Icons.payments_outlined,
-                        label: 'Teacher Salaries',
-                        onTap: onSalary,
-                      ),
-                    ),
-                  ],
+                // Leave requests are the one item here that is somebody
+                // waiting on a decision, so they get the full-width row and the
+                // rest become shortcuts.
+                DashboardPrimaryAction(
+                  icon: Icons.event_available_outlined,
+                  label: 'Leave Requests',
+                  subtitle: 'Staff and student applications to review',
+                  onTap: () => Get.toNamed(HeadmasterRoutes.leaveReview),
                 ),
-                const SizedBox(height: AppSpacing.stackMd),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _AdminAction(
-                        icon: Icons.apartment_rounded,
-                        label: 'School Info',
-                        onTap: () => Get.toNamed(HeadmasterRoutes.schoolInfoEdit),
-                      ),
+                const SizedBox(height: AppSpacing.stackLg),
+
+                DashboardQuickLinks(
+                  links: [
+                    DashboardLink(
+                      icon: Icons.settings_outlined,
+                      label: 'Settings',
+                      onTap: onSettings,
                     ),
-                    const SizedBox(width: AppSpacing.stackMd),
-                    Expanded(
-                      child: _AdminAction(
-                        icon: Icons.event_available_outlined,
-                        label: 'Leave Requests',
-                        onTap: () => Get.toNamed(HeadmasterRoutes.leaveReview),
-                      ),
+                    DashboardLink(
+                      icon: Icons.payments_outlined,
+                      label: 'Salaries',
+                      onTap: onSalary,
+                    ),
+                    DashboardLink(
+                      icon: Icons.apartment_rounded,
+                      label: 'School Info',
+                      onTap: () => Get.toNamed(HeadmasterRoutes.schoolInfoEdit),
                     ),
                   ],
                 ),
@@ -284,41 +282,6 @@ class _MetricsGrid extends StatelessWidget {
     });
   }
 }
-
-class _AdminAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-  const _AdminAction({required this.icon, required this.label, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.button),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.stackMd),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(AppRadius.button),
-          border: Border.all(color: AppColors.outlineVariant, width: 1),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: AppColors.primary),
-            const SizedBox(width: AppSpacing.stackSm),
-            Expanded(
-              child: Text(label,
-                  style: AppTypography.labelMd.copyWith(
-                      color: AppColors.primary, fontWeight: FontWeight.w700)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 
 class _NewButton extends StatelessWidget {
   final VoidCallback? onTap;

@@ -3,47 +3,36 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../../../app/admin_routes.dart';
+import '../../../ui/admin_widgets/admin_confirm_dialog.dart';
 import '../../../ui/admin_widgets/admin_search_field.dart';
 import '../../../ui/admin_widgets/admin_top_bar.dart';
 import '../../../ui/admin_widgets/filter_chips.dart';
 import '../../../ui/admin_widgets/pagination_bar.dart';
 import '../components/school_card.dart';
+import '../components/subscription_sheet.dart';
 import '../controller/schools_controller.dart';
 import '../models/school.dart';
 
-const _planOptions = {'Basic': 'basic', 'Standard': 'standard', 'Premium': 'premium'};
-
-/// Bottom sheet to change a school's subscription plan.
-Future<void> _showSubscriptionMenu(School s) async {
-  final choice = await Get.bottomSheet<String>(
-    Container(
-      color: AppColors.surface,
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.stackMd),
-              child: Text('Subscription — ${s.name}', style: AppTypography.titleLg),
-            ),
-            for (final e in _planOptions.entries)
-              ListTile(
-                leading: Icon(s.planCode == e.value
-                    ? Icons.check_circle_rounded
-                    : Icons.circle_outlined),
-                title: Text(e.key),
-                onTap: () => Get.back<String>(result: e.value),
-              ),
-            const SizedBox(height: AppSpacing.stackSm),
-          ],
-        ),
-      ),
-    ),
+/// Confirms then reactivates a suspended school.
+Future<void> _activateSchool(School s) async {
+  final confirmed = await showAdminConfirm(
+    icon: Icons.check_circle_outline_rounded,
+    title: 'Activate school?',
+    message:
+        '${s.name} will be reactivated and regain full access for its staff and students.',
+    confirmLabel: 'Activate',
+    accent: AppColors.tertiary,
+    details: [
+      AdminConfirmDetail(label: 'School', value: s.name),
+      if (s.planName != null || s.planCode != null)
+        AdminConfirmDetail(
+            label: 'Plan', value: s.planName ?? s.planCode!),
+    ],
   );
-  if (choice == null || choice == s.planCode) return;
-  final ok = await Get.find<SchoolsController>().changeSubscription(s.id, choice);
+  if (!confirmed) return;
+  final ok = await Get.find<SchoolsController>().activateSchool(s.id);
   if (ok) {
-    Get.snackbar('Updated', 'Plan changed for ${s.name}.',
+    Get.snackbar('Activated', '${s.name} is now active.',
         snackPosition: SnackPosition.BOTTOM);
   }
 }
@@ -157,14 +146,21 @@ class SchoolsView extends GetView<SchoolsController> {
           for (final s in controller.schools) ...[
             SchoolCard(
               school: s,
+              onTap: () async {
+                await Get.toNamed(AdminRoutes.schoolDetail, arguments: s);
+                // Detail may have changed status/plan; refresh on return.
+                controller.fetch();
+              },
               onEdit: () async {
                 // Reuse the create wizard in edit mode (prefilled via arguments).
                 final saved =
                     await Get.toNamed(AdminRoutes.createSchool, arguments: s);
                 if (saved == true) controller.fetch();
               },
-              onSubscription: () => _showSubscriptionMenu(s),
+              onSubscription: () =>
+                  showSubscriptionSheet(s, onChanged: controller.fetch),
               onDelete: () => _confirmDeleteSchool(s),
+              onActivate: () => _activateSchool(s),
             ),
             const SizedBox(height: AppSpacing.stackMd),
           ],

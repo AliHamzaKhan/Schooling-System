@@ -22,7 +22,7 @@ class CountdownCard extends StatelessWidget {
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(AppRadius.cardLarge),
         boxShadow: const [
-          BoxShadow(color: Color(0x331A2A6C), blurRadius: 24, offset: Offset(0, 8)),
+          BoxShadow(color: Color(0x330F172A), blurRadius: 24, offset: Offset(0, 8)),
         ],
       ),
       child: Column(

@@ -82,6 +82,20 @@ class SubscriptionOut(BaseModel):
     created_at: datetime
 
 
+class PaymentOut(BaseModel):
+    """One recorded payment in a school's billing ledger."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    amount: float
+    paid_at: datetime
+    period_start: date
+    period_end: date
+    status: str
+    plan_name: str | None = None
+
+
 class SubscriptionStatusOut(BaseModel):
     """Lightweight status for a school (consumed by the headmaster expiry alert)."""
 

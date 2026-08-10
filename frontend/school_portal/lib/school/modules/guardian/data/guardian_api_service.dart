@@ -24,24 +24,27 @@ import 'guardian_endpoints.dart';
 /// `GuardianRepository`, which decides between this live service and mock data.
 class GuardianApiService {
   final ApiService _api;
+
   GuardianApiService({ApiService? api}) : _api = api ?? Get.find<ApiService>();
 
   String get _sid => Get.find<AuthService>().schoolId ?? '';
 
-  Future<ApiResponse<dynamic>> _get(String path, {Map<String, String>? query}) =>
-      _api.request<dynamic>(
-        method: HttpMethod.get,
-        path: path,
-        query: query,
-        parser: (json) => json,
-      );
+  Future<ApiResponse<dynamic>> _get(
+    String path, {
+    Map<String, String>? query,
+  }) => _api.request<dynamic>(
+    method: HttpMethod.get,
+    path: path,
+    query: query,
+    parser: (json) => json,
+  );
 
   /// The active section id for a child, read from the session's children list.
-  String? _sectionId(String childId) => Get.isRegistered<GuardianSessionController>()
-      ? Get.find<GuardianSessionController>()
-          .children
-          .firstWhereOrNull((c) => c.id == childId)
-          ?.sectionId
+  String? _sectionId(String childId) =>
+      Get.isRegistered<GuardianSessionController>()
+      ? Get.find<GuardianSessionController>().children
+            .firstWhereOrNull((c) => c.id == childId)
+            ?.sectionId
       : null;
 
   /// subject_id → name, for resolving homework/report-card subject labels.
@@ -103,46 +106,61 @@ class GuardianApiService {
 
   /// Per-child attendance from `/students/{id}/attendance` (AttendanceRecordOut
   /// list), aggregated into the guardian summary.
-  Future<ApiResponse<GuardianAttendanceData>> fetchAttendance(String childId) async {
+  Future<ApiResponse<GuardianAttendanceData>> fetchAttendance(
+    String childId,
+  ) async {
     final res = await _get(GuardianEndpoints.studentAttendance(_sid, childId));
     if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
     final records = (res.data as List).cast<Map<String, dynamic>>();
     String st(Map<String, dynamic> r) => '${r['status'] ?? ''}'.toLowerCase();
-    final present = records.where((r) => ['present', 'excused'].contains(st(r))).length;
-    final late = records.where((r) => ['late', 'early_departure'].contains(st(r))).length;
+    final present = records
+        .where((r) => ['present', 'excused'].contains(st(r)))
+        .length;
+    final late = records
+        .where((r) => ['late', 'early_departure'].contains(st(r)))
+        .length;
     final absent = records.where((r) => st(r) == 'absent').length;
     final pct = records.isEmpty
         ? 0
         : ((present + late) * 100 / records.length).round();
-    final sorted = [...records]..sort(
-        (a, b) => '${b['attendance_date']}'.compareTo('${a['attendance_date']}'));
+    final sorted = [...records]
+      ..sort(
+        (a, b) =>
+            '${b['attendance_date']}'.compareTo('${a['attendance_date']}'),
+      );
     AttendanceStatus mapStatus(String s) => switch (s) {
-          'absent' => AttendanceStatus.absent,
-          'late' || 'early_departure' => AttendanceStatus.late,
-          _ => AttendanceStatus.present,
-        };
-    return ApiResponse.ok(GuardianAttendanceData(
-      monthlyPercent: pct,
-      presentDays: present,
-      absentDays: absent,
-      lateDays: late,
-      recent: sorted
-          .take(12)
-          .map((r) => AttendanceRecord(
+      'absent' => AttendanceStatus.absent,
+      'late' || 'early_departure' => AttendanceStatus.late,
+      _ => AttendanceStatus.present,
+    };
+    return ApiResponse.ok(
+      GuardianAttendanceData(
+        monthlyPercent: pct,
+        presentDays: present,
+        absentDays: absent,
+        lateDays: late,
+        recent: sorted
+            .take(12)
+            .map(
+              (r) => AttendanceRecord(
                 date: _fmtDate('${r['attendance_date']}'),
                 status: mapStatus(st(r)),
                 note: r['remarks'] as String?,
-              ))
-          .toList(),
-    ));
+              ),
+            )
+            .toList(),
+      ),
+    );
   }
 
   // ------------------------------- fees --------------------------------- #
 
   /// Per-child fees from `/fees/invoices?student_id=` (InvoiceOut list).
   Future<ApiResponse<FeeData>> fetchFees(String childId) async {
-    final res = await _get(GuardianEndpoints.feesInvoices(_sid),
-        query: {'student_id': childId, 'limit': '200'});
+    final res = await _get(
+      GuardianEndpoints.feesInvoices(_sid),
+      query: {'student_id': childId, 'limit': '200'},
+    );
     if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
     final invoices = (res.data as List).cast<Map<String, dynamic>>();
     double outstanding = 0, paid = 0;
@@ -150,34 +168,39 @@ class GuardianApiService {
     final mapped = <FeeInvoice>[];
     for (final i in invoices) {
       final amount = (i['amount'] as num?)?.toDouble() ?? 0;
-      final balance = (i['balance'] as num?)?.toDouble() ??
+      final balance =
+          (i['balance'] as num?)?.toDouble() ??
           (amount - ((i['amount_paid'] as num?)?.toDouble() ?? 0));
       outstanding += balance;
       paid += (i['amount_paid'] as num?)?.toDouble() ?? 0;
       final status = '${i['status']}' == 'paid'
           ? InvoiceStatus.paid
           : (i['is_overdue'] as bool? ?? false)
-              ? InvoiceStatus.overdue
-              : InvoiceStatus.due;
+          ? InvoiceStatus.overdue
+          : InvoiceStatus.due;
       if (status != InvoiceStatus.paid) {
         final due = '${i['due_date']}';
         if (nextDue == null || due.compareTo(nextDue) < 0) nextDue = due;
       }
-      mapped.add(FeeInvoice(
-        title: i['title'] as String? ?? 'Invoice',
-        period: _fmtDate('${i['due_date']}'),
-        amount: amount,
-        dueDate: _fmtDate('${i['due_date']}'),
-        status: status,
-      ));
+      mapped.add(
+        FeeInvoice(
+          title: i['title'] as String? ?? 'Invoice',
+          period: _fmtDate('${i['due_date']}'),
+          amount: amount,
+          dueDate: _fmtDate('${i['due_date']}'),
+          status: status,
+        ),
+      );
     }
-    return ApiResponse.ok(FeeData(
-      currency: r'$',
-      outstanding: outstanding,
-      paidThisYear: paid,
-      nextDueDate: nextDue == null ? null : _fmtDate(nextDue),
-      invoices: mapped,
-    ));
+    return ApiResponse.ok(
+      FeeData(
+        currency: r'$',
+        outstanding: outstanding,
+        paidThisYear: paid,
+        nextDueDate: nextDue == null ? null : _fmtDate(nextDue),
+        invoices: mapped,
+      ),
+    );
   }
 
   // ----------------------------- homework ------------------------------- #
@@ -186,16 +209,22 @@ class GuardianApiService {
   /// submissions to derive each item's status.
   Future<ApiResponse<HomeworkData>> fetchHomework(String childId) async {
     final section = _sectionId(childId);
-    final asgRes = await _get(GuardianEndpoints.homeworkAssignments(_sid),
-        query: {'limit': '200', 'section_id': ?section});
-    if (!asgRes.success) return ApiResponse.fail(asgRes.error ?? 'Failed to load');
+    final asgRes = await _get(
+      GuardianEndpoints.homeworkAssignments(_sid),
+      query: {'limit': '200', 'section_id': ?section},
+    );
+    if (!asgRes.success) {
+      return ApiResponse.fail(asgRes.error ?? 'Failed to load');
+    }
     var assignments = (asgRes.data as List).cast<Map<String, dynamic>>();
     if (section != null) {
-      assignments =
-          assignments.where((a) => '${a['section_id']}' == section).toList();
+      assignments = assignments
+          .where((a) => '${a['section_id']}' == section)
+          .toList();
     }
-    final subRes =
-        await _get(GuardianEndpoints.studentSubmissions(_sid, childId));
+    final subRes = await _get(
+      GuardianEndpoints.studentSubmissions(_sid, childId),
+    );
     final submissions = <String, Map<String, dynamic>>{
       if (subRes.success)
         for (final s in (subRes.data as List).cast<Map<String, dynamic>>())
@@ -236,13 +265,17 @@ class GuardianApiService {
       );
     }).toList();
     return ApiResponse.ok(
-        HomeworkData(pending: pending, submitted: submitted, items: items));
+      HomeworkData(pending: pending, submitted: submitted, items: items),
+    );
   }
 
   // ------------------------------- exams -------------------------------- #
 
   Future<List<Map<String, dynamic>>> _examList() async {
-    final res = await _get(GuardianEndpoints.exams(_sid), query: {'limit': '100'});
+    final res = await _get(
+      GuardianEndpoints.exams(_sid),
+      query: {'limit': '100'},
+    );
     return res.success ? (res.data as List).cast<Map<String, dynamic>>() : [];
   }
 
@@ -253,35 +286,40 @@ class GuardianApiService {
   /// grade pulled from each completed exam's report-card.
   Future<ApiResponse<ExamData>> fetchExams(String childId) async {
     final exams = await _examList();
-    final upcoming = exams.where((e) => !_isCompleted(e)).map((e) => ExamEntry(
-          subject: e['name'] as String? ?? '',
-          date: _fmtDate('${e['start_date']}'),
-          time: '',
-          room: '',
-        ));
+    final upcoming = exams
+        .where((e) => !_isCompleted(e))
+        .map(
+          (e) => ExamEntry(
+            subject: e['name'] as String? ?? '',
+            date: _fmtDate('${e['start_date']}'),
+            time: '',
+            room: '',
+          ),
+        );
     final results = <ExamEntry>[];
     for (final e in exams.where(_isCompleted)) {
       final rc = await _get(
-          GuardianEndpoints.reportCard(_sid, '${e['id']}', childId));
+        GuardianEndpoints.reportCard(_sid, '${e['id']}', childId),
+      );
       String? label;
       if (rc.success && rc.data is Map) {
         final m = (rc.data as Map).cast<String, dynamic>();
         final pct = (m['percentage'] as num?)?.toDouble() ?? 0;
         label = '${m['grade'] ?? _grade(pct)} — ${pct.round()}%';
       }
-      results.add(ExamEntry(
-        subject: e['name'] as String? ?? '',
-        date: _fmtDate('${e['start_date']}'),
-        time: '',
-        room: '',
-        result: label,
-      ));
+      results.add(
+        ExamEntry(
+          subject: e['name'] as String? ?? '',
+          date: _fmtDate('${e['start_date']}'),
+          time: '',
+          room: '',
+          result: label,
+        ),
+      );
     }
-    return ApiResponse.ok(ExamData(
-      termLabel: '',
-      upcoming: upcoming.toList(),
-      results: results,
-    ));
+    return ApiResponse.ok(
+      ExamData(termLabel: '', upcoming: upcoming.toList(), results: results),
+    );
   }
 
   // ---------------------- report card / performance --------------------- #
@@ -296,71 +334,87 @@ class GuardianApiService {
   Future<ApiResponse<ReportCardData>> fetchReportCard(String childId) async {
     final exam = await _latestCompletedExam();
     if (exam == null) {
-      return ApiResponse.ok(const ReportCardData(
-          termLabel: 'No results yet', gpa: 0, subjects: [], gpaTrend: []));
+      return ApiResponse.ok(
+        const ReportCardData(
+          termLabel: 'No results yet',
+          gpa: 0,
+          subjects: [],
+          gpaTrend: [],
+        ),
+      );
     }
-    final rc =
-        await _get(GuardianEndpoints.reportCard(_sid, '${exam['id']}', childId));
+    final rc = await _get(
+      GuardianEndpoints.reportCard(_sid, '${exam['id']}', childId),
+    );
     if (!rc.success) return ApiResponse.fail(rc.error ?? 'Failed to load');
     final m = (rc.data as Map).cast<String, dynamic>();
     final subjects = await _subjects();
     final lines = ((m['lines'] as List?) ?? []).cast<Map<String, dynamic>>();
     final pct = (m['percentage'] as num?)?.toDouble() ?? 0;
-    return ApiResponse.ok(ReportCardData(
-      termLabel: exam['name'] as String? ?? 'Results',
-      gpa: (pct / 25).clamp(0, 4).toDouble(),
-      subjects: lines.map((l) {
-        final max = (l['max_marks'] as num?)?.toDouble() ?? 0;
-        final got = (l['marks_obtained'] as num?)?.toDouble() ?? 0;
-        final p = max == 0 ? 0.0 : got * 100 / max;
-        return ReportSubject(
-          subject: subjects['${l['subject_id']}'] ?? 'Subject',
-          grade: _grade(p),
-          percent: p.round(),
-        );
-      }).toList(),
-      gpaTrend: [GpaTrendPoint(label: 'Term', gpa: (pct / 25).clamp(0, 4).toDouble())],
-    ));
+    return ApiResponse.ok(
+      ReportCardData(
+        termLabel: exam['name'] as String? ?? 'Results',
+        gpa: (pct / 25).clamp(0, 4).toDouble(),
+        subjects: lines.map((l) {
+          final max = (l['max_marks'] as num?)?.toDouble() ?? 0;
+          final got = (l['marks_obtained'] as num?)?.toDouble() ?? 0;
+          final p = max == 0 ? 0.0 : got * 100 / max;
+          return ReportSubject(
+            subject: subjects['${l['subject_id']}'] ?? 'Subject',
+            grade: _grade(p),
+            percent: p.round(),
+          );
+        }).toList(),
+        gpaTrend: [
+          GpaTrendPoint(label: 'Term', gpa: (pct / 25).clamp(0, 4).toDouble()),
+        ],
+      ),
+    );
   }
 
   Future<ApiResponse<PerformanceData>> fetchPerformance(String childId) async {
     final exam = await _latestCompletedExam();
     if (exam == null) {
-      return ApiResponse.ok(const PerformanceData(
-        gpa: 0,
-        classRank: 0,
-        classSize: 0,
-        termLabel: 'No results yet',
-        subjects: [],
-        gpaTrend: [],
-      ));
+      return ApiResponse.ok(
+        const PerformanceData(
+          gpa: 0,
+          classRank: 0,
+          classSize: 0,
+          termLabel: 'No results yet',
+          subjects: [],
+          gpaTrend: [],
+        ),
+      );
     }
-    final rc =
-        await _get(GuardianEndpoints.reportCard(_sid, '${exam['id']}', childId));
+    final rc = await _get(
+      GuardianEndpoints.reportCard(_sid, '${exam['id']}', childId),
+    );
     if (!rc.success) return ApiResponse.fail(rc.error ?? 'Failed to load');
     final m = (rc.data as Map).cast<String, dynamic>();
     final subjects = await _subjects();
     final lines = ((m['lines'] as List?) ?? []).cast<Map<String, dynamic>>();
     final pct = (m['percentage'] as num?)?.toDouble() ?? 0;
     final gpa = (pct / 25).clamp(0, 4).toDouble();
-    return ApiResponse.ok(PerformanceData(
-      gpa: gpa,
-      classRank: 0,
-      classSize: 0,
-      termLabel: exam['name'] as String? ?? 'Results',
-      subjects: lines.map((l) {
-        final max = (l['max_marks'] as num?)?.toDouble() ?? 0;
-        final got = (l['marks_obtained'] as num?)?.toDouble() ?? 0;
-        final p = max == 0 ? 0.0 : got * 100 / max;
-        return SubjectGrade(
-          subject: subjects['${l['subject_id']}'] ?? 'Subject',
-          grade: _grade(p),
-          percent: p.round(),
-          deltaPercent: 0,
-        );
-      }).toList(),
-      gpaTrend: [gpa],
-    ));
+    return ApiResponse.ok(
+      PerformanceData(
+        gpa: gpa,
+        classRank: 0,
+        classSize: 0,
+        termLabel: exam['name'] as String? ?? 'Results',
+        subjects: lines.map((l) {
+          final max = (l['max_marks'] as num?)?.toDouble() ?? 0;
+          final got = (l['marks_obtained'] as num?)?.toDouble() ?? 0;
+          final p = max == 0 ? 0.0 : got * 100 / max;
+          return SubjectGrade(
+            subject: subjects['${l['subject_id']}'] ?? 'Subject',
+            grade: _grade(p),
+            percent: p.round(),
+            deltaPercent: 0,
+          );
+        }).toList(),
+        gpaTrend: [gpa],
+      ),
+    );
   }
 
   // ----------------------------- timetable ------------------------------ #
@@ -379,12 +433,14 @@ class GuardianApiService {
     final byDay = <int, List<TimetableEntry>>{};
     for (final s in slots) {
       final dow = (s['day_of_week'] as num?)?.toInt() ?? 0;
-      (byDay[dow] ??= []).add(TimetableEntry(
-        subject: subjects['${s['subject_id']}'] ?? 'Subject',
-        startTime: _fmtTime('${s['start_time']}'),
-        endTime: _fmtTime('${s['end_time']}'),
-        room: s['room'] as String?,
-      ));
+      (byDay[dow] ??= []).add(
+        TimetableEntry(
+          subject: subjects['${s['subject_id']}'] ?? 'Subject',
+          startTime: _fmtTime('${s['start_time']}'),
+          endTime: _fmtTime('${s['end_time']}'),
+          room: s['room'] as String?,
+        ),
+      );
     }
     final today = DateTime.now().weekday - 1; // 0=Mon
     final days = <TimetableDay>[];
@@ -392,12 +448,14 @@ class GuardianApiService {
       final entries = byDay[i] ?? const <TimetableEntry>[];
       if (entries.isEmpty && i > 4) continue; // hide empty weekends
       entries.sort((a, b) => a.startTime.compareTo(b.startTime));
-      days.add(TimetableDay(
-        weekday: _weekdays[i],
-        dayNum: '',
-        isToday: i == today,
-        entries: entries,
-      ));
+      days.add(
+        TimetableDay(
+          weekday: _weekdays[i],
+          dayNum: '',
+          isToday: i == today,
+          entries: entries,
+        ),
+      );
     }
     return ApiResponse.ok(TimetableData(weekLabel: 'This Week', days: days));
   }
@@ -407,11 +465,14 @@ class GuardianApiService {
   /// Parent–teacher meetings for the child from `/meetings`, split into
   /// upcoming and past.
   Future<ApiResponse<MeetingData>> fetchMeetings(String childId) async {
-    final res = await _get(GuardianEndpoints.meetings(_sid), query: {'limit': '100'});
+    final res = await _get(
+      GuardianEndpoints.meetings(_sid),
+      query: {'limit': '100'},
+    );
     if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
-    final all = (res.data as List)
-        .cast<Map<String, dynamic>>()
-        .where((m) => m['student_id'] == null || '${m['student_id']}' == childId);
+    final all = (res.data as List).cast<Map<String, dynamic>>().where(
+      (m) => m['student_id'] == null || '${m['student_id']}' == childId,
+    );
     final now = DateTime.now();
     final upcoming = <Meeting>[], past = <Meeting>[];
     for (final m in all) {
@@ -421,7 +482,9 @@ class GuardianApiService {
         teacher: m['title'] as String? ?? 'Meeting',
         subject: '',
         date: at == null ? '' : '${_months[at.month - 1]} ${at.day}',
-        time: at == null ? '' : _fmtTime('${at.hour}:${at.minute.toString().padLeft(2, '0')}'),
+        time: at == null
+            ? ''
+            : _fmtTime('${at.hour}:${at.minute.toString().padLeft(2, '0')}'),
         mode: (loc != null && loc.startsWith('http'))
             ? MeetingMode.video
             : MeetingMode.inPerson,
@@ -443,11 +506,16 @@ class GuardianApiService {
   // --------------------------- dashboard feed --------------------------- #
 
   /// A light activity feed synthesised from the child's recent attendance.
-  Future<ApiResponse<List<ActivityItem>>> fetchDashboardFeed(String childId) async {
+  Future<ApiResponse<List<ActivityItem>>> fetchDashboardFeed(
+    String childId,
+  ) async {
     final res = await _get(GuardianEndpoints.studentAttendance(_sid, childId));
     if (!res.success) return ApiResponse.ok(const []);
     final records = (res.data as List).cast<Map<String, dynamic>>()
-      ..sort((a, b) => '${b['attendance_date']}'.compareTo('${a['attendance_date']}'));
+      ..sort(
+        (a, b) =>
+            '${b['attendance_date']}'.compareTo('${a['attendance_date']}'),
+      );
     final items = records.take(8).map((r) {
       final status = '${r['status'] ?? ''}';
       final label = status.isEmpty
@@ -476,7 +544,8 @@ class GuardianApiService {
         final body = m['body'] as String? ?? '';
         return NotificationItem(
           id: '${m['id']}',
-          title: m['title'] as String? ??
+          title:
+              m['title'] as String? ??
               (body.length > 40 ? '${body.substring(0, 40)}…' : body),
           body: body,
           timeAgo: _relative((m['sent_at'] ?? m['scheduled_at']) as String?),
@@ -504,13 +573,11 @@ class GuardianApiService {
     );
     if (!broadcastsRes.success && !directRes.success) {
       return ApiResponse.fail(
-          broadcastsRes.error ?? 'Could not load notifications');
+        broadcastsRes.error ?? 'Could not load notifications',
+      );
     }
     // Direct messages first — they're personal and more actionable.
-    return ApiResponse.ok([
-      ...?directRes.data,
-      ...?broadcastsRes.data,
-    ]);
+    return ApiResponse.ok([...?directRes.data, ...?broadcastsRes.data]);
   }
 
   static final _dt = DateTimeParserService();

@@ -112,3 +112,14 @@ async def school_subscription_status(
     school_id: uuid.UUID, db: DbDep
 ) -> schemas.SubscriptionStatusOut:
     return await SubscriptionService(db).get_school_status(school_id)
+
+
+@router.get(
+    "/schools/{school_id}/payments",
+    response_model=list[schemas.PaymentOut],
+)
+async def school_payments(
+    school_id: uuid.UUID, db: DbDep, _: SuperAdmin
+) -> list[schemas.PaymentOut]:
+    """Super Admin: a school's full payment ledger (newest first)."""
+    return await SubscriptionService(db).list_school_payments(school_id)

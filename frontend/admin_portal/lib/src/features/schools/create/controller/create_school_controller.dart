@@ -25,9 +25,15 @@ class CreateSchoolController extends GetxController {
     'School Details',
     'Contact Info',
     'Subscription',
+    'Payment Mode',
     'Headmaster',
   ];
-  static const _editSteps = ['School Details', 'Contact Info', 'Subscription'];
+  static const _editSteps = [
+    'School Details',
+    'Contact Info',
+    'Subscription',
+    'Payment Mode',
+  ];
 
   /// Create mode also provisions the school's Headmaster; edit mode does not.
   List<String> get steps => isEdit ? _editSteps : _createSteps;
@@ -64,7 +70,14 @@ class CreateSchoolController extends GetxController {
   final discountType = DiscountType.none.obs;
   final discountCtrl = TextEditingController();
 
-  // Step 4 — headmaster (create mode only).
+  // Step 4 — payment mode (how the school pays us; stored in settings.billing).
+  final paymentMethod = RxnString();
+  final bankNameCtrl = TextEditingController();
+  final accountTitleCtrl = TextEditingController();
+  final accountNumberCtrl = TextEditingController();
+  final paymentNotesCtrl = TextEditingController();
+
+  // Step 5 — headmaster (create mode only).
   final hmNameCtrl = TextEditingController();
   final hmEmailCtrl = TextEditingController();
   final hmPasswordCtrl = TextEditingController();
@@ -116,9 +129,32 @@ class CreateSchoolController extends GetxController {
     emailCtrl.text = s.contactEmail ?? '';
     phoneCtrl.text = s.contactPhone ?? '';
     addressCtrl.text = s.address ?? '';
+    final billing = s.billing;
+    paymentMethod.value = billing['method'] as String?;
+    bankNameCtrl.text = '${billing['bank_name'] ?? ''}';
+    accountTitleCtrl.text = '${billing['account_title'] ?? ''}';
+    accountNumberCtrl.text = '${billing['account_number'] ?? ''}';
+    paymentNotesCtrl.text = '${billing['notes'] ?? ''}';
   }
 
   void selectInstitutionType(String? v) => institutionType.value = v;
+  void selectPaymentMethod(String? v) => paymentMethod.value = v;
+
+  /// Builds the `settings.billing` payload from the payment-mode fields, or null
+  /// when nothing was entered (so we don't write an empty block).
+  Map<String, dynamic>? _billingSettings() {
+    final billing = <String, dynamic>{
+      if (paymentMethod.value != null) 'method': paymentMethod.value,
+      if (bankNameCtrl.text.trim().isNotEmpty) 'bank_name': bankNameCtrl.text.trim(),
+      if (accountTitleCtrl.text.trim().isNotEmpty)
+        'account_title': accountTitleCtrl.text.trim(),
+      if (accountNumberCtrl.text.trim().isNotEmpty)
+        'account_number': accountNumberCtrl.text.trim(),
+      if (paymentNotesCtrl.text.trim().isNotEmpty) 'notes': paymentNotesCtrl.text.trim(),
+    };
+    if (billing.isEmpty) return null;
+    return {'billing': billing};
+  }
   void selectPlan(String planId) => selectedPlanId.value = planId;
   void setDiscountType(DiscountType t) => discountType.value = t;
 
@@ -235,6 +271,7 @@ class CreateSchoolController extends GetxController {
   }
 
   Future<void> _submitCreate(String addr) async {
+    final billing = _billingSettings();
     final payload = <String, dynamic>{
       'name': nameCtrl.text.trim(),
       'code': _code(),
@@ -242,6 +279,7 @@ class CreateSchoolController extends GetxController {
       if (phoneCtrl.text.trim().isNotEmpty) 'contact_phone': phoneCtrl.text.trim(),
       if (addr.isNotEmpty) 'address': addr,
     };
+    if (billing != null) payload['settings'] = billing;
     final res = await _repo.create(payload);
     if (!res.success || res.data == null) {
       error.value = res.error ?? 'Could not create the school. Try again.';
@@ -282,12 +320,16 @@ class CreateSchoolController extends GetxController {
   Future<void> _submitEdit(String addr) async {
     final id = editing!.id;
     // `code` is not editable via SchoolUpdate; update general info only.
-    final res = await _repo.update(id, {
+    final billing = _billingSettings();
+    final payload = <String, dynamic>{
       'name': nameCtrl.text.trim(),
       'contact_email': emailCtrl.text.trim().isEmpty ? null : emailCtrl.text.trim(),
       'contact_phone': phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
       if (addr.isNotEmpty) 'address': addr,
-    });
+    };
+    // Backend merges `settings`, so this only touches the billing block.
+    if (billing != null) payload['settings'] = billing;
+    final res = await _repo.update(id, payload);
     if (!res.success) {
       error.value = res.error ?? 'Could not save changes. Try again.';
       return;
@@ -333,6 +375,10 @@ class CreateSchoolController extends GetxController {
       stateCtrl,
       postalCtrl,
       discountCtrl,
+      bankNameCtrl,
+      accountTitleCtrl,
+      accountNumberCtrl,
+      paymentNotesCtrl,
       hmNameCtrl,
       hmEmailCtrl,
       hmPasswordCtrl,

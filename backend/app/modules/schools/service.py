@@ -6,14 +6,17 @@ docs/permissions/04 and 07.
 """
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import Module, PlanCode, SchoolStatus
 from app.core.exceptions import bad_request, not_found
+from app.models.associations import user_roles
 from app.models.examination import ExamCategory
+from app.models.role import Role
 from app.models.school import AcademicSession, School, SchoolModule
 from app.models.subscription import SubscriptionPlan
+from app.models.user import User
 from app.modules.schools import schemas
 
 # Every new school starts with these exam terms so the Headmaster has something
@@ -81,11 +84,46 @@ class SchoolService:
     async def update_school(self, school_id: uuid.UUID, data: schemas.SchoolUpdate) -> School:
         school = await self._get_school(school_id)
         payload = data.model_dump(exclude_unset=True)
+        # Merge `settings` into the existing blob rather than replacing it, so an
+        # admin edit (which may only carry billing/payment-mode keys) never
+        # clobbers headmaster-owned keys like uniform_color / logo / fee_due_day.
+        incoming_settings = payload.pop("settings", None)
         for field, value in payload.items():
             setattr(school, field, value)
+        if incoming_settings is not None:
+            school.settings = {**(school.settings or {}), **incoming_settings}
         await self.db.flush()
         await self.db.refresh(school)
         return school
+
+    async def get_school_stats(self, school_id: uuid.UUID) -> schemas.SchoolStatsOut:
+        """Active-user counts by role for the school detail screen."""
+        await self._get_school(school_id)  # 404 if the school does not exist
+        total = await self.db.scalar(
+            select(func.count(User.id)).where(
+                User.school_id == school_id, User.is_active.is_(True)
+            )
+        )
+        return schemas.SchoolStatsOut(
+            students=await self._count_by_role(school_id, "student"),
+            teachers=await self._count_by_role(school_id, "teacher"),
+            guardians=await self._count_by_role(school_id, "guardian"),
+            total_users=total or 0,
+        )
+
+    async def _count_by_role(self, school_id: uuid.UUID, role_code: str) -> int:
+        stmt = (
+            select(func.count(func.distinct(User.id)))
+            .select_from(User)
+            .join(user_roles, user_roles.c.user_id == User.id)
+            .join(Role, Role.id == user_roles.c.role_id)
+            .where(
+                User.school_id == school_id,
+                User.is_active.is_(True),
+                Role.code == role_code,
+            )
+        )
+        return await self.db.scalar(stmt) or 0
 
     async def update_school_profile(
         self, school_id: uuid.UUID, data: schemas.SchoolUpdate

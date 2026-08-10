@@ -281,6 +281,38 @@ class SubscriptionService:
         rows = (await self.db.execute(stmt)).all()
         return [self._to_out(*row) for row in rows]
 
+    async def list_school_payments(
+        self, school_id: uuid.UUID
+    ) -> list[schemas.PaymentOut]:
+        """The school's payment ledger (newest first), with the plan name of the
+        subscription each payment was recorded against."""
+        stmt = (
+            select(SubscriptionPayment, SubscriptionPlan.name)
+            .join(
+                SchoolSubscription,
+                SchoolSubscription.id == SubscriptionPayment.subscription_id,
+            )
+            .join(
+                SubscriptionPlan,
+                SubscriptionPlan.id == SchoolSubscription.plan_id,
+            )
+            .where(SubscriptionPayment.school_id == school_id)
+            .order_by(SubscriptionPayment.paid_at.desc())
+        )
+        rows = (await self.db.execute(stmt)).all()
+        return [
+            schemas.PaymentOut(
+                id=payment.id,
+                amount=float(payment.amount),
+                paid_at=payment.paid_at,
+                period_start=payment.period_start,
+                period_end=payment.period_end,
+                status=payment.status,
+                plan_name=plan_name,
+            )
+            for payment, plan_name in rows
+        ]
+
     async def get_school_status(
         self, school_id: uuid.UUID
     ) -> schemas.SubscriptionStatusOut:

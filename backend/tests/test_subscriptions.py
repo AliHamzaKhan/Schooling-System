@@ -239,3 +239,26 @@ async def test_admin_metrics(client, sa_headers, school):
     assert body["total_users"] >= 1
     assert body["active_subscriptions"] >= 1
     assert any(p["count"] >= 1 for p in body["plan_distribution"])
+
+
+async def test_school_payments_ledger(client, sa_headers, school):
+    plan = await _create_plan(client, sa_headers, price=1200, billing_period="monthly")
+    r = await client.post(
+        f"{API}/subscriptions",
+        headers=sa_headers,
+        json={"school_id": school["id"], "plan_id": plan["id"]},
+    )
+    assert r.status_code == 201, r.text
+
+    pays = await client.get(f"{API}/schools/{school['id']}/payments", headers=sa_headers)
+    assert pays.status_code == 200, pays.text
+    rows = pays.json()
+    assert len(rows) == 1
+    assert rows[0]["amount"] == 1200.0
+    assert rows[0]["plan_name"] == plan["name"]
+    assert rows[0]["status"] == "paid"
+
+
+async def test_school_payments_require_super_admin(client, school):
+    r = await client.get(f"{API}/schools/{school['id']}/payments", headers=school["hm"])
+    assert r.status_code == 403

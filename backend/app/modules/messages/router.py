@@ -34,6 +34,20 @@ async def send_message(
     return await DirectMessageService(db).send(school_id, current_user.id, data)
 
 
+@router.get(
+    "/contacts",
+    response_model=list[schemas.ContactOut],
+    dependencies=[_member],
+)
+async def list_contacts(
+    school_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+) -> list[schemas.ContactOut]:
+    """Members of your school you can start a direct conversation with."""
+    return await DirectMessageService(db).list_contacts(school_id, current_user)
+
+
 @router.get("", response_model=list[schemas.DirectMessageOut], dependencies=[_member])
 async def list_messages(
     school_id: uuid.UUID,

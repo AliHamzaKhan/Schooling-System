@@ -57,6 +57,15 @@ class SchoolOut(BaseModel):
 # --------------------------------------------------------------------------- #
 
 
+class SchoolStatsOut(BaseModel):
+    """Active-user counts for the school detail screen."""
+
+    students: int
+    teachers: int
+    guardians: int
+    total_users: int
+
+
 class SubscriptionAssign(BaseModel):
     plan_code: PlanCode
 

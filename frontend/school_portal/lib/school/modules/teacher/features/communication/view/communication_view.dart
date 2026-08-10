@@ -137,6 +137,13 @@ class _CommunicationViewState extends State<CommunicationView> {
             if (sent == true) await controller.fetch();
           },
         ),
+        const SizedBox(height: AppSpacing.stackSm),
+        GhostButton(
+          label: 'Direct Messages',
+          leadingIcon: Icons.forum_outlined,
+          expanded: true,
+          onPressed: () => Get.toNamed(TeacherRoutes.messages),
+        ),
         const SizedBox(height: AppSpacing.stackLg),
         Row(
           children: [

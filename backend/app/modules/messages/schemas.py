@@ -13,6 +13,14 @@ class DirectMessageCreate(BaseModel):
     body: str = Field(min_length=1, max_length=4000)
 
 
+class ContactOut(BaseModel):
+    """A school member the acting user may start a direct conversation with."""
+
+    id: uuid.UUID
+    name: str
+    role: str  # primary role label: headmaster / teacher / guardian / student / staff
+
+
 class DirectMessageOut(BaseModel):
     id: uuid.UUID
     school_id: uuid.UUID

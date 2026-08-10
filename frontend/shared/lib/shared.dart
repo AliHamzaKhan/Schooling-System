@@ -53,6 +53,18 @@ export 'src/env/env_config.dart';
 // ── App bootstrap ───────────────────────────────────────────────
 export 'src/app/services_bootstrap.dart';
 
+// ── Messaging feature (two-way direct messages, all portals) ────
+export 'src/features/messaging/models/direct_message.dart';
+export 'src/features/messaging/models/conversation.dart';
+export 'src/features/messaging/models/messaging_contact.dart';
+export 'src/features/messaging/data/messaging_service.dart';
+export 'src/features/messaging/controller/inbox_controller.dart';
+export 'src/features/messaging/controller/conversation_controller.dart';
+export 'src/features/messaging/controller/new_message_controller.dart';
+export 'src/features/messaging/view/inbox_view.dart';
+export 'src/features/messaging/view/conversation_view.dart';
+export 'src/features/messaging/view/new_message_sheet.dart';
+
 // ── Auth feature (login / forgot / verify OTP / reset) ──────────
 export 'src/features/auth/auth_config.dart';
 export 'src/features/auth/auth_routes.dart';

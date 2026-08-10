@@ -20,13 +20,13 @@ class AppColors {
   static const inverseOnSurface = Color(0xFFEDF2EF);
   static const outline = Color(0xFF6D7A77);
   static const outlineVariant = Color(0xFFBCC9C5);
-  static const surfaceTint = Color(0xFF1A2A6C);
+  static const surfaceTint = Color(0xFF0F172A);
   static const surfaceVariant = Color(0xFFDFE4E1);
 
-  // ── Primary (navy — EduMaster brand) ────────────────────────
-  static const primary = Color(0xFF1A2A6C);
+  // ── Primary (deep slate — brand) ────────────────────────────
+  static const primary = Color(0xFF0F172A);
   static const onPrimary = Color(0xFFFFFFFF);
-  static const primaryContainer = Color(0xFF2A3C8F);
+  static const primaryContainer = Color(0xFF334155);
   static const onPrimaryContainer = Color(0xFFEAEEFF);
   static const inversePrimary = Color(0xFFB6C2FF);
   static const primaryFixed = Color(0xFFDCE1FF);
@@ -34,8 +34,8 @@ class AppColors {
   static const onPrimaryFixed = Color(0xFF00105C);
   static const onPrimaryFixedVariant = Color(0xFF263B86);
 
-  /// Darker navy — the end stop of the [PrimaryButton] vertical gradient.
-  static const primaryGradientEnd = Color(0xFF121A52);
+  /// Darker slate — the end stop of the [PrimaryButton] vertical gradient.
+  static const primaryGradientEnd = Color(0xFF0A0F1E);
 
   // ── Secondary (soft blue) ───────────────────────────────────
   static const secondary = Color(0xFF526069);
@@ -64,7 +64,7 @@ class AppColors {
   static const onErrorContainer = Color(0xFF93000A);
 
   // ── Background ──────────────────────────────────────────────
-  static const background = Color(0xFFF6FAF8);
+  static const background = Color(0xFFF1F5F9);
   static const onBackground = Color(0xFF171D1B);
 
   // ── AI accent (subtle purple — predictive data, smart suggestions) ──
@@ -77,6 +77,6 @@ class AppColors {
   static const glassBorder = Color(0x33FFFFFF); // 20% white
   /// Glass fill base — 80% white per DESIGN.md.
   static const glassFillLight = Color(0xCCFFFFFF); // 80% white
-  /// Solar glow — 5% primary navy for level-2 modals.
-  static const solarGlow = Color(0x0D1A2A6C); // 5% primary
+  /// Solar glow — 5% primary slate for level-2 modals.
+  static const solarGlow = Color(0x0D0F172A); // 5% primary
 }

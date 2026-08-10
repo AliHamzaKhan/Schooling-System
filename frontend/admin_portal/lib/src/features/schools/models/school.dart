@@ -50,6 +50,11 @@ class School {
   final String? planCode;
   final String? planName;
 
+  /// The backend `settings` JSON blob (branding + billing/payment-mode keys).
+  /// Kept so edit-mode writes can merge into it without dropping keys owned by
+  /// the headmaster (uniform_color, logo_url, fee_due_day…).
+  final Map<String, dynamic> settings;
+
   const School({
     required this.id,
     required this.name,
@@ -64,9 +69,18 @@ class School {
     this.address,
     this.planCode,
     this.planName,
+    this.settings = const {},
   });
 
   String get initial => name.isEmpty ? '?' : name.characters.first.toUpperCase();
+
+  /// Uniform accent color (hex, e.g. "#1565C0") set by the headmaster, if any.
+  String? get uniformColor => settings['uniform_color'] as String?;
+
+  /// How this school pays us for their subscription (payment-mode block), or an
+  /// empty map when none has been recorded yet.
+  Map<String, dynamic> get billing =>
+      (settings['billing'] as Map?)?.cast<String, dynamic>() ?? const {};
 
   /// Maps the backend `SchoolStatus` (pending/active/suspended) onto the UI
   /// enum. The backend has no trial/expired states; `suspended` is surfaced as
@@ -99,6 +113,7 @@ class School {
       address: address,
       planCode: plan is Map ? plan['code'] as String? : null,
       planName: plan is Map ? plan['name'] as String? : null,
+      settings: (j['settings'] as Map?)?.cast<String, dynamic>() ?? const {},
     );
   }
 }

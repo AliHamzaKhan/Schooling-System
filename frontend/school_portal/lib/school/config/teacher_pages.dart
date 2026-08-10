@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../modules/teacher/features/attendance/binding/attendance_binding.dart';
 import '../modules/teacher/features/attendance/view/attendance_mark_view.dart';
@@ -54,6 +55,10 @@ class TeacherPages {
       name: TeacherRoutes.chat,
       page: () => const CommunicationView(),
       binding: CommunicationBinding(),
+    ),
+    GetPage(
+      name: TeacherRoutes.messages,
+      page: () => const InboxView(title: 'Messages'),
     ),
     GetPage(
       name: TeacherRoutes.createAnnouncement,

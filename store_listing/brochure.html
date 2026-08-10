@@ -1,0 +1,317 @@
+<title>Taleem Hub — Brochure</title>
+<style>
+  :root {
+    --ink:      #101733;
+    --indigo:   #24347a;
+    --indigo-2: #33489e;
+    --gold:     #e6b24a;
+    --gold-deep:#c8912b;
+    --parch:    #f7f4ec;
+    --parch-2:  #efe9db;
+    --slate:    #414761;
+    --slate-2:  #6a7089;
+    --line:     #ddd6c5;
+    --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #2b2b30;
+    font-family: var(--sans);
+    color: var(--slate);
+    -webkit-font-smoothing: antialiased;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .page {
+    width: 210mm;
+    max-width: 100%;
+    aspect-ratio: 210 / 297;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    border-radius: 2px;
+  }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  /* ============ PAGE 1 — COVER / THUMBNAIL ============ */
+  .cover {
+    background:
+      radial-gradient(120% 80% at 80% -10%, rgba(230,178,74,.18), transparent 55%),
+      linear-gradient(158deg, var(--indigo) 0%, var(--ink) 68%);
+    color: #fff;
+    padding: 15mm 15mm 13mm;
+    display: flex;
+    flex-direction: column;
+  }
+  /* faint scholarly grid */
+  .cover::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(to bottom, black, transparent 70%);
+    pointer-events: none;
+  }
+  .cover > * { position: relative; }
+
+  .brandrow { display: flex; align-items: center; gap: 12px; }
+  .mark {
+    width: 42px; height: 42px; flex: none;
+    border-radius: 11px;
+    background: linear-gradient(150deg, var(--gold), var(--gold-deep));
+    display: grid; place-items: center;
+    color: var(--ink); font-family: var(--serif); font-weight: 700; font-size: 24px;
+    box-shadow: 0 6px 18px rgba(230,178,74,.35);
+  }
+  .brandrow .label { color: rgba(255,255,255,.72); }
+  .brandrow b { display: block; font-size: 15px; letter-spacing: .02em; color:#fff; font-weight:700; }
+
+  .cover-hero { margin-top: auto; }
+  .kicker {
+    color: var(--gold);
+    margin-bottom: 14px;
+  }
+  .cover h1 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: clamp(38px, 6.4vw, 58px);
+    line-height: 1.02;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+    color: #fff;
+  }
+  .cover h1 em { color: var(--gold); font-style: normal; }
+  .lede {
+    font-size: 16px;
+    line-height: 1.55;
+    color: rgba(255,255,255,.82);
+    max-width: 46ch;
+    margin: 0;
+  }
+
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .pill {
+    font-size: 12px; font-weight: 600;
+    padding: 7px 13px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.22);
+    color: rgba(255,255,255,.9);
+    background: rgba(255,255,255,.04);
+  }
+
+  .cover-foot {
+    margin-top: 26px; padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,.14);
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+  }
+  .cover-foot .label { color: rgba(255,255,255,.55); }
+  .cover-foot .roles { color: #fff; font-size: 13px; font-weight: 600; margin-top: 6px; }
+  .store-badges { display: flex; gap: 8px; }
+  .badge {
+    font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    padding: 8px 12px; border-radius: 8px;
+    background: rgba(255,255,255,.1); color: #fff;
+    border: 1px solid rgba(255,255,255,.16);
+    white-space: nowrap;
+  }
+
+  /* ============ PAGE 2 — DETAILS ============ */
+  .details {
+    background: var(--parch);
+    color: var(--slate);
+    padding: 14mm 14mm 12mm;
+    display: flex; flex-direction: column;
+  }
+  .details::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+    background: linear-gradient(90deg, var(--gold), var(--indigo));
+  }
+  .d-head { margin-bottom: 20px; }
+  .d-head .label { color: var(--gold-deep); }
+  .d-head h2 {
+    font-family: var(--serif); font-weight: 700;
+    font-size: 30px; line-height: 1.1; letter-spacing: -.01em;
+    color: var(--ink); margin: 8px 0 8px; text-wrap: balance;
+  }
+  .d-head p { margin: 0; font-size: 13.5px; line-height: 1.55; max-width: 62ch; color: var(--slate); }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 12px; margin-top: 4px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 15px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .card .ic {
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: var(--parch-2); color: var(--indigo);
+    display: grid; place-items: center; margin-bottom: 4px;
+  }
+  .card .ic svg { width: 17px; height: 17px; }
+  .card h3 {
+    font-family: var(--sans); font-size: 14px; font-weight: 700;
+    color: var(--ink); margin: 0; letter-spacing: -.005em;
+  }
+  .card p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--slate-2); }
+
+  .roles-strip {
+    margin-top: 16px;
+    background: linear-gradient(150deg, var(--indigo), var(--ink));
+    border-radius: 12px; padding: 16px 18px; color: #fff;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  }
+  .roles-strip .r .label { color: var(--gold); font-size: 10px; }
+  .roles-strip .r p { margin: 6px 0 0; font-size: 11.5px; line-height: 1.45; color: rgba(255,255,255,.82); }
+
+  .d-foot {
+    margin-top: auto; padding-top: 16px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+  }
+  .d-foot .co { font-family: var(--serif); font-weight: 700; color: var(--ink); font-size: 16px; }
+  .d-foot .label { color: var(--slate-2); margin-top: 6px; }
+  .d-foot .contact { text-align: right; font-size: 12px; line-height: 1.7; color: var(--slate); }
+  .d-foot .contact b { color: var(--ink); }
+  .secnote { font-size: 10.5px; color: var(--slate-2); margin: 14px 0 0; line-height: 1.5; }
+
+  @media (max-width: 640px) {
+    body { padding: 12px 8px; }
+    .roles-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; gap: 0; }
+    .page { box-shadow: none; border-radius: 0; width: 210mm; height: 297mm; aspect-ratio: auto; page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+  }
+  @page { size: A4; margin: 0; }
+</style>
+
+<!-- ================= PAGE 1 : COVER / THUMBNAIL ================= -->
+<section class="page cover">
+  <div class="brandrow">
+    <div class="mark">ت</div>
+    <div>
+      <span class="label">AHK Studios</span>
+      <b>Taleem Hub</b>
+    </div>
+  </div>
+
+  <div class="cover-hero">
+    <div class="label kicker">School Management, Simplified</div>
+    <h1>Your entire school, in <em>one</em> app.</h1>
+    <p class="lede">
+      Attendance, timetables, results, fees, payroll and live classes —
+      brought together for students, teachers, guardians and school leaders.
+    </p>
+
+    <div class="pills">
+      <span class="pill">Attendance &amp; Alerts</span>
+      <span class="pill">Fees &amp; Payroll</span>
+      <span class="pill">Timetables</span>
+      <span class="pill">AI Quizzes</span>
+      <span class="pill">Books &amp; Notes</span>
+    </div>
+
+    <div class="cover-foot">
+      <div>
+        <span class="label">Built for every role</span>
+        <div class="roles">Students · Teachers · Guardians · Headmasters</div>
+      </div>
+      <div class="store-badges">
+        <span class="badge">▶ Google Play</span>
+        <span class="badge"> App Store</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PAGE 2 : DETAILS ================= -->
+<section class="page details">
+  <div class="d-head">
+    <span class="label">What Taleem Hub Does</span>
+    <h2>One secure place for everything a school runs on.</h2>
+    <p>
+      No more scattered notebooks, paper slips and endless group chats. Your school
+      creates the accounts and controls who sees what — so every person gets exactly
+      the view they need, on the device already in their pocket.
+    </p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <h3>Attendance &amp; Alerts</h3>
+      <p>Daily and subject-wise attendance, with an instant notification to guardians the moment a child is absent.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+      <h3>Smart Timetables</h3>
+      <p>Always-current class schedules for everyone, with an easy editor for staff to build and adjust them.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <h3>Assignments &amp; Results</h3>
+      <p>Share assignments, publish grades, and let students and guardians follow academic progress over time.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4"/><circle cx="12" cy="12" r="4"/><path d="M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/></svg></div>
+      <h3>AI-Assisted Quizzes</h3>
+      <p>Teachers generate quiz questions in seconds with a built-in AI model — less prep time, more teaching.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h.01M11 15h2"/></svg></div>
+      <h3>Fees &amp; Payroll</h3>
+      <p>Track fee invoices and payment status with automatic reminders, and manage staff salary attendance and payroll.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      <h3>Books &amp; Notes</h3>
+      <p>Digital books, class notes and study material in one library, with secure sign-in and optional fingerprint or face unlock.</p>
+    </div>
+  </div>
+
+  <div class="roles-strip">
+    <div class="r"><span class="label">Students</span><p>Timetable, assignments, quizzes, results &amp; news.</p></div>
+    <div class="r"><span class="label">Guardians</span><p>Attendance alerts, fees &amp; results for their children.</p></div>
+    <div class="r"><span class="label">Teachers</span><p>Attendance, quizzes, books &amp; schedules.</p></div>
+    <div class="r"><span class="label">Leaders</span><p>Fees, payroll, timetables &amp; whole-school control.</p></div>
+  </div>
+
+  <p class="secnote">
+    Privacy &amp; security first: each school's data is kept separate, access is role-based,
+    and connections are encrypted. No ads. We never sell your data.
+  </p>
+
+  <div class="d-foot">
+    <div>
+      <div class="co">Taleem Hub</div>
+      <span class="label">by AHK Studios</span>
+    </div>
+    <div class="contact">
+      Ask your school administrator for your login.<br>
+      <b>alihamza.khan05@gmail.com</b><br>
+      Available on Google Play &amp; the App Store
+    </div>
+  </div>
+</section>

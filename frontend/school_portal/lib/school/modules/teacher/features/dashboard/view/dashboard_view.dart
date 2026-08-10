@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../../../../../config/teacher_routes.dart';
+import '../../../../../widgets/dashboard_kit.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../controller/dashboard_controller.dart';
@@ -10,8 +11,14 @@ import '../../calendar/models/timetable_slot.dart';
 import '../models/dashboard_data.dart';
 import '../../../../../widgets/skeletons.dart';
 
-/// Teacher Dashboard — greeting, quick action stack, today's schedule,
-/// to-do list with urgent count badge, and a "Recent Activity" section.
+/// Teacher Dashboard — the shared dashboard shape (identity, four numbers, the
+/// primary action, then shortcuts), followed by the two things this module has
+/// that no other does: today's periods and the outstanding to-do list.
+///
+/// The four numbers are the ones a teacher opens the app to check: how much of
+/// today is left to teach, what is waiting to be marked, what has come in, and
+/// how many sections they carry. They used to be split between a "Recent
+/// Activity" card near the bottom and nothing at all.
 class DashboardView extends GetView<TeacherDashboardController> {
   final VoidCallback? onChat;
   final VoidCallback? onMarkAttendance;
@@ -66,49 +73,69 @@ class DashboardView extends GetView<TeacherDashboardController> {
                   AppSpacing.containerPaddingMobile,
                   AppSpacing.stackXl),
               children: [
-                Text(data.greeting, style: AppTypography.headlineLg),
                 const SizedBox(height: AppSpacing.stackSm),
-                Text(data.summary, style: AppTypography.bodyLg),
-                const SizedBox(height: AppSpacing.stackLg),
-
-                // Quick actions stack.
-                GlassSurface(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.stackLg,
-                      vertical: AppSpacing.stackMd),
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < _quickActions.length; i++) ...[
-                        _QuickActionRow(
-                          action: _quickActions[i],
-                          onTap: _actionTap(_quickActions[i]),
-                        ),
-                        if (i != _quickActions.length - 1)
-                          const SizedBox(height: AppSpacing.stackSm),
-                      ],
-                    ],
-                  ),
+                DashboardIdentityCard(
+                  title: controller.teacherName,
+                  subtitle: data.summary.isEmpty ? 'Teacher' : data.summary,
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
 
-                // Leave requests from this teacher's section students.
-                GlassSurface(
+                DashboardStatGrid(
+                  stats: [
+                    DashboardStat(
+                      icon: Icons.schedule_rounded,
+                      accent: AppColors.tertiary,
+                      value: '${data.schedule.length}',
+                      label: 'Classes today',
+                      sub: data.schedule.isEmpty ? 'Nothing scheduled' : 'On the timetable',
+                      onTap: onViewCalendar,
+                    ),
+                    DashboardStat(
+                      icon: Icons.grading_rounded,
+                      accent: AppColors.aiAccent,
+                      value: '${data.pendingGrades}',
+                      label: 'Pending grades',
+                      sub: data.pendingGrades == 0 ? 'All marked' : 'Waiting on you',
+                      onTap: onViewAllTasks,
+                    ),
+                    DashboardStat(
+                      icon: Icons.inbox_rounded,
+                      accent: AppColors.primary,
+                      value: '${data.newSubmissions}',
+                      label: 'New submissions',
+                      sub: data.newSubmissions == 0 ? 'Nothing new' : 'Since you last looked',
+                      onTap: onViewAllTasks,
+                    ),
+                    DashboardStat(
+                      icon: Icons.groups_rounded,
+                      accent: const Color(0xFFE8A317),
+                      value: '${data.sectionsTaught}',
+                      label: 'Sections',
+                      sub: 'You teach',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.stackLg),
+
+                DashboardPrimaryAction(
+                  icon: Icons.event_available_outlined,
+                  label: 'Leave Requests',
+                  subtitle: 'Review your students\u2019 applications',
                   onTap: () => Get.toNamed(TeacherRoutes.leaveReview),
-                  padding: const EdgeInsets.all(AppSpacing.stackLg),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.event_available_outlined,
-                          color: AppColors.primary),
-                      const SizedBox(width: AppSpacing.stackMd),
-                      Expanded(
-                        child: Text('Leave Requests',
-                            style: AppTypography.titleMd
-                                .copyWith(fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: AppSpacing.stackLg),
+
+                DashboardQuickLinks(
+                  links: [
+                    for (final action in _quickActions)
+                      DashboardLink(
+                        icon: action.icon,
+                        // "Mark Attendance" does not fit a tile; the verb is
+                        // carried by the icon and the destination.
+                        label: action.label.split(' ').last,
+                        onTap: _actionTap(action),
                       ),
-                      const Icon(Icons.chevron_right_rounded,
-                          color: AppColors.onSurfaceVariant),
-                    ],
-                  ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
 
@@ -236,54 +263,6 @@ const _quickActions = <QuickAction>[
     color: AppColors.aiAccent,
   ),
 ];
-
-class _QuickActionRow extends StatelessWidget {
-  final QuickAction action;
-  final VoidCallback? onTap;
-  const _QuickActionRow({required this.action, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(AppRadius.button),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.button),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.stackMd),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: action.color.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(action.icon, color: action.color, size: 20),
-              ),
-              const SizedBox(width: AppSpacing.stackMd),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(action.label,
-                        style: AppTypography.titleMd
-                            .copyWith(fontWeight: FontWeight.w700)),
-                    Text(action.subtitle, style: AppTypography.bodySm),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _ScheduleRow extends StatelessWidget {
   final TeacherSlot item;

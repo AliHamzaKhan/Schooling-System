@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
-import '../../models/permission_models.dart';
+import '../../../schools/models/school.dart';
 
-/// Row for a school whose permissions can be configured: icon, name, ID, a plan
-/// badge, an "X/Y Active" module chip, and a chevron. Accent-colored left rail.
+/// Row for a school whose module permissions can be configured: icon, name,
+/// code, a plan badge and a status badge, and a chevron. Accent-colored left
+/// rail follows the school's status color.
 class SchoolPermissionCard extends StatelessWidget {
-  final SchoolPermissionSummary school;
+  final School school;
   final VoidCallback onTap;
 
   const SchoolPermissionCard({super.key, required this.school, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final accent = school.status.color;
+    final hasPlan = (school.planName ?? '').isNotEmpty;
     return GlassSurface(
       padding: EdgeInsets.zero,
       onTap: onTap,
@@ -23,7 +26,7 @@ class SchoolPermissionCard extends StatelessWidget {
             Container(
               width: 5,
               decoration: BoxDecoration(
-                color: school.accent,
+                color: accent,
                 borderRadius: const BorderRadius.horizontal(
                   left: Radius.circular(AppRadius.card),
                 ),
@@ -41,18 +44,27 @@ class SchoolPermissionCard extends StatelessWidget {
                         Container(
                           width: 48,
                           height: 48,
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: school.planColor.withValues(alpha: 0.12),
+                            color: accent.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
-                          child: Icon(school.icon, color: school.planColor, size: 24),
+                          child: Text(school.initial,
+                              style: AppTypography.titleLg.copyWith(color: accent)),
                         ),
                         const SizedBox(width: AppSpacing.stackMd),
                         Expanded(
-                          child: Text(school.name, style: AppTypography.titleLg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(school.name, style: AppTypography.titleLg),
+                              if (school.code.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(school.code, style: AppTypography.bodyMd),
+                              ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(width: AppSpacing.stackSm),
-                        Text('ID: ${school.id}', style: AppTypography.bodyMd),
                         const Icon(Icons.chevron_right_rounded,
                             color: AppColors.onSurfaceVariant),
                       ],
@@ -62,15 +74,15 @@ class SchoolPermissionCard extends StatelessWidget {
                       children: [
                         _Badge(
                           icon: Icons.verified_user_outlined,
-                          label: school.planLabel,
-                          color: school.planColor,
+                          label: hasPlan ? school.planName! : 'No plan',
+                          color: hasPlan ? AppColors.primary : AppColors.onSurfaceVariant,
+                          neutral: !hasPlan,
                         ),
                         const SizedBox(width: AppSpacing.stackSm),
                         _Badge(
-                          icon: Icons.grid_view_rounded,
-                          label: '${school.activeModules}/${school.totalModules} Active',
-                          color: AppColors.onSurfaceVariant,
-                          neutral: true,
+                          icon: Icons.circle,
+                          label: school.status.label,
+                          color: accent,
                         ),
                       ],
                     ),

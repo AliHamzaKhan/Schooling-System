@@ -54,6 +54,9 @@ dependencies:
   printing: ^5.13.4
   http: ^1.2.2
 
+  # Open submission attachments (public /media PDF URLs) in an external viewer.
+  url_launcher: ^6.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

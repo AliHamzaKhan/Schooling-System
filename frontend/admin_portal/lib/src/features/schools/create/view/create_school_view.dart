@@ -6,6 +6,7 @@ import '../../../../ui/admin_widgets/numbered_stepper.dart';
 import '../components/step_contact_info.dart';
 import '../components/step_headmaster.dart';
 import '../components/step_initial_plan.dart';
+import '../components/step_payment_mode.dart';
 import '../components/step_school_details.dart';
 import '../controller/create_school_controller.dart';
 
@@ -45,10 +46,14 @@ class CreateSchoolView extends GetView<CreateSchoolController> {
           const SizedBox(height: AppSpacing.stackLg),
           Expanded(
             child: Obx(() {
-              final content = switch (controller.step.value) {
-                0 => StepSchoolDetails(controller: controller),
-                1 => StepContactInfo(controller: controller),
-                2 => StepInitialPlan(controller: controller),
+              // Route by step label (not index) — the Payment Mode step sits
+              // between Subscription and Headmaster, and edit mode omits the
+              // Headmaster step entirely.
+              final content = switch (controller.steps[controller.step.value]) {
+                'School Details' => StepSchoolDetails(controller: controller),
+                'Contact Info' => StepContactInfo(controller: controller),
+                'Subscription' => StepInitialPlan(controller: controller),
+                'Payment Mode' => StepPaymentMode(controller: controller),
                 _ => StepHeadmaster(controller: controller),
               };
               return SingleChildScrollView(

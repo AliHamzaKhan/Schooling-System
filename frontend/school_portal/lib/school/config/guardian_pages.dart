@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../modules/guardian/features/child_selection/view/child_selection_view.dart';
 import '../modules/guardian/features/exams/binding/exam_binding.dart';
@@ -32,6 +33,10 @@ class GuardianPages {
     GetPage(
       name: GuardianRoutes.childSelection,
       page: () => const ChildSelectionView(),
+    ),
+    GetPage(
+      name: GuardianRoutes.messages,
+      page: () => const InboxView(title: 'Messages'),
     ),
     GetPage(
       name: GuardianRoutes.fees,

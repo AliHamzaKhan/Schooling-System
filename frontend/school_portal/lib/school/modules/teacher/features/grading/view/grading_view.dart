@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../widgets/skeletons.dart';
 import '../controller/grading_controller.dart';
@@ -81,6 +82,7 @@ class _SubmissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassSurface(
+      onTap: () => _showDetail(context),
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,19 +136,36 @@ class _SubmissionCard extends StatelessWidget {
           ],
           if ((row.attachmentUrl ?? '').isNotEmpty) ...[
             const SizedBox(height: AppSpacing.stackSm),
-            Row(
-              children: [
-                const Icon(Icons.attach_file_rounded,
-                    size: 16, color: AppColors.primary),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(row.attachmentUrl!.split('/').last,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodySm
-                          .copyWith(color: AppColors.primary)),
+            InkWell(
+              onTap: () => _openAttachment(context),
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.stackMd),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
-              ],
+                child: Row(
+                  children: [
+                    const Icon(Icons.picture_as_pdf_rounded,
+                        size: 18, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(row.attachmentUrl!.split('/').last,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.bodySm
+                              .copyWith(color: AppColors.primary)),
+                    ),
+                    Text('View',
+                        style: AppTypography.labelMd.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700)),
+                    const Icon(Icons.open_in_new_rounded,
+                        size: 14, color: AppColors.primary),
+                  ],
+                ),
+              ),
             ),
           ],
           if (row.isGraded && (row.feedback ?? '').isNotEmpty) ...[
@@ -166,6 +185,115 @@ class _SubmissionCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Opens the attached PDF in the device's external viewer/browser. The file
+  /// is served publicly under `/media`, so no auth is needed.
+  Future<void> _openAttachment(BuildContext context) async {
+    final raw = row.attachmentUrl ?? '';
+    if (raw.isEmpty) return;
+    final uri = Uri.parse(EnvConfig.mediaUrl(raw));
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the attachment.')),
+      );
+    }
+  }
+
+  /// Full submission detail: the student's written response and attachment,
+  /// with quick actions to view the file and grade.
+  void _showDetail(BuildContext context) {
+    final hasContent = (row.content ?? '').isNotEmpty;
+    final hasFile = (row.attachmentUrl ?? '').isNotEmpty;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
+      ),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackMd,
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackLg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.stackMd),
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(row.studentName ?? 'Student',
+                  style: AppTypography.titleLg
+                      .copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text('Submitted ${row.submittedOn}',
+                  style: AppTypography.bodySm
+                      .copyWith(color: AppColors.onSurfaceVariant)),
+              const SizedBox(height: AppSpacing.stackLg),
+              Text('Response',
+                  style: AppTypography.labelMd
+                      .copyWith(color: AppColors.onSurfaceVariant)),
+              const SizedBox(height: 4),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Text(
+                    hasContent ? row.content! : 'No written response.',
+                    style: AppTypography.bodyMd.copyWith(
+                        color: hasContent
+                            ? AppColors.onSurface
+                            : AppColors.onSurfaceVariant),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.stackLg),
+              if (hasFile)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(sheet).pop();
+                      _openAttachment(context);
+                    },
+                    icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                    label: const Text('View attached PDF'),
+                  ),
+                )
+              else
+                Text('No file attached.',
+                    style: AppTypography.bodySm
+                        .copyWith(color: AppColors.onSurfaceVariant)),
+              const SizedBox(height: AppSpacing.stackSm),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(sheet).pop();
+                    onGrade();
+                  },
+                  icon: Icon(
+                      row.isGraded ? Icons.edit_rounded : Icons.grade_rounded,
+                      size: 18),
+                  label: Text(row.isGraded ? 'Update grade' : 'Grade'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

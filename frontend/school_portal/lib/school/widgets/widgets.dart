@@ -5,9 +5,11 @@
 /// want one widget (keeps the analyzer's "unused import" hints useful).
 library;
 
+export 'dashboard_kit.dart';
 export 'filter_chips.dart';
 export 'filter_sheet.dart';
 export 'multi_line_chart.dart';
+export 'portal_nav_bar.dart';
 export 'portal_form_field.dart';
 export 'portal_search_field.dart';
 export 'portal_top_bar.dart';

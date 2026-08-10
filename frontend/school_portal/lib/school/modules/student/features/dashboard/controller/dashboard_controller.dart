@@ -28,12 +28,23 @@ class StudentDashboardController extends GetxController {
 
   /// The signed-in student's first name, for the greeting.
   String get firstName {
-    final full = (Get.find<AuthService>().currentUser.value?['full_name']
-                as String? ??
-            '')
-        .trim();
+    final full = fullName;
     return full.isEmpty ? 'there' : full.split(RegExp(r'\s+')).first;
   }
+
+  /// The student's display name, for the identity card.
+  String get fullName =>
+      (Get.find<AuthService>().currentUser.value?['full_name'] as String? ?? '')
+          .trim();
+
+  /// The line under the name. `/auth/me` carries no class or section for a
+  /// student, so this says what is actually known rather than inventing a
+  /// grade — when the profile payload gains those fields, this getter is the
+  /// only place that changes.
+  String get roleLine => 'Student';
+
+  /// Days until the next exam, or null when none is scheduled.
+  int? get daysToNextExam => nextExam?.days;
 
   Future<void> load() async {
     loading.value = true;

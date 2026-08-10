@@ -64,6 +64,13 @@ async def update_school_profile(
     return await SchoolService(db).update_school_profile(school_id, data)
 
 
+@router.get("/{school_id}/stats", response_model=schemas.SchoolStatsOut)
+async def get_school_stats(
+    school_id: uuid.UUID, db: DbDep, _: SuperAdmin
+) -> schemas.SchoolStatsOut:
+    return await SchoolService(db).get_school_stats(school_id)
+
+
 @router.post("/{school_id}/status", response_model=schemas.SchoolOut)
 async def set_status(
     school_id: uuid.UUID, data: schemas.StatusUpdate, db: DbDep, _: SuperAdmin

@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../features/headmasters/models/headmaster.dart';
+import '../features/permissions/models/module_models.dart';
+import '../features/schools/detail/models/school_detail_models.dart';
 import '../features/schools/models/school.dart';
 import '../features/subscriptions/models/subscription_models.dart';
 import 'admin_endpoints.dart';
@@ -73,6 +75,50 @@ class AdminApiService {
       path: AdminEndpoints.schoolSubscription(id),
       body: {'plan_code': planCode},
       parser: (json) => School.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ── School module permissions (plan ∩ per-school toggles) ───
+  /// The Super Admin's view of what modules a school can actually access.
+  Future<ApiResponse<SchoolModulesView>> fetchSchoolModules(String schoolId) {
+    return _api.request<SchoolModulesView>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.schoolModules(schoolId),
+      parser: (json) => SchoolModulesView.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// Persists per-school module on/off toggles and returns the refreshed view.
+  Future<ApiResponse<SchoolModulesView>> setSchoolModules(
+    String schoolId,
+    List<ModuleToggle> toggles,
+  ) {
+    return _api.request<SchoolModulesView>(
+      method: HttpMethod.put,
+      path: AdminEndpoints.schoolModules(schoolId),
+      body: {'toggles': toggles.map((t) => t.toJson()).toList()},
+      parser: (json) => SchoolModulesView.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ── School detail (stats + payment ledger) ──────────────────
+  /// Active-user counts (students / teachers / guardians) for a school.
+  Future<ApiResponse<SchoolStats>> fetchSchoolStats(String schoolId) {
+    return _api.request<SchoolStats>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.schoolStats(schoolId),
+      parser: (json) => SchoolStats.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// A school's payment ledger (newest first).
+  Future<ApiResponse<List<SchoolPayment>>> fetchSchoolPayments(String schoolId) {
+    return _api.request<List<SchoolPayment>>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.schoolPayments(schoolId),
+      parser: (json) => (json as List)
+          .map((e) => SchoolPayment.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 

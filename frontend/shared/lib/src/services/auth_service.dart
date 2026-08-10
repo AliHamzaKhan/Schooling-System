@@ -30,6 +30,14 @@ class AuthService extends GetxService {
   /// endpoints like `/schools/{school_id}/users`.
   String? get schoolId => currentUser.value?['school_id']?.toString();
 
+  /// The signed-in user's own id (backend `id`), or null before the profile is
+  /// loaded. Used to tell "my" messages from the other party's in conversations.
+  String? get userId => currentUser.value?['id']?.toString();
+
+  /// The signed-in user's display name (backend `full_name`), or null before
+  /// the profile is loaded.
+  String? get fullName => currentUser.value?['full_name']?.toString();
+
   /// Role codes for the signed-in user (e.g. `headmaster`, `teacher`,
   /// `student`, `guardian`), parsed from the `/auth/me` `roles[]` payload.
   /// Empty until [fetchProfile] has populated [currentUser].

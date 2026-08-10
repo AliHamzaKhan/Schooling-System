@@ -75,18 +75,6 @@ class SchoolsController extends GetxController {
     loading.value = false;
   }
 
-  /// Assigns a subscription plan to a school, then refreshes the list.
-  Future<bool> changeSubscription(String id, String planCode) async {
-    final res = await _repo.assignSubscription(id, planCode);
-    if (res.success) {
-      await fetch();
-      return true;
-    }
-    Get.snackbar('Error', res.error ?? 'Could not change the plan.',
-        snackPosition: SnackPosition.BOTTOM);
-    return false;
-  }
-
   /// "Delete" a school = deactivate it (the backend has no hard delete; this
   /// sets status to `suspended`), then refresh.
   Future<bool> deleteSchool(String id) async {
@@ -96,6 +84,18 @@ class SchoolsController extends GetxController {
       return true;
     }
     Get.snackbar('Error', res.error ?? 'Could not delete the school.',
+        snackPosition: SnackPosition.BOTTOM);
+    return false;
+  }
+
+  /// Reactivates a suspended school (status → `active`), then refresh.
+  Future<bool> activateSchool(String id) async {
+    final res = await _repo.setStatus(id, 'active');
+    if (res.success) {
+      await fetch();
+      return true;
+    }
+    Get.snackbar('Error', res.error ?? 'Could not activate the school.',
         snackPosition: SnackPosition.BOTTOM);
     return false;
   }

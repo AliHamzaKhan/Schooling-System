@@ -7,6 +7,15 @@ Bundle IDs are already registered with Firebase — **do not change them**:
 
 ## Android
 
+Hi, I'm Ali Hamza, a professional Flutter developer.
+Need a mobile app for both Android and iOS without paying for two separate apps? I can help.
+I build fast, scalable, production-ready Flutter applications with clean UI, Firebase or REST API integration, 
+secure authentication, push notifications, payments, and complete App Store and Google Play deployment.
+
+Whether you're launching a startup MVP or growing an existing business, you'll get clean code, regular progress updates, 
+and direct communication with the developer building your app.
+Send me your app idea today, and I'll provide a free consultation with the best solution for your budget. Let's build something amazing together!
+
 The Gradle wiring is done. `android/app/build.gradle.kts` reads
 `android/key.properties` for the release signing key, and falls back to the
 debug key when that file is absent (so CI and fresh checkouts still build).

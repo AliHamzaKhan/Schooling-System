@@ -87,24 +87,28 @@ class _Bars extends StatelessWidget {
 
   Widget _bar(RevenueMonth m, double maxV) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Text(RevenueTrendCard._money(m.total),
             style: AppTypography.labelCaps
                 .copyWith(color: AppColors.onSurfaceVariant, fontSize: 9)),
         const SizedBox(height: 4),
-        FractionallySizedBox(
-          heightFactor: (m.total / maxV).clamp(0.03, 1.0),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 4),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AppColors.primary, Color(0xFFAFC4F5)],
+        // Bounded region so FractionallySizedBox has a finite height to scale
+        // against (a bare Column gives its children unbounded main-axis space).
+        Expanded(
+          child: FractionallySizedBox(
+            alignment: Alignment.bottomCenter,
+            heightFactor: (m.total / maxV).clamp(0.03, 1.0),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 4),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [AppColors.primary, Color(0xFFAFC4F5)],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.sm)),
               ),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(AppRadius.sm)),
             ),
           ),
         ),

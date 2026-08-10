@@ -129,3 +129,37 @@ async def test_inactive_school_blocks_headmaster_until_activated(client, sa_head
     )
     ok = await client.get(f"{API}/schools/{s['id']}/users", headers=hm)
     assert ok.status_code == 200
+
+
+async def test_school_stats_counts_by_role(client, sa_headers):
+    s = await _create_school(client, sa_headers)
+    email = f"head-{uuid4().hex[:8]}@test.edu"
+    await client.post(
+        f"{API}/schools/{s['id']}/headmaster",
+        headers=sa_headers,
+        json={"email": email, "password": "HeadPass123", "full_name": "Head"},
+    )
+    r = await client.get(f"{API}/schools/{s['id']}/stats", headers=sa_headers)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    # The headmaster is a user but not a student/teacher/guardian.
+    assert body["students"] == 0
+    assert body["teachers"] == 0
+    assert body["guardians"] == 0
+    assert body["total_users"] >= 1
+
+
+async def test_update_school_merges_settings(client, sa_headers):
+    s = await _create_school(
+        client, sa_headers, settings={"uniform_color": "#1565C0"}
+    )
+    # An admin edit that only carries billing keys must not wipe uniform_color.
+    r = await client.patch(
+        f"{API}/schools/{s['id']}",
+        headers=sa_headers,
+        json={"settings": {"billing": {"method": "bank_transfer"}}},
+    )
+    assert r.status_code == 200, r.text
+    merged = r.json()["settings"]
+    assert merged["uniform_color"] == "#1565C0"
+    assert merged["billing"]["method"] == "bank_transfer"

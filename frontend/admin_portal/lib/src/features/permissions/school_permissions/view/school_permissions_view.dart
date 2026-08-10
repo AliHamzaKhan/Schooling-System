@@ -31,13 +31,6 @@ class SchoolPermissionsView extends GetView<SchoolPermissionsController> {
                   child: Text('School Permissions',
                       style: AppTypography.headlineLg.copyWith(color: AppColors.primary)),
                 ),
-                const Icon(Icons.settings_outlined, color: AppColors.onSurfaceVariant),
-                const SizedBox(width: AppSpacing.stackMd),
-                const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.primaryContainer,
-                  child: Icon(Icons.person, color: AppColors.onPrimary, size: 20),
-                ),
               ],
             ),
           ),
@@ -46,31 +39,75 @@ class SchoolPermissionsView extends GetView<SchoolPermissionsController> {
             child: AdminSearchField(
               hint: 'Find specific schools…',
               onChanged: controller.onSearch,
-              action: AdminIconButton(icon: Icons.filter_list_rounded, onTap: () {}),
             ),
           ),
           const SizedBox(height: AppSpacing.stackLg),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.containerPaddingMobile),
-            child: Text('Select School to Configure', style: AppTypography.bodyLg),
+            child: Text('Select a school to configure its modules',
+                style: AppTypography.bodyLg),
           ),
           const SizedBox(height: AppSpacing.stackMd),
           Expanded(
-            child: Obx(() => ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.containerPaddingMobile, 0, AppSpacing.containerPaddingMobile, AppSpacing.stackXl),
-                  children: [
-                    for (final s in controller.results) ...[
-                      SchoolPermissionCard(
-                        school: s,
-                        onTap: () => Get.toNamed(AdminRoutes.rolePolicy),
+            child: Obx(() {
+              if (controller.loading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (controller.error.value != null) {
+                return _ErrorState(
+                  message: controller.error.value!,
+                  onRetry: controller.load,
+                );
+              }
+              if (controller.results.isEmpty) {
+                return Center(
+                  child: Text('No schools found.', style: AppTypography.bodyLg),
+                );
+              }
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.containerPaddingMobile, 0, AppSpacing.containerPaddingMobile, AppSpacing.stackXl),
+                children: [
+                  for (final s in controller.results) ...[
+                    SchoolPermissionCard(
+                      school: s,
+                      onTap: () => Get.toNamed<void>(
+                        AdminRoutes.schoolModules,
+                        arguments: s,
                       ),
-                      const SizedBox(height: AppSpacing.stackLg),
-                    ],
+                    ),
+                    const SizedBox(height: AppSpacing.stackLg),
                   ],
-                )),
+                ],
+              );
+            }),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _ErrorState({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.containerPaddingMobile),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 40, color: AppColors.onSurfaceVariant),
+            const SizedBox(height: AppSpacing.stackMd),
+            Text(message, textAlign: TextAlign.center, style: AppTypography.bodyLg),
+            const SizedBox(height: AppSpacing.stackMd),
+            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
       ),
     );
   }

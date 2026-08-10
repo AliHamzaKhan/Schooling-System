@@ -8,23 +8,32 @@ import '../models/school.dart';
 /// line, a status pill, an overflow menu, and a status-colored left rail.
 class SchoolCard extends StatelessWidget {
   final School school;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onSubscription;
   final VoidCallback? onDelete;
+  final VoidCallback? onActivate;
 
   const SchoolCard({
     super.key,
     required this.school,
+    this.onTap,
     this.onEdit,
     this.onSubscription,
     this.onDelete,
+    this.onActivate,
   });
+
+  /// Suspended schools surface as [SchoolStatus.expired] in the UI; those get an
+  /// "Activate" action instead of "Deactivate".
+  bool get _isSuspended => school.status == SchoolStatus.expired;
 
   @override
   Widget build(BuildContext context) {
     final accent = school.status.color;
     return GlassSurface(
       padding: EdgeInsets.zero,
+      onTap: onTap,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -110,9 +119,10 @@ class SchoolCard extends StatelessWidget {
                             if (v == 'edit') onEdit?.call();
                             if (v == 'subscription') onSubscription?.call();
                             if (v == 'delete') onDelete?.call();
+                            if (v == 'activate') onActivate?.call();
                           },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
                               value: 'edit',
                               child: ListTile(
                                 dense: true,
@@ -121,7 +131,7 @@ class SchoolCard extends StatelessWidget {
                                 title: Text('Edit'),
                               ),
                             ),
-                            PopupMenuItem(
+                            const PopupMenuItem(
                               value: 'subscription',
                               child: ListTile(
                                 dense: true,
@@ -130,15 +140,29 @@ class SchoolCard extends StatelessWidget {
                                 title: Text('Subscription'),
                               ),
                             ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: ListTile(
-                                dense: true,
-                                contentPadding: EdgeInsets.zero,
-                                leading: Icon(Icons.block_rounded, color: AppColors.error),
-                                title: Text('Deactivate', style: TextStyle(color: AppColors.error)),
+                            if (_isSuspended)
+                              const PopupMenuItem(
+                                value: 'activate',
+                                child: ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(Icons.check_circle_outline_rounded,
+                                      color: AppColors.primary),
+                                  title: Text('Activate',
+                                      style: TextStyle(color: AppColors.primary)),
+                                ),
+                              )
+                            else
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(Icons.block_rounded, color: AppColors.error),
+                                  title: Text('Deactivate',
+                                      style: TextStyle(color: AppColors.error)),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ],

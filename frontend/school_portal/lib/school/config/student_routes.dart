@@ -15,6 +15,7 @@ class StudentRoutes {
   static const reportCard = '$_base/results/report-card';
   static const timetable = '$_base/timetable';
   static const notifications = '$_base/notifications';
+  static const messages = '$_base/messages'; // two-way direct messages
 
   // ── Courses ──
   static const courses = '$_base/courses';

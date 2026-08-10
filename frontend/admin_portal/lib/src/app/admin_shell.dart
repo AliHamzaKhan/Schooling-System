@@ -88,19 +88,33 @@ class _AdminShellState extends State<AdminShell> with TickerProviderStateMixin {
         _item(const Icon(Icons.settings_rounded), 'Settings'),
       ];
 
+  /// Android back handling for the admin root. We take it over from the nav bar
+  /// (`handleAndroidBackButtonPress: false`) so that back on a non-Home tab
+  /// returns to Home, and back on the Home tab is blocked — the admin is never
+  /// popped off the shell back to the login screen. They leave via logout or
+  /// the OS home button.
+  void _onBack(bool didPop, Object? result) {
+    if (didPop) return;
+    if (_tabController.index != 0) _tabController.jumpToTab(0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PersistentTabView(
-      context,
-      controller: _tabController,
-      screens: _screens(),
-      items: _items(),
-      navBarStyle: NavBarStyle.style7,
-      backgroundColor: AppColors.surface,
-      confineToSafeArea: true,
-      handleAndroidBackButtonPress: true,
-      resizeToAvoidBottomInset: true,
-      stateManagement: true,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: _onBack,
+      child: PersistentTabView(
+        context,
+        controller: _tabController,
+        screens: _screens(),
+        items: _items(),
+        navBarStyle: NavBarStyle.style7,
+        backgroundColor: AppColors.surface,
+        confineToSafeArea: true,
+        handleAndroidBackButtonPress: false,
+        resizeToAvoidBottomInset: true,
+        stateManagement: true,
+      ),
     );
   }
 }

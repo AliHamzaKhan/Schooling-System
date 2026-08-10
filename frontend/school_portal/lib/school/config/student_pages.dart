@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../modules/student/features/courses/binding/courses_binding.dart';
 import '../modules/student/features/courses/view/book_chapters_view.dart';
@@ -32,6 +33,10 @@ class StudentPages {
 
   static final pages = <GetPage>[
     GetPage(name: StudentRoutes.shell, page: () => const StudentShell()),
+    GetPage(
+      name: StudentRoutes.messages,
+      page: () => const InboxView(title: 'Messages'),
+    ),
     GetPage(
       name: StudentRoutes.assignmentDetail,
       page: () => const SubmissionView(),

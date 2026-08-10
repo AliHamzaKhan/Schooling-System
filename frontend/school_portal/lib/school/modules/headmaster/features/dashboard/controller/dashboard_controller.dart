@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../../../data/headmaster_repository.dart';
 import '../models/dashboard_data.dart';
@@ -13,6 +14,13 @@ class HeadmasterDashboardController extends GetxController {
   final loading = true.obs;
   final error = RxnString();
   final data = Rxn<DashboardData>();
+
+  /// The signed-in headmaster's display name, for the identity card. The
+  /// payload's `greeting` is a greeting, not a name, so it is not reused here.
+  String get headmasterName {
+    final full = Get.find<AuthService>().fullName?.trim() ?? '';
+    return full.isEmpty ? 'Headmaster' : full;
+  }
 
   /// Subscription status for the expiry alert (loaded alongside the dashboard,
   /// but never blocks it — a status failure just hides the alert).

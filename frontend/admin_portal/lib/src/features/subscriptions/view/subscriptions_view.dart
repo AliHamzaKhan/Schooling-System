@@ -14,61 +14,63 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const AdminTopBar(showAvatar: true),
-        Expanded(
-          child: Obx(() {
-            if (controller.loading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (controller.error.value != null) {
-              return Center(
-                  child: Text(controller.error.value!,
-                      style: AppTypography.bodyLg));
-            }
-            return RefreshIndicator(
-              onRefresh: controller.fetch,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.containerPaddingMobile,
-                    0,
-                    AppSpacing.containerPaddingMobile,
-                    AppSpacing.stackXl),
-                children: [
-                  Text('Subscription\nPlans', style: AppTypography.headlineLg),
-                  const SizedBox(height: AppSpacing.stackSm),
-                  Text('Add, edit, or archive pricing plans at any time.',
-                      style: AppTypography.bodyLg),
-                  const SizedBox(height: AppSpacing.stackLg),
-                  PrimaryButton(
-                    label: 'New Plan',
-                    leadingIcon: Icons.add,
-                    trailingIcon: null,
-                    onPressed: () => _openPlanForm(context),
-                  ),
-                  const SizedBox(height: AppSpacing.stackLg),
-                  if (controller.plans.isEmpty)
-                    Text('No plans yet. Create your first plan.',
-                        style: AppTypography.bodyLg
-                            .copyWith(color: AppColors.onSurfaceVariant))
-                  else
-                    for (final plan in controller.plans) ...[
-                      _PlanCard(
-                        plan: plan,
-                        onEdit: () => _openPlanForm(context, plan: plan),
-                        onArchive: () => _confirmArchive(plan),
-                      ),
-                      const SizedBox(height: AppSpacing.stackMd),
-                    ],
-                ],
-              ),
-            );
-          }),
-        ),
-      ],
+    return Scaffold(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AdminTopBar(showAvatar: true),
+          Expanded(
+            child: Obx(() {
+              if (controller.loading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (controller.error.value != null) {
+                return Center(
+                    child: Text(controller.error.value!,
+                        style: AppTypography.bodyLg));
+              }
+              return RefreshIndicator(
+                onRefresh: controller.fetch,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.containerPaddingMobile,
+                      0,
+                      AppSpacing.containerPaddingMobile,
+                      AppSpacing.stackXl),
+                  children: [
+                    Text('Subscription\nPlans', style: AppTypography.headlineLg),
+                    const SizedBox(height: AppSpacing.stackSm),
+                    Text('Add, edit, or archive pricing plans at any time.',
+                        style: AppTypography.bodyLg),
+                    const SizedBox(height: AppSpacing.stackLg),
+                    PrimaryButton(
+                      label: 'New Plan',
+                      leadingIcon: Icons.add,
+                      trailingIcon: null,
+                      onPressed: () => _openPlanForm(context),
+                    ),
+                    const SizedBox(height: AppSpacing.stackLg),
+                    if (controller.plans.isEmpty)
+                      Text('No plans yet. Create your first plan.',
+                          style: AppTypography.bodyLg
+                              .copyWith(color: AppColors.onSurfaceVariant))
+                    else
+                      for (final plan in controller.plans) ...[
+                        _PlanCard(
+                          plan: plan,
+                          onEdit: () => _openPlanForm(context, plan: plan),
+                          onArchive: () => _confirmArchive(plan),
+                        ),
+                        const SizedBox(height: AppSpacing.stackMd),
+                      ],
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 
