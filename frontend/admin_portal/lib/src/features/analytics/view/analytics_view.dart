@@ -10,6 +10,8 @@ import '../../../ui/admin_widgets/section_header.dart';
 import '../components/analytics_metric_card.dart';
 import '../controller/analytics_controller.dart';
 import '../models/analytics_data.dart';
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
 
 /// System Metrics — live platform KPIs, plan distribution, and revenue trend.
 class AnalyticsView extends GetView<AnalyticsController> {
@@ -17,11 +19,11 @@ class AnalyticsView extends GetView<AnalyticsController> {
 
   /// Palette cycled across plan-distribution slices.
   static const _palette = [
-    AppColors.primary,
-    AppColors.aiAccent,
-    Color(0xFFE8A317),
-    AppColors.tertiary,
-    Color(0xFFAFC4F5),
+    AdminPalette.ink,
+    AdminPalette.info,
+    AdminPalette.warning,
+    AdminPalette.positive,
+    AdminPalette.info,
   ];
 
   static String _money(double v) =>
@@ -32,31 +34,31 @@ class AnalyticsView extends GetView<AnalyticsController> {
           label: 'Total Schools',
           value: '${d.totalSchools}',
           icon: Icons.apartment_rounded,
-          iconColor: AppColors.primary,
+          iconColor: AdminPalette.ink,
         ),
         AnalyticsMetric(
           label: 'Active Subscriptions',
           value: '${d.activeSubscriptions}',
           icon: Icons.verified_rounded,
-          iconColor: AppColors.tertiary,
+          iconColor: AdminPalette.positive,
         ),
         AnalyticsMetric(
           label: 'Total Users',
           value: '${d.totalUsers}',
           icon: Icons.groups_rounded,
-          iconColor: AppColors.aiAccent,
+          iconColor: AdminPalette.info,
         ),
         AnalyticsMetric(
           label: 'Monthly Revenue',
           value: _money(d.monthlyRevenue),
           icon: Icons.trending_up_rounded,
-          iconColor: const Color(0xFFE8A317),
+          iconColor: AdminPalette.warning,
         ),
         AnalyticsMetric(
           label: 'Churn Rate',
           value: '${d.churnRate}%',
           icon: Icons.sell_rounded,
-          iconColor: AppColors.error,
+          iconColor: AdminPalette.danger,
         ),
       ];
 
@@ -75,7 +77,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
             if (data == null) {
               return Center(
                   child: Text(controller.error.value ?? 'No data',
-                      style: AppTypography.bodyLg));
+                      style: AdminType.body));
             }
             return RefreshIndicator(
               onRefresh: controller.load,
@@ -87,10 +89,10 @@ class AnalyticsView extends GetView<AnalyticsController> {
                     AppSpacing.containerPaddingMobile,
                     AppSpacing.stackXl),
                 children: [
-                  Text('System\nMetrics', style: AppTypography.headlineLg),
+                  Text('System\nMetrics', style: AdminType.screenTitle),
                   const SizedBox(height: AppSpacing.stackSm),
                   Text('Live platform performance across all schools.',
-                      style: AppTypography.bodyLg),
+                      style: AdminType.body),
                   const SizedBox(height: AppSpacing.stackLg),
 
                   // KPI tiles (no trend series → no trend pill).
@@ -101,7 +103,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
                   const SizedBox(height: AppSpacing.stackSm),
 
                   // Plan distribution donut.
-                  GlassSurface(
+                  AdminCard(
                     padding: const EdgeInsets.all(AppSpacing.stackLg),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,12 +111,12 @@ class AnalyticsView extends GetView<AnalyticsController> {
                         const SectionHeader(title: 'Plan Distribution'),
                         const SizedBox(height: 2),
                         Text('Active subscriptions by plan',
-                            style: AppTypography.bodySm),
+                            style: AdminType.meta),
                         const SizedBox(height: AppSpacing.stackLg),
                         if (data.planDistribution.isEmpty)
                           Text('No active subscriptions yet.',
-                              style: AppTypography.bodyMd.copyWith(
-                                  color: AppColors.onSurfaceVariant))
+                              style: AdminType.body.copyWith(
+                                  color: AdminPalette.muted))
                         else ...[
                           Center(
                             child: DonutChart(
@@ -176,9 +178,9 @@ class _ShareRow extends StatelessWidget {
             height: 10,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: AppSpacing.stackSm),
-        Expanded(child: Text(share.planName, style: AppTypography.bodyLg)),
+        Expanded(child: Text(share.planName, style: AdminType.body)),
         Text('${share.count} · ${share.percent}%',
-            style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w600)),
+            style: AdminType.rowTitle.copyWith(fontWeight: FontWeight.w600)),
       ],
     );
   }

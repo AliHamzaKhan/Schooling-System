@@ -7,14 +7,25 @@ import '../../../../ui/tokens/app_spacing.dart';
 import '../../../../ui/tokens/app_typography.dart';
 import '../../../../ui/widgets/glass_input.dart';
 import '../../../../ui/widgets/primary_button.dart';
+import '../../../../ui/forms/screen_text_controllers.dart';
 import '../../components/auth_icon_badge.dart';
 import '../../components/auth_link_button.dart';
 import '../../components/auth_shell.dart';
 import '../../components/or_divider.dart';
 import '../controller/forgot_password_controller.dart';
 
-class ForgotPasswordView extends GetView<ForgotPasswordController> {
+class ForgotPasswordView extends StatefulWidget {
   const ForgotPasswordView({super.key});
+
+  @override
+  State<ForgotPasswordView> createState() => _ForgotPasswordViewState();
+}
+
+class _ForgotPasswordViewState extends State<ForgotPasswordView>
+    with ScreenTextControllers {
+  final controller = Get.find<ForgotPasswordController>();
+
+  late final _identifierCtrl = boundController(controller.identifier);
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +49,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
           GlassInput(
             label: 'Email or phone number',
             hint: 'name@university.edu',
-            controller: controller.identifierCtrl,
+            controller: _identifierCtrl,
             keyboardType: TextInputType.emailAddress,
             prefixIcon: Icons.mail_outline,
             onSubmitted: (_) => controller.sendCode(),

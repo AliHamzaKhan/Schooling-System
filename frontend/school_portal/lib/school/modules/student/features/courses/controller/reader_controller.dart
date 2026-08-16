@@ -80,7 +80,9 @@ class ReaderController extends GetxController {
 
   // Search state.
   final searchOpen = false.obs;
-  final searchCtrl = TextEditingController();
+
+  /// Search text. The `TextEditingController` behind it belongs to the search
+  /// bar's State — clearing it here flows back into the field.
   final query = ''.obs;
   final matches = <ReaderMatch>[].obs;
   final activeMatch = (-1).obs;
@@ -103,7 +105,6 @@ class ReaderController extends GetxController {
     _saveProgressNow();
     scroll.removeListener(_onScroll);
     scroll.dispose();
-    searchCtrl.dispose();
     super.onClose();
   }
 
@@ -244,10 +245,7 @@ class ReaderController extends GetxController {
     if (found.isNotEmpty) _ensureActiveVisible();
   }
 
-  void clearSearch() {
-    searchCtrl.clear();
-    _clearSearch();
-  }
+  void clearSearch() => _clearSearch();
 
   void _clearSearch() {
     query.value = '';

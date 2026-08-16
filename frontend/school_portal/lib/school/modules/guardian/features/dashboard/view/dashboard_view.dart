@@ -42,7 +42,7 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
     final session = controller.session;
     return Column(
       children: [
-        PortalTopBar(title: 'EduMaster', hasUnread: true, onBell: onNotifications),
+        PortalTopBar(title: 'Meri Taleem', hasUnread: true, onBell: onNotifications),
         Expanded(
           child: Obx(() {
             if (session.loading.value) {

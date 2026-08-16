@@ -5,15 +5,13 @@ import '../../../data/teacher_repository.dart';
 import '../../quiz/models/quiz_models.dart' show IdLabel;
 
 /// One subject paper being drafted for an exam: a subject plus its marks.
+///
+/// Plain data only — the paper card on screen owns the `TextEditingController`s
+/// that edit these values, so they are disposed when that card leaves the tree.
 class PaperRow {
   String? subjectId;
-  final maxCtrl = TextEditingController(text: '100');
-  final passCtrl = TextEditingController(text: '40');
-
-  void dispose() {
-    maxCtrl.dispose();
-    passCtrl.dispose();
-  }
+  String maxMarks = '100';
+  String passMarks = '40';
 }
 
 /// Drives Create Exam, shaped to what the backend actually stores: an exam
@@ -24,7 +22,9 @@ class CreateExamController extends GetxController {
   CreateExamController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
-  final nameCtrl = TextEditingController();
+  /// Field values. Their `TextEditingController`s belong to [CreateExamView]'s
+  /// State and are disposed with that screen.
+  final name = ''.obs;
 
   final loadingOptions = true.obs;
   final classes = <IdLabel>[].obs;
@@ -33,8 +33,8 @@ class CreateExamController extends GetxController {
 
   final startDate = Rxn<DateTime>();
   final endDate = Rxn<DateTime>();
-  final startCtrl = TextEditingController();
-  final endCtrl = TextEditingController();
+  final startText = ''.obs;
+  final endText = ''.obs;
 
   /// Subject papers — at least one is required.
   final papers = <PaperRow>[PaperRow()].obs;
@@ -77,7 +77,6 @@ class CreateExamController extends GetxController {
   void addPaper() => papers.add(PaperRow());
   void removePaper(int i) {
     if (papers.length <= 1) return;
-    papers[i].dispose();
     papers.removeAt(i);
   }
 
@@ -85,14 +84,14 @@ class CreateExamController extends GetxController {
     final d = await _pick(context, startDate.value);
     if (d == null) return;
     startDate.value = d;
-    startCtrl.text = _display(d);
+    startText.value = _display(d);
   }
 
   Future<void> pickEndDate(BuildContext context) async {
     final d = await _pick(context, endDate.value ?? startDate.value);
     if (d == null) return;
     endDate.value = d;
-    endCtrl.text = _display(d);
+    endText.value = _display(d);
   }
 
   Future<DateTime?> _pick(BuildContext context, DateTime? initial) {
@@ -116,7 +115,7 @@ class CreateExamController extends GetxController {
 
   Future<void> save() async {
     error.value = null;
-    if (nameCtrl.text.trim().length < 2) {
+    if (name.value.trim().length < 2) {
       error.value = 'Give the exam a name.';
       return;
     }
@@ -132,8 +131,8 @@ class CreateExamController extends GetxController {
         error.value = 'Choose a subject for every paper.';
         return;
       }
-      final max = double.tryParse(p.maxCtrl.text.trim());
-      final pass = double.tryParse(p.passCtrl.text.trim());
+      final max = double.tryParse(p.maxMarks.trim());
+      final pass = double.tryParse(p.passMarks.trim());
       if (max == null || max <= 0) {
         error.value = 'Enter valid maximum marks for every paper.';
         return;
@@ -155,7 +154,7 @@ class CreateExamController extends GetxController {
     submitting.value = true;
     final res = await _repo.createExam(
       classId: selectedClass.value!,
-      name: nameCtrl.text.trim(),
+      name: name.value.trim(),
       startDate: startDate.value == null ? null : _iso(startDate.value!),
       endDate: endDate.value == null ? null : _iso(endDate.value!),
       papers: drafts,
@@ -167,18 +166,7 @@ class CreateExamController extends GetxController {
       return;
     }
     Get.back<bool>(result: true);
-    Get.snackbar('Exam created', '“${nameCtrl.text.trim()}” is scheduled.',
+    Get.snackbar('Exam created', '“${name.value.trim()}” is scheduled.',
         snackPosition: SnackPosition.BOTTOM);
-  }
-
-  @override
-  void onClose() {
-    nameCtrl.dispose();
-    startCtrl.dispose();
-    endCtrl.dispose();
-    for (final p in papers) {
-      p.dispose();
-    }
-    super.onClose();
   }
 }

@@ -18,7 +18,7 @@ class AttendanceView extends GetView<StudentAttendanceController> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        PortalTopBar(title: 'EduMaster', onBell: onNotifications),
+        PortalTopBar(title: 'Meri Taleem', onBell: onNotifications),
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {

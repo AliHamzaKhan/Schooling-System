@@ -9,8 +9,19 @@ import '../controller/school_info_edit_controller.dart';
 
 /// Headmaster: edit About Us, Achievements, and the school uniform image. Name,
 /// address and contacts stay on School Settings.
-class SchoolInfoEditView extends GetView<SchoolInfoEditController> {
+class SchoolInfoEditView extends StatefulWidget {
   const SchoolInfoEditView({super.key});
+
+  @override
+  State<SchoolInfoEditView> createState() => _SchoolInfoEditViewState();
+}
+
+class _SchoolInfoEditViewState extends State<SchoolInfoEditView>
+    with ScreenTextControllers {
+  final controller = Get.find<SchoolInfoEditController>();
+
+  // Owned by this screen; the achievement sheet owns its own fields.
+  late final _aboutCtrl = boundController(controller.about);
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +51,7 @@ class SchoolInfoEditView extends GetView<SchoolInfoEditController> {
                   PortalFormField(
                     label: 'Description',
                     hint: 'Tell students and guardians about the school…',
-                    controller: controller.aboutCtrl,
+                    controller: _aboutCtrl,
                     maxLines: 5,
                   ),
                 ],
@@ -177,6 +188,8 @@ class SchoolInfoEditView extends GetView<SchoolInfoEditController> {
     final year = TextEditingController();
     await showActionFormSheet(
       title: 'Add Achievement',
+      // The sheet owns these fields and disposes them when it closes.
+      ownedControllers: [title, description, year],
       fields: [
         GlassInput(label: 'Title', hint: 'e.g. Science Fair Winner', controller: title),
         GlassInput(label: 'Description (optional)', hint: 'Details', controller: description),

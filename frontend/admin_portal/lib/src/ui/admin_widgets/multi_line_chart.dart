@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// A named data series for [MultiLineChart].
 class LineSeries {
@@ -63,7 +63,7 @@ class _ChartPainter extends CustomPainter {
 
     // Horizontal grid lines (4 bands).
     final grid = Paint()
-      ..color = AppColors.outlineVariant.withValues(alpha: 0.5)
+      ..color = AdminPalette.border.withValues(alpha: 0.5)
       ..strokeWidth = 1;
     for (var i = 0; i <= 3; i++) {
       final y = chartH - (i / 3) * chartH;
@@ -118,7 +118,7 @@ class _ChartPainter extends CustomPainter {
       final dx = size.width / (xLabels.length - 1).clamp(1, 999);
       for (var i = 0; i < xLabels.length; i++) {
         final tp = TextPainter(
-          text: TextSpan(text: xLabels[i], style: AppTypography.bodySm),
+          text: TextSpan(text: xLabels[i], style: AdminType.meta),
           textDirection: TextDirection.ltr,
         )..layout();
         final x = (i * dx - tp.width / 2).clamp(0, size.width - tp.width).toDouble();

@@ -3,6 +3,8 @@ import 'package:shared/shared.dart';
 
 import '../../../ui/admin_widgets/status_pill.dart';
 import '../models/analytics_data.dart';
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
 
 /// Compact KPI tile: colored icon square on the left, trend pill on the right,
 /// then the label and a bold value beneath.
@@ -20,7 +22,7 @@ class AnalyticsMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
+    return AdminCard(
       padding: const EdgeInsets.all(AppSpacing.stackMd),
       child: Row(
         children: [
@@ -38,10 +40,10 @@ class AnalyticsMetricCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(metric.label, style: AppTypography.bodyMd),
+                Text(metric.label, style: AdminType.body),
                 const SizedBox(height: 2),
                 Text(metric.value,
-                    style: AppTypography.headlineLg.copyWith(fontSize: 24)),
+                    style: AdminType.screenTitle.copyWith(fontSize: 24)),
               ],
             ),
           ),

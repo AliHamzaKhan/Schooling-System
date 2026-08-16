@@ -9,6 +9,8 @@ import '../components/step_initial_plan.dart';
 import '../components/step_payment_mode.dart';
 import '../components/step_school_details.dart';
 import '../controller/create_school_controller.dart';
+import '../../../../ui/admin_theme.dart';
+import '../../../../ui/admin_widgets/admin_surface.dart';
 
 /// New School Profile — a wizard (details → contact → subscription →
 /// headmaster). Edit mode drops the headmaster step.
@@ -28,11 +30,11 @@ class CreateSchoolView extends GetView<CreateSchoolController> {
               children: [
                 IconButton(
                   onPressed: () => Get.back<void>(),
-                  icon: const Icon(Icons.close_rounded, color: AppColors.onSurface),
+                  icon: const Icon(Icons.close_rounded, color: AdminPalette.ink),
                 ),
                 Text(controller.title,
-                    style: AppTypography.titleLg.copyWith(
-                        color: AppColors.primary, fontWeight: FontWeight.w700)),
+                    style: AdminType.cardTitle.copyWith(
+                        color: AdminPalette.ink, fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -59,7 +61,7 @@ class CreateSchoolView extends GetView<CreateSchoolController> {
               return SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.containerPaddingMobile, 0, AppSpacing.containerPaddingMobile, AppSpacing.stackLg),
-                child: GlassSurface(
+                child: AdminCard(
                   padding: const EdgeInsets.all(AppSpacing.stackLg),
                   child: content,
                 ),
@@ -92,7 +94,7 @@ class _BottomBar extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.stackSm),
                 child: Text(err,
-                    style: AppTypography.bodySm.copyWith(color: AppColors.error)),
+                    style: AdminType.meta.copyWith(color: AdminPalette.danger)),
               );
             }),
             Obx(() => PrimaryButton(
@@ -106,7 +108,7 @@ class _BottomBar extends StatelessWidget {
                   onPressed: controller.back,
                   child: Text(
                     controller.step.value == 0 ? 'Cancel' : 'Back',
-                    style: AppTypography.labelMd.copyWith(color: AppColors.onSurfaceVariant),
+                    style: AdminType.label.copyWith(color: AdminPalette.muted),
                   ),
                 )),
           ],

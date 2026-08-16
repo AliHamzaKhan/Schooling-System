@@ -57,6 +57,8 @@ class HeadmasterTimetableController extends GetxController {
     final ok = await showActionFormSheet(
       title: 'New Class',
       submitLabel: 'Create Class',
+      // The sheet owns these fields and disposes them when it closes.
+      ownedControllers: [name, level],
       fields: [
         GlassInput(label: 'Class name', hint: 'e.g. Grade 5', controller: name),
         GlassInput(

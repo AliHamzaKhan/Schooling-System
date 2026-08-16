@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// A styled confirmation dialog for important admin actions (activating a
 /// school, changing a subscription, deactivating, …). Presents an icon badge,
@@ -12,7 +13,7 @@ Future<bool> showAdminConfirm({
   required String message,
   String confirmLabel = 'Confirm',
   String cancelLabel = 'Cancel',
-  Color accent = AppColors.primary,
+  Color accent = AdminPalette.ink,
   bool destructive = false,
   List<Widget> details = const [],
 }) async {
@@ -53,17 +54,17 @@ class AdminConfirmDetail extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: AppTypography.bodyMd
-                  .copyWith(color: AppColors.onSurfaceVariant)),
+              style: AdminType.body
+                  .copyWith(color: AdminPalette.muted)),
           const Spacer(),
           const SizedBox(width: AppSpacing.stackMd),
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: (emphasize ? AppTypography.titleMd : AppTypography.bodyMd)
+              style: (emphasize ? AdminType.rowTitle : AdminType.body)
                   .copyWith(
-                color: valueColor ?? AppColors.onSurface,
+                color: valueColor ?? AdminPalette.ink,
                 fontWeight: emphasize ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
@@ -97,9 +98,9 @@ class _AdminConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = destructive ? AppColors.error : accent;
+    final accentColor = destructive ? AdminPalette.danger : accent;
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AdminPalette.canvas,
       insetPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.containerPaddingMobile, vertical: 24),
       shape: RoundedRectangleBorder(
@@ -126,24 +127,24 @@ class _AdminConfirmDialog extends StatelessWidget {
                   const SizedBox(width: AppSpacing.stackMd),
                   Expanded(
                     child: Text(title,
-                        style: AppTypography.titleLg
+                        style: AdminType.cardTitle
                             .copyWith(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.stackMd),
               Text(message,
-                  style: AppTypography.bodyLg
-                      .copyWith(color: AppColors.onSurfaceVariant)),
+                  style: AdminType.body
+                      .copyWith(color: AdminPalette.muted)),
               if (details.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.stackMd),
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.stackMd, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
+                    color: AdminPalette.tint,
                     borderRadius: BorderRadius.circular(AppRadius.button),
-                    border: Border.all(color: AppColors.outlineVariant),
+                    border: Border.all(color: AdminPalette.border),
                   ),
                   child: Column(children: details),
                 ),
@@ -197,7 +198,7 @@ class _ConfirmButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14),
           alignment: Alignment.center,
           child: Text(label,
-              style: AppTypography.titleMd.copyWith(
+              style: AdminType.rowTitle.copyWith(
                   color: Colors.white, fontWeight: FontWeight.w600)),
         ),
       ),

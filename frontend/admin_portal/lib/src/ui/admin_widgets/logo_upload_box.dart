@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// Dashed drag-and-drop placeholder for uploading a school logo. Tapping fires
 /// [onTap] (wire to an image picker later).
@@ -13,7 +14,7 @@ class LogoUploadBox extends StatelessWidget {
       onTap: onTap,
       child: DottedBorder(
         radius: AppRadius.card,
-        color: AppColors.outlineVariant,
+        color: AdminPalette.border,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackXl),
@@ -24,20 +25,20 @@ class LogoUploadBox extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
+                  color: AdminPalette.ink.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.cloud_upload_outlined,
-                    color: AppColors.primary, size: 26),
+                    color: AdminPalette.ink, size: 26),
               ),
               const SizedBox(height: AppSpacing.stackMd),
               Text('Click to upload or drag and drop',
                   textAlign: TextAlign.center,
-                  style: AppTypography.titleMd.copyWith(
-                      color: AppColors.primary, fontWeight: FontWeight.w600)),
+                  style: AdminType.rowTitle.copyWith(
+                      color: AdminPalette.ink, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
               Text('SVG, PNG, JPG or GIF (max. 800×400px)',
-                  style: AppTypography.bodySm),
+                  style: AdminType.meta),
             ],
           ),
         ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import '../../../ui/admin_theme.dart';
 
 /// Billing duration of a plan/subscription term. Mirrors the backend
 /// `BillingPeriod` enum (monthly / six_month / annual).
@@ -56,10 +56,10 @@ extension SubscriptionStatusX on SubscriptionStatus {
       };
 
   Color get color => switch (this) {
-        SubscriptionStatus.active => AppColors.primary,
-        SubscriptionStatus.pending => AppColors.aiAccent,
-        SubscriptionStatus.expired => AppColors.error,
-        SubscriptionStatus.cancelled => AppColors.onSurfaceVariant,
+        SubscriptionStatus.active => AdminPalette.ink,
+        SubscriptionStatus.pending => AdminPalette.info,
+        SubscriptionStatus.expired => AdminPalette.danger,
+        SubscriptionStatus.cancelled => AdminPalette.muted,
       };
 
   static SubscriptionStatus fromCode(String? c) => switch (c) {

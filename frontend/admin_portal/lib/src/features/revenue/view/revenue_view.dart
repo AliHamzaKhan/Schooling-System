@@ -4,6 +4,8 @@ import 'package:shared/shared.dart';
 
 import '../../../data/models/admin_metrics.dart';
 import '../controller/revenue_controller.dart';
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
 
 /// Revenue report — subscription earnings grouped by calendar month. Opened
 /// from the dashboard's "Monthly Revenue" KPI card.
@@ -27,7 +29,7 @@ class RevenueView extends GetView<RevenueController> {
                 if (controller.error.value != null) {
                   return Center(
                       child: Text(controller.error.value!,
-                          style: AppTypography.bodyLg));
+                          style: AdminType.body));
                 }
                 final report = controller.report.value;
                 if (report == null || report.months.isEmpty) {
@@ -46,7 +48,7 @@ class RevenueView extends GetView<RevenueController> {
                     children: [
                       _TotalCard(total: report.total),
                       const SizedBox(height: AppSpacing.stackLg),
-                      Text('Monthly earnings', style: AppTypography.titleMd),
+                      Text('Monthly earnings', style: AdminType.rowTitle),
                       const SizedBox(height: AppSpacing.stackMd),
                       for (final m in report.months.reversed) ...[
                         _MonthRow(
@@ -91,16 +93,15 @@ class _TotalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
-      level: GlassLevel.l1,
+    return AdminCard(
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Total (last 12 months)', style: AppTypography.bodyMd),
+          Text('Total (last 12 months)', style: AdminType.body),
           const SizedBox(height: 4),
           Text(_money(total),
-              style: AppTypography.displayLg.copyWith(fontSize: 34)),
+              style: AdminType.metric.copyWith(fontSize: 34)),
         ],
       ),
     );
@@ -122,9 +123,9 @@ class _MonthRow extends StatelessWidget {
           children: [
             Expanded(
               child: Text(_monthLabel(month.month),
-                  style: AppTypography.bodyLg),
+                  style: AdminType.body),
             ),
-            Text(_money(month.total), style: AppTypography.titleMd),
+            Text(_money(month.total), style: AdminType.rowTitle),
           ],
         ),
         const SizedBox(height: 6),
@@ -133,15 +134,15 @@ class _MonthRow extends StatelessWidget {
           child: LinearProgressIndicator(
             value: fraction,
             minHeight: 8,
-            backgroundColor: AppColors.surfaceContainerHigh,
+            backgroundColor: AdminPalette.tint,
             valueColor:
-                const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                const AlwaysStoppedAnimation<Color>(AdminPalette.ink),
           ),
         ),
         const SizedBox(height: 4),
         Text('${month.count} payment${month.count == 1 ? '' : 's'}',
-            style: AppTypography.bodySm
-                .copyWith(color: AppColors.onSurfaceVariant)),
+            style: AdminType.meta
+                .copyWith(color: AdminPalette.muted)),
       ],
     );
   }
@@ -173,25 +174,25 @@ class _Header extends StatelessWidget {
                 onTap: () => Get.back<void>(),
                 child: const CircleAvatar(
                   radius: 18,
-                  backgroundColor: AppColors.primaryContainer,
+                  backgroundColor: AdminPalette.inkSoft,
                   child: Icon(Icons.arrow_back_rounded,
-                      color: AppColors.onPrimary, size: 20),
+                      color: Colors.white, size: 20),
                 ),
               ),
               const SizedBox(width: AppSpacing.stackSm),
-              Text('EduMaster Admin',
-                  style: AppTypography.titleLg.copyWith(
-                      color: AppColors.primary, fontWeight: FontWeight.w700)),
+              Text('Meri Taleem Admin',
+                  style: AdminType.cardTitle.copyWith(
+                      color: AdminPalette.ink, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: AppSpacing.stackLg),
           Text('Revenue',
-              style: AppTypography.displayLg
-                  .copyWith(color: AppColors.primary, fontSize: 34)),
+              style: AdminType.metric
+                  .copyWith(color: AdminPalette.ink, fontSize: 34)),
           const SizedBox(height: AppSpacing.stackSm),
           Text('Subscription earnings by month.',
               style:
-                  AppTypography.bodyLg.copyWith(color: AppColors.onSurface)),
+                  AdminType.body.copyWith(color: AdminPalette.ink)),
         ],
       ),
     );
@@ -207,7 +208,7 @@ class _EmptyState extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: const [
         SizedBox(height: 80),
-        Icon(Icons.bar_chart_rounded, size: 48, color: AppColors.outline),
+        Icon(Icons.bar_chart_rounded, size: 48, color: AdminPalette.faint),
         SizedBox(height: AppSpacing.stackMd),
         Center(child: Text('No revenue recorded yet.')),
       ],

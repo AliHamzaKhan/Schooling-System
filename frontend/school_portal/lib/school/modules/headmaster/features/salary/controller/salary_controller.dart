@@ -119,6 +119,8 @@ class SalaryController extends GetxController {
     final ok = await showActionFormSheet(
       title: s.hasSalary ? 'Edit Salary — ${s.name}' : 'Set Salary — ${s.name}',
       submitLabel: 'Save',
+      // The sheet owns this field and disposes it when it closes.
+      ownedControllers: [salary],
       fields: [
         Obx(() => _LabeledDropdown<String>(
               label: 'Designation',

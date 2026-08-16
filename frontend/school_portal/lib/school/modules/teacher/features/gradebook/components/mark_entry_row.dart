@@ -5,11 +5,10 @@ import '../models/gradebook_data.dart';
 
 /// One student row in the gradebook: avatar + name + ID, Obtained input,
 /// Total label, and a status dot (filled green check once a mark is entered).
-class MarkEntryRow extends StatelessWidget {
+class MarkEntryRow extends StatefulWidget {
   final GradebookStudent student;
   final int totalMarks;
   final int? obtained;
-  final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final VoidCallback? onOpenStudent;
 
@@ -17,11 +16,43 @@ class MarkEntryRow extends StatelessWidget {
     super.key,
     required this.student,
     required this.totalMarks,
-    required this.controller,
     required this.obtained,
     required this.onChanged,
     this.onOpenStudent,
   });
+
+  @override
+  State<MarkEntryRow> createState() => _MarkEntryRowState();
+}
+
+class _MarkEntryRowState extends State<MarkEntryRow> {
+  /// This row's own marks field — created with the row and disposed with it, so
+  /// it can never be shared with another student's row or outlive the sheet.
+  late final TextEditingController _controller =
+      TextEditingController(text: _textFor(widget.obtained));
+
+  static String _textFor(int? mark) => mark?.toString() ?? '';
+
+  @override
+  void didUpdateWidget(MarkEntryRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reflect marks that changed outside the field (a reload after saving),
+    // while leaving what the teacher is currently typing untouched.
+    if (widget.obtained != int.tryParse(_controller.text.trim())) {
+      _controller.text = _textFor(widget.obtained);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  GradebookStudent get student => widget.student;
+  int get totalMarks => widget.totalMarks;
+  int? get obtained => widget.obtained;
+  VoidCallback? get onOpenStudent => widget.onOpenStudent;
 
   @override
   Widget build(BuildContext context) {
@@ -66,11 +97,11 @@ class MarkEntryRow extends StatelessWidget {
                   SizedBox(
                     width: 90,
                     child: TextField(
-                      controller: controller,
+                      controller: _controller,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       style: AppTypography.titleMd,
-                      onChanged: onChanged,
+                      onChanged: widget.onChanged,
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: '--',

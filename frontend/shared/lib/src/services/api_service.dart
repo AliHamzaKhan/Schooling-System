@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../env/env_config.dart';
-import 'api_exception.dart';
 import 'api_response.dart';
 import 'data_store_service.dart';
 import 'http_method.dart';
@@ -69,9 +68,12 @@ class ApiService {
       : _client = client ?? http.Client(),
         _store = store;
 
-  /// Single entry point for every HTTP call. Throws [ApiException] only for
-  /// network-level failures; HTTP 4xx/5xx come back as
-  /// `ApiResponse.fail(...)`.
+  /// Single entry point for every HTTP call. Never throws: HTTP 4xx/5xx *and*
+  /// network-level failures (server down, DNS, timeout, CORS-blocked response)
+  /// all come back as `ApiResponse.fail(...)`, the latter with
+  /// [ApiResponse.isNetworkError] set. Screens already branch on
+  /// `res.success`, so a backend outage shows the error state instead of
+  /// escaping as an unhandled `ApiException` that takes the screen down.
   Future<ApiResponse<T>> request<T>({
     required HttpMethod method,
     required String path,
@@ -118,14 +120,34 @@ class ApiService {
       }
       return parsed;
     } on TimeoutException {
-      throw ApiException('Request timed out after ${effectiveTimeout.inSeconds}s', cause: 'timeout');
+      return _transportFailure(
+        uri,
+        'The server took too long to respond (${effectiveTimeout.inSeconds}s). Please try again.',
+      );
     } on SocketException catch (e) {
-      throw ApiException('Network unreachable: ${e.message}', cause: e);
+      return _transportFailure(uri, 'Cannot reach the server. Check your connection and try again.', e);
     } on http.ClientException catch (e) {
-      throw ApiException('HTTP client error: ${e.message}', cause: e);
+      // Includes the browser's opaque "Failed to fetch" — server down, wrong
+      // host, or a response the browser rejected (e.g. a 500 with no CORS
+      // headers). All of them mean "the request never completed".
+      return _transportFailure(uri, 'Cannot reach the server. Check your connection and try again.', e);
     } on FormatException catch (e) {
-      throw ApiException('Invalid response format: ${e.message}', cause: e);
+      return _transportFailure(uri, 'The server sent a response the app could not read.', e);
+    } catch (e) {
+      // Last-resort net: an unexpected transport error must not surface as an
+      // unhandled exception in the widget tree.
+      return _transportFailure(uri, 'Something went wrong talking to the server.', e);
     }
+  }
+
+  /// Builds the failed response for a request that never completed, and logs
+  /// the underlying cause so the real reason is still visible in the console.
+  ApiResponse<T> _transportFailure<T>(Uri uri, String message, [Object? cause]) {
+    if (EnvConfig.verboseLogging) {
+      developer.log('✗ $uri — $message${cause == null ? '' : ' ($cause)'}',
+          name: 'ApiService');
+    }
+    return ApiResponse<T>.fail(message, statusCode: 0);
   }
 
   // ── Helpers ─────────────────────────────────────────────────

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../data/headmaster_repository.dart';
@@ -15,11 +14,14 @@ class SettingsController extends GetxController {
   final saving = false.obs;
   final error = RxnString();
 
-  final name = TextEditingController();
-  final logoUrl = TextEditingController();
-  final uniformColor = TextEditingController();
-  final feeDueDay = TextEditingController();
-  final salaryDay = TextEditingController();
+  /// Settings values. The `TextEditingController`s for the editable ones are
+  /// owned by [SettingsView]'s State, so they are disposed with that screen;
+  /// [logoUrl] and [uniformColor] are set by the picker widgets, not typed.
+  final name = ''.obs;
+  final logoUrl = ''.obs;
+  final uniformColor = ''.obs;
+  final feeDueDay = ''.obs;
+  final salaryDay = ''.obs;
 
   @override
   void onInit() {
@@ -40,22 +42,22 @@ class SettingsController extends GetxController {
   }
 
   void _fill(SchoolProfile p) {
-    name.text = p.name;
-    logoUrl.text = p.logoUrl ?? '';
-    uniformColor.text = p.uniformColor ?? '';
-    feeDueDay.text = p.feeDueDay?.toString() ?? '';
-    salaryDay.text = p.salaryDay?.toString() ?? '';
+    name.value = p.name;
+    logoUrl.value = p.logoUrl ?? '';
+    uniformColor.value = p.uniformColor ?? '';
+    feeDueDay.value = p.feeDueDay?.toString() ?? '';
+    salaryDay.value = p.salaryDay?.toString() ?? '';
   }
 
-  int? _validDay(TextEditingController c) {
-    final raw = c.text.trim();
+  int? _validDay(RxString field) {
+    final raw = field.value.trim();
     if (raw.isEmpty) return null;
     final v = int.tryParse(raw);
     return (v != null && v >= 1 && v <= 31) ? v : -1; // -1 = invalid sentinel
   }
 
   Future<void> save() async {
-    if (name.text.trim().isEmpty) {
+    if (name.value.trim().isEmpty) {
       Get.snackbar('Name required', 'School name cannot be empty.',
           snackPosition: SnackPosition.BOTTOM);
       return;
@@ -74,10 +76,10 @@ class SettingsController extends GetxController {
     }
     saving.value = true;
     final res = await _repo.saveSchoolProfile(
-      name: name.text.trim(),
-      logoUrl: logoUrl.text.trim().isEmpty ? null : logoUrl.text.trim(),
+      name: name.value.trim(),
+      logoUrl: logoUrl.value.trim().isEmpty ? null : logoUrl.value.trim(),
       uniformColor:
-          uniformColor.text.trim().isEmpty ? null : uniformColor.text.trim(),
+          uniformColor.value.trim().isEmpty ? null : uniformColor.value.trim(),
       feeDueDay: day,
       salaryDay: salary,
     );
@@ -90,15 +92,5 @@ class SettingsController extends GetxController {
       Get.snackbar('Could not save', res.error ?? 'Please try again.',
           snackPosition: SnackPosition.BOTTOM);
     }
-  }
-
-  @override
-  void onClose() {
-    name.dispose();
-    logoUrl.dispose();
-    uniformColor.dispose();
-    feeDueDay.dispose();
-    salaryDay.dispose();
-    super.onClose();
   }
 }

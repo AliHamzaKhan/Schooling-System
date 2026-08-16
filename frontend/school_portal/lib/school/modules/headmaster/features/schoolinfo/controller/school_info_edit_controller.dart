@@ -1,5 +1,4 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../data/headmaster_repository.dart';
@@ -16,7 +15,9 @@ class SchoolInfoEditController extends GetxController {
   final saving = false.obs;
   final uploading = false.obs;
 
-  final aboutCtrl = TextEditingController();
+  /// About text. Its `TextEditingController` is owned by
+  /// [SchoolInfoEditView]'s State and disposed with that screen.
+  final about = ''.obs;
   final achievements = <Map<String, dynamic>>[].obs;
   final uniformImageUrl = RxnString();
 
@@ -26,19 +27,13 @@ class SchoolInfoEditController extends GetxController {
     load();
   }
 
-  @override
-  void onClose() {
-    aboutCtrl.dispose();
-    super.onClose();
-  }
-
   Future<void> load() async {
     loading.value = true;
     error.value = null;
     final res = await _repo.loadSchoolInfo();
     if (res.success && res.data != null) {
       final d = res.data!;
-      aboutCtrl.text = d['about'] as String? ?? '';
+      about.value = d['about'] as String? ?? '';
       achievements.assignAll(((d['achievements'] as List?) ?? const [])
           .cast<Map<String, dynamic>>());
       uniformImageUrl.value = d['uniform_image_url'] as String?;
@@ -89,7 +84,7 @@ class SchoolInfoEditController extends GetxController {
     saving.value = true;
     error.value = null;
     final res = await _repo.saveSchoolInfo(
-      about: aboutCtrl.text.trim(),
+      about: about.value.trim(),
       achievements: achievements.toList(),
       uniformImageUrl: uniformImageUrl.value,
     );

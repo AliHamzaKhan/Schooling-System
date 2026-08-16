@@ -51,6 +51,8 @@ class GradingController extends GetxController {
     final max = assignment.maxMarks;
     final ok = await showActionFormSheet(
       title: 'Grade — ${row.studentName ?? 'Student'}',
+      // The sheet owns these fields and disposes them when it closes.
+      ownedControllers: [marks, feedback],
       fields: [
         GlassInput(
           label: max == null ? 'Marks' : 'Marks (out of ${_fmt(max)})',

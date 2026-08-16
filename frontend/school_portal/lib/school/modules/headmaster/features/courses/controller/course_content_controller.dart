@@ -42,6 +42,8 @@ class CourseContentController extends GetxController {
     final description = TextEditingController();
     final ok = await showActionFormSheet(
       title: 'New Book',
+      // The sheet owns these fields and disposes them when it closes.
+      ownedControllers: [title, description],
       fields: [
         GlassInput(label: 'Title', hint: 'e.g. Life Science', controller: title),
         GlassInput(
@@ -69,6 +71,7 @@ class CourseContentController extends GetxController {
     final content = TextEditingController();
     final ok = await showActionFormSheet(
       title: 'New Note',
+      ownedControllers: [title, content],
       fields: [
         GlassInput(label: 'Title', hint: 'e.g. Key Terms', controller: title),
         GlassInput(

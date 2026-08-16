@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// Numbered-circle step indicator with connecting lines and labels beneath
 /// (e.g. 1 School Details — 2 Contact Info — 3 Initial Plan).
@@ -23,8 +23,8 @@ class NumberedStepper extends StatelessWidget {
                 child: Container(
                   height: 2,
                   color: i < current
-                      ? AppColors.primary
-                      : AppColors.outlineVariant,
+                      ? AdminPalette.ink
+                      : AdminPalette.border,
                 ),
               ),
             ),
@@ -54,14 +54,14 @@ class _StepNode extends StatelessWidget {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: filled ? AppColors.primary : AppColors.surfaceContainerHigh,
+              color: filled ? AdminPalette.ink : AdminPalette.tint,
               shape: BoxShape.circle,
             ),
             child: done
-                ? const Icon(Icons.check_rounded, color: AppColors.onPrimary, size: 18)
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
                 : Text('${index + 1}',
-                    style: AppTypography.titleMd.copyWith(
-                      color: filled ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+                    style: AdminType.rowTitle.copyWith(
+                      color: filled ? Colors.white : AdminPalette.muted,
                       fontWeight: FontWeight.w700,
                     )),
           ),
@@ -69,8 +69,8 @@ class _StepNode extends StatelessWidget {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: AppTypography.bodySm.copyWith(
-              color: active ? AppColors.primary : AppColors.onSurfaceVariant,
+            style: AdminType.meta.copyWith(
+              color: active ? AdminPalette.ink : AdminPalette.muted,
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
             ),
           ),

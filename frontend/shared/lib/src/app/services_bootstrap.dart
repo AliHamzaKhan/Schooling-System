@@ -11,7 +11,15 @@ import '../services/data_store_service.dart';
 ///
 /// On a 401 from an authenticated call the session is cleared and the app is
 /// routed back to the shared login.
-Future<void> initSharedServices() async {
+///
+/// Set [restoreSession] to false when the app has a splash screen that owns the
+/// restore itself. Session restore calls `/auth/me`, and awaiting it here means
+/// blocking `runApp` on a network round trip — the window stays blank for as
+/// long as the server takes, with nothing on screen to explain the wait and no
+/// way to report that the server is unreachable. A splash can show branding
+/// immediately, run the same restore, and route (or offer a retry) when it
+/// finishes.
+Future<void> initSharedServices({bool restoreSession = true}) async {
   final store = DataStoreService();
   await store.init();
 
@@ -30,5 +38,5 @@ Future<void> initSharedServices() async {
   Get.put<ApiService>(api, permanent: true);
   Get.put<AuthService>(auth, permanent: true);
 
-  await auth.bootstrap();
+  if (restoreSession) await auth.bootstrap();
 }

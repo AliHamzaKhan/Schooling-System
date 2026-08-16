@@ -42,6 +42,8 @@ class HeadmasterClassesController extends GetxController {
     final ok = await showActionFormSheet(
       title: 'New Class',
       submitLabel: 'Create Class',
+      // The sheet owns these three fields and disposes them when it closes.
+      ownedControllers: [name, level, room],
       fields: [
         GlassInput(label: 'Class name', hint: 'e.g. Grade 5', controller: name),
         GlassInput(
@@ -85,6 +87,7 @@ class HeadmasterClassesController extends GetxController {
     final ok = await showActionFormSheet(
       title: 'Add Section to $className',
       submitLabel: 'Add Section',
+      ownedControllers: [name, room],
       fields: [
         GlassInput(label: 'Section name', hint: 'e.g. A', controller: name),
         GlassInput(
@@ -145,6 +148,7 @@ class HeadmasterClassesController extends GetxController {
     final ok = await showActionFormSheet(
       title: 'Rename Class',
       submitLabel: 'Save',
+      ownedControllers: [name],
       fields: [
         GlassInput(label: 'Class name', hint: 'e.g. Grade 5', controller: name),
       ],

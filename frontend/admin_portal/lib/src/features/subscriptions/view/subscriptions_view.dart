@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../ui/admin_widgets/admin_top_bar.dart';
 import '../controller/subscriptions_controller.dart';
 import '../models/subscription_models.dart';
+import '../../../ui/admin_theme.dart';
 
 /// Subscription Plans — the admin-editable products. Each plan carries a price
 /// and a billing duration (Monthly / 6-Month / Annual); admins can add, edit,
@@ -27,7 +28,7 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
               if (controller.error.value != null) {
                 return Center(
                     child: Text(controller.error.value!,
-                        style: AppTypography.bodyLg));
+                        style: AdminType.body));
               }
               return RefreshIndicator(
                 onRefresh: controller.fetch,
@@ -39,10 +40,10 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
                       AppSpacing.containerPaddingMobile,
                       AppSpacing.stackXl),
                   children: [
-                    Text('Subscription\nPlans', style: AppTypography.headlineLg),
+                    Text('Subscription\nPlans', style: AdminType.screenTitle),
                     const SizedBox(height: AppSpacing.stackSm),
                     Text('Add, edit, or archive pricing plans at any time.',
-                        style: AppTypography.bodyLg),
+                        style: AdminType.body),
                     const SizedBox(height: AppSpacing.stackLg),
                     PrimaryButton(
                       label: 'New Plan',
@@ -53,8 +54,8 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
                     const SizedBox(height: AppSpacing.stackLg),
                     if (controller.plans.isEmpty)
                       Text('No plans yet. Create your first plan.',
-                          style: AppTypography.bodyLg
-                              .copyWith(color: AppColors.onSurfaceVariant))
+                          style: AdminType.body
+                              .copyWith(color: AdminPalette.muted))
                     else
                       for (final plan in controller.plans) ...[
                         _PlanCard(
@@ -91,7 +92,7 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
           TextButton(
             onPressed: () => Get.back<bool>(result: true),
             child: const Text('Archive',
-                style: TextStyle(color: AppColors.error)),
+                style: TextStyle(color: AdminPalette.danger)),
           ),
         ],
       ),
@@ -105,9 +106,9 @@ String _money(double v) =>
 
 /// Accent color per billing duration, so the three durations read distinctly.
 Color _accentFor(BillingPeriod p) => switch (p) {
-      BillingPeriod.monthly => AppColors.primary,
-      BillingPeriod.sixMonth => AppColors.aiAccent,
-      BillingPeriod.annual => const Color(0xFFE8A317),
+      BillingPeriod.monthly => AdminPalette.ink,
+      BillingPeriod.sixMonth => AdminPalette.info,
+      BillingPeriod.annual => AdminPalette.warning,
     };
 
 class _PlanCard extends StatelessWidget {
@@ -126,9 +127,9 @@ class _PlanCard extends StatelessWidget {
     final accent = _accentFor(plan.billingPeriod);
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: AdminPalette.card,
         borderRadius: BorderRadius.circular(AppRadius.cardLarge),
-        border: Border.all(color: AppColors.outlineVariant),
+        border: Border.all(color: AdminPalette.border),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -146,13 +147,13 @@ class _PlanCard extends StatelessWidget {
               _Chip(
                 label:
                     '${plan.modules.length} module${plan.modules.length == 1 ? '' : 's'}',
-                color: AppColors.onSurfaceVariant,
+                color: AdminPalette.muted,
                 subtle: true,
               ),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.archive_outlined,
-                    color: AppColors.onSurfaceVariant),
+                    color: AdminPalette.muted),
                 tooltip: 'Archive',
                 visualDensity: VisualDensity.compact,
                 onPressed: onArchive,
@@ -160,22 +161,22 @@ class _PlanCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.stackSm),
-          Text(plan.name, style: AppTypography.titleLg),
+          Text(plan.name, style: AdminType.cardTitle),
           const SizedBox(height: AppSpacing.stackSm),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(_money(plan.price),
-                  style: AppTypography.displayLg
+                  style: AdminType.metric
                       .copyWith(fontSize: 40, color: accent)),
               const SizedBox(width: 4),
-              Text(plan.billingPeriod.priceSuffix, style: AppTypography.bodyLg),
+              Text(plan.billingPeriod.priceSuffix, style: AdminType.body),
             ],
           ),
           if (plan.description != null && plan.description!.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.stackSm),
-            Text(plan.description!, style: AppTypography.bodyMd),
+            Text(plan.description!, style: AdminType.body),
           ],
           const SizedBox(height: AppSpacing.stackLg),
           PrimaryButton(
@@ -206,7 +207,7 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(label,
-          style: AppTypography.labelMd
+          style: AdminType.label
               .copyWith(color: color, fontWeight: FontWeight.w700)),
     );
   }
@@ -300,7 +301,7 @@ class _PlanFormDialogState extends State<_PlanFormDialog> {
                     const InputDecoration(labelText: 'Description (optional)')),
             const SizedBox(height: 8),
             if (_error != null)
-              Text(_error!, style: const TextStyle(color: AppColors.error)),
+              Text(_error!, style: const TextStyle(color: AdminPalette.danger)),
           ],
         ),
       ),

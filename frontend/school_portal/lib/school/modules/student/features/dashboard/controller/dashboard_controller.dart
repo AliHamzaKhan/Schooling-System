@@ -37,6 +37,11 @@ class StudentDashboardController extends GetxController {
       (Get.find<AuthService>().currentUser.value?['full_name'] as String? ?? '')
           .trim();
 
+  /// The student's profile photo (set by the school when their account was
+  /// created), or null when none was uploaded — the identity card falls back to
+  /// initials.
+  String? get avatarUrl => Get.find<AuthService>().avatarUrl;
+
   /// The line under the name. `/auth/me` carries no class or section for a
   /// student, so this says what is actually known rather than inventing a
   /// grade — when the profile payload gains those fields, this getter is the

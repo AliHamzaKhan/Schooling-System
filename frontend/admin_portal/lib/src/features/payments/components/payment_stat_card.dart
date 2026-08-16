@@ -1,63 +1,64 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
 
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
 import '../models/payments_data.dart';
 
-/// Payments KPI card: rounded icon tile, label, and a large value, with a
-/// color-matched left accent rail.
+/// Compact billing KPI tile sized for a two-column grid: a small icon and an
+/// uppercase label on top, the value below, and an optional caption line.
 class PaymentStatCard extends StatelessWidget {
   final PaymentStat stat;
   const PaymentStatCard({super.key, required this.stat});
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
-      padding: EdgeInsets.zero,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: stat.color,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
-                ),
+    return AdminCard(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(stat.icon, size: 15, color: AdminPalette.faint),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(stat.label.toUpperCase(),
+                    style: AdminType.overline,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackLg),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: stat.color.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                      ),
-                      child: Icon(stat.icon, color: stat.color, size: 26),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(stat.value, style: AdminType.metric),
+          ),
+          if (stat.caption != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.trending_up_rounded,
+                    size: 13, color: stat.captionColor ?? AdminPalette.muted),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    stat.caption!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AdminType.meta.copyWith(
+                      fontSize: 12,
+                      color: stat.captionColor ?? AdminPalette.muted,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(width: AppSpacing.stackMd),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(stat.label, style: AppTypography.titleMd),
-                          const SizedBox(height: 2),
-                          Text(stat.value,
-                              style: AppTypography.displayLg.copyWith(fontSize: 28)),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
-        ),
+        ],
       ),
     );
   }

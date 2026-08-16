@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../services/auth_service.dart';
@@ -14,8 +13,11 @@ class LoginController extends GetxController {
   final AuthService _auth = Get.find<AuthService>();
   final DataStoreService _store = Get.find<DataStoreService>();
 
-  final emailCtrl = TextEditingController(text:kDebugMode ? 'student@ths.edu' : '');
-  final passwordCtrl = TextEditingController(text:kDebugMode ? 'Pass1234!' : '');
+  /// Field values. The `TextEditingController`s that feed these live on the
+  /// login screen's State ([LoginView]), so they are disposed with the screen
+  /// rather than with this GetX controller.
+  final email = (kDebugMode ? 'student@ths.edu' : '').obs;
+  final password = (kDebugMode ? 'Pass1234!' : '').obs;
 
   final institutions = <Institution>[].obs;
   final selectedInstitution = Rxn<Institution>();
@@ -44,10 +46,12 @@ class LoginController extends GetxController {
   Future<void> _restoreRemembered() async {
     if (!_store.rememberMe) return;
     rememberMe.value = true;
-    final email = _store.rememberedEmail;
-    if (email != null && email.isNotEmpty) emailCtrl.text = email;
-    final password = await _store.readRememberedPassword();
-    if (password != null && password.isNotEmpty) passwordCtrl.text = password;
+    final savedEmail = _store.rememberedEmail;
+    if (savedEmail != null && savedEmail.isNotEmpty) email.value = savedEmail;
+    final savedPassword = await _store.readRememberedPassword();
+    if (savedPassword != null && savedPassword.isNotEmpty) {
+      password.value = savedPassword;
+    }
   }
 
   Future<void> _loadInstitutions() async {
@@ -76,27 +80,28 @@ class LoginController extends GetxController {
 
   Future<void> submit() async {
     error.value = null;
-    final email = emailCtrl.text.trim();
-    final password = passwordCtrl.text;
+    final enteredEmail = email.value.trim();
+    final enteredPassword = password.value;
 
     if (requireInstitution && selectedInstitution.value == null) {
       error.value = 'Please select your institution.';
       return;
     }
-    if (email.isEmpty || password.isEmpty) {
+    if (enteredEmail.isEmpty || enteredPassword.isEmpty) {
       error.value = 'Enter your email and password.';
       return;
     }
 
     submitting.value = true;
     try {
-      final res = await _auth.login(email: email, password: password);
+      final res =
+          await _auth.login(email: enteredEmail, password: enteredPassword);
       if (res.success) {
         // Only persist once the backend has confirmed the pair is valid, so we
         // never store a wrong password.
         if (rememberMe.value) {
           await _store.saveRememberedCredentials(
-              email: email, password: password);
+              email: enteredEmail, password: enteredPassword);
         } else {
           await _store.clearRememberedCredentials();
         }
@@ -114,12 +119,5 @@ class LoginController extends GetxController {
     } finally {
       submitting.value = false;
     }
-  }
-
-  @override
-  void onClose() {
-    emailCtrl.dispose();
-    passwordCtrl.dispose();
-    super.onClose();
   }
 }

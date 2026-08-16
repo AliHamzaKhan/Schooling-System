@@ -33,8 +33,10 @@ class CreateAnnouncementController extends GetxController {
   CreateAnnouncementController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
-  final titleCtrl = TextEditingController();
-  final bodyCtrl = TextEditingController();
+  /// Field values. Their `TextEditingController`s are owned by
+  /// [CreateAnnouncementView]'s State and disposed with that screen.
+  final title = ''.obs;
+  final body = ''.obs;
 
   final loadingSections = true.obs;
   final sections = <MyClass>[].obs;
@@ -50,13 +52,6 @@ class CreateAnnouncementController extends GetxController {
   void onInit() {
     super.onInit();
     _loadSections();
-  }
-
-  @override
-  void onClose() {
-    titleCtrl.dispose();
-    bodyCtrl.dispose();
-    super.onClose();
   }
 
   Future<void> _loadSections() async {
@@ -77,8 +72,8 @@ class CreateAnnouncementController extends GetxController {
   /// Validates and publishes. Returns true when the announcement was sent.
   Future<bool> submit() async {
     error.value = null;
-    final body = bodyCtrl.text.trim();
-    if (body.isEmpty) {
+    final message = body.value.trim();
+    if (message.isEmpty) {
       error.value = 'Write a message before sending.';
       return false;
     }
@@ -93,8 +88,8 @@ class CreateAnnouncementController extends GetxController {
       channel: channel.value.wire,
       audienceType: audience.value.wire,
       audienceRef: targetingSection ? sectionId.value : null,
-      title: titleCtrl.text.trim().isEmpty ? null : titleCtrl.text.trim(),
-      body: body,
+      title: title.value.trim().isEmpty ? null : title.value.trim(),
+      body: message,
     );
     submitting.value = false;
 

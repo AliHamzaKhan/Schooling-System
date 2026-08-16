@@ -11,6 +11,8 @@ import '../../models/payment_mode.dart';
 import '../../models/school.dart';
 import '../controller/school_detail_controller.dart';
 import '../models/school_detail_models.dart';
+import '../../../../ui/admin_theme.dart';
+import '../../../../ui/admin_widgets/admin_surface.dart';
 
 /// School Detail — profile, active-user stats, current subscription (plan +
 /// expiry), the recorded payment mode, and the payment/transaction ledger.
@@ -106,16 +108,16 @@ class _Header extends GetView<SchoolDetailController> {
         children: [
           IconButton(
             onPressed: () => Get.back<void>(),
-            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary),
+            icon: const Icon(Icons.arrow_back_rounded, color: AdminPalette.ink),
           ),
           Expanded(
             child: Text(s.name,
-                style: AppTypography.headlineLg.copyWith(color: AppColors.primary),
+                style: AdminType.screenTitle.copyWith(color: AdminPalette.ink),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: AppColors.onSurfaceVariant),
+            icon: const Icon(Icons.more_vert_rounded, color: AdminPalette.muted),
             onSelected: (v) {
               if (v == 'edit') _openEdit();
               if (v == 'subscription') _openSubscription();
@@ -148,14 +150,14 @@ class _Header extends GetView<SchoolDetailController> {
                           ? Icons.block_rounded
                           : Icons.check_circle_outline_rounded,
                       color: s.status == SchoolStatus.active
-                          ? AppColors.error
-                          : AppColors.primary),
+                          ? AdminPalette.danger
+                          : AdminPalette.ink),
                   title: Text(
                       s.status == SchoolStatus.active ? 'Deactivate' : 'Activate',
                       style: TextStyle(
                           color: s.status == SchoolStatus.active
-                              ? AppColors.error
-                              : AppColors.primary)),
+                              ? AdminPalette.danger
+                              : AdminPalette.ink)),
                 ),
               ),
             ],
@@ -173,7 +175,7 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uniform = _hexColor(school.uniformColor);
-    return GlassSurface(
+    return AdminCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -185,10 +187,10 @@ class _ProfileCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(school.name, style: AppTypography.titleLg),
+                    Text(school.name, style: AdminType.cardTitle),
                     if (school.code.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text(school.code, style: AppTypography.bodyMd),
+                      Text(school.code, style: AdminType.body),
                     ],
                   ],
                 ),
@@ -212,9 +214,9 @@ class _ProfileCard extends StatelessWidget {
               child: Row(
                 children: [
                   const Icon(Icons.checkroom_outlined,
-                      size: 16, color: AppColors.onSurfaceVariant),
+                      size: 16, color: AdminPalette.muted),
                   const SizedBox(width: AppSpacing.stackSm),
-                  Text('Uniform', style: AppTypography.bodyMd),
+                  Text('Uniform', style: AdminType.body),
                   const SizedBox(width: AppSpacing.stackSm),
                   Container(
                     width: 18,
@@ -222,7 +224,7 @@ class _ProfileCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: uniform,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.outlineVariant),
+                      border: Border.all(color: AdminPalette.border),
                     ),
                   ),
                 ],
@@ -246,22 +248,22 @@ class _StatsGrid extends StatelessWidget {
           icon: Icons.school_outlined,
           label: 'Students',
           value: s?.students,
-          color: AppColors.primary),
+          color: AdminPalette.ink),
       _StatTile(
           icon: Icons.co_present_outlined,
           label: 'Teachers',
           value: s?.teachers,
-          color: AppColors.tertiary),
+          color: AdminPalette.positive),
       _StatTile(
           icon: Icons.family_restroom_outlined,
           label: 'Guardians',
           value: s?.guardians,
-          color: const Color(0xFFE8A317)),
+          color: AdminPalette.warning),
       _StatTile(
           icon: Icons.groups_outlined,
           label: 'Total users',
           value: s?.totalUsers,
-          color: AppColors.aiAccent),
+          color: AdminPalette.info),
     ];
     return GridView.count(
       crossAxisCount: 2,
@@ -288,7 +290,7 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
+    return AdminCard(
       padding: const EdgeInsets.all(AppSpacing.stackMd),
       child: Row(
         children: [
@@ -309,8 +311,8 @@ class _StatTile extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(value?.toString() ?? '—',
-                    style: AppTypography.titleLg.copyWith(fontWeight: FontWeight.w700)),
-                Text(label, style: AppTypography.bodyMd, overflow: TextOverflow.ellipsis),
+                    style: AdminType.cardTitle.copyWith(fontWeight: FontWeight.w700)),
+                Text(label, style: AdminType.body, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -327,17 +329,17 @@ class _SubscriptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sub = controller.subscription.value;
-    return GlassSurface(
+    return AdminCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               const Icon(Icons.card_membership_outlined,
-                  size: 18, color: AppColors.primary),
+                  size: 18, color: AdminPalette.ink),
               const SizedBox(width: AppSpacing.stackSm),
               Text('Subscription',
-                  style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
+                  style: AdminType.rowTitle.copyWith(fontWeight: FontWeight.w700)),
               const Spacer(),
               TextButton(
                 onPressed: () => showSubscriptionSheet(controller.school,
@@ -348,7 +350,7 @@ class _SubscriptionCard extends StatelessWidget {
           ),
           if (sub == null)
             Text('No subscription assigned.',
-                style: AppTypography.bodyLg.copyWith(color: AppColors.onSurfaceVariant))
+                style: AdminType.body.copyWith(color: AdminPalette.muted))
           else ...[
             _KV(k: 'Plan', v: sub.planName ?? '—'),
             _KV(k: 'Billing', v: sub.billingPeriod.label),
@@ -378,17 +380,17 @@ class _PaymentModeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final b = school.billing;
     final hasAny = b.isNotEmpty && b.values.any((v) => '$v'.trim().isNotEmpty);
-    return GlassSurface(
+    return AdminCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               const Icon(Icons.account_balance_outlined,
-                  size: 18, color: Color(0xFFE8A317)),
+                  size: 18, color: AdminPalette.warning),
               const SizedBox(width: AppSpacing.stackSm),
               Text('Payment mode',
-                  style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
+                  style: AdminType.rowTitle.copyWith(fontWeight: FontWeight.w700)),
               const Spacer(),
               TextButton(
                 onPressed: () =>
@@ -399,7 +401,7 @@ class _PaymentModeCard extends StatelessWidget {
           ),
           if (!hasAny)
             Text('No payment arrangement recorded yet.',
-                style: AppTypography.bodyLg.copyWith(color: AppColors.onSurfaceVariant))
+                style: AdminType.body.copyWith(color: AdminPalette.muted))
           else ...[
             _KV(k: 'Method', v: PaymentMode.label(b['method'] as String?)),
             if (_s(b['bank_name']).isNotEmpty) _KV(k: 'Bank', v: _s(b['bank_name'])),
@@ -423,30 +425,30 @@ class _TransactionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
+    return AdminCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               const Icon(Icons.receipt_long_outlined,
-                  size: 18, color: AppColors.primary),
+                  size: 18, color: AdminPalette.ink),
               const SizedBox(width: AppSpacing.stackSm),
               Text('Transactions',
-                  style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
+                  style: AdminType.rowTitle.copyWith(fontWeight: FontWeight.w700)),
               const Spacer(),
-              Text('${payments.length}', style: AppTypography.bodyMd),
+              Text('${payments.length}', style: AdminType.body),
             ],
           ),
           const SizedBox(height: AppSpacing.stackSm),
           if (payments.isEmpty)
             Text('No payments recorded yet.',
-                style: AppTypography.bodyLg.copyWith(color: AppColors.onSurfaceVariant))
+                style: AdminType.body.copyWith(color: AdminPalette.muted))
           else
             for (final p in payments) ...[
               _PaymentRow(payment: p),
               if (p != payments.last)
-                const Divider(height: AppSpacing.stackLg, color: AppColors.outlineVariant),
+                const Divider(height: AppSpacing.stackLg, color: AdminPalette.border),
             ],
         ],
       ),
@@ -469,12 +471,12 @@ class _PaymentRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_money(payment.amount),
-                    style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w600)),
+                    style: AdminType.rowTitle.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(
                     '${payment.planName ?? 'Subscription'} · '
                     '${_fmtDate(payment.periodStart)} – ${_fmtDate(payment.periodEnd)}',
-                    style: AppTypography.bodyMd),
+                    style: AdminType.body),
               ],
             ),
           ),
@@ -485,10 +487,10 @@ class _PaymentRow extends StatelessWidget {
               StatusPill(
                   label: payment.status,
                   color: payment.status == 'paid'
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant),
+                      ? AdminPalette.ink
+                      : AdminPalette.muted),
               const SizedBox(height: 2),
-              Text(_fmtDate(payment.paidAt), style: AppTypography.bodyMd),
+              Text(_fmtDate(payment.paidAt), style: AdminType.body),
             ],
           ),
         ],
@@ -514,14 +516,14 @@ class _KV extends StatelessWidget {
         children: [
           SizedBox(
             width: 110,
-            child: Text(k, style: AppTypography.bodyMd),
+            child: Text(k, style: AdminType.body),
           ),
           Expanded(
             child: vWidget ??
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(v ?? '—',
-                      style: AppTypography.bodyLg
+                      style: AdminType.body
                           .copyWith(fontWeight: FontWeight.w600)),
                 ),
           ),
@@ -542,9 +544,9 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppSpacing.stackSm),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.onSurfaceVariant),
+          Icon(icon, size: 16, color: AdminPalette.muted),
           const SizedBox(width: AppSpacing.stackSm),
-          Expanded(child: Text(text, style: AppTypography.bodyLg)),
+          Expanded(child: Text(text, style: AdminType.body)),
         ],
       ),
     );
@@ -562,7 +564,7 @@ class _Logo extends StatelessWidget {
       height: 52,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
+        color: AdminPalette.tint,
         borderRadius: BorderRadius.circular(AppRadius.button),
         image: school.logoUrl != null
             ? DecorationImage(image: NetworkImage(school.logoUrl!), fit: BoxFit.cover)
@@ -570,7 +572,7 @@ class _Logo extends StatelessWidget {
       ),
       child: school.logoUrl == null
           ? Text(school.initial,
-              style: AppTypography.titleLg.copyWith(color: AppColors.onSurfaceVariant))
+              style: AdminType.cardTitle.copyWith(color: AdminPalette.muted))
           : null,
     );
   }
@@ -589,9 +591,9 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, size: 40, color: AppColors.onSurfaceVariant),
+            const Icon(Icons.cloud_off_rounded, size: 40, color: AdminPalette.muted),
             const SizedBox(height: AppSpacing.stackMd),
-            Text(message, textAlign: TextAlign.center, style: AppTypography.bodyLg),
+            Text(message, textAlign: TextAlign.center, style: AdminType.body),
             const SizedBox(height: AppSpacing.stackMd),
             FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],

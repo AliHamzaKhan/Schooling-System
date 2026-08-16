@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
 import '../../../schools/models/school.dart';
+import '../../../../ui/admin_theme.dart';
+import '../../../../ui/admin_widgets/admin_surface.dart';
 
 /// Row for a school whose module permissions can be configured: icon, name,
 /// code, a plan badge and a status badge, and a chevron. Accent-colored left
@@ -16,7 +18,7 @@ class SchoolPermissionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = school.status.color;
     final hasPlan = (school.planName ?? '').isNotEmpty;
-    return GlassSurface(
+    return AdminCard(
       padding: EdgeInsets.zero,
       onTap: onTap,
       child: IntrinsicHeight(
@@ -50,23 +52,23 @@ class SchoolPermissionCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                           child: Text(school.initial,
-                              style: AppTypography.titleLg.copyWith(color: accent)),
+                              style: AdminType.cardTitle.copyWith(color: accent)),
                         ),
                         const SizedBox(width: AppSpacing.stackMd),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(school.name, style: AppTypography.titleLg),
+                              Text(school.name, style: AdminType.cardTitle),
                               if (school.code.isNotEmpty) ...[
                                 const SizedBox(height: 2),
-                                Text(school.code, style: AppTypography.bodyMd),
+                                Text(school.code, style: AdminType.body),
                               ],
                             ],
                           ),
                         ),
                         const Icon(Icons.chevron_right_rounded,
-                            color: AppColors.onSurfaceVariant),
+                            color: AdminPalette.muted),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.stackMd),
@@ -75,7 +77,7 @@ class SchoolPermissionCard extends StatelessWidget {
                         _Badge(
                           icon: Icons.verified_user_outlined,
                           label: hasPlan ? school.planName! : 'No plan',
-                          color: hasPlan ? AppColors.primary : AppColors.onSurfaceVariant,
+                          color: hasPlan ? AdminPalette.ink : AdminPalette.muted,
                           neutral: !hasPlan,
                         ),
                         const SizedBox(width: AppSpacing.stackSm),
@@ -116,7 +118,7 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: neutral
-            ? AppColors.surfaceContainerHigh
+            ? AdminPalette.tint
             : color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
@@ -125,7 +127,7 @@ class _Badge extends StatelessWidget {
         children: [
           Icon(icon, size: 15, color: color),
           const SizedBox(width: 6),
-          Text(label, style: AppTypography.labelMd.copyWith(color: color)),
+          Text(label, style: AdminType.label.copyWith(color: color)),
         ],
       ),
     );

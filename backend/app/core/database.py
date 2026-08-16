@@ -10,6 +10,11 @@ engine = create_async_engine(
     echo=settings.ENVIRONMENT == "development",
     future=True,
     pool_pre_ping=True,
+    # Retire pooled connections after 30 minutes. Without this, a connection
+    # that died while idle (laptop sleep, Postgres restart, an idle-timeout on a
+    # managed DB) stays in the pool and every request that draws it fails until
+    # the process is restarted — the server looks dead while still running.
+    pool_recycle=1800,
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=settings.DB_MAX_OVERFLOW,
     pool_timeout=settings.DB_POOL_TIMEOUT,

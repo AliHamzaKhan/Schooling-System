@@ -6,6 +6,7 @@ import '../../../../app/admin_routes.dart';
 import '../../../../ui/admin_widgets/admin_search_field.dart';
 import '../components/school_permission_card.dart';
 import '../controller/school_permissions_controller.dart';
+import '../../../../ui/admin_theme.dart';
 
 /// Lists schools so the admin can pick one to configure module permissions for.
 class SchoolPermissionsView extends GetView<SchoolPermissionsController> {
@@ -25,11 +26,11 @@ class SchoolPermissionsView extends GetView<SchoolPermissionsController> {
               children: [
                 IconButton(
                   onPressed: () => Get.back<void>(),
-                  icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary),
+                  icon: const Icon(Icons.arrow_back_rounded, color: AdminPalette.ink),
                 ),
                 Expanded(
                   child: Text('School Permissions',
-                      style: AppTypography.headlineLg.copyWith(color: AppColors.primary)),
+                      style: AdminType.screenTitle.copyWith(color: AdminPalette.ink)),
                 ),
               ],
             ),
@@ -45,7 +46,7 @@ class SchoolPermissionsView extends GetView<SchoolPermissionsController> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.containerPaddingMobile),
             child: Text('Select a school to configure its modules',
-                style: AppTypography.bodyLg),
+                style: AdminType.body),
           ),
           const SizedBox(height: AppSpacing.stackMd),
           Expanded(
@@ -61,7 +62,7 @@ class SchoolPermissionsView extends GetView<SchoolPermissionsController> {
               }
               if (controller.results.isEmpty) {
                 return Center(
-                  child: Text('No schools found.', style: AppTypography.bodyLg),
+                  child: Text('No schools found.', style: AdminType.body),
                 );
               }
               return ListView(
@@ -101,9 +102,9 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, size: 40, color: AppColors.onSurfaceVariant),
+            const Icon(Icons.cloud_off_rounded, size: 40, color: AdminPalette.muted),
             const SizedBox(height: AppSpacing.stackMd),
-            Text(message, textAlign: TextAlign.center, style: AppTypography.bodyLg),
+            Text(message, textAlign: TextAlign.center, style: AdminType.body),
             const SizedBox(height: AppSpacing.stackMd),
             FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],

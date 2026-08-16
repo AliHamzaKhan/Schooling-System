@@ -8,11 +8,16 @@ import 'package:shared/shared.dart';
 /// success or an error message to display.
 ///
 /// Returns `true` when the action succeeded (so the caller can refresh a list).
+///
+/// Pass every `TextEditingController` you created for [fields] as
+/// [ownedControllers]: the sheet takes ownership and disposes them when it
+/// closes, so a form's fields never outlive the form that showed them.
 Future<bool?> showActionFormSheet({
   required String title,
   required List<Widget> fields,
   required Future<String?> Function() onSubmit,
   String submitLabel = 'Save',
+  List<TextEditingController> ownedControllers = const [],
 }) {
   return Get.bottomSheet<bool>(
     _ActionFormSheet(
@@ -20,6 +25,7 @@ Future<bool?> showActionFormSheet({
       fields: fields,
       onSubmit: onSubmit,
       submitLabel: submitLabel,
+      ownedControllers: ownedControllers,
     ),
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -42,6 +48,7 @@ Future<bool?> showAddPersonSheet({
   return showActionFormSheet(
     title: title,
     submitLabel: submitLabel,
+    ownedControllers: [name, email, password],
     fields: [
       GlassInput(label: 'Full name', hint: 'Jane Doe', controller: name),
       GlassInput(
@@ -75,11 +82,13 @@ class _ActionFormSheet extends StatefulWidget {
   final List<Widget> fields;
   final Future<String?> Function() onSubmit;
   final String submitLabel;
+  final List<TextEditingController> ownedControllers;
   const _ActionFormSheet({
     required this.title,
     required this.fields,
     required this.onSubmit,
     required this.submitLabel,
+    required this.ownedControllers,
   });
 
   @override
@@ -89,6 +98,16 @@ class _ActionFormSheet extends StatefulWidget {
 class _ActionFormSheetState extends State<_ActionFormSheet> {
   bool _submitting = false;
   String? _error;
+
+  @override
+  void dispose() {
+    // The sheet owns its fields' controllers — dispose them with the sheet so
+    // they cannot leak or be reused by the next one.
+    for (final controller in widget.ownedControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     setState(() {

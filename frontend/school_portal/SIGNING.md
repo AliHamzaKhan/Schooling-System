@@ -50,7 +50,7 @@ One-time setup on the machine that ships releases:
 **Back up the keystore.** Lose it and you can never update the published app.
 
 Code shrinking (`isMinifyEnabled`) is off on purpose — R8 needs keep-rules for
-Firebase, Agora and reflection-based plugins. Enable it only with a tested
+Firebase and reflection-based plugins. Enable it only with a tested
 `proguard-rules.pro`.
 
 ## iOS
@@ -80,10 +80,10 @@ iOS devices.
 
 ## Permissions declared
 
-- **Android** (`AndroidManifest.xml`): internet, camera, microphone
-  (`RECORD_AUDIO`), `POST_NOTIFICATIONS`, `USE_BIOMETRIC`.
-- **iOS** (`Info.plist`): camera, photo library, microphone, Face ID usage
-  strings, plus the `remote-notification` background mode.
+- **Android** (`AndroidManifest.xml`): internet, camera, `POST_NOTIFICATIONS`,
+  `USE_BIOMETRIC`.
+- **iOS** (`Info.plist`): camera, photo library, Face ID usage strings, plus the
+  `remote-notification` background mode.
 
-These cover image_picker, agora_rtc_engine (live classes), firebase_messaging
-(push) and local_auth (biometric sign-in).
+These cover image_picker, firebase_messaging (push) and local_auth (biometric
+sign-in).

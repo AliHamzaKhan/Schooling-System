@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
+import '../admin_theme.dart';
+
 /// Horizontal row of single-select pill filters (All / Active / Pending …).
 ///
-/// The selected chip fills navy with light text; the rest are outlined.
+/// The selected chip fills navy with white text; the rest are white with a
+/// hairline border.
 class FilterChips extends StatelessWidget {
   final List<String> options;
   final int selectedIndex;
@@ -19,11 +22,11 @@ class FilterChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 38,
+      height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: options.length,
-        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.stackSm),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
           final selected = i == selectedIndex;
           return GestureDetector(
@@ -31,19 +34,19 @@ class FilterChips extends StatelessWidget {
             child: AnimatedContainer(
               duration: AppMotion.fast,
               alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(AppRadius.full),
+                color: selected ? AdminPalette.ink : AdminPalette.card,
+                borderRadius: BorderRadius.circular(AdminRadius.chip),
                 border: Border.all(
-                  color: selected ? AppColors.primary : AppColors.outlineVariant,
-                  width: 1,
+                  color: selected ? AdminPalette.ink : AdminPalette.border,
                 ),
+                boxShadow: selected ? null : AdminPalette.cardShadow,
               ),
               child: Text(
                 options[i],
-                style: AppTypography.labelMd.copyWith(
-                  color: selected ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+                style: AdminType.label.copyWith(
+                  color: selected ? Colors.white : AdminPalette.muted,
                 ),
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// Simple vertical bar chart with rounded bars and x-axis labels. The last bar
 /// can be [highlightLast]-ed in the accent color (the rest sit muted).
@@ -15,7 +16,7 @@ class AdminBarChart extends StatelessWidget {
     required this.values,
     required this.labels,
     this.height = 160,
-    this.color = AppColors.primary,
+    this.color = AdminPalette.ink,
     this.highlightLast = true,
   });
 
@@ -59,13 +60,13 @@ class AdminBarChart extends StatelessWidget {
                   child: Text(
                     labels[i],
                     textAlign: TextAlign.center,
-                    style: AppTypography.bodySm.copyWith(
+                    style: AdminType.meta.copyWith(
                       fontWeight: i == labels.length - 1
                           ? FontWeight.w700
                           : FontWeight.w400,
                       color: i == labels.length - 1
-                          ? AppColors.onSurface
-                          : AppColors.onSurfaceVariant,
+                          ? AdminPalette.ink
+                          : AdminPalette.muted,
                     ),
                   ),
                 ),

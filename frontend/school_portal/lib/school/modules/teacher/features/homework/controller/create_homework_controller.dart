@@ -14,10 +14,12 @@ class CreateHomeworkController extends GetxController {
   CreateHomeworkController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
-  final titleCtrl = TextEditingController();
-  final descriptionCtrl = TextEditingController();
-  final dueCtrl = TextEditingController();
-  final pointsCtrl = TextEditingController(text: '100');
+  /// Field values. Their `TextEditingController`s are owned by
+  /// [CreateHomeworkView]'s State and disposed with that screen.
+  final title = ''.obs;
+  final description = ''.obs;
+  final dueText = ''.obs;
+  final points = '100'.obs;
 
   final loadingOptions = true.obs;
   final sections = <IdLabel>[].obs;
@@ -48,7 +50,7 @@ class CreateHomeworkController extends GetxController {
   void selectSubject(String? v) => selectedSubject.value = v;
 
   /// Opens a calendar picker for the due date and reflects the choice in the
-  /// read-only [dueCtrl] text field.
+  /// read-only due-date field.
   Future<void> pickDueDate(BuildContext context) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -59,7 +61,7 @@ class CreateHomeworkController extends GetxController {
     );
     if (picked == null) return;
     dueDate.value = picked;
-    dueCtrl.text = _formatDate(picked);
+    dueText.value = _formatDate(picked);
   }
 
   String _formatDate(DateTime d) =>
@@ -74,7 +76,7 @@ class CreateHomeworkController extends GetxController {
 
   Future<void> submit() async {
     error.value = null;
-    if (titleCtrl.text.trim().length < 2) {
+    if (title.value.trim().length < 2) {
       error.value = 'A task title is required.';
       return;
     }
@@ -95,10 +97,10 @@ class CreateHomeworkController extends GetxController {
     final res = await _repo.createHomework(
       sectionId: selectedSection.value!,
       subjectId: selectedSubject.value!,
-      title: titleCtrl.text.trim(),
-      description: descriptionCtrl.text.trim(),
+      title: title.value.trim(),
+      description: description.value.trim(),
       dueDate: _isoDate(dueDate.value!),
-      maxMarks: double.tryParse(pointsCtrl.text.trim()),
+      maxMarks: double.tryParse(points.value.trim()),
     );
     submitting.value = false;
 
@@ -107,16 +109,7 @@ class CreateHomeworkController extends GetxController {
       return;
     }
     Get.back<bool>(result: true);
-    Get.snackbar('Posted', '“${titleCtrl.text.trim()}” assigned.',
+    Get.snackbar('Posted', '“${title.value.trim()}” assigned.',
         snackPosition: SnackPosition.BOTTOM);
-  }
-
-  @override
-  void onClose() {
-    titleCtrl.dispose();
-    descriptionCtrl.dispose();
-    dueCtrl.dispose();
-    pointsCtrl.dispose();
-    super.onClose();
   }
 }

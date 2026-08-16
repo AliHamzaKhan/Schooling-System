@@ -46,7 +46,13 @@ class AuthConfig {
   static InstitutionLoader? institutionsLoader = apiInstitutionLoader;
 
   /// Product name shown in headers/footers.
-  static String appName = 'EduMaster';
+  static String appName = 'Meri Taleem';
+
+  /// Asset key for the logo shown above the login form, e.g.
+  /// `'assets/images/app_icon.png'`. Each portal sets this at boot because the
+  /// asset lives in the app package, not in `shared`. When null the login
+  /// screen falls back to a tinted icon mark.
+  static String? logoAsset;
 
   /// Copyright year shown in the footer.
   static String copyrightYear = '2024';

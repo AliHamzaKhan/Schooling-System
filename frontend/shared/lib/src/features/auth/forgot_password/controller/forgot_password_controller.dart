@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../services/auth_service.dart';
@@ -10,7 +9,9 @@ import '../../auth_routes.dart';
 class ForgotPasswordController extends GetxController {
   final AuthService _auth = Get.find<AuthService>();
 
-  final identifierCtrl = TextEditingController();
+  /// Field value. Its `TextEditingController` is owned by [ForgotPasswordView]'s
+  /// State, so it is disposed with the screen.
+  final identifier = ''.obs;
   final submitting = false.obs;
   final error = RxnString();
 
@@ -21,17 +22,17 @@ class ForgotPasswordController extends GetxController {
           'Password reset isn\'t available yet. Please contact your administrator.';
       return;
     }
-    final identifier = identifierCtrl.text.trim();
-    if (identifier.isEmpty) {
+    final entered = identifier.value.trim();
+    if (entered.isEmpty) {
       error.value = 'Enter your email or phone number.';
       return;
     }
 
     submitting.value = true;
     try {
-      final res = await _auth.forgotPassword(email: identifier);
+      final res = await _auth.forgotPassword(email: entered);
       if (res.success) {
-        Get.toNamed(AuthRoutes.verifyOtp, arguments: {'email': identifier});
+        Get.toNamed(AuthRoutes.verifyOtp, arguments: {'email': entered});
       } else {
         error.value = res.error ?? 'Could not send a code. Try again.';
       }
@@ -46,10 +47,4 @@ class ForgotPasswordController extends GetxController {
         AuthRoutes.login,
         (route) => false,
       );
-
-  @override
-  void onClose() {
-    identifierCtrl.dispose();
-    super.onClose();
-  }
 }

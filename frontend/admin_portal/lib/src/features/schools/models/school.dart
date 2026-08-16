@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import '../../../ui/admin_theme.dart';
 
 /// Lifecycle state of a school's account on the platform.
 enum SchoolStatus { active, trial, expired, pending }
@@ -12,12 +12,20 @@ extension SchoolStatusX on SchoolStatus {
         SchoolStatus.pending => 'Pending',
       };
 
-  /// Accent rail + status-pill color for this state.
+  /// Foreground color for this state's chips and accents.
   Color get color => switch (this) {
-        SchoolStatus.active => AppColors.primary,
-        SchoolStatus.trial => const Color(0xFFE8A317),
-        SchoolStatus.expired => AppColors.error,
-        SchoolStatus.pending => AppColors.aiAccent,
+        SchoolStatus.active => AdminPalette.positive,
+        SchoolStatus.trial => AdminPalette.warning,
+        SchoolStatus.expired => AdminPalette.danger,
+        SchoolStatus.pending => AdminPalette.info,
+      };
+
+  /// Soft wash behind [color] — the chip fill.
+  Color get softColor => switch (this) {
+        SchoolStatus.active => AdminPalette.positiveSoft,
+        SchoolStatus.trial => AdminPalette.warningSoft,
+        SchoolStatus.expired => AdminPalette.dangerSoft,
+        SchoolStatus.pending => AdminPalette.infoSoft,
       };
 }
 

@@ -63,6 +63,7 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                 DashboardIdentityCard(
                   title: controller.headmasterName,
                   subtitle: "Here's what's happening on campus today.",
+                  avatarUrl: Get.find<AuthService>().avatarUrl,
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
 

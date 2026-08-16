@@ -73,9 +73,19 @@ class ReaderView extends GetView<ReaderController> {
   }
 }
 
-class _SearchBar extends StatelessWidget {
+class _SearchBar extends StatefulWidget {
   final ReaderController controller;
   const _SearchBar({required this.controller});
+
+  @override
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> with ScreenTextControllers {
+  ReaderController get controller => widget.controller;
+
+  // Owned by this bar — created with it, disposed with it.
+  late final _searchCtrl = boundController(controller.query);
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +96,7 @@ class _SearchBar extends StatelessWidget {
         children: [
           Expanded(
             child: TextField(
-              controller: controller.searchCtrl,
+              controller: _searchCtrl,
               autofocus: true,
               onChanged: controller.runSearch,
               textInputAction: TextInputAction.search,

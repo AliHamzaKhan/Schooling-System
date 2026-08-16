@@ -14,6 +14,7 @@ class PortalFormField extends StatelessWidget {
   final Widget? suffix;
   final bool readOnly;
   final VoidCallback? onTap;
+  final ValueChanged<String>? onChanged;
 
   const PortalFormField({
     super.key,
@@ -26,6 +27,7 @@ class PortalFormField extends StatelessWidget {
     this.suffix,
     this.readOnly = false,
     this.onTap,
+    this.onChanged,
   });
 
   @override
@@ -42,6 +44,7 @@ class PortalFormField extends StatelessWidget {
           keyboardType: keyboardType,
           readOnly: readOnly,
           onTap: onTap,
+          onChanged: onChanged,
           style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
           decoration: InputDecoration(
             hintText: hint,

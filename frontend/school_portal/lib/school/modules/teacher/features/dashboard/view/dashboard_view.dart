@@ -77,6 +77,7 @@ class DashboardView extends GetView<TeacherDashboardController> {
                 DashboardIdentityCard(
                   title: controller.teacherName,
                   subtitle: data.summary.isEmpty ? 'Teacher' : data.summary,
+                  avatarUrl: Get.find<AuthService>().avatarUrl,
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
 

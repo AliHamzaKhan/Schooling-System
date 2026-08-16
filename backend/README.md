@@ -45,25 +45,48 @@ API: http://localhost:8000 — Swagger UI at `/docs`.
 
 ## Quick start (local)
 
+Needs **Python 3.10+** (the code uses `X | None` syntax) and a running PostgreSQL.
+
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env            # point DATABASE_URL at your Postgres
-python -m app.seed              # creates tables + seeds plans/roles/admin
-uvicorn app.main:app --reload --port 8003   # the Flutter apps default to :8003
+cd backend
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env             # then edit DATABASE_URL — see below
+.venv/bin/python -m app.seed     # creates tables + seeds plans/roles/super admin
+.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-> **Port note:** the Flutter apps (`frontend/`) default to API host `localhost:8003`
-> (see `shared/lib/src/env/env_config.dart`). Run the backend on **8003** for local
-> development, or override the app host with
-> `flutter run --dart-define=API_HOST=localhost:8000`.
+API: http://localhost:8000 — Swagger UI at `/docs`, health check at `/health`.
+
+**`DATABASE_URL` is the step that bites.** `.env.example` ships a placeholder
+(`postgresql+asyncpg://postgres:postgres@localhost:5432/schooling`) that matches
+nobody's machine — point it at a database that actually exists, with the right
+password, before starting:
+
+```
+DATABASE_URL=postgresql+asyncpg://postgres:<password>@localhost:5432/<database>
+```
+
+A wrong value doesn't fail at startup — the pool connects lazily, so the server
+boots happily and then every request that touches the database returns 503. If
+you see that, check this line first. (A real environment variable overrides the
+`.env` file, so `DATABASE_URL=… uvicorn …` is a quick way to test another DB.)
+
+Once the schema exists, apply later migrations with `.venv/bin/alembic upgrade head`.
+
+> **Host note:** the Flutter apps read their API base from
+> `frontend/shared/lib/src/env/env_config.dart`, whose debug default is a LAN IP
+> so phones on the same network can reach the machine — hence
+> `--host 0.0.0.0` above. Point an app somewhere else without editing code:
+> `flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1`.
 
 ## Tests
 
 ```bash
-pip install -r requirements-dev.txt
+.venv/bin/pip install -r requirements-dev.txt
 createdb schooling_system_test     # one-time
-python -m pytest                   # 32 tests, ~30s
+DATABASE_URL="postgresql+asyncpg://postgres:<password>@localhost:5432/schooling_system_test" \
+  .venv/bin/pytest                 # 133 tests, ~1 min
 ```
 
 Tests run against a dedicated `schooling_system_test` database (schema created

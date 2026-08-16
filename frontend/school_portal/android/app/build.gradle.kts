@@ -73,7 +73,7 @@ android {
                 signingConfigs.getByName("debug")
             }
             // Code/resource shrinking is left off by default: R8 needs
-            // keep-rules for Firebase, Agora and reflection-based plugins, and
+            // keep-rules for Firebase and reflection-based plugins, and
             // enabling it untested can strip classes and break the release
             // build. Turn these on together with a tested proguard-rules.pro.
             isMinifyEnabled = false

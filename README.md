@@ -1,6 +1,53 @@
 # schooling_system
 
+Multi-tenant School Management SaaS: a FastAPI + PostgreSQL backend and two
+Flutter front ends.
 
+| Path | What it is |
+|------|------------|
+| `backend/` | FastAPI modular monolith — see [backend/README.md](backend/README.md) |
+| `frontend/school_portal/` | The school app (headmaster / teacher / student / guardian) |
+| `frontend/admin_portal/` | Platform Super Admin console |
+| `frontend/shared/` | Shared Dart package: API client, auth, theme, widgets |
+
+## Quick start (local)
+
+**1. Backend** (needs Python 3.10+ and a running PostgreSQL):
+
+```bash
+cd backend
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env             # edit DATABASE_URL to a database that exists
+.venv/bin/python -m app.seed     # creates tables + seeds plans/roles/super admin
+.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Check it came up:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Swagger UI is at http://localhost:8000/docs. `--host 0.0.0.0` matters when a
+phone or emulator on the same network needs to reach the API.
+
+The one setting that reliably goes wrong is `DATABASE_URL` — the shipped value
+is a placeholder, and a wrong one lets the server boot and *then* fail every
+request with 503, because the connection pool connects lazily. Details and the
+migration/test commands are in [backend/README.md](backend/README.md).
+
+**2. App** (Flutter, with the backend already running):
+
+```bash
+cd frontend/school_portal
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+```
+
+Without the `--dart-define`, the app falls back to the debug host baked into
+`frontend/shared/lib/src/env/env_config.dart` — a LAN IP, which is what you want
+on a physical device and not what you want in a simulator.
 
 ## Getting started
 

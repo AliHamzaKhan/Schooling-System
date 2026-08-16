@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// Numbered pager with prev/next chevrons and ellipsis collapsing
 /// (e.g. `‹ 1 2 3 … 12 ›`). 1-based [current] page.
@@ -47,7 +47,7 @@ class PaginationBar extends StatelessWidget {
           if (p == null)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 6),
-              child: Text('…', style: AppTypography.bodyMd),
+              child: Text('…', style: AdminType.body),
             )
           else
             _PageDot(page: p, selected: p == current, onTap: () => onChanged(p)),
@@ -78,13 +78,13 @@ class _PageDot extends StatelessWidget {
         height: 36,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
+          color: selected ? AdminPalette.ink : AdminPalette.card,
           shape: BoxShape.circle,
         ),
         child: Text(
           '$page',
-          style: AppTypography.labelMd.copyWith(
-            color: selected ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+          style: AdminType.label.copyWith(
+            color: selected ? Colors.white : AdminPalette.muted,
           ),
         ),
       ),
@@ -107,13 +107,13 @@ class _Chevron extends StatelessWidget {
         height: 36,
         alignment: Alignment.center,
         decoration: const BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
+          color: AdminPalette.card,
           shape: BoxShape.circle,
         ),
         child: Icon(
           icon,
           size: 20,
-          color: enabled ? AppColors.onSurfaceVariant : AppColors.outlineVariant,
+          color: enabled ? AdminPalette.muted : AdminPalette.border,
         ),
       ),
     );

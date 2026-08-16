@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../env/env_config.dart';
 import 'api_response.dart';
 import 'api_service.dart';
 import 'data_store_service.dart';
@@ -37,6 +38,17 @@ class AuthService extends GetxService {
   /// The signed-in user's display name (backend `full_name`), or null before
   /// the profile is loaded.
   String? get fullName => currentUser.value?['full_name']?.toString();
+
+  /// The signed-in user's profile photo as an absolute URL, or null when they
+  /// have none. The backend stores it inside `profile_metadata.avatar_url` and
+  /// the local storage backend returns a host-relative path (`/media/...`), so
+  /// it is resolved against the API host before use.
+  String? get avatarUrl {
+    final meta = currentUser.value?['profile_metadata'];
+    if (meta is! Map) return null;
+    final raw = meta['avatar_url']?.toString().trim() ?? '';
+    return raw.isEmpty ? null : EnvConfig.mediaUrl(raw);
+  }
 
   /// Role codes for the signed-in user (e.g. `headmaster`, `teacher`,
   /// `student`, `guardian`), parsed from the `/auth/me` `roles[]` payload.

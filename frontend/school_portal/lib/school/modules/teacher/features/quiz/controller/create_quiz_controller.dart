@@ -1,5 +1,4 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../data/teacher_repository.dart';
@@ -12,7 +11,9 @@ class CreateQuizController extends GetxController {
   CreateQuizController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
-  final titleCtrl = TextEditingController();
+  /// Quiz title. Its `TextEditingController` is owned by [CreateQuizView]'s
+  /// State and disposed with that screen.
+  final title = ''.obs;
 
   final loadingOptions = true.obs;
   final sections = <IdLabel>[].obs;
@@ -119,7 +120,7 @@ class CreateQuizController extends GetxController {
   /// Persists the quiz + its questions, then publishes it.
   Future<void> saveAndPublish() async {
     error.value = null;
-    if (titleCtrl.text.trim().length < 2) {
+    if (title.value.trim().length < 2) {
       error.value = 'Give the quiz a title.';
       return;
     }
@@ -139,7 +140,7 @@ class CreateQuizController extends GetxController {
     final created = await _repo.createQuiz(
       sectionId: selectedSection.value!,
       subjectId: selectedSubject.value!,
-      title: titleCtrl.text.trim(),
+      title: title.value.trim(),
       assigneeIds:
           assignToWholeClass.value ? null : selectedStudents.toList(),
     );
@@ -167,11 +168,5 @@ class CreateQuizController extends GetxController {
     Get.back<bool>(result: true);
     Get.snackbar('Quiz published', 'Students can now attempt this quiz.',
         snackPosition: SnackPosition.BOTTOM);
-  }
-
-  @override
-  void onClose() {
-    titleCtrl.dispose();
-    super.onClose();
   }
 }

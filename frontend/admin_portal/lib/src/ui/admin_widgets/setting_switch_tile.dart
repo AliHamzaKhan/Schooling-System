@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// A labelled enable/disable switch row used across settings screens.
 class SettingSwitchTile extends StatelessWidget {
@@ -22,17 +23,17 @@ class SettingSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.onSurfaceVariant),
+        Icon(icon, size: 20, color: AdminPalette.muted),
         const SizedBox(width: AppSpacing.stackMd),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title,
-                  style: AppTypography.titleMd
+                  style: AdminType.rowTitle
                       .copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
-              Text(subtitle, style: AppTypography.bodyMd),
+              Text(subtitle, style: AdminType.body),
             ],
           ),
         ),
@@ -40,10 +41,10 @@ class SettingSwitchTile extends StatelessWidget {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeThumbColor: AppColors.onPrimary,
-          activeTrackColor: const Color(0xFF3B82F6),
-          inactiveThumbColor: AppColors.onSurfaceVariant,
-          inactiveTrackColor: AppColors.surfaceContainerHighest,
+          activeThumbColor: Colors.white,
+          activeTrackColor: AdminPalette.ink,
+          inactiveThumbColor: AdminPalette.muted,
+          inactiveTrackColor: AdminPalette.tint,
         ),
       ],
     );

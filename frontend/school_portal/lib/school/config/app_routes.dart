@@ -11,6 +11,11 @@ import 'teacher_routes.dart';
 class AppRoutes {
   AppRoutes._();
 
+  /// Cold-start screen. Holds the app while the stored session is restored,
+  /// then replaces itself with login or the role's module shell — so it is the
+  /// `initialRoute` and never a destination anything navigates *to*.
+  static const splash = '/splash';
+
   /// Initial landing route after login. Currently the Headmaster shell; once
   /// other role modules exist this becomes a small role-router that picks the
   /// right module home from the signed-in user's role.

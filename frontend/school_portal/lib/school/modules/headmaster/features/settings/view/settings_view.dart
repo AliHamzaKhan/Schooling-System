@@ -10,8 +10,22 @@ import '../../../../../widgets/skeletons.dart';
 
 /// Headmaster School Settings — edit name, logo, uniform colour and the monthly
 /// fee due day. Branding values persist in the school `settings` blob.
-class SettingsView extends GetView<SettingsController> {
+class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
+
+  @override
+  State<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<SettingsView>
+    with ScreenTextControllers {
+  final controller = Get.find<SettingsController>();
+
+  // One controller per editable field, owned by this screen. The profile loads
+  // asynchronously, so these stay bound to the controller's values.
+  late final _nameCtrl = boundController(controller.name);
+  late final _feeDueDayCtrl = boundController(controller.feeDueDay);
+  late final _salaryDayCtrl = boundController(controller.salaryDay);
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +54,7 @@ class SettingsView extends GetView<SettingsController> {
             GlassInput(
                 label: 'School name',
                 hint: 'e.g. Test High School',
-                controller: controller.name),
+                controller: _nameCtrl),
             const SizedBox(height: AppSpacing.stackMd),
             _LogoPickerField(controller: controller),
             const SizedBox(height: AppSpacing.stackXl),
@@ -53,7 +67,7 @@ class SettingsView extends GetView<SettingsController> {
             GlassInput(
                 label: 'Monthly fee due day (1–31)',
                 hint: 'e.g. 5',
-                controller: controller.feeDueDay,
+                controller: _feeDueDayCtrl,
                 keyboardType: TextInputType.number),
             const SizedBox(height: AppSpacing.stackSm),
             Text('Invoices generated each month will be due on this day.',
@@ -63,7 +77,7 @@ class SettingsView extends GetView<SettingsController> {
             GlassInput(
                 label: 'Salary payout day (1–31)',
                 hint: 'e.g. 1',
-                controller: controller.salaryDay,
+                controller: _salaryDayCtrl,
                 keyboardType: TextInputType.number),
             const SizedBox(height: AppSpacing.stackSm),
             Text(
@@ -128,14 +142,14 @@ class _UniformColorPickerState extends State<_UniformColorPicker> {
   @override
   void initState() {
     super.initState();
-    final c = _parseHex(widget.controller.uniformColor.text) ??
+    final c = _parseHex(widget.controller.uniformColor.value) ??
         const Color(0xFF2196F3);
     _hsv = HSVColor.fromColor(c);
   }
 
   void _set(HSVColor next) {
     setState(() => _hsv = next);
-    widget.controller.uniformColor.text = _hexOf(next.toColor());
+    widget.controller.uniformColor.value = _hexOf(next.toColor());
   }
 
   @override
@@ -311,7 +325,7 @@ class _LogoPickerFieldState extends State<_LogoPickerField> {
       );
       if (!mounted) return;
       if (res.success && res.data != null) {
-        widget.controller.logoUrl.text = res.data!;
+        widget.controller.logoUrl.value = res.data!;
         setState(() => _uploading = false);
       } else {
         setState(() {
@@ -332,10 +346,9 @@ class _LogoPickerFieldState extends State<_LogoPickerField> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: widget.controller.logoUrl,
-      builder: (context, value, _) {
-        final url = value.text.trim();
+    return Obx(
+      () {
+        final url = widget.controller.logoUrl.value.trim();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

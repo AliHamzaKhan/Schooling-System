@@ -1,16 +1,16 @@
-# Privacy Policy — Taleem Hub
+# Privacy Policy — Meri Taleem
 
 **Last updated:** 9 August 2026
-**App:** Taleem Hub
+**App:** Meri Taleem
 **Provider ("we", "us", "our"):** AHK Studios
 **Contact:** alihamza.khan05@gmail.com
 
-Taleem Hub is a school management application used by schools, headmasters,
+Meri Taleem is a school management application used by schools, headmasters,
 teachers, students and their guardians. This policy explains what information
 we collect, how we use it, and the choices you have. Please read it before
 using the app.
 
-> **Note on the school's role.** Taleem Hub is provided to schools. When your
+> **Note on the school's role.** Meri Taleem is provided to schools. When your
 > school signs up, the school (the "data controller") decides what data is
 > entered and who can access it. AHK Studios processes that data on the
 > school's behalf (as a "data processor"). If you are a student or guardian and
@@ -20,7 +20,7 @@ using the app.
 
 ## 1. Who can use the app
 
-Taleem Hub is designed for use within a school community. Accounts are created
+Meri Taleem is designed for use within a school community. Accounts are created
 and managed by the school. The app is **not** directed to the general public and
 is not intended for children to sign up independently. Student accounts are
 created and administered by the school, with guardian involvement, in line with
@@ -49,7 +49,7 @@ role, this may include:
 - Fee invoices, payment status and payment history
 - Staff payroll and salary attendance (for headmasters/admins)
 - Payment method type and card/payment details that the school enters **for
-  manual record-keeping only**. Taleem Hub does not process live card
+  manual record-keeping only**. Meri Taleem does not process live card
   transactions, charge cards, or connect to a payment gateway — these details
   are stored solely so the school can keep its own record of payments received.
 
@@ -58,11 +58,9 @@ role, this may include:
   announcements, etc.)
 - Messages/announcements you send or receive in the app
 
-**Media for classes and profiles**
-- Camera and microphone access is used for live video classes and for taking a
-  profile photo. Audio/video in live classes is transmitted through our
-  real-time video provider (Agora) to other class participants. We do not record
-  live classes unless the school explicitly enables and discloses recording.
+**Media for profiles and attachments**
+- Camera and photo library access is used for taking or choosing a profile photo
+  and for attaching files (for example, assignment submissions).
 
 **Technical & device data**
 - Device type, operating system, app version, and network state
@@ -76,7 +74,7 @@ and the app does **not** contain third-party advertising.
 We use the information above to:
 - Authenticate you and keep your account secure
 - Provide core features: attendance, timetables, assignments, quizzes, results,
-  fees, payroll, announcements and live classes
+  fees, payroll and announcements
 - Send notifications you or your school have configured (e.g. fee reminders,
   attendance alerts)
 - Operate a subscription/billing relationship with the school
@@ -96,7 +94,7 @@ decisions about a student's grades or standing without human review.
 
 ## 5. Multi-tenant data separation
 
-Taleem Hub is multi-tenant: each school's data is logically isolated so that one
+Meri Taleem is multi-tenant: each school's data is logically isolated so that one
 school cannot access another school's records. Access within a school is
 restricted by role (for example, a teacher sees their classes; a guardian sees
 their own children).
@@ -109,10 +107,9 @@ We share information only as needed to run the service:
   contract and only for that purpose, including:
   - Cloud hosting and database (application backend and storage)
   - **Firebase Cloud Messaging** (Google) — push notification delivery
-  - **Agora** — real-time audio/video for live classes
   - An AI model — generating quiz content
 
-  Note: Taleem Hub does not use a payment processor. Any card/payment details
+  Note: Meri Taleem does not use a payment processor. Any card/payment details
   are stored only for the school's manual record-keeping, as described above.
 - **Legal / safety** — if required by law, or to protect the rights, safety and
   security of users, the school, or the public.
@@ -123,7 +120,7 @@ We share information only as needed to run the service:
 
 We keep personal information for as long as the school maintains its account and
 the data is needed to provide the service, or as required by law. When a school
-ends its use of Taleem Hub, we delete or anonymize its data within a reasonable
+ends its use of Meri Taleem, we delete or anonymize its data within a reasonable
 period, unless retention is legally required. Schools and users may request
 deletion as described below.
 
@@ -142,8 +139,8 @@ export, or delete your personal information, and to object to or restrict
 certain processing.
 
 - **Notifications:** you can disable push notifications in your device settings.
-- **Camera/microphone/biometrics:** you can revoke these permissions in your
-  device settings; some features (live classes, profile photo, biometric login)
+- **Camera/photos/biometrics:** you can revoke these permissions in your device
+  settings; some features (profile photo, file attachments, biometric login)
   will then be unavailable.
 - **Account data:** because your school administers your account, please direct
   access/correction/deletion requests to your school first. You may also contact

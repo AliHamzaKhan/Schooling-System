@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import 'src/app/admin_routes.dart';
+import 'src/ui/admin_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,7 +11,7 @@ Future<void> main() async {
   await initSharedServices();
 
   // Admin portal: super-admin controls every school — no institution picker.
-  AuthConfig.appName = 'EduMaster';
+  AuthConfig.appName = 'Meri Taleem';
   AuthConfig.requireInstitution = false;
   AuthConfig.institutionsLoader = null;
   // No backend for forgot/OTP/reset yet → show a graceful message.
@@ -27,9 +28,9 @@ class AdminPortalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = Get.find<AuthService>();
     return GetMaterialApp(
-      title: 'EduMaster — Admin Portal',
+      title: 'Meri Taleem — Admin Portal',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: adminTheme(),
       initialRoute: auth.isLoggedIn.value ? AdminRoutes.home : AuthRoutes.login,
       getPages: [
         ...AuthRoutes.pages,

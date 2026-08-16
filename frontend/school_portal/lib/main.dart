@@ -4,36 +4,32 @@ import 'package:shared/shared.dart';
 
 import 'school/config/app_pages.dart';
 import 'school/config/app_routes.dart';
+import 'school/config/image_constant.dart';
+import 'school/config/role_home.dart';
 import 'school/constants/app_strings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   EnvConfig.bootstrap(Environment.debug);
-  await initSharedServices();
+  // restoreSession: false — the splash owns the `/auth/me` restore so the first
+  // frame is branding rather than a blank window held open by a network call.
+  await initSharedServices(restoreSession: false);
 
   // School portal auth config.
   AuthConfig.appName = AppStrings.appName;
+  // Logo above the login form — the asset lives in this package, not `shared`.
+  AuthConfig.logoAsset = ImageConstant.appIcon;
   // No public schools endpoint yet → login is email + password only.
   AuthConfig.requireInstitution = false;
   AuthConfig.institutionsLoader = null;
   // No backend for forgot/OTP/reset yet → show a graceful message.
   AuthConfig.passwordResetEnabled = false;
   AuthConfig.homeRoute = AppRoutes.home;
-  // Route the signed-in user to their module shell based on role.
-  AuthConfig.homeRouteResolver = _homeForRoles;
+  // Route the signed-in user to their module shell based on role. Returning
+  // null falls back to AuthConfig.homeRoute.
+  AuthConfig.homeRouteResolver = homeRouteForRoles;
 
   runApp(const SchoolPortalApp());
-}
-
-/// Maps the signed-in user's role codes (from `/auth/me`) to the module shell
-/// they should land on. Falls back to [AppRoutes.home] (headmaster) when no
-/// known role matches.
-String _homeForRoles(List<String> roleCodes) {
-  if (roleCodes.contains('headmaster')) return AppRoutes.headmaster;
-  if (roleCodes.contains('teacher')) return AppRoutes.teacher;
-  if (roleCodes.contains('student')) return AppRoutes.student;
-  if (roleCodes.contains('guardian')) return AppRoutes.guardian;
-  return AppRoutes.home;
 }
 
 class SchoolPortalApp extends StatelessWidget {
@@ -41,15 +37,13 @@ class SchoolPortalApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Get.find<AuthService>();
     return GetMaterialApp(
-      title: '${AppStrings.appName} — School Portal',
+      title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      // Restored session → role-based home, else login.
-      initialRoute: auth.isLoggedIn.value
-          ? _homeForRoles(auth.roleCodes)
-          : AuthRoutes.login,
+      // Always the splash: it restores the session and replaces itself with
+      // login or the role's module shell.
+      initialRoute: AppRoutes.splash,
       getPages: [
         ...AuthRoutes.pages,
         ...AppPages.pages,

@@ -2,33 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../ui/tokens/app_colors.dart';
+import '../../../../ui/tokens/app_radius.dart';
 import '../../../../ui/tokens/app_spacing.dart';
 import '../../../../ui/tokens/app_typography.dart';
 import '../../../../ui/widgets/glass_input.dart';
 import '../../../../ui/widgets/primary_button.dart';
+import '../../../../ui/forms/screen_text_controllers.dart';
 import '../../auth_config.dart';
 import '../../components/auth_shell.dart';
 import '../components/institution_dropdown.dart';
 import '../components/remember_me_checkbox.dart';
 import '../controller/login_controller.dart';
 
-class LoginView extends GetView<LoginController> {
+class LoginView extends StatefulWidget {
   const LoginView({super.key});
+
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> with ScreenTextControllers {
+  final controller = Get.find<LoginController>();
+
+  // Owned by this screen: created here, disposed with it.
+  late final _emailCtrl = boundController(controller.email);
+  late final _passwordCtrl = boundController(controller.password);
 
   @override
   Widget build(BuildContext context) {
     return AuthShell(
       showBack: false,
+      // The brand sits in the body now, and the fields stand on the background
+      // instead of inside a card.
+      showBrand: false,
+      showCard: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Welcome Back', style: AppTypography.displayLg),
-          const SizedBox(height: AppSpacing.stackSm),
-          Text(
-            'Please select your role and enter your credentials to continue.',
-            style: AppTypography.bodyLg,
-          ),
+          const _BrandMark(),
           const SizedBox(height: AppSpacing.stackXl),
+
+          Text('Login', style: AppTypography.displayLg),
+          const SizedBox(height: AppSpacing.stackLg),
 
           // Institution (school portal only).
           if (controller.requireInstitution) ...[
@@ -45,7 +60,7 @@ class LoginView extends GetView<LoginController> {
           GlassInput(
             label: 'Email or Username',
             hint: 'name@school.edu',
-            controller: controller.emailCtrl,
+            controller: _emailCtrl,
             keyboardType: TextInputType.emailAddress,
             prefixIcon: Icons.alternate_email,
           ),
@@ -69,7 +84,7 @@ class LoginView extends GetView<LoginController> {
           const SizedBox(height: 4),
           Obx(() => GlassInput(
                 hint: '••••••••',
-                controller: controller.passwordCtrl,
+                controller: _passwordCtrl,
                 obscureText: controller.obscurePassword.value,
                 prefixIcon: Icons.lock_outline,
                 onSubmitted: (_) => controller.submit(),
@@ -111,27 +126,50 @@ class LoginView extends GetView<LoginController> {
                 isLoading: controller.submitting.value,
                 onPressed: controller.submit,
               )),
-          const SizedBox(height: AppSpacing.stackXl),
+        ],
+      ),
+    );
+  }
+}
 
-          const Divider(height: 1, color: AppColors.outlineVariant),
-          const SizedBox(height: AppSpacing.stackLg),
+/// Logo + app name above the form. Uses [AuthConfig.logoAsset] when the host app
+/// bundles one, and falls back to a tinted icon mark when it doesn't.
+class _BrandMark extends StatelessWidget {
+  const _BrandMark();
 
-          Center(
-            child: Text.rich(
-              TextSpan(
-                text: 'New to ${AuthConfig.appName}? ',
-                style: AppTypography.bodyMd.copyWith(color: AppColors.onSurfaceVariant),
-                children: [
-                  TextSpan(
-                    text: 'Contact your administrator',
-                    style: AppTypography.bodyMd.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+  static const double _size = 76;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = AuthConfig.logoAsset;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            child: asset == null
+                ? Container(
+                    width: _size,
+                    height: _size,
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    child: const Icon(Icons.school_rounded,
+                        size: 40, color: AppColors.primary),
+                  )
+                : Image.asset(
+                    asset,
+                    width: _size,
+                    height: _size,
+                    fit: BoxFit.cover,
                   ),
-                ],
-              ),
-              textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text(
+            AuthConfig.appName,
+            textAlign: TextAlign.center,
+            style: AppTypography.headlineLg.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

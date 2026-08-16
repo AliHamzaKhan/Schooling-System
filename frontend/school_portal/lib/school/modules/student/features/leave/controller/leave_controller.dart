@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../data/student_repository.dart';
@@ -20,7 +19,9 @@ class LeaveController extends GetxController {
   final leaveType = 'sick'.obs;
   final startDate = Rxn<DateTime>();
   final endDate = Rxn<DateTime>();
-  final reasonCtrl = TextEditingController();
+  /// Reason text. The `TextEditingController` behind it belongs to the submit
+  /// sheet's State, so it lives and dies with that sheet.
+  final reason = ''.obs;
   final submitting = false.obs;
   final formError = RxnString();
 
@@ -28,12 +29,6 @@ class LeaveController extends GetxController {
   void onInit() {
     super.onInit();
     load();
-  }
-
-  @override
-  void onClose() {
-    reasonCtrl.dispose();
-    super.onClose();
   }
 
   Future<void> load() async {
@@ -52,7 +47,7 @@ class LeaveController extends GetxController {
     leaveType.value = 'sick';
     startDate.value = null;
     endDate.value = null;
-    reasonCtrl.clear();
+    reason.value = '';
     formError.value = null;
   }
 
@@ -79,7 +74,7 @@ class LeaveController extends GetxController {
       leaveType: leaveType.value,
       startDate: fmt(start),
       endDate: fmt(end),
-      reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
+      reason: reason.value.trim().isEmpty ? null : reason.value.trim(),
     );
     submitting.value = false;
     if (!res.success) {

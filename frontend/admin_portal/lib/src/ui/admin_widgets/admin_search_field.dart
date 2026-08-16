@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
 
-/// Rounded white search pill used at the top of list screens. Optional trailing
-/// [action] (e.g. a filter/tune button) sits to the right, outside the field.
+import '../admin_theme.dart';
+
+/// Rounded white search field used at the top of list screens. Optional
+/// trailing [action] (e.g. a filter button) sits to the right, outside the box.
 class AdminSearchField extends StatelessWidget {
   final String hint;
   final ValueChanged<String>? onChanged;
@@ -19,32 +20,45 @@ class AdminSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final field = Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppRadius.button),
-        border: Border.all(color: AppColors.outlineVariant, width: 1),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.search_rounded, size: 20, color: AppColors.outline),
-          const SizedBox(width: AppSpacing.stackSm),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: AppTypography.bodyLg.copyWith(color: AppColors.outline),
-                isCollapsed: true,
-                border: InputBorder.none,
+    // The TextField needs a Material ancestor of its own — the field is used on
+    // plain-colored screens, not only inside cards.
+    final field = Material(
+      type: MaterialType.transparency,
+      child: Container(
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: AdminPalette.card,
+          borderRadius: AdminRadius.brTile,
+          border: Border.all(color: AdminPalette.border),
+          boxShadow: AdminPalette.cardShadow,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.search_rounded,
+                size: 20, color: AdminPalette.faint),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                onChanged: onChanged,
+                style:
+                    AdminType.body.copyWith(color: AdminPalette.ink, fontSize: 15),
+                cursorColor: AdminPalette.ink,
+                decoration: InputDecoration(
+                  hintText: hint,
+                  hintStyle: AdminType.body
+                      .copyWith(color: AdminPalette.faint, fontSize: 15),
+                  isCollapsed: true,
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 
@@ -52,7 +66,7 @@ class AdminSearchField extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: field),
-        const SizedBox(width: AppSpacing.stackSm),
+        const SizedBox(width: 10),
         action!,
       ],
     );
@@ -68,19 +82,19 @@ class AdminIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(AppRadius.button),
+      color: AdminPalette.card,
+      borderRadius: AdminRadius.brTile,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.button),
+        borderRadius: AdminRadius.brTile,
         child: Container(
-          width: 48,
-          height: 48,
+          width: 50,
+          height: 50,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.button),
-            border: Border.all(color: AppColors.outlineVariant, width: 1),
+            borderRadius: AdminRadius.brTile,
+            border: Border.all(color: AdminPalette.border),
           ),
-          child: Icon(icon, size: 20, color: AppColors.onSurfaceVariant),
+          child: Icon(icon, size: 20, color: AdminPalette.ink),
         ),
       ),
     );

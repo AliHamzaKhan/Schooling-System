@@ -7,8 +7,13 @@ class AppStrings {
   AppStrings._();
 
   // ── App ─────────────────────────────────────────────────────
-  static const appName = 'EduMaster';
-  static const islandTitle = 'EduMaster Island';
+  static const appName = 'Meri Taleem';
+  static const islandTitle = 'Meri Taleem Island';
+
+  // ── Splash ──────────────────────────────────────────────────
+  static const splashTagline = 'One school, one app.';
+  static const splashUnreachable =
+      "Can't reach the server.\nCheck your connection and try again.";
 
   // ── Auth / shell ────────────────────────────────────────────
   static const homeWelcome = "Here's what's happening on campus today.";

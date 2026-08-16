@@ -89,6 +89,8 @@ class CoursesAdminController extends GetxController {
     final ok = await showActionFormSheet(
       title: 'New Course',
       submitLabel: 'Create Course',
+      // The sheet owns these fields and disposes them when it closes.
+      ownedControllers: [title, description],
       fields: [
         _dropdown<String>(
           label: 'Class & Section',

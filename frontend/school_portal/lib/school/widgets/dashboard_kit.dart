@@ -12,6 +12,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
+import 'profile_avatar.dart';
+
 
 /// One metric in the 2×2 grid.
 class DashboardStat {
@@ -48,17 +50,21 @@ class DashboardLink {
   const DashboardLink({required this.icon, required this.label, this.onTap});
 }
 
-/// Whose dashboard this is: initials, a name, and a line of context.
+/// Whose dashboard this is: their photo, a name, and a line of context.
 ///
-/// The initials are derived rather than stored — every module knows a name and
-/// not all of them have a photo, and a grey placeholder avatar tells the reader
-/// nothing that two letters do not.
+/// The photo is optional and initials are derived rather than stored — every
+/// module knows a name, and two letters tell the reader more than a grey
+/// placeholder would.
 class DashboardIdentityCard extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  /// Replaces the initials block when the module has something better to show
-  /// (the guardian module passes a child's avatar).
+  /// The user's profile photo. Absolute or host-relative; falls back to the
+  /// initials block when null, empty, or unloadable.
+  final String? avatarUrl;
+
+  /// Replaces the initials/photo block when the module has something better to
+  /// show (the guardian module passes a child's avatar).
   final Widget? leading;
   final VoidCallback? onTap;
 
@@ -66,16 +72,13 @@ class DashboardIdentityCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
+    this.avatarUrl,
     this.leading,
     this.onTap,
   });
 
   /// First letters of the first two words: "Test High Student" → "TH".
-  static String initialsOf(String name) {
-    final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
-    if (words.isEmpty) return '?';
-    return words.take(2).map((w) => w[0].toUpperCase()).join();
-  }
+  static String initialsOf(String name) => ProfileAvatar.initialsOf(name);
 
   @override
   Widget build(BuildContext context) {
@@ -85,21 +88,11 @@ class DashboardIdentityCard extends StatelessWidget {
       child: Row(
         children: [
           leading ??
-              Container(
-                width: 56,
-                height: 56,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(AppRadius.defaultR),
-                ),
-                child: Text(
-                  initialsOf(title),
-                  style: AppTypography.titleLg.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+              ProfileAvatar(
+                name: title,
+                url: avatarUrl,
+                size: 56,
+                cornerRadius: AppRadius.defaultR,
               ),
           const SizedBox(width: AppSpacing.stackMd),
           Expanded(
@@ -149,7 +142,7 @@ class DashboardStatGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: AppSpacing.stackMd,
       crossAxisSpacing: AppSpacing.stackMd,
-      childAspectRatio: 1.35,
+      childAspectRatio: 1,
       children: [for (final stat in stats) DashboardStatCard(stat: stat)],
     );
   }

@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
 
 import '../../data/models/dashboard_stats.dart';
+import '../admin_theme.dart';
+import 'admin_surface.dart';
 import 'status_pill.dart';
 
-/// KPI card: colored left accent rail, label, big value, a trend pill, and a
-/// row of mini sparkline bars (the last two bars tinted with the accent).
+/// Dashboard KPI card: label + big value on the left, an icon chip on the
+/// right, and an optional trend pill / sparkline underneath.
 class StatCard extends StatelessWidget {
   final StatMetric metric;
-  final Color accent;
+
+  /// Glyph for the icon chip.
+  final IconData icon;
+
+  /// When true the chip inverts to solid navy — used for the lead KPI.
+  final bool emphasized;
 
   /// When set, the whole card is tappable (e.g. drill into schools / revenue).
   final VoidCallback? onTap;
@@ -19,95 +25,95 @@ class StatCard extends StatelessWidget {
   const StatCard({
     super.key,
     required this.metric,
-    required this.accent,
+    required this.icon,
+    this.emphasized = false,
     this.onTap,
     this.showTrend = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
-      level: GlassLevel.l1,
-      padding: EdgeInsets.zero,
-      borderRadius: AppRadius.card,
+    return AdminCard(
       onTap: onTap,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left accent rail.
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackMd),
+      padding: const EdgeInsets.fromLTRB(18, 18, 16, 18),
+      color: emphasized ? AdminPalette.tint : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(metric.label, style: AppTypography.bodyMd),
-                    const SizedBox(height: 4),
+                    Text(metric.label,
+                        style: AdminType.body.copyWith(
+                            fontSize: 14.5, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 10),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Expanded(
-                          child: Text(
-                            metric.value,
-                            style: AppTypography.displayLg.copyWith(fontSize: 30),
-                          ),
+                        Flexible(
+                          child: Text(metric.value,
+                              style: AdminType.metric,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ),
-                        if (showTrend)
-                          StatusPill.trend(metric.trendPercent)
-                        else if (onTap != null)
-                          const Icon(Icons.chevron_right_rounded,
-                              color: AppColors.onSurfaceVariant),
+                        if (showTrend) ...[
+                          const SizedBox(width: 10),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: StatusPill.trend(metric.trendPercent),
+                          ),
+                        ],
                       ],
                     ),
-                    if (metric.spark.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.stackMd),
-                      _MiniBars(values: metric.spark, accent: accent),
-                    ],
                   ],
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              AdminIconTile(
+                icon: icon,
+                size: 42,
+                background: emphasized ? AdminPalette.ink : AdminPalette.tint,
+                foreground: emphasized ? Colors.white : AdminPalette.ink,
+              ),
+            ],
+          ),
+          if (metric.spark.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _MiniBars(values: metric.spark),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-/// Row of rounded bars; the two tallest-position (last) bars use [accent],
-/// the rest sit in a neutral wash — matching the dashboard mock.
+/// Row of rounded bars; the last two use the navy ink, the rest sit in the
+/// lavender wash.
 class _MiniBars extends StatelessWidget {
   final List<double> values;
-  final Color accent;
-  const _MiniBars({required this.values, required this.accent});
+  const _MiniBars({required this.values});
 
   @override
   Widget build(BuildContext context) {
     final maxV = values.reduce((a, b) => a > b ? a : b);
     return SizedBox(
-      height: 34,
+      height: 30,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           for (var i = 0; i < values.length; i++) ...[
             Expanded(
               child: Container(
-                height: (values[i] / maxV) * 34,
+                height: maxV == 0 ? 3 : ((values[i] / maxV) * 30).clamp(3, 30),
                 decoration: BoxDecoration(
                   color: i >= values.length - 2
-                      ? accent
-                      : AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ? AdminPalette.ink
+                      : AdminPalette.tint,
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
             ),

@@ -6,6 +6,7 @@ import '../../../data/admin_api_service.dart';
 import '../../../ui/admin_widgets/admin_confirm_dialog.dart';
 import '../../subscriptions/models/subscription_models.dart';
 import '../models/school.dart';
+import '../../../ui/admin_theme.dart';
 
 /// Opens the "change subscription" sheet for [school]. Picks a live plan and an
 /// optional discount and assigns it via the instance-based flow (which records
@@ -18,7 +19,7 @@ Future<bool> showSubscriptionSheet(
   final changed = await Get.bottomSheet<bool>(
     _SubscriptionSheet(school: school),
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AdminPalette.canvas,
   );
   if (changed == true && onChanged != null) await onChanged();
   return changed == true;
@@ -130,7 +131,7 @@ class _SubscriptionSheetState extends State<_SubscriptionSheet> {
         AdminConfirmDetail(
           label: 'Net amount',
           value: _money(_net),
-          valueColor: AppColors.primary,
+          valueColor: AdminPalette.ink,
           emphasize: true,
         ),
       ],
@@ -174,7 +175,7 @@ class _SubscriptionSheetState extends State<_SubscriptionSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Subscription — ${widget.school.name}',
-                style: AppTypography.titleLg),
+                style: AdminType.cardTitle),
             const SizedBox(height: AppSpacing.stackMd),
             if (_loading)
               const Padding(
@@ -186,7 +187,7 @@ class _SubscriptionSheetState extends State<_SubscriptionSheet> {
                 _error ??
                     'No subscription plans exist. Create one first '
                         '(Settings → Subscription Plans).',
-                style: AppTypography.bodyLg.copyWith(color: AppColors.error),
+                style: AdminType.body.copyWith(color: AdminPalette.danger),
               )
             else ...[
               Flexible(
@@ -219,16 +220,16 @@ class _SubscriptionSheetState extends State<_SubscriptionSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Net amount', style: AppTypography.bodyLg),
+                  Text('Net amount', style: AdminType.body),
                   Text(_money(_net),
-                      style: AppTypography.titleLg
-                          .copyWith(color: AppColors.primary)),
+                      style: AdminType.cardTitle
+                          .copyWith(color: AdminPalette.ink)),
                 ],
               ),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.stackSm),
                 Text(_error!,
-                    style: AppTypography.bodyMd.copyWith(color: AppColors.error)),
+                    style: AdminType.body.copyWith(color: AdminPalette.danger)),
               ],
               const SizedBox(height: AppSpacing.stackMd),
               PrimaryButton(
@@ -263,11 +264,11 @@ class _PlanRow extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.stackMd),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withValues(alpha: 0.06)
-              : AppColors.surfaceContainerLowest,
+              ? AdminPalette.ink.withValues(alpha: 0.06)
+              : AdminPalette.card,
           borderRadius: BorderRadius.circular(AppRadius.button),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.outlineVariant,
+            color: selected ? AdminPalette.ink : AdminPalette.border,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -275,7 +276,7 @@ class _PlanRow extends StatelessWidget {
           children: [
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected ? AppColors.primary : AppColors.outline,
+              color: selected ? AdminPalette.ink : AdminPalette.faint,
             ),
             const SizedBox(width: AppSpacing.stackMd),
             Expanded(
@@ -283,11 +284,11 @@ class _PlanRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(plan.name,
-                      style: AppTypography.titleMd
+                      style: AdminType.rowTitle
                           .copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text('${_money(plan.price)} ${plan.billingPeriod.priceSuffix}',
-                      style: AppTypography.bodyMd),
+                      style: AdminType.body),
                 ],
               ),
             ),
@@ -316,7 +317,7 @@ class _DiscountRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Discount', style: AppTypography.labelMd),
+        Text('Discount', style: AdminType.label),
         const SizedBox(height: AppSpacing.stackSm),
         Row(
           children: [

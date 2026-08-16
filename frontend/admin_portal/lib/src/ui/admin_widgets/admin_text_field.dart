@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// Labeled, fully-bordered input used on admin forms (Create/Edit School).
 ///
@@ -36,20 +37,20 @@ class AdminTextField extends StatelessWidget {
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
-          style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
+          style: AdminType.body.copyWith(color: AdminPalette.ink),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: AppTypography.bodyLg.copyWith(color: AppColors.outline),
+            hintStyle: AdminType.body.copyWith(color: AdminPalette.faint),
             filled: true,
             fillColor: filled
-                ? AppColors.surfaceContainerLow
-                : AppColors.surfaceContainerLowest,
+                ? AdminPalette.tint
+                : AdminPalette.card,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.stackMd, vertical: 14),
-            enabledBorder: _border(AppColors.outlineVariant),
-            focusedBorder: _border(AppColors.primary, width: 1.5),
-            border: _border(AppColors.outlineVariant),
+            enabledBorder: _border(AdminPalette.border),
+            focusedBorder: _border(AdminPalette.ink, width: 1.5),
+            border: _border(AdminPalette.border),
           ),
         ),
       ],
@@ -94,26 +95,26 @@ class AdminDropdownField<T> extends StatelessWidget {
           initialValue: value,
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down_rounded,
-              color: AppColors.onSurfaceVariant),
-          hint: Text(hint, style: AppTypography.bodyLg.copyWith(color: AppColors.outline)),
-          style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
+              color: AdminPalette.muted),
+          hint: Text(hint, style: AdminType.body.copyWith(color: AdminPalette.faint)),
+          style: AdminType.body.copyWith(color: AdminPalette.ink),
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.surfaceContainerLowest,
+            fillColor: AdminPalette.card,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.stackMd, vertical: 14),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.button),
-              borderSide: const BorderSide(color: AppColors.outlineVariant),
+              borderSide: const BorderSide(color: AdminPalette.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.button),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(color: AdminPalette.ink, width: 1.5),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.button),
-              borderSide: const BorderSide(color: AppColors.outlineVariant),
+              borderSide: const BorderSide(color: AdminPalette.border),
             ),
           ),
           items: [
@@ -137,10 +138,10 @@ class _FieldLabel extends StatelessWidget {
     return Text.rich(
       TextSpan(
         text: label,
-        style: AppTypography.labelMd.copyWith(color: AppColors.onSurface),
+        style: AdminType.label.copyWith(color: AdminPalette.ink),
         children: [
           if (required)
-            const TextSpan(text: ' *', style: TextStyle(color: AppColors.error)),
+            const TextSpan(text: ' *', style: TextStyle(color: AdminPalette.danger)),
         ],
       ),
     );

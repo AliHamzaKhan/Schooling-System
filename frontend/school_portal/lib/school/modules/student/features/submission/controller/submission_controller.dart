@@ -1,5 +1,4 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../data/student_repository.dart';
@@ -12,7 +11,9 @@ class SubmissionController extends GetxController {
 
   final loading = true.obs;
   final assignment = Rxn<StudentAssignment>();
-  final notesCtrl = TextEditingController();
+  /// Notes text. The `TextEditingController` behind it is owned by the submit
+  /// form's State, so it is disposed with that screen.
+  final notes = ''.obs;
   final filename = RxnString();
   final fileSize = Rxn<int>();
   final submitting = false.obs;
@@ -99,7 +100,7 @@ class SubmissionController extends GetxController {
 
     final res = await _repo.submitAssignment(
       id,
-      notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+      notes: notes.value.trim().isEmpty ? null : notes.value.trim(),
       attachmentUrl: attachmentUrl,
     );
     submitting.value = false;
@@ -117,11 +118,5 @@ class SubmissionController extends GetxController {
     final res = await _repo.loadAssignment(id);
     if (res.success) assignment.value = res.data;
     loading.value = false;
-  }
-
-  @override
-  void onClose() {
-    notesCtrl.dispose();
-    super.onClose();
   }
 }

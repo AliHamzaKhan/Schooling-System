@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../data/admin_api_service.dart';
@@ -49,39 +48,44 @@ class CreateSchoolController extends GetxController {
   final step = 0.obs;
   final submitting = false.obs;
 
+  // Field values for every step. The `TextEditingController`s that edit them
+  // are owned by the step widgets' State, so each field's controller is created
+  // and disposed with the step that shows it, while the values below survive
+  // navigating back and forth through the wizard.
+
   // Step 1 — details.
-  final nameCtrl = TextEditingController();
-  final registrationCtrl = TextEditingController();
-  final descriptionCtrl = TextEditingController();
+  final name = ''.obs;
+  final registration = ''.obs;
+  final description = ''.obs;
   final institutionType = RxnString();
 
   // Step 2 — contact.
-  final phoneCtrl = TextEditingController();
-  final emailCtrl = TextEditingController();
-  final addressCtrl = TextEditingController();
-  final cityCtrl = TextEditingController();
-  final stateCtrl = TextEditingController();
-  final postalCtrl = TextEditingController();
+  final phone = ''.obs;
+  final email = ''.obs;
+  final address = ''.obs;
+  final city = ''.obs;
+  final stateProvince = ''.obs;
+  final postal = ''.obs;
 
   // Step 3 — subscription.
   final loadingPlans = true.obs;
   final plans = <SubscriptionPlanModel>[].obs;
   final selectedPlanId = RxnString();
   final discountType = DiscountType.none.obs;
-  final discountCtrl = TextEditingController();
+  final discount = ''.obs;
 
   // Step 4 — payment mode (how the school pays us; stored in settings.billing).
   final paymentMethod = RxnString();
-  final bankNameCtrl = TextEditingController();
-  final accountTitleCtrl = TextEditingController();
-  final accountNumberCtrl = TextEditingController();
-  final paymentNotesCtrl = TextEditingController();
+  final bankName = ''.obs;
+  final accountTitle = ''.obs;
+  final accountNumber = ''.obs;
+  final paymentNotes = ''.obs;
 
   // Step 5 — headmaster (create mode only).
-  final hmNameCtrl = TextEditingController();
-  final hmEmailCtrl = TextEditingController();
-  final hmPasswordCtrl = TextEditingController();
-  final hmPhoneCtrl = TextEditingController();
+  final hmName = ''.obs;
+  final hmEmail = ''.obs;
+  final hmPassword = ''.obs;
+  final hmPhone = ''.obs;
 
   /// Plan id the school already had (edit mode) — matched from its plan code so
   /// we only re-assign a subscription when the admin actually changes the plan.
@@ -124,17 +128,17 @@ class CreateSchoolController extends GetxController {
 
   /// Prefills every step from the school being edited.
   void _prefill(School s) {
-    nameCtrl.text = s.name;
-    registrationCtrl.text = s.code;
-    emailCtrl.text = s.contactEmail ?? '';
-    phoneCtrl.text = s.contactPhone ?? '';
-    addressCtrl.text = s.address ?? '';
+    name.value = s.name;
+    registration.value = s.code;
+    email.value = s.contactEmail ?? '';
+    phone.value = s.contactPhone ?? '';
+    address.value = s.address ?? '';
     final billing = s.billing;
     paymentMethod.value = billing['method'] as String?;
-    bankNameCtrl.text = '${billing['bank_name'] ?? ''}';
-    accountTitleCtrl.text = '${billing['account_title'] ?? ''}';
-    accountNumberCtrl.text = '${billing['account_number'] ?? ''}';
-    paymentNotesCtrl.text = '${billing['notes'] ?? ''}';
+    bankName.value = '${billing['bank_name'] ?? ''}';
+    accountTitle.value = '${billing['account_title'] ?? ''}';
+    accountNumber.value = '${billing['account_number'] ?? ''}';
+    paymentNotes.value = '${billing['notes'] ?? ''}';
   }
 
   void selectInstitutionType(String? v) => institutionType.value = v;
@@ -145,12 +149,12 @@ class CreateSchoolController extends GetxController {
   Map<String, dynamic>? _billingSettings() {
     final billing = <String, dynamic>{
       if (paymentMethod.value != null) 'method': paymentMethod.value,
-      if (bankNameCtrl.text.trim().isNotEmpty) 'bank_name': bankNameCtrl.text.trim(),
-      if (accountTitleCtrl.text.trim().isNotEmpty)
-        'account_title': accountTitleCtrl.text.trim(),
-      if (accountNumberCtrl.text.trim().isNotEmpty)
-        'account_number': accountNumberCtrl.text.trim(),
-      if (paymentNotesCtrl.text.trim().isNotEmpty) 'notes': paymentNotesCtrl.text.trim(),
+      if (bankName.value.trim().isNotEmpty) 'bank_name': bankName.value.trim(),
+      if (accountTitle.value.trim().isNotEmpty)
+        'account_title': accountTitle.value.trim(),
+      if (accountNumber.value.trim().isNotEmpty)
+        'account_number': accountNumber.value.trim(),
+      if (paymentNotes.value.trim().isNotEmpty) 'notes': paymentNotes.value.trim(),
     };
     if (billing.isEmpty) return null;
     return {'billing': billing};
@@ -179,7 +183,7 @@ class CreateSchoolController extends GetxController {
   /// 4-step create flow and the 3-step edit flow.
   String? _validateStep(String label) => switch (label) {
         'School Details' =>
-          nameCtrl.text.trim().isEmpty ? 'Official school name is required.' : null,
+          name.value.trim().isEmpty ? 'Official school name is required.' : null,
         'Subscription' => _validateSubscription(),
         'Headmaster' => _validateHeadmaster(),
         _ => null,
@@ -196,13 +200,13 @@ class CreateSchoolController extends GetxController {
   }
 
   String? _validateHeadmaster() {
-    if (hmNameCtrl.text.trim().length < 2) {
+    if (hmName.value.trim().length < 2) {
       return "Enter the headmaster's full name.";
     }
-    if (!hmEmailCtrl.text.contains('@')) {
+    if (!hmEmail.value.contains('@')) {
       return "Enter a valid headmaster email.";
     }
-    if (hmPasswordCtrl.text.length < 8) {
+    if (hmPassword.value.length < 8) {
       return 'Password must be at least 8 characters.';
     }
     return null;
@@ -220,9 +224,9 @@ class CreateSchoolController extends GetxController {
   /// Backend `code` is required (min 2 chars). Use the registration number when
   /// provided, otherwise derive a slug from the name.
   String _code() {
-    final reg = registrationCtrl.text.trim();
+    final reg = registration.value.trim();
     if (reg.length >= 2) return reg;
-    final slug = nameCtrl.text
+    final slug = name.value
         .trim()
         .toUpperCase()
         .replaceAll(RegExp(r'[^A-Z0-9]+'), '-')
@@ -231,7 +235,7 @@ class CreateSchoolController extends GetxController {
   }
 
   double get _discountValue =>
-      double.tryParse(discountCtrl.text.trim()) ?? 0;
+      double.tryParse(discount.value.trim()) ?? 0;
 
   /// Validates the discount input against the selected type.
   String? _validateDiscount() {
@@ -256,10 +260,10 @@ class CreateSchoolController extends GetxController {
     submitting.value = true;
     error.value = null;
     final addr = [
-      addressCtrl.text.trim(),
-      cityCtrl.text.trim(),
-      stateCtrl.text.trim(),
-      postalCtrl.text.trim(),
+      address.value.trim(),
+      city.value.trim(),
+      stateProvince.value.trim(),
+      postal.value.trim(),
     ].where((p) => p.isNotEmpty).join(', ');
 
     if (isEdit) {
@@ -273,10 +277,10 @@ class CreateSchoolController extends GetxController {
   Future<void> _submitCreate(String addr) async {
     final billing = _billingSettings();
     final payload = <String, dynamic>{
-      'name': nameCtrl.text.trim(),
+      'name': name.value.trim(),
       'code': _code(),
-      if (emailCtrl.text.trim().isNotEmpty) 'contact_email': emailCtrl.text.trim(),
-      if (phoneCtrl.text.trim().isNotEmpty) 'contact_phone': phoneCtrl.text.trim(),
+      if (email.value.trim().isNotEmpty) 'contact_email': email.value.trim(),
+      if (phone.value.trim().isNotEmpty) 'contact_phone': phone.value.trim(),
       if (addr.isNotEmpty) 'address': addr,
     };
     if (billing != null) payload['settings'] = billing;
@@ -295,18 +299,18 @@ class CreateSchoolController extends GetxController {
     if (!hmOk) return;
 
     Get.back<bool>(result: true);
-    Get.snackbar('School created', '${nameCtrl.text} has been added.',
+    Get.snackbar('School created', '${name.value} has been added.',
         snackPosition: SnackPosition.BOTTOM);
   }
 
   /// Creates the school's Headmaster (create flow only). Returns false (and sets
   /// [error]) on failure — the school + subscription already exist at this point.
   Future<bool> _createHeadmaster(String schoolId) async {
-    final phone = hmPhoneCtrl.text.trim();
+    final phone = hmPhone.value.trim();
     final res = await _api.createHeadmaster(schoolId, {
-      'email': hmEmailCtrl.text.trim(),
-      'password': hmPasswordCtrl.text,
-      'full_name': hmNameCtrl.text.trim(),
+      'email': hmEmail.value.trim(),
+      'password': hmPassword.value,
+      'full_name': hmName.value.trim(),
       if (phone.isNotEmpty) 'phone': phone,
     });
     if (!res.success) {
@@ -322,9 +326,9 @@ class CreateSchoolController extends GetxController {
     // `code` is not editable via SchoolUpdate; update general info only.
     final billing = _billingSettings();
     final payload = <String, dynamic>{
-      'name': nameCtrl.text.trim(),
-      'contact_email': emailCtrl.text.trim().isEmpty ? null : emailCtrl.text.trim(),
-      'contact_phone': phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
+      'name': name.value.trim(),
+      'contact_email': email.value.trim().isEmpty ? null : email.value.trim(),
+      'contact_phone': phone.value.trim().isEmpty ? null : phone.value.trim(),
       if (addr.isNotEmpty) 'address': addr,
     };
     // Backend merges `settings`, so this only touches the billing block.
@@ -360,32 +364,5 @@ class CreateSchoolController extends GetxController {
       return false;
     }
     return true;
-  }
-
-  @override
-  void onClose() {
-    for (final c in [
-      nameCtrl,
-      registrationCtrl,
-      descriptionCtrl,
-      phoneCtrl,
-      emailCtrl,
-      addressCtrl,
-      cityCtrl,
-      stateCtrl,
-      postalCtrl,
-      discountCtrl,
-      bankNameCtrl,
-      accountTitleCtrl,
-      accountNumberCtrl,
-      paymentNotesCtrl,
-      hmNameCtrl,
-      hmEmailCtrl,
-      hmPasswordCtrl,
-      hmPhoneCtrl,
-    ]) {
-      c.dispose();
-    }
-    super.onClose();
   }
 }

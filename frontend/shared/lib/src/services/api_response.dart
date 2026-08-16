@@ -35,6 +35,11 @@ class ApiResponse<T> {
   factory ApiResponse.fail(String error, {int statusCode = 500, Map<String, dynamic>? rawJson}) =>
       ApiResponse(success: false, statusCode: statusCode, error: error, rawJson: rawJson);
 
+  /// True when the request never reached the server (offline, server down,
+  /// timeout, or a response the browser refused). [statusCode] is 0 because
+  /// there was no HTTP response at all.
+  bool get isNetworkError => statusCode == 0;
+
   bool get isUnauthorized => statusCode == 401;
   bool get isForbidden => statusCode == 403;
   bool get isNotFound => statusCode == 404;

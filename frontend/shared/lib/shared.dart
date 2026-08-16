@@ -1,10 +1,10 @@
 /// Public API of the `shared` package — common design system, services and
 /// cross-portal features for the school & admin portals.
 ///
-/// Heavier modules under `lib/src` (calling, notifications, biometric,
-/// permissions, version) are intentionally NOT exported here yet: they pull in
-/// firebase/agora/etc. Export them once their dependencies are added to
-/// `pubspec.yaml` and the modules are actually used.
+/// Heavier modules under `lib/src` (notifications, biometric, permissions,
+/// version) are intentionally NOT exported here yet: they pull in firebase/
+/// etc. Export them once their dependencies are added to `pubspec.yaml` and
+/// the modules are actually used.
 library;
 
 // ── Design tokens ───────────────────────────────────────────────
@@ -26,6 +26,8 @@ export 'src/ui/anim/pressable.dart';
 export 'src/ui/anim/shimmer.dart';
 
 // ── Widgets ─────────────────────────────────────────────────────
+export 'src/ui/forms/screen_text_controllers.dart';
+
 export 'src/ui/widgets/primary_button.dart';
 export 'src/ui/widgets/ghost_button.dart';
 export 'src/ui/widgets/glass_surface.dart';

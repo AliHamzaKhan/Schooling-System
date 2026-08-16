@@ -40,6 +40,8 @@ class BookAdminController extends GetxController {
     final content = TextEditingController();
     final ok = await showActionFormSheet(
       title: 'New Chapter',
+      // The sheet owns these fields and disposes them when it closes.
+      ownedControllers: [title, content],
       fields: [
         GlassInput(
             label: 'Title', hint: 'e.g. Chapter 1: Living Things', controller: title),

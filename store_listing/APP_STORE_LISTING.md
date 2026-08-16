@@ -1,9 +1,9 @@
-# Store Listing — Taleem Hub
+# Store Listing — Meri Taleem
 
 Copy for Google Play (Android) and Apple App Store (iOS). Fields are labeled by
 platform; character limits noted so you can paste directly into the consoles.
 
-- **App name:** Taleem Hub
+- **App name:** Meri Taleem
 - **Developer / Publisher:** AHK Studios
 - **Android package:** `com.ahkstudios.taleem_hub`
 - **iOS bundle ID:** `com.ahkstudios.taleemHub`
@@ -13,19 +13,23 @@ platform; character limits noted so you can paste directly into the consoles.
 - **Support email:** alihamza.khan05@gmail.com
 - **Privacy policy URL:** _[host PRIVACY_POLICY.md and paste the public URL here]_
 
+> Note: the bundle/package identifiers still read `taleem_hub` / `taleemHub`.
+> These are app identity and are tied to signing certificates and store records —
+> they are intentionally left unchanged. They never appear to users.
+
 ---
 
 ## GOOGLE PLAY (Android)
 
 ### App title (≤ 30 chars)
-`Taleem Hub`
+`Meri Taleem`
 
 ### Short description (≤ 80 chars)
-`Your school in one app: attendance, fees, timetable, results & live classes.`
+`Your school in one app: attendance, fees, timetable, results & alerts.`
 
 ### Full description (≤ 4000 chars)
 ```
-Taleem Hub brings your whole school into one simple app — for students,
+Meri Taleem brings your whole school into one simple app — for students,
 teachers, guardians, headmasters and administrators.
 
 Instead of scattered notebooks, group chats and paper slips, everyone gets the
@@ -52,7 +56,7 @@ WHAT YOU CAN DO
 • Payroll — headmasters and admins manage staff salary attendance and payroll in
   one place.
 
-• Live classes — join real-time video classes right inside the app.
+• Messaging — two-way direct messages between staff, students and guardians.
 
 • Announcements & push notifications — never miss an important update about
   attendance, fees, exams or school news.
@@ -64,16 +68,16 @@ BUILT FOR EVERY ROLE
 • Students — timetable, assignments, quizzes, results and announcements.
 • Guardians — attendance alerts, fee status, results and school news for their
   children.
-• Teachers — attendance, assignments, quizzes, live classes and class schedules.
+• Teachers — attendance, assignments, quizzes, messaging and class schedules.
 • Headmasters & admins — fees, payroll, timetables and school-wide management.
 
 PRIVACY & SECURITY
 
-Taleem Hub is built for schools. Each school's data is kept separate, access is
+Meri Taleem is built for schools. Each school's data is kept separate, access is
 controlled by role, and connections are encrypted. We do not show ads and we do
 not sell your data. See our privacy policy for full details.
 
-Taleem Hub is provided to schools; accounts are created and managed by your
+Meri Taleem is provided to schools; accounts are created and managed by your
 school. To get started, ask your school administrator for your login.
 ```
 
@@ -86,13 +90,12 @@ Data types collected (map to Play categories):
 - **Photos:** Profile photo (optional)
 - **Financial info:** Payment/fee history, payroll, and payment method/card details entered by the school for manual record-keeping (no live card processing)
 - **Messages:** In-app announcements/messages
-- **Audio / Photos & videos:** microphone & camera streams for live classes (not recorded by default)
 - **App activity:** in-app actions relevant to school features
 - **App info & performance:** crash logs, diagnostics
 - **Device or other IDs:** push notification token
 
 For each: **Collected = Yes**, **Shared = only with service providers** (hosting,
-Firebase Cloud Messaging, Agora, AI model for quiz generation), **not sold**.
+Firebase Cloud Messaging, AI model for quiz generation), **not sold**.
 No payment processor is used; payment/card details are stored only for the
 school's manual record-keeping.
 
@@ -101,25 +104,25 @@ Security practices:
 - Users can request data deletion: **Yes** (via school / support email)
 - Committed to Play Families policy where student accounts are involved
 
-Permissions used: Internet, Network state, Camera (optional), Record audio,
-Notifications, Use biometric.
+Permissions used: Internet, Network state, Camera (optional), Notifications,
+Use biometric.
 
 ---
 
 ## APPLE APP STORE (iOS)
 
 ### App name (≤ 30 chars)
-`Taleem Hub`
+`Meri Taleem`
 
 ### Subtitle (≤ 30 chars)
 `School, attendance & fees`
 
 ### Promotional text (≤ 170 chars)
-`One secure app for your whole school — attendance, timetables, results, fees, payroll and live classes, with instant alerts for guardians.`
+`One secure app for your whole school — attendance, timetables, results, fees and payroll, with instant alerts for guardians.`
 
 ### Description (≤ 4000 chars)
 ```
-Taleem Hub brings your whole school into one simple, secure app — for students,
+Meri Taleem brings your whole school into one simple, secure app — for students,
 teachers, guardians, headmasters and administrators.
 
 Your school creates the accounts and controls who sees what, so every role gets
@@ -149,8 +152,8 @@ headmasters manage collections.
 Payroll
 Headmasters and admins handle staff salary attendance and payroll in one place.
 
-Live Classes
-Join real-time video classes directly inside the app.
+Messaging
+Two-way direct messages between staff, students and guardians.
 
 Announcements & Notifications
 Stay on top of attendance, fees, exams and school news with push notifications.
@@ -161,11 +164,11 @@ Fast, private login with optional Face ID or Touch ID unlock.
 FOR EVERY ROLE
 • Students: timetable, assignments, quizzes, results, announcements
 • Guardians: attendance alerts, fee status, results and news for their children
-• Teachers: attendance, assignments, quizzes, live classes, schedules
+• Teachers: attendance, assignments, quizzes, messaging, schedules
 • Headmasters & Admins: fees, payroll, timetables, school-wide management
 
 PRIVACY & SECURITY
-Taleem Hub is built for schools. Each school's data is kept separate, access is
+Meri Taleem is built for schools. Each school's data is kept separate, access is
 role-based, and connections are encrypted. No ads. We never sell your data.
 
 Accounts are created and managed by your school. Ask your school administrator
@@ -187,7 +190,7 @@ _[your website, if any]_
 
 **Data linked to the user:**
 - Contact Info: Name
-- User Content: Photos (profile), Audio/Video (live classes), other content (messages/announcements)
+- User Content: Photos (profile), other content (messages/announcements)
 - Identifiers: User ID; Device ID (push token)
 - Financial Info: Payment/fee history, payroll, and payment method/card details entered by the school for manual record-keeping (no live card processing)
 - Usage Data: Product interaction (school features)
@@ -219,8 +222,8 @@ Demo school: Test High School
 - Guardian:   <email / username>  /  <password>
 - Headmaster: <email / username>  /  <password>
 
-Camera/microphone permissions are used only for profile photos and live video
-classes. Notifications are used for attendance/fee/announcement alerts.
+Camera and photo library permissions are used only for profile photos and file
+attachments. Notifications are used for attendance/fee/announcement alerts.
 ```
 
 _(Fill in the demo credentials before submitting — see the project's test-tenant
@@ -252,6 +255,5 @@ Suggested screenshot sequence (both platforms):
 3. Timetable
 4. Assignments / results
 5. Fees & payment status
-6. Live class
+6. Messaging / announcements
 7. AI quiz generation
-```

@@ -61,6 +61,7 @@ class AnnouncementsController extends GetxController {
     final ok = await showActionFormSheet(
       title: 'New Announcement',
       submitLabel: 'Publish',
+      ownedControllers: [title, body],
       fields: [
         GlassInput(
             label: 'Title', hint: 'Optional headline', controller: title),

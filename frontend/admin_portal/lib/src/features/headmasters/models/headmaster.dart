@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import '../../../ui/admin_theme.dart';
 
 /// Employment/onboarding state of a headmaster.
 enum HeadmasterStatus { active, onLeave, pendingSetup }
@@ -12,9 +12,9 @@ extension HeadmasterStatusX on HeadmasterStatus {
       };
 
   Color get color => switch (this) {
-        HeadmasterStatus.active => AppColors.tertiary,
-        HeadmasterStatus.onLeave => const Color(0xFFE8A317),
-        HeadmasterStatus.pendingSetup => AppColors.error,
+        HeadmasterStatus.active => AdminPalette.positive,
+        HeadmasterStatus.onLeave => AdminPalette.warning,
+        HeadmasterStatus.pendingSetup => AdminPalette.danger,
       };
 }
 

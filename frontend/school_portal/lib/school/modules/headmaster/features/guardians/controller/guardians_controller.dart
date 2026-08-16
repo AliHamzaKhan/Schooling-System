@@ -66,6 +66,8 @@ class GuardiansController extends GetxController {
     final ok = await showActionFormSheet(
       title: 'Add Guardian',
       submitLabel: 'Add Guardian',
+      // The sheet owns these fields and disposes them when it closes.
+      ownedControllers: [name, email, password],
       fields: [
         GlassInput(label: 'Full name', hint: 'Jane Doe', controller: name),
         GlassInput(

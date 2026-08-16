@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../../../subscriptions/models/subscription_models.dart';
 import '../controller/create_school_controller.dart';
+import '../../../../ui/admin_theme.dart';
 
 /// Wizard step 3 — assign the subscription: pick a live plan and, optionally,
 /// apply a discount (percentage or fixed amount). A subscription is required to
@@ -18,10 +19,10 @@ class StepInitialPlan extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Subscription',
-            style: AppTypography.headlineLg.copyWith(fontSize: 24)),
+            style: AdminType.screenTitle.copyWith(fontSize: 24)),
         const SizedBox(height: AppSpacing.stackSm),
         Text('Assign a plan for this school. A subscription is required.',
-            style: AppTypography.bodyLg),
+            style: AdminType.body),
         const SizedBox(height: AppSpacing.stackLg),
         Obx(() {
           if (controller.loadingPlans.value) {
@@ -34,7 +35,7 @@ class StepInitialPlan extends StatelessWidget {
             return Text(
               'No subscription plans exist yet. Create a plan first '
               '(Settings → Subscription Plans).',
-              style: AppTypography.bodyLg.copyWith(color: AppColors.error),
+              style: AdminType.body.copyWith(color: AdminPalette.danger),
             );
           }
           return Column(
@@ -81,11 +82,11 @@ class _PlanOption extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.stackMd),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withValues(alpha: 0.06)
-              : AppColors.surfaceContainerLowest,
+              ? AdminPalette.ink.withValues(alpha: 0.06)
+              : AdminPalette.card,
           borderRadius: BorderRadius.circular(AppRadius.button),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.outlineVariant,
+            color: selected ? AdminPalette.ink : AdminPalette.border,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -93,7 +94,7 @@ class _PlanOption extends StatelessWidget {
           children: [
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected ? AppColors.primary : AppColors.outline,
+              color: selected ? AdminPalette.ink : AdminPalette.faint,
             ),
             const SizedBox(width: AppSpacing.stackMd),
             Expanded(
@@ -101,11 +102,11 @@ class _PlanOption extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(plan.name,
-                      style: AppTypography.titleMd
+                      style: AdminType.rowTitle
                           .copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text('${_money(plan.price)} ${plan.billingPeriod.priceSuffix}',
-                      style: AppTypography.bodyMd),
+                      style: AdminType.body),
                 ],
               ),
             ),
@@ -116,16 +117,28 @@ class _PlanOption extends StatelessWidget {
   }
 }
 
-class _DiscountSection extends StatelessWidget {
+class _DiscountSection extends StatefulWidget {
   final CreateSchoolController controller;
   const _DiscountSection({required this.controller});
+
+  @override
+  State<_DiscountSection> createState() => _DiscountSectionState();
+}
+
+class _DiscountSectionState extends State<_DiscountSection>
+    with ScreenTextControllers {
+  CreateSchoolController get controller => widget.controller;
+
+  // The discount field belongs to this section — disposed when the wizard
+  // leaves the subscription step; the value stays on the controller.
+  late final _discountCtrl = boundController(controller.discount);
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Discount', style: AppTypography.titleMd),
+        Text('Discount', style: AdminType.rowTitle),
         const SizedBox(height: AppSpacing.stackSm),
         Obx(() => Row(
               children: [
@@ -152,7 +165,7 @@ class _DiscountSection extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(top: AppSpacing.stackSm),
             child: TextField(
-              controller: controller.discountCtrl,
+              controller: _discountCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               onChanged: (_) => controller.discountType.refresh(),
               decoration: InputDecoration(
@@ -188,17 +201,17 @@ class _DiscountChip extends StatelessWidget {
             horizontal: AppSpacing.stackMd, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary
-              : AppColors.surfaceContainerLowest,
+              ? AdminPalette.ink
+              : AdminPalette.card,
           borderRadius: BorderRadius.circular(AppRadius.full),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.outlineVariant,
+            color: selected ? AdminPalette.ink : AdminPalette.border,
           ),
         ),
         child: Text(label,
-            style: AppTypography.labelMd.copyWith(
+            style: AdminType.label.copyWith(
                 color:
-                    selected ? AppColors.onPrimary : AppColors.onSurfaceVariant)),
+                    selected ? Colors.white : AdminPalette.muted)),
       ),
     );
   }
@@ -216,7 +229,7 @@ class _PriceSummary extends StatelessWidget {
       if (plan == null) return const SizedBox.shrink();
       final base = plan.price;
       final type = controller.discountType.value;
-      final raw = double.tryParse(controller.discountCtrl.text.trim()) ?? 0;
+      final raw = double.tryParse(controller.discount.value.trim()) ?? 0;
       double net = base;
       if (type == DiscountType.percent) {
         net = base * (1 - raw / 100);
@@ -227,23 +240,23 @@ class _PriceSummary extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(AppSpacing.stackMd),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.06),
+          color: AdminPalette.ink.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(AppRadius.button),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text('Due for first ${plan.billingPeriod.label} term',
-                  style: AppTypography.bodyMd),
+                  style: AdminType.body),
             ),
             if (net != base) ...[
               Text(_money(base),
-                  style: AppTypography.bodyMd.copyWith(
+                  style: AdminType.body.copyWith(
                       decoration: TextDecoration.lineThrough,
-                      color: AppColors.onSurfaceVariant)),
+                      color: AdminPalette.muted)),
               const SizedBox(width: 8),
             ],
-            Text(_money(net), style: AppTypography.titleLg),
+            Text(_money(net), style: AdminType.cardTitle),
           ],
         ),
       );

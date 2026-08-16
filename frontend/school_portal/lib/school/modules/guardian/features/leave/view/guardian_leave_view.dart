@@ -95,9 +95,19 @@ class GuardianLeaveView extends GetView<GuardianLeaveController> {
   }
 }
 
-class _SubmitSheet extends StatelessWidget {
+class _SubmitSheet extends StatefulWidget {
   final GuardianLeaveController controller;
   const _SubmitSheet({required this.controller});
+
+  @override
+  State<_SubmitSheet> createState() => _SubmitSheetState();
+}
+
+class _SubmitSheetState extends State<_SubmitSheet> with ScreenTextControllers {
+  GuardianLeaveController get controller => widget.controller;
+
+  // Owned by this sheet — created with it, disposed with it.
+  late final _reasonCtrl = boundController(controller.reason);
 
   Future<void> _pickDate(BuildContext context, {required bool isStart}) async {
     final now = DateTime.now();
@@ -197,7 +207,7 @@ class _SubmitSheet extends StatelessWidget {
             PortalFormField(
               label: 'Reason (optional)',
               hint: 'Briefly explain the reason for leave…',
-              controller: controller.reasonCtrl,
+              controller: _reasonCtrl,
               maxLines: 3,
             ),
 

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../data/teacher_repository.dart';
@@ -17,8 +16,10 @@ class GradebookController extends GetxController {
   final papers = <GradablePaper>[].obs;
   final selectedPaperId = RxnString();
 
+  /// Entered marks, keyed by student id — the source of truth for the sheet.
+  /// Each row's `TextEditingController` lives on its own [MarkEntryRow] State,
+  /// so a row's field is disposed the moment that row leaves the list.
   final marks = <String, int?>{}.obs;
-  final controllers = <String, TextEditingController>{};
   final saving = false.obs;
 
   @override
@@ -42,9 +43,6 @@ class GradebookController extends GetxController {
     final sum = scored.fold<int>(0, (a, b) => a + b);
     return ((sum / total) * 100).round();
   }
-
-  TextEditingController controllerFor(String id) =>
-      controllers.putIfAbsent(id, () => TextEditingController());
 
   void setMark(String studentId, String raw) {
     final parsed = int.tryParse(raw.trim());
@@ -116,19 +114,10 @@ class GradebookController extends GetxController {
       marks.clear();
       for (final s in res.data!.students) {
         marks[s.id] = s.marks?.round();
-        controllerFor(s.id).text = s.marks == null ? '' : '${s.marks!.round()}';
       }
     } else {
       error.value = res.error ?? 'Could not load this marks sheet.';
     }
     loading.value = false;
-  }
-
-  @override
-  void onClose() {
-    for (final c in controllers.values) {
-      c.dispose();
-    }
-    super.onClose();
   }
 }

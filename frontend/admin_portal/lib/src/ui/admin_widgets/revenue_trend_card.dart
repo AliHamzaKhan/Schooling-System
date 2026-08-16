@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
 
 import '../../data/models/admin_metrics.dart';
+import '../admin_theme.dart';
+import 'admin_surface.dart';
 
-/// Reusable monthly-revenue bar chart (used by Billing and Metrics). Renders one
-/// bar per [RevenueMonth], labelled by short month, with the value above the
-/// tallest bar. Purely presentational — pass in live buckets.
+/// Monthly-revenue bar chart (used by Billing and Metrics). One bar per
+/// [RevenueMonth]; the latest month is picked out in navy with its value in a
+/// tooltip above the bar, the rest sit in a neutral wash.
 class RevenueTrendCard extends StatelessWidget {
   final String title;
   final List<RevenueMonth> months;
-  const RevenueTrendCard({super.key, required this.title, required this.months});
+
+  const RevenueTrendCard({
+    super.key,
+    required this.title,
+    required this.months,
+  });
 
   static String _short(String ym) {
     const names = [
@@ -22,31 +28,52 @@ class RevenueTrendCard extends StatelessWidget {
     return (mi >= 1 && mi <= 12) ? names[mi - 1] : ym;
   }
 
-  static String _money(double v) =>
+  static String money(double v) =>
       '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
-      padding: const EdgeInsets.all(AppSpacing.stackLg),
+    return AdminCard(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTypography.headlineLg.copyWith(fontSize: 22)),
-          const SizedBox(height: AppSpacing.stackLg),
+          Row(
+            children: [
+              Expanded(child: Text(title, style: AdminType.cardTitle)),
+              if (months.isNotEmpty) _RangeLabel(count: months.length),
+            ],
+          ),
+          const SizedBox(height: 22),
           if (months.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackLg),
-              child: Text('No revenue recorded yet.',
-                  style: AppTypography.bodyMd
-                      .copyWith(color: AppColors.onSurfaceVariant)),
+              padding: const EdgeInsets.symmetric(vertical: 22),
+              child: Text('No revenue recorded yet.', style: AdminType.body),
             )
           else
-            SizedBox(height: 170, child: _Bars(months: months)),
+            SizedBox(height: 190, child: _Bars(months: months)),
         ],
       ),
     );
   }
+}
+
+/// Static "Last N Months" caption describing the window the chart covers.
+class _RangeLabel extends StatelessWidget {
+  final int count;
+  const _RangeLabel({required this.count});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: AdminPalette.tint,
+          borderRadius: BorderRadius.circular(AdminRadius.chip),
+        ),
+        child: Text('Last $count Months',
+            style: AdminType.meta.copyWith(
+                color: AdminPalette.ink, fontWeight: FontWeight.w600)),
+      );
 }
 
 class _Bars extends StatelessWidget {
@@ -56,63 +83,103 @@ class _Bars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maxV = months.fold<double>(1, (m, r) => r.total > m ? r.total : m);
+    final activeIndex = months.length - 1;
+
     return Column(
       children: [
+        // Tooltip lane — reserves a fixed strip so bars stay aligned whichever
+        // column is highlighted.
+        SizedBox(
+          height: 26,
+          child: Row(
+            children: [
+              for (var i = 0; i < months.length; i++) ...[
+                Expanded(
+                  child: i == activeIndex
+                      ? Align(
+                          alignment: Alignment.bottomCenter,
+                          child: _Tooltip(
+                              value: RevenueTrendCard.money(months[i].total)),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                if (i != months.length - 1) const SizedBox(width: 10),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
         Expanded(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               for (var i = 0; i < months.length; i++) ...[
-                Expanded(child: _bar(months[i], maxV)),
-                if (i != months.length - 1) const SizedBox(width: 8),
+                Expanded(
+                  child: FractionallySizedBox(
+                    alignment: Alignment.bottomCenter,
+                    heightFactor: (months[i].total / maxV).clamp(0.04, 1.0),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 6),
+                      decoration: BoxDecoration(
+                        color: i == activeIndex
+                            ? AdminPalette.ink
+                            : AdminPalette.tint,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                if (i != months.length - 1) const SizedBox(width: 10),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 10),
         Row(
           children: [
             for (var i = 0; i < months.length; i++) ...[
               Expanded(
-                child: Text(RevenueTrendCard._short(months[i].month),
-                    textAlign: TextAlign.center, style: AppTypography.bodySm),
+                child: Text(
+                  RevenueTrendCard._short(months[i].month),
+                  textAlign: TextAlign.center,
+                  style: AdminType.meta.copyWith(
+                    fontSize: 12,
+                    color: i == activeIndex
+                        ? AdminPalette.ink
+                        : AdminPalette.faint,
+                    fontWeight:
+                        i == activeIndex ? FontWeight.w700 : FontWeight.w400,
+                  ),
+                ),
               ),
-              if (i != months.length - 1) const SizedBox(width: 8),
+              if (i != months.length - 1) const SizedBox(width: 10),
             ],
           ],
         ),
       ],
     );
   }
+}
 
-  Widget _bar(RevenueMonth m, double maxV) {
-    return Column(
-      children: [
-        Text(RevenueTrendCard._money(m.total),
-            style: AppTypography.labelCaps
-                .copyWith(color: AppColors.onSurfaceVariant, fontSize: 9)),
-        const SizedBox(height: 4),
-        // Bounded region so FractionallySizedBox has a finite height to scale
-        // against (a bare Column gives its children unbounded main-axis space).
-        Expanded(
-          child: FractionallySizedBox(
-            alignment: Alignment.bottomCenter,
-            heightFactor: (m.total / maxV).clamp(0.03, 1.0),
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 4),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.primary, Color(0xFFAFC4F5)],
-                ),
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppRadius.sm)),
-              ),
-            ),
-          ),
+/// Dark value bubble that sits above the highlighted bar.
+class _Tooltip extends StatelessWidget {
+  final String value;
+  const _Tooltip({required this.value});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AdminPalette.ink,
+          borderRadius: BorderRadius.circular(7),
         ),
-      ],
-    );
-  }
+        child: Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.visible,
+          softWrap: false,
+          style: AdminType.meta.copyWith(
+              color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+        ),
+      );
 }

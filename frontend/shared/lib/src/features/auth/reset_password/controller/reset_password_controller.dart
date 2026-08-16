@@ -14,9 +14,8 @@ class ResetPasswordController extends GetxController {
   String email = '';
   String token = '';
 
-  final newCtrl = TextEditingController();
-  final confirmCtrl = TextEditingController();
-
+  /// Field values, fed by `TextEditingController`s that [ResetPasswordView]'s
+  /// State owns and disposes.
   final password = ''.obs;
   final confirm = ''.obs;
   final obscureNew = true.obs;
@@ -82,11 +81,4 @@ class ResetPasswordController extends GetxController {
   }
 
   void cancel() => Get.offNamedUntil(AuthRoutes.login, (route) => false);
-
-  @override
-  void onClose() {
-    newCtrl.dispose();
-    confirmCtrl.dispose();
-    super.onClose();
-  }
 }

@@ -8,8 +8,20 @@ import '../../../../../widgets/skeletons.dart';
 
 /// New Announcement — compose a message and broadcast it to a section, all
 /// guardians, or all students over the chosen channel.
-class CreateAnnouncementView extends GetView<CreateAnnouncementController> {
+class CreateAnnouncementView extends StatefulWidget {
   const CreateAnnouncementView({super.key});
+
+  @override
+  State<CreateAnnouncementView> createState() => _CreateAnnouncementViewState();
+}
+
+class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
+    with ScreenTextControllers {
+  final controller = Get.find<CreateAnnouncementController>();
+
+  // Owned by this screen — one controller per field, disposed here.
+  late final _titleCtrl = boundController(controller.title);
+  late final _bodyCtrl = boundController(controller.body);
 
   @override
   Widget build(BuildContext context) {
@@ -29,13 +41,13 @@ class CreateAnnouncementView extends GetView<CreateAnnouncementController> {
             GlassInput(
               label: 'Title (optional)',
               hint: 'e.g. Field trip on Friday',
-              controller: controller.titleCtrl,
+              controller: _titleCtrl,
             ),
             const SizedBox(height: AppSpacing.stackMd),
             GlassInput(
               label: 'Message',
               hint: 'What do you want to tell them?',
-              controller: controller.bodyCtrl,
+              controller: _bodyCtrl,
             ),
             const SizedBox(height: AppSpacing.stackLg),
 

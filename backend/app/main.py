@@ -7,6 +7,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
 from app.core.deps import enforce_school_context
+from app.core.errors import install_error_handling
 from app.core.ratelimit import limiter
 from app.modules.academic.router import router as academic_router
 from app.modules.ai.router import router as ai_router
@@ -48,6 +49,12 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     docs_url="/docs",
 )
+
+# Error handling. Added FIRST so it ends up the innermost middleware: an
+# unhandled exception is converted to a JSON 500 *before* it can escape past
+# CORS, which is what turns a server-side bug into an unreadable "Failed to
+# fetch" in the browser. See app/core/errors.py.
+install_error_handling(app)
 
 # Rate limiting (per-IP). Routers opt in via `@limiter.limit(...)`; the
 # middleware + handler turn breaches into HTTP 429.

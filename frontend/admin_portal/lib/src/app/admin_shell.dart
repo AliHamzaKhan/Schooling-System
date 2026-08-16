@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'package:shared/shared.dart';
 
 import '../features/analytics/binding/analytics_binding.dart';
 import '../features/analytics/view/analytics_view.dart';
@@ -12,6 +11,7 @@ import '../features/payments/view/payments_view.dart';
 import '../features/schools/binding/schools_binding.dart';
 import '../features/schools/view/schools_view.dart';
 import '../features/settings/view/settings_view.dart';
+import '../ui/admin_theme.dart';
 import 'admin_routes.dart';
 
 /// Root authenticated shell — hosts the five admin tabs behind a persistent
@@ -71,9 +71,10 @@ class _AdminShellState extends State<AdminShell> with TickerProviderStateMixin {
         icon: icon,
         iconAnimationController: animController,
         title: title,
-        activeColorPrimary: AppColors.primary,
+        activeColorPrimary: AdminPalette.ink,
         activeColorSecondary: Colors.white,
-        inactiveColorPrimary: AppColors.onSurfaceVariant,
+        inactiveColorPrimary: AdminPalette.faint,
+        textStyle: AdminType.meta.copyWith(fontSize: 11),
       );
 
   List<PersistentBottomNavBarItem> _items() => [
@@ -109,7 +110,13 @@ class _AdminShellState extends State<AdminShell> with TickerProviderStateMixin {
         screens: _screens(),
         items: _items(),
         navBarStyle: NavBarStyle.style7,
-        backgroundColor: AppColors.surface,
+        backgroundColor: AdminPalette.card,
+        decoration: NavBarDecoration(
+          border: const Border(
+            top: BorderSide(color: AdminPalette.border),
+          ),
+          boxShadow: AdminPalette.cardShadow,
+        ),
         confineToSafeArea: true,
         handleAndroidBackButtonPress: false,
         resizeToAvoidBottomInset: true,

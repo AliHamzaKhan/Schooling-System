@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../widgets/profile_avatar.dart';
 import '../models/teacher.dart';
 
 /// Teacher roster card: accent avatar (with status ring), name + status pill,
@@ -111,16 +112,12 @@ class _AvatarBadge extends StatelessWidget {
         border:
             Border.all(color: teacher.accent.withValues(alpha: 0.35), width: 2),
       ),
-      child: teacher.avatarUrl != null
-          ? CircleAvatar(
-              radius: 28, backgroundImage: NetworkImage(teacher.avatarUrl!))
-          : CircleAvatar(
-              radius: 28,
-              backgroundColor: teacher.accent.withValues(alpha: 0.18),
-              child: Text(teacher.initials,
-                  style: AppTypography.titleLg.copyWith(
-                      color: teacher.accent, fontWeight: FontWeight.w700)),
-            ),
+      child: ProfileAvatar(
+        name: teacher.name,
+        url: teacher.avatarUrl,
+        size: 56,
+        accent: teacher.accent,
+      ),
     );
   }
 }

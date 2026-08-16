@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../../widgets/leave_review.dart';
@@ -28,7 +27,9 @@ class GuardianLeaveController extends GetxController {
   final leaveType = 'sick'.obs;
   final startDate = Rxn<DateTime>();
   final endDate = Rxn<DateTime>();
-  final reasonCtrl = TextEditingController();
+  /// Reason text. The `TextEditingController` behind it belongs to the submit
+  /// sheet's State, so it lives and dies with that sheet.
+  final reason = ''.obs;
   final submitting = false.obs;
   final formError = RxnString();
 
@@ -39,12 +40,6 @@ class GuardianLeaveController extends GetxController {
     super.onInit();
     childId.value = _session.selectedId.value;
     load();
-  }
-
-  @override
-  void onClose() {
-    reasonCtrl.dispose();
-    super.onClose();
   }
 
   Future<void> load() async {
@@ -65,7 +60,7 @@ class GuardianLeaveController extends GetxController {
     leaveType.value = 'sick';
     startDate.value = null;
     endDate.value = null;
-    reasonCtrl.clear();
+    reason.value = '';
     formError.value = null;
   }
 
@@ -97,7 +92,7 @@ class GuardianLeaveController extends GetxController {
       leaveType: leaveType.value,
       startDate: fmt(start),
       endDate: fmt(end),
-      reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
+      reason: reason.value.trim().isEmpty ? null : reason.value.trim(),
     );
     submitting.value = false;
     if (!res.success) {

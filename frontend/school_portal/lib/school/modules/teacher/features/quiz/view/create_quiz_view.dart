@@ -9,8 +9,19 @@ import '../../../../../widgets/skeletons.dart';
 
 /// Create Quiz — title + section/subject pickers, an MCQ question builder, a
 /// running total, and a Save & Publish action.
-class CreateQuizView extends GetView<CreateQuizController> {
+class CreateQuizView extends StatefulWidget {
   const CreateQuizView({super.key});
+
+  @override
+  State<CreateQuizView> createState() => _CreateQuizViewState();
+}
+
+class _CreateQuizViewState extends State<CreateQuizView>
+    with ScreenTextControllers {
+  final controller = Get.find<CreateQuizController>();
+
+  // Owned by this screen — created here, disposed here.
+  late final _titleCtrl = boundController(controller.title);
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +41,7 @@ class CreateQuizView extends GetView<CreateQuizController> {
             GlassInput(
                 label: 'Quiz title',
                 hint: 'e.g. Chapter 3 — Fractions',
-                controller: controller.titleCtrl),
+                controller: _titleCtrl),
             const SizedBox(height: AppSpacing.stackMd),
             Obx(() => ActionDropdownField<String>(
                   label: 'Section',
@@ -190,8 +201,6 @@ class CreateQuizView extends GetView<CreateQuizController> {
     );
   }
 
-  static String _fmt(double v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
   Future<DraftQuestion?> _showAddQuestion(BuildContext context) {
     return showDialog<DraftQuestion>(
@@ -227,7 +236,7 @@ class _QuestionTile extends StatelessWidget {
                         .copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(
-                  'Answer: ${question.options[question.correctIndex]}  ·  ${CreateQuizView._fmt(question.marks)} mark(s)',
+                  'Answer: ${question.options[question.correctIndex]}  ·  ${_fmt(question.marks)} mark(s)',
                   style: AppTypography.bodySm
                       .copyWith(color: AppColors.onSurfaceVariant),
                 ),
@@ -408,3 +417,6 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
     );
   }
 }
+
+String _fmt(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toString();

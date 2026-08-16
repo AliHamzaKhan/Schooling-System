@@ -11,8 +11,21 @@ import '../controller/create_exam_controller.dart';
 /// Create Exam — name, class, date range, and one or more subject papers
 /// (subject + max/pass marks). This mirrors what the backend stores; authoring
 /// quiz-style questions lives in the separate Quiz feature.
-class CreateExamView extends GetView<CreateExamController> {
+class CreateExamView extends StatefulWidget {
   const CreateExamView({super.key});
+
+  @override
+  State<CreateExamView> createState() => _CreateExamViewState();
+}
+
+class _CreateExamViewState extends State<CreateExamView>
+    with ScreenTextControllers {
+  final controller = Get.find<CreateExamController>();
+
+  // The screen's own fields. Each paper card owns its two marks fields.
+  late final _nameCtrl = boundController(controller.name);
+  late final _startCtrl = boundController(controller.startText);
+  late final _endCtrl = boundController(controller.endText);
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +62,7 @@ class CreateExamView extends GetView<CreateExamController> {
                         PortalFormField(
                           label: 'Exam Name',
                           hint: 'e.g. Mid-Term Examination',
-                          controller: controller.nameCtrl,
+                          controller: _nameCtrl,
                         ),
                         const SizedBox(height: AppSpacing.stackLg),
                         Obx(() => PortalDropdownField<String>(
@@ -71,7 +84,7 @@ class CreateExamView extends GetView<CreateExamController> {
                               child: PortalFormField(
                                 label: 'Starts',
                                 hint: 'mm/dd/yyyy',
-                                controller: controller.startCtrl,
+                                controller: _startCtrl,
                                 readOnly: true,
                                 onTap: () =>
                                     controller.pickStartDate(context),
@@ -86,7 +99,7 @@ class CreateExamView extends GetView<CreateExamController> {
                               child: PortalFormField(
                                 label: 'Ends',
                                 hint: 'mm/dd/yyyy',
-                                controller: controller.endCtrl,
+                                controller: _endCtrl,
                                 readOnly: true,
                                 onTap: () => controller.pickEndDate(context),
                                 suffix: const Icon(
@@ -121,7 +134,14 @@ class CreateExamView extends GetView<CreateExamController> {
                           for (var i = 0;
                               i < controller.papers.length;
                               i++) ...[
-                            _PaperCard(controller: controller, index: i),
+                            _PaperCard(
+                              // Identity key: a card (and its two field
+                              // controllers) stays with its own paper row when
+                              // rows above it are removed.
+                              key: ObjectKey(controller.papers[i]),
+                              controller: controller,
+                              index: i,
+                            ),
                             const SizedBox(height: AppSpacing.stackSm),
                           ],
                         ],
@@ -156,16 +176,33 @@ class CreateExamView extends GetView<CreateExamController> {
     );
   }
 
-  static String _labelFor(List<IdLabel> items, String id) => items
-      .firstWhere((e) => e.id == id,
-          orElse: () => items.isEmpty ? const IdLabel('', '') : items.first)
-      .label;
 }
 
-class _PaperCard extends StatelessWidget {
+String _labelFor(List<IdLabel> items, String id) => items
+    .firstWhere((e) => e.id == id,
+        orElse: () => items.isEmpty ? const IdLabel('', '') : items.first)
+    .label;
+
+class _PaperCard extends StatefulWidget {
   final CreateExamController controller;
   final int index;
-  const _PaperCard({required this.controller, required this.index});
+  const _PaperCard({super.key, required this.controller, required this.index});
+
+  @override
+  State<_PaperCard> createState() => _PaperCardState();
+}
+
+class _PaperCardState extends State<_PaperCard> with ScreenTextControllers {
+  CreateExamController get controller => widget.controller;
+  int get index => widget.index;
+
+  // This card's own fields, seeded from the draft row it edits. Keyed by the
+  // row's identity at the call site, so removing a paper takes its controllers
+  // with it instead of shifting them onto the next row.
+  late final _maxCtrl =
+      textController(initialText: controller.papers[index].maxMarks);
+  late final _passCtrl =
+      textController(initialText: controller.papers[index].passMarks);
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +221,7 @@ class _PaperCard extends StatelessWidget {
                   value: paper.subjectId,
                   items: controller.subjects.map((s) => s.id).toList(),
                   labelOf: (id) =>
-                      CreateExamView._labelFor(controller.subjects, id),
+                      _labelFor(controller.subjects, id),
                   onChanged: (v) => controller.selectPaperSubject(index, v),
                 ),
               ),
@@ -203,7 +240,8 @@ class _PaperCard extends StatelessWidget {
                 child: PortalFormField(
                   label: 'Max marks',
                   hint: '100',
-                  controller: paper.maxCtrl,
+                  controller: _maxCtrl,
+                  onChanged: (v) => paper.maxMarks = v,
                   keyboardType: TextInputType.number,
                   filled: true,
                 ),
@@ -213,7 +251,8 @@ class _PaperCard extends StatelessWidget {
                 child: PortalFormField(
                   label: 'Pass marks',
                   hint: '40',
-                  controller: paper.passCtrl,
+                  controller: _passCtrl,
+                  onChanged: (v) => paper.passMarks = v,
                   keyboardType: TextInputType.number,
                   filled: true,
                 ),

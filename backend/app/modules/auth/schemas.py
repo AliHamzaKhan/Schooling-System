@@ -1,5 +1,6 @@
 """Auth request/response schemas."""
 import uuid
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
@@ -23,6 +24,11 @@ class UserOut(BaseModel):
     is_active: bool
     school_id: uuid.UUID | None = None
     roles: list[RoleOut] = []
+    # Extended profile captured at registration (avatar_url, gender, address, …).
+    # `/auth/me` is the only place a signed-in user can read their own profile,
+    # so without this their photo — stored here by the registration form — has no
+    # way of reaching their portal.
+    profile_metadata: dict[str, Any] | None = None
 
 
 class TokenPair(BaseModel):

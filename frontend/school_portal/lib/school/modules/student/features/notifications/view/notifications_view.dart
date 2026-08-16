@@ -18,7 +18,7 @@ class NotificationsView extends GetView<NotificationsController> {
       body: Column(
         children: [
           PortalTopBar(
-            title: 'EduMaster',
+            title: 'Meri Taleem',
             onBell: () => Get.back<void>(),
             actions: [
               IconButton(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
 import '../models/headmaster.dart';
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
 
 /// Headmaster list card: status-colored left rail, avatar, name + status badge,
 /// an overflow menu (Edit / Delete), then school / email / phone rows.
@@ -20,7 +22,7 @@ class HeadmasterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final h = headmaster;
-    return GlassSurface(
+    return AdminCard(
       padding: EdgeInsets.zero,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -41,7 +43,7 @@ class HeadmasterCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(h.name,
-                            style: AppTypography.titleLg,
+                            style: AdminType.cardTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 4),
@@ -51,7 +53,7 @@ class HeadmasterCard extends StatelessWidget {
                   ),
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert_rounded,
-                        size: 20, color: AppColors.onSurfaceVariant),
+                        size: 20, color: AdminPalette.muted),
                     onSelected: (v) {
                       if (v == 'edit') onEdit?.call();
                       if (v == 'delete') onDelete?.call();
@@ -71,8 +73,8 @@ class HeadmasterCard extends StatelessWidget {
                         child: ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.block_rounded, color: AppColors.error),
-                          title: Text('Deactivate', style: TextStyle(color: AppColors.error)),
+                          leading: Icon(Icons.block_rounded, color: AdminPalette.danger),
+                          title: Text('Deactivate', style: TextStyle(color: AdminPalette.danger)),
                         ),
                       ),
                     ],
@@ -112,9 +114,9 @@ class _Avatar extends StatelessWidget {
     }
     return CircleAvatar(
       radius: 24,
-      backgroundColor: AppColors.surfaceContainerHigh,
+      backgroundColor: AdminPalette.tint,
       child: Text(headmaster.initials,
-          style: AppTypography.titleMd.copyWith(color: AppColors.onSurfaceVariant)),
+          style: AdminType.rowTitle.copyWith(color: AdminPalette.muted)),
     );
   }
 }
@@ -137,7 +139,7 @@ class _StatusBadge extends StatelessWidget {
           Container(width: 7, height: 7, decoration: BoxDecoration(color: status.color, shape: BoxShape.circle)),
           const SizedBox(width: 6),
           Text(status.label,
-              style: AppTypography.labelMd.copyWith(color: status.color)),
+              style: AdminType.label.copyWith(color: status.color)),
         ],
       ),
     );
@@ -152,7 +154,7 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = muted ? AppColors.outline : AppColors.onSurfaceVariant;
+    final color = muted ? AdminPalette.faint : AdminPalette.muted;
     return Row(
       children: [
         Icon(icon, size: 16, color: color),
@@ -160,7 +162,7 @@ class _InfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: AppTypography.bodyMd.copyWith(
+            style: AdminType.body.copyWith(
               color: color,
               fontStyle: muted ? FontStyle.italic : FontStyle.normal,
             ),

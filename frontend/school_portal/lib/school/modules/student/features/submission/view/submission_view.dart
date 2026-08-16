@@ -22,7 +22,7 @@ class SubmissionView extends GetView<SubmissionController> {
       body: Column(
         children: [
           PortalTopBar(
-            title: 'EduMaster',
+            title: 'Meri Taleem',
             onBell: () => Get.back<void>(),
             actions: [
               IconButton(
@@ -133,9 +133,19 @@ class SubmissionView extends GetView<SubmissionController> {
 
 /// The submit form (file drop + notes + Turn In). Shown for un-submitted work,
 /// or when the student opts to replace an existing (ungraded) submission.
-class _SubmitForm extends StatelessWidget {
+class _SubmitForm extends StatefulWidget {
   final SubmissionController controller;
   const _SubmitForm({required this.controller});
+
+  @override
+  State<_SubmitForm> createState() => _SubmitFormState();
+}
+
+class _SubmitFormState extends State<_SubmitForm> with ScreenTextControllers {
+  SubmissionController get controller => widget.controller;
+
+  // Owned by this form — created with it, disposed with it.
+  late final _notesCtrl = boundController(controller.notes);
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +173,7 @@ class _SubmitForm extends StatelessWidget {
           PortalFormField(
             label: 'Additional Notes (Optional)',
             hint: 'Add any comments for your teacher here…',
-            controller: controller.notesCtrl,
+            controller: _notesCtrl,
             maxLines: 3,
           ),
           Obx(() {

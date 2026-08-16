@@ -647,6 +647,16 @@ class HeadmasterApiService {
     );
   }
 
+  /// The profile photo from a `/users` payload, or null when the account has
+  /// none. Registration stores it under `profile_metadata.avatar_url`; the
+  /// local storage backend returns a host-relative path, which [ProfileAvatar]
+  /// resolves before loading.
+  static String? _avatarOf(Map<String, dynamic> user) {
+    final meta = (user['profile_metadata'] as Map?)?.cast<String, dynamic>();
+    final url = (meta?['avatar_url'] as String?)?.trim() ?? '';
+    return url.isEmpty ? null : url;
+  }
+
   /// Live teachers from `/schools/{id}/users?role_code=teacher`. Specialization
   /// is read from `profile_metadata.specialization` when the teacher was
   /// registered with it; older accounts fall back to blank. Status comes from
@@ -667,6 +677,7 @@ class HeadmasterApiService {
             return Teacher(
               id: '${u['id']}',
               name: u['full_name'] as String? ?? '',
+              avatarUrl: _avatarOf(u),
               department: specialization,
               status: (u['is_active'] as bool? ?? true)
                   ? TeacherStatus.active
@@ -699,6 +710,7 @@ class HeadmasterApiService {
                 id: '${u['id']}',
                 roll: '',
                 name: u['full_name'] as String? ?? '',
+                avatarUrl: _avatarOf(u),
                 grade: '',
                 section: '',
                 status: (u['is_active'] as bool? ?? true)
@@ -724,6 +736,7 @@ class HeadmasterApiService {
           .map((u) => Guardian(
                 id: '${u['id']}',
                 name: u['full_name'] as String? ?? '',
+                avatarUrl: _avatarOf(u),
                 email: u['email'] as String? ?? '',
                 phone: u['phone'] as String?,
                 status: (u['is_active'] as bool? ?? true)

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../config/image_constant.dart';
+
 /// Single compact header shown on every module tab screen — avatar (tap for the
 /// account menu, incl. **Log out**), the module wordmark, optional screen
 /// actions, then a bell (announcements) with an unread dot and a **Log out**
@@ -18,7 +20,7 @@ class PortalTopBar extends StatelessWidget {
 
   const PortalTopBar({
     super.key,
-    this.title = 'EduMaster Island',
+    this.title = 'Meri Taleem Island',
     this.showAvatar = true,
     this.hasUnread = true,
     this.onBell,
@@ -39,11 +41,20 @@ class PortalTopBar extends StatelessWidget {
           if (showAvatar) ...[
             InkWell(
               onTap: () => _showAccountMenu(context),
-              customBorder: const CircleBorder(),
-              child: const CircleAvatar(
+              // customBorder: const CircleBorder(),
+              child: CircleAvatar(
                 radius: 17,
-                backgroundColor: AppColors.tertiaryContainer,
-                child: Icon(Icons.person, color: AppColors.onTertiary, size: 19),
+                backgroundColor: AppColors.surface,
+                // ClipOval because the app icon is a full-bleed square — its
+                // corners would otherwise poke out of the avatar circle.
+                child: ClipOval(
+                  child: Image.asset(
+                    ImageConstant.appIcon,
+                    width: 25,
+                    height: 25,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.stackSm),

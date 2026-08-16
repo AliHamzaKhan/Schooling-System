@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import '../../../ui/admin_theme.dart';
 
 /// Per-module access status for a school, mirroring the backend `ModuleStatus`.
 ///
@@ -104,7 +104,7 @@ class ModuleCatalog {
   ModuleCatalog._();
 
   static const groups = <ModuleGroup>[
-    ModuleGroup('Academics', Icons.menu_book_outlined, AppColors.primary, [
+    ModuleGroup('Academics', Icons.menu_book_outlined, AdminPalette.ink, [
       ModuleMeta('student_management', 'Student Management',
           'Enrollment, profiles and records', Icons.school_outlined),
       ModuleMeta('teacher_management', 'Teacher Management',
@@ -122,7 +122,7 @@ class ModuleCatalog {
       ModuleMeta('timetable', 'Timetable',
           'Class and period scheduling', Icons.calendar_view_week_outlined),
     ]),
-    ModuleGroup('Operations', Icons.apartment_outlined, Color(0xFFE8A317), [
+    ModuleGroup('Operations', Icons.apartment_outlined, AdminPalette.warning, [
       ModuleMeta('fee_management', 'Fee Management',
           'Fee structures and collection', Icons.payments_outlined),
       ModuleMeta('hr_payroll', 'HR & Payroll',
@@ -136,7 +136,7 @@ class ModuleCatalog {
       ModuleMeta('hostel', 'Hostel',
           'Rooms and boarding', Icons.night_shelter_outlined),
     ]),
-    ModuleGroup('Engagement', Icons.forum_outlined, AppColors.tertiary, [
+    ModuleGroup('Engagement', Icons.forum_outlined, AdminPalette.positive, [
       ModuleMeta('messaging', 'Messaging',
           'In-app announcements and chat', Icons.chat_outlined),
       ModuleMeta('online_classes', 'Online Classes',
@@ -148,7 +148,7 @@ class ModuleCatalog {
       ModuleMeta('reports', 'Reports',
           'Analytics and exports', Icons.insights_outlined),
     ]),
-    ModuleGroup('AI & Platform', Icons.auto_awesome_outlined, AppColors.aiAccent, [
+    ModuleGroup('AI & Platform', Icons.auto_awesome_outlined, AdminPalette.info, [
       ModuleMeta('ai_features', 'AI Features',
           'AI quizzes, insights and summaries', Icons.smart_toy_outlined),
       ModuleMeta('mobile_app', 'Mobile App',

@@ -6,6 +6,8 @@ import '../../../ui/admin_widgets/filter_chips.dart';
 import '../../../ui/admin_widgets/status_pill.dart';
 import '../../subscriptions/models/subscription_models.dart';
 import '../controller/subscription_management_controller.dart';
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
 
 /// Subscription Management — every school's subscription instance, filtered by
 /// the All / Active / Pending / History tabs. Opened from the dashboard's
@@ -44,7 +46,7 @@ class SubscriptionManagementView
                 if (controller.error.value != null) {
                   return Center(
                       child: Text(controller.error.value!,
-                          style: AppTypography.bodyLg));
+                          style: AdminType.body));
                 }
                 if (controller.subscriptions.isEmpty) {
                   return const _EmptyState();
@@ -90,7 +92,7 @@ class _SubscriptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final canManage = sub.status == SubscriptionStatus.active ||
         sub.status == SubscriptionStatus.expired;
-    return GlassSurface(
+    return AdminCard(
       padding: const EdgeInsets.all(AppSpacing.stackMd),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +101,7 @@ class _SubscriptionCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(sub.schoolName ?? 'School',
-                    style: AppTypography.titleMd,
+                    style: AdminType.rowTitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
               ),
@@ -109,20 +111,20 @@ class _SubscriptionCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '${sub.planName ?? 'Plan'} · ${sub.billingPeriod.label}',
-            style: AppTypography.bodyMd
-                .copyWith(color: AppColors.onSurfaceVariant),
+            style: AdminType.body
+                .copyWith(color: AdminPalette.muted),
           ),
           const SizedBox(height: AppSpacing.stackSm),
           Row(
             children: [
               Icon(Icons.event_rounded,
-                  size: 16, color: AppColors.onSurfaceVariant),
+                  size: 16, color: AdminPalette.muted),
               const SizedBox(width: 6),
               Text('${_fmtDate(sub.startDate)} → ${_fmtDate(sub.endDate)}',
-                  style: AppTypography.bodySm
-                      .copyWith(color: AppColors.onSurfaceVariant)),
+                  style: AdminType.meta
+                      .copyWith(color: AdminPalette.muted)),
               const Spacer(),
-              Text(_money(sub.netAmount), style: AppTypography.titleMd),
+              Text(_money(sub.netAmount), style: AdminType.rowTitle),
             ],
           ),
           if (canManage) ...[
@@ -184,25 +186,25 @@ class _Header extends StatelessWidget {
                 onTap: () => Get.back<void>(),
                 child: const CircleAvatar(
                   radius: 18,
-                  backgroundColor: AppColors.primaryContainer,
+                  backgroundColor: AdminPalette.inkSoft,
                   child: Icon(Icons.arrow_back_rounded,
-                      color: AppColors.onPrimary, size: 20),
+                      color: Colors.white, size: 20),
                 ),
               ),
               const SizedBox(width: AppSpacing.stackSm),
-              Text('EduMaster Admin',
-                  style: AppTypography.titleLg.copyWith(
-                      color: AppColors.primary, fontWeight: FontWeight.w700)),
+              Text('Meri Taleem Admin',
+                  style: AdminType.cardTitle.copyWith(
+                      color: AdminPalette.ink, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: AppSpacing.stackLg),
           Text('Subscriptions',
-              style: AppTypography.displayLg
-                  .copyWith(color: AppColors.primary, fontSize: 34)),
+              style: AdminType.metric
+                  .copyWith(color: AdminPalette.ink, fontSize: 34)),
           const SizedBox(height: AppSpacing.stackSm),
           Text('Every school\'s subscription, by status.',
               style:
-                  AppTypography.bodyLg.copyWith(color: AppColors.onSurface)),
+                  AdminType.body.copyWith(color: AdminPalette.ink)),
         ],
       ),
     );
@@ -218,7 +220,7 @@ class _EmptyState extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: const [
         SizedBox(height: 80),
-        Icon(Icons.inbox_rounded, size: 48, color: AppColors.outline),
+        Icon(Icons.inbox_rounded, size: 48, color: AdminPalette.faint),
         SizedBox(height: AppSpacing.stackMd),
         Center(child: Text('No subscriptions here yet.')),
       ],

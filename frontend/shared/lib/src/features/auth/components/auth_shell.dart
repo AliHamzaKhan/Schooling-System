@@ -24,12 +24,17 @@ class AuthShell extends StatelessWidget {
   /// Show the brand wordmark in the top bar.
   final bool showBrand;
 
+  /// Wrap [child] in the elevated white card. Login sets this false so its
+  /// fields sit directly on the background.
+  final bool showCard;
+
   const AuthShell({
     super.key,
     required this.child,
     this.showBack = true,
     this.action,
     this.showBrand = true,
+    this.showCard = true,
   });
 
   static const double _maxCardWidth = 440;
@@ -61,7 +66,7 @@ class AuthShell extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _Card(child: child),
+                          if (showCard) _Card(child: child) else child,
                           const SizedBox(height: AppSpacing.stackXl),
                           const AuthFooter(),
                           const SizedBox(height: AppSpacing.stackMd),

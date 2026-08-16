@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// Wrapping group of single-select pills (e.g. Public / Private / Charter /
 /// Other). Two per row on narrow widths. Selected pill is tinted with [accent].
@@ -14,7 +15,7 @@ class SegmentedPills extends StatelessWidget {
     required this.options,
     required this.selected,
     required this.onSelected,
-    this.accent = AppColors.aiAccent,
+    this.accent = AdminPalette.info,
   });
 
   @override
@@ -62,17 +63,17 @@ class _Pill extends StatelessWidget {
         height: 44,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? accent.withValues(alpha: 0.18) : AppColors.surfaceContainerLowest,
+          color: selected ? accent.withValues(alpha: 0.18) : AdminPalette.card,
           borderRadius: BorderRadius.circular(AppRadius.button),
           border: Border.all(
-            color: selected ? accent : AppColors.outlineVariant,
+            color: selected ? accent : AdminPalette.border,
             width: selected ? 1.5 : 1,
           ),
         ),
         child: Text(
           label,
-          style: AppTypography.titleMd.copyWith(
-            color: selected ? accent : AppColors.onSurface,
+          style: AdminType.rowTitle.copyWith(
+            color: selected ? accent : AdminPalette.ink,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),

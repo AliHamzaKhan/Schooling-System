@@ -112,6 +112,8 @@ class StudentReportController extends GetxController {
     final ok = await showActionFormSheet(
       title: title,
       submitLabel: submitLabel,
+      // The sheet owns this field and disposes it when it closes.
+      ownedControllers: [body],
       fields: [
         GlassInput(label: 'Message', hint: hint, controller: body),
       ],

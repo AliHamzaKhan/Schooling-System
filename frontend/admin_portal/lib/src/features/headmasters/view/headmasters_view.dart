@@ -9,6 +9,8 @@ import '../../../ui/admin_widgets/filter_chips.dart';
 import '../components/headmaster_card.dart';
 import '../controller/headmasters_controller.dart';
 import '../models/headmaster.dart';
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
 
 /// Confirms then soft-deletes (deactivates) a headmaster.
 Future<void> _confirmDeleteHeadmaster(Headmaster h) async {
@@ -53,7 +55,7 @@ class HeadmastersView extends GetView<HeadmastersController> {
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.containerPaddingMobile),
-                    child: GlassSurface(
+                    child: AdminCard(
                       padding: const EdgeInsets.all(AppSpacing.stackMd),
                       child: Column(
                         children: [
@@ -101,7 +103,7 @@ class HeadmastersView extends GetView<HeadmastersController> {
           padding: const EdgeInsets.all(AppSpacing.stackXl),
           child: Center(
             child: Text('No headmasters match your filters.',
-                style: AppTypography.bodyLg),
+                style: AdminType.body),
           ),
         );
       }
@@ -154,24 +156,24 @@ class _Header extends StatelessWidget {
                 onTap: () => Get.back<void>(),
                 child: const CircleAvatar(
                   radius: 18,
-                  backgroundColor: AppColors.primaryContainer,
-                  child: Icon(Icons.person, color: AppColors.onPrimary, size: 20),
+                  backgroundColor: AdminPalette.inkSoft,
+                  child: Icon(Icons.person, color: Colors.white, size: 20),
                 ),
               ),
               const SizedBox(width: AppSpacing.stackSm),
-              Text('EduMaster Admin',
-                  style: AppTypography.titleLg.copyWith(
-                      color: AppColors.primary, fontWeight: FontWeight.w700)),
+              Text('Meri Taleem Admin',
+                  style: AdminType.cardTitle.copyWith(
+                      color: AdminPalette.ink, fontWeight: FontWeight.w700)),
               const Spacer(),
-              const Icon(Icons.notifications_none_rounded, color: AppColors.onSurface),
+              const Icon(Icons.notifications_none_rounded, color: AdminPalette.ink),
             ],
           ),
           const SizedBox(height: AppSpacing.stackLg),
           Text('Headmasters',
-              style: AppTypography.displayLg.copyWith(color: AppColors.primary, fontSize: 34)),
+              style: AdminType.metric.copyWith(color: AdminPalette.ink, fontSize: 34)),
           const SizedBox(height: AppSpacing.stackSm),
           Text('Manage school leadership and administrative access.',
-              style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface)),
+              style: AdminType.body.copyWith(color: AdminPalette.ink)),
           const SizedBox(height: AppSpacing.stackLg),
           PrimaryButton(
             label: 'New Headmaster',
@@ -261,10 +263,10 @@ class _CreateHeadmasterDialogState extends State<_CreateHeadmasterDialog> {
               initialValue: _schoolId,
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.onSurfaceVariant),
+                  color: AdminPalette.muted),
               hint: Text(loading ? 'Loading schools…' : 'Select a school',
-                  style: AppTypography.bodyLg.copyWith(color: AppColors.outline)),
-              style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
+                  style: AdminType.body.copyWith(color: AdminPalette.faint)),
+              style: AdminType.body.copyWith(color: AdminPalette.ink),
               decoration: _fieldDecoration(),
               items: [
                 for (final s in schools)
@@ -331,7 +333,7 @@ class _Pager extends StatelessWidget {
           onPressed: page > 1 ? onPrev : null,
           icon: const Icon(Icons.chevron_left_rounded),
         ),
-        Text('Page $page of $total', style: AppTypography.labelMd),
+        Text('Page $page of $total', style: AdminType.label),
         IconButton(
           onPressed: page < total ? onNext : null,
           icon: const Icon(Icons.chevron_right_rounded),
@@ -440,7 +442,7 @@ class _HeadmasterDialogShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<HeadmastersController>();
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AdminPalette.canvas,
       insetPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.containerPaddingMobile, vertical: 24),
       shape: RoundedRectangleBorder(
@@ -459,10 +461,10 @@ class _HeadmasterDialogShell extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
+                      color: AdminPalette.ink.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.button),
                     ),
-                    child: Icon(icon, color: AppColors.primary, size: 24),
+                    child: Icon(icon, color: AdminPalette.ink, size: 24),
                   ),
                   const SizedBox(width: AppSpacing.stackMd),
                   Expanded(
@@ -470,12 +472,12 @@ class _HeadmasterDialogShell extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title,
-                            style: AppTypography.titleLg
+                            style: AdminType.cardTitle
                                 .copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 2),
                         Text(subtitle,
-                            style: AppTypography.bodySm.copyWith(
-                                color: AppColors.onSurfaceVariant),
+                            style: AdminType.meta.copyWith(
+                                color: AdminPalette.muted),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                       ],
@@ -501,18 +503,18 @@ class _HeadmasterDialogShell extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.stackMd, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.errorContainer,
+                      color: AdminPalette.dangerSoft,
                       borderRadius: BorderRadius.circular(AppRadius.button),
                     ),
                     child: Row(
                       children: [
                         const Icon(Icons.error_outline_rounded,
-                            color: AppColors.onErrorContainer, size: 18),
+                            color: AdminPalette.danger, size: 18),
                         const SizedBox(width: AppSpacing.stackSm),
                         Expanded(
                           child: Text(err,
-                              style: AppTypography.bodyMd.copyWith(
-                                  color: AppColors.onErrorContainer)),
+                              style: AdminType.body.copyWith(
+                                  color: AdminPalette.danger)),
                         ),
                       ],
                     ),
@@ -569,11 +571,11 @@ class _LabeledField extends StatelessWidget {
         Text.rich(
           TextSpan(
             text: label,
-            style: AppTypography.labelMd.copyWith(color: AppColors.onSurface),
+            style: AdminType.label.copyWith(color: AdminPalette.ink),
             children: [
               if (required)
                 const TextSpan(
-                    text: ' *', style: TextStyle(color: AppColors.error)),
+                    text: ' *', style: TextStyle(color: AdminPalette.danger)),
             ],
           ),
         ),
@@ -613,14 +615,14 @@ class _PasswordFieldState extends State<_PasswordField> {
       child: TextField(
         controller: widget.controller,
         obscureText: _obscure,
-        style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
+        style: AdminType.body.copyWith(color: AdminPalette.ink),
         decoration: _fieldDecoration(hint: widget.hint).copyWith(
           suffixIcon: IconButton(
             icon: Icon(
               _obscure
                   ? Icons.visibility_off_outlined
                   : Icons.visibility_outlined,
-              color: AppColors.onSurfaceVariant,
+              color: AdminPalette.muted,
               size: 20,
             ),
             onPressed: () => setState(() => _obscure = !_obscure),
@@ -641,14 +643,14 @@ InputDecoration _fieldDecoration({String? hint}) {
       );
   return InputDecoration(
     hintText: hint,
-    hintStyle: AppTypography.bodyLg.copyWith(color: AppColors.outline),
+    hintStyle: AdminType.body.copyWith(color: AdminPalette.faint),
     filled: true,
-    fillColor: AppColors.surfaceContainerLowest,
+    fillColor: AdminPalette.card,
     isDense: true,
     contentPadding:
         const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd, vertical: 14),
-    enabledBorder: border(AppColors.outlineVariant),
-    focusedBorder: border(AppColors.primary, width: 1.5),
-    border: border(AppColors.outlineVariant),
+    enabledBorder: border(AdminPalette.border),
+    focusedBorder: border(AdminPalette.ink, width: 1.5),
+    border: border(AdminPalette.border),
   );
 }

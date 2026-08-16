@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
 
-/// Large tappable call-to-action banner (Create School / Manage Headmasters).
-///
-/// [filled] cards use a solid navy background with light text; otherwise the
-/// card is tinted with [background] and uses dark text. A big watermark [icon]
-/// sits on the right.
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
+
+/// Hero call-to-action on the admin home — a filled navy panel with a stacked
+/// icon chip, title and supporting line, plus a large watermark glyph.
 class QuickActionCard extends StatelessWidget {
   final String label;
+  final String? description;
   final IconData leadingIcon;
   final IconData watermarkIcon;
-  final Color background;
-  final bool filled;
   final VoidCallback onTap;
 
   const QuickActionCard({
@@ -19,59 +17,57 @@ class QuickActionCard extends StatelessWidget {
     required this.label,
     required this.leadingIcon,
     required this.watermarkIcon,
-    required this.background,
     required this.onTap,
-    this.filled = false,
+    this.description,
   });
 
   @override
   Widget build(BuildContext context) {
-    final fg = filled ? AppColors.onPrimary : AppColors.primary;
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(AppRadius.card),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: SizedBox(
-          height: 96,
-          child: Stack(
-            children: [
-              Positioned(
-                right: -8,
-                bottom: -8,
-                child: Icon(watermarkIcon,
-                    size: 96, color: fg.withValues(alpha: 0.12)),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackLg),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: fg.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(leadingIcon, color: fg, size: 22),
-                    ),
-                    const SizedBox(width: AppSpacing.stackMd),
-                    Expanded(
-                      child: Text(
-                        label,
-                        style: AppTypography.titleLg.copyWith(
-                          color: fg,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    return AdminCard(
+      filled: true,
+      onTap: onTap,
+      padding: EdgeInsets.zero,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -14,
+            bottom: -18,
+            child: Icon(watermarkIcon,
+                size: 118, color: Colors.white.withValues(alpha: 0.07)),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AdminRadius.tile),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(leadingIcon, color: Colors.white, size: 24),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  label,
+                  style: AdminType.sectionTitle.copyWith(color: Colors.white),
+                ),
+                if (description != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    description!,
+                    style: AdminType.body
+                        .copyWith(color: Colors.white.withValues(alpha: 0.72)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

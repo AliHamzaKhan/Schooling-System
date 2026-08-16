@@ -1,66 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
 
 import '../../../data/models/dashboard_stats.dart';
+import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_surface.dart';
 
-/// One row in the Recent Alerts feed — leading severity icon, title + body,
-/// and a time stamp. Critical alerts get a soft red wash.
+/// One row in the Recent Alerts feed — leading severity chip, title + body,
+/// and a time stamp. Severity drives the chip color only; the row itself stays
+/// on the flat card surface.
 class AlertTile extends StatelessWidget {
   final AdminAlert alert;
   const AlertTile({super.key, required this.alert});
 
   @override
   Widget build(BuildContext context) {
-    final (color, icon, washed) = switch (alert.severity) {
-      AlertSeverity.critical => (AppColors.error, Icons.warning_amber_rounded, true),
-      AlertSeverity.warning => (const Color(0xFFE8A317), Icons.schedule_rounded, false),
-      AlertSeverity.info => (AppColors.primary, Icons.group_add_rounded, false),
+    final (fg, bg, icon) = switch (alert.severity) {
+      AlertSeverity.critical => (
+          AdminPalette.danger,
+          AdminPalette.dangerSoft,
+          Icons.warning_amber_rounded,
+        ),
+      AlertSeverity.warning => (
+          AdminPalette.warning,
+          AdminPalette.warningSoft,
+          Icons.schedule_rounded,
+        ),
+      AlertSeverity.info => (
+          AdminPalette.ink,
+          AdminPalette.tint,
+          Icons.group_add_rounded,
+        ),
     };
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.stackMd),
-      decoration: BoxDecoration(
-        color: washed
-            ? AppColors.error.withValues(alpha: 0.06)
-            : AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppRadius.button),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 18, color: color),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AdminIconTile(icon: icon, size: 38, background: bg, foreground: fg),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: Text(alert.title, style: AdminType.rowTitle)),
+                  const SizedBox(width: 8),
+                  Text(alert.timeAgo,
+                      style: AdminType.meta.copyWith(
+                          fontSize: 12, color: AdminPalette.faint)),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(alert.body, style: AdminType.meta),
+            ],
           ),
-          const SizedBox(width: AppSpacing.stackSm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(alert.title,
-                          style: AppTypography.titleMd
-                              .copyWith(fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(alert.timeAgo, style: AppTypography.bodySm),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(alert.body, style: AppTypography.bodyMd),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

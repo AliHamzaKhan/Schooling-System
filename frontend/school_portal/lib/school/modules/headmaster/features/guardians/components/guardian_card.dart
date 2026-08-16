@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../widgets/profile_avatar.dart';
 import '../models/guardian.dart';
 
 /// Guardian card: avatar + name + status pill, contact rows, linked students
@@ -112,14 +113,11 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (guardian.avatarUrl != null) {
-      return CircleAvatar(radius: 28, backgroundImage: NetworkImage(guardian.avatarUrl!));
-    }
-    return CircleAvatar(
-      radius: 28,
-      backgroundColor: AppColors.surfaceContainerHigh,
-      child: Text(guardian.initials,
-          style: AppTypography.titleLg.copyWith(color: AppColors.onSurfaceVariant)),
+    return ProfileAvatar(
+      name: guardian.name,
+      url: guardian.avatarUrl,
+      size: 56,
+      accent: AppColors.onSurfaceVariant,
     );
   }
 }

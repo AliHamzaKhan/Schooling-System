@@ -1,5 +1,8 @@
 import 'package:get/get.dart';
 
+import '../modules/splash/binding/splash_binding.dart';
+import '../modules/splash/view/splash_view.dart';
+import 'app_routes.dart';
 import 'guardian_pages.dart';
 import 'headmaster_pages.dart';
 import 'student_pages.dart';
@@ -22,6 +25,11 @@ class AppPages {
   AppPages._();
 
   static final pages = <GetPage>[
+    GetPage(
+      name: AppRoutes.splash,
+      page: () => const SplashView(),
+      binding: SplashBinding(),
+    ),
     ...HeadmasterPages.pages,
     ...TeacherPages.pages,
     ...StudentPages.pages,

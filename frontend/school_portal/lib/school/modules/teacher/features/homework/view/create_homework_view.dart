@@ -10,8 +10,22 @@ import '../controller/create_homework_controller.dart';
 /// Create Homework — minimal form: title, description, class, due date, points,
 /// then a Post Homework primary action. Status-amber left rail on each
 /// section card.
-class CreateHomeworkView extends GetView<CreateHomeworkController> {
+class CreateHomeworkView extends StatefulWidget {
   const CreateHomeworkView({super.key});
+
+  @override
+  State<CreateHomeworkView> createState() => _CreateHomeworkViewState();
+}
+
+class _CreateHomeworkViewState extends State<CreateHomeworkView>
+    with ScreenTextControllers {
+  final controller = Get.find<CreateHomeworkController>();
+
+  // Every field on this screen gets its own controller, owned here.
+  late final _titleCtrl = boundController(controller.title);
+  late final _descriptionCtrl = boundController(controller.description);
+  late final _dueCtrl = boundController(controller.dueText);
+  late final _pointsCtrl = boundController(controller.points);
 
   @override
   Widget build(BuildContext context) {
@@ -42,13 +56,13 @@ class CreateHomeworkView extends GetView<CreateHomeworkController> {
                       PortalFormField(
                         label: 'Task Title',
                         hint: 'e.g., Algebra Chapter 4 Review',
-                        controller: controller.titleCtrl,
+                        controller: _titleCtrl,
                       ),
                       const SizedBox(height: AppSpacing.stackLg),
                       PortalFormField(
                         label: 'Description & Instructions',
                         hint: 'Provide clear instructions for the students…',
-                        controller: controller.descriptionCtrl,
+                        controller: _descriptionCtrl,
                         maxLines: 5,
                         filled: true,
                       ),
@@ -56,7 +70,11 @@ class CreateHomeworkView extends GetView<CreateHomeworkController> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
-                _LogisticsCard(controller: controller),
+                _LogisticsCard(
+                  controller: controller,
+                  dueCtrl: _dueCtrl,
+                  pointsCtrl: _pointsCtrl,
+                ),
                 const SizedBox(height: AppSpacing.stackLg),
                 Obx(() {
                   final err = controller.error.value;
@@ -87,7 +105,17 @@ class CreateHomeworkView extends GetView<CreateHomeworkController> {
 
 class _LogisticsCard extends StatelessWidget {
   final CreateHomeworkController controller;
-  const _LogisticsCard({required this.controller});
+
+  // Owned by [CreateHomeworkView]'s State — this card only borrows them for as
+  // long as it is on screen, and never disposes them.
+  final TextEditingController dueCtrl;
+  final TextEditingController pointsCtrl;
+
+  const _LogisticsCard({
+    required this.controller,
+    required this.dueCtrl,
+    required this.pointsCtrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +175,7 @@ class _LogisticsCard extends StatelessWidget {
                     PortalFormField(
                       label: 'Due Date',
                       hint: 'mm/dd/yyyy',
-                      controller: controller.dueCtrl,
+                      controller: dueCtrl,
                       readOnly: true,
                       onTap: () => controller.pickDueDate(context),
                       suffix: const Icon(Icons.calendar_today_outlined,
@@ -162,7 +190,7 @@ class _LogisticsCard extends StatelessWidget {
                           child: PortalFormField(
                             label: 'Total Points',
                             hint: '100',
-                            controller: controller.pointsCtrl,
+                            controller: pointsCtrl,
                             keyboardType: TextInputType.number,
                             filled: true,
                           ),

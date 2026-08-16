@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
 
-/// Small rounded status/trend chip. Tint the fill + text via [color]; the
-/// background is a soft wash of it.
+import '../admin_theme.dart';
+
+/// Small rounded status/trend chip. Tint the text via [color]; the background
+/// is a soft wash of it, or an explicit [background].
 class StatusPill extends StatelessWidget {
   final String label;
   final Color color;
+  final Color? background;
   final IconData? icon;
+
+  /// Draws a filled dot instead of an [icon] — the default status treatment.
+  final bool dot;
 
   const StatusPill({
     super.key,
     required this.label,
     required this.color,
+    this.background,
     this.icon,
+    this.dot = false,
   });
 
-  /// Positive (emerald) / negative (red) trend pill from a signed percent.
+  /// Positive (green) / negative (red) trend pill from a signed percent.
   factory StatusPill.trend(double percent) {
     final positive = percent >= 0;
     final sign = positive ? '+' : '';
+    final color = positive ? AdminPalette.positive : AdminPalette.danger;
     return StatusPill(
-      label: '$sign${percent.toStringAsFixed(percent.truncateToDouble() == percent ? 0 : 1)}%',
-      color: positive ? AppColors.tertiary : AppColors.error,
+      label:
+          '$sign${percent.toStringAsFixed(percent.truncateToDouble() == percent ? 0 : 1)}%',
+      color: color,
+      background:
+          positive ? AdminPalette.positiveSoft : AdminPalette.dangerSoft,
       icon: positive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
     );
   }
@@ -29,24 +40,31 @@ class StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.full),
+        color: background ?? color.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(AdminRadius.chip),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
+          if (dot) ...[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+          ] else if (icon != null) ...[
             Icon(icon, size: 13, color: color),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
           ],
           Text(
             label,
-            style: AppTypography.labelCaps.copyWith(
+            style: AdminType.meta.copyWith(
+              fontSize: 12,
               color: color,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

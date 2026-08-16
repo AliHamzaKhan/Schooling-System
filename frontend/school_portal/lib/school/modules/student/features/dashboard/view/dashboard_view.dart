@@ -36,7 +36,7 @@ class DashboardView extends GetView<StudentDashboardController> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        PortalTopBar(title: 'EduMaster', onBell: onNotifications),
+        PortalTopBar(title: 'Meri Taleem', onBell: onNotifications),
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
@@ -66,6 +66,7 @@ class DashboardView extends GetView<StudentDashboardController> {
                         ? 'Student'
                         : controller.fullName,
                     subtitle: controller.roleLine,
+                    avatarUrl: controller.avatarUrl,
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
 

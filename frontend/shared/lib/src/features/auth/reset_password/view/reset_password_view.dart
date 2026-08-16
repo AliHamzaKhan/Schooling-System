@@ -9,12 +9,24 @@ import '../../../../ui/widgets/primary_button.dart';
 import '../../components/auth_icon_badge.dart';
 import '../../components/auth_link_button.dart';
 import '../../components/auth_shell.dart';
+import '../../../../ui/forms/screen_text_controllers.dart';
 import '../components/password_requirements.dart';
 import '../components/password_strength_bar.dart';
 import '../controller/reset_password_controller.dart';
 
-class ResetPasswordView extends GetView<ResetPasswordController> {
+class ResetPasswordView extends StatefulWidget {
   const ResetPasswordView({super.key});
+
+  @override
+  State<ResetPasswordView> createState() => _ResetPasswordViewState();
+}
+
+class _ResetPasswordViewState extends State<ResetPasswordView>
+    with ScreenTextControllers {
+  final controller = Get.find<ResetPasswordController>();
+
+  late final _newCtrl = textController();
+  late final _confirmCtrl = textController();
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +47,7 @@ class ResetPasswordView extends GetView<ResetPasswordController> {
           Obx(() => GlassInput(
                 label: 'New Password',
                 hint: 'Enter new password',
-                controller: controller.newCtrl,
+                controller: _newCtrl,
                 obscureText: controller.obscureNew.value,
                 onChanged: controller.onPasswordChanged,
                 suffix: _EyeButton(
@@ -51,7 +63,7 @@ class ResetPasswordView extends GetView<ResetPasswordController> {
           Obx(() => GlassInput(
                 label: 'Confirm Password',
                 hint: 'Re-enter password',
-                controller: controller.confirmCtrl,
+                controller: _confirmCtrl,
                 obscureText: controller.obscureConfirm.value,
                 onChanged: controller.onConfirmChanged,
                 errorText: (controller.confirm.value.isNotEmpty &&

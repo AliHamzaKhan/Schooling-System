@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import '../admin_theme.dart';
 
 /// One wedge of a [DonutChart].
 class DonutSlice {
@@ -41,8 +41,8 @@ class DonutChart extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(centerValue,
-                  style: AppTypography.headlineLg.copyWith(fontWeight: FontWeight.w700)),
-              Text(centerCaption, style: AppTypography.bodySm),
+                  style: AdminType.screenTitle.copyWith(fontWeight: FontWeight.w700)),
+              Text(centerCaption, style: AdminType.meta),
             ],
           ),
         ),

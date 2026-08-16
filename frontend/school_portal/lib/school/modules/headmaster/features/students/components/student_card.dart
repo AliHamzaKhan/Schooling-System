@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
+import '../../../../../widgets/profile_avatar.dart';
 import '../models/student.dart';
 
 /// Horizontal student card: avatar + status ring on the left, name/roll on top,
@@ -93,17 +94,11 @@ class _AvatarBadge extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: accent.withValues(alpha: 0.35), width: 2),
       ),
-      child: CircleAvatar(
-        radius: 28,
-        backgroundColor: accent.withValues(alpha: 0.18),
-        backgroundImage: student.avatarUrl != null
-            ? NetworkImage(student.avatarUrl!)
-            : null,
-        child: student.avatarUrl == null
-            ? Text(student.initials,
-                style: AppTypography.titleLg
-                    .copyWith(color: accent, fontWeight: FontWeight.w700))
-            : null,
+      child: ProfileAvatar(
+        name: student.name,
+        url: student.avatarUrl,
+        size: 56,
+        accent: accent,
       ),
     );
   }

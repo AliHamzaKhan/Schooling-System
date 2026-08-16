@@ -18,7 +18,7 @@ class ExamsView extends GetView<StudentExamsController> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        PortalTopBar(title: 'EduMaster', onBell: onNotifications),
+        PortalTopBar(title: 'Meri Taleem', onBell: onNotifications),
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {

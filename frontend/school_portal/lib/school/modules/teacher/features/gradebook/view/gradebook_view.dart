@@ -69,9 +69,11 @@ class GradebookView extends GetView<GradebookController> {
                   const SizedBox(height: AppSpacing.stackLg),
                   for (final s in book.students)
                     MarkEntryRow(
+                      // Each student keeps their own row State (and its field
+                      // controller) across rebuilds and paper switches.
+                      key: ValueKey(s.id),
                       student: s,
                       totalMarks: book.totalMarks,
-                      controller: controller.controllerFor(s.id),
                       obtained: controller.marks[s.id],
                       onChanged: (v) => controller.setMark(s.id, v),
                       onOpenStudent: () => Get.toNamed(
