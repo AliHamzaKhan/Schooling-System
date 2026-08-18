@@ -81,7 +81,7 @@ class LoginController extends GetxController {
   Future<void> submit() async {
     error.value = null;
     final enteredEmail = email.value.trim();
-    final enteredPassword = password.value;
+    final enteredPassword = password.value.trim();
 
     if (requireInstitution && selectedInstitution.value == null) {
       error.value = 'Please select your institution.';

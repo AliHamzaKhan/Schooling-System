@@ -112,6 +112,54 @@ class BillingReport {
       );
 }
 
+/// One point on the transactions progress chart (`/admin/transactions`).
+class TransactionBucket {
+  final String label; // "YYYY-MM-DD" (month range) or "YYYY-MM" (year / all)
+  final double total;
+  final int count;
+
+  const TransactionBucket({
+    required this.label,
+    required this.total,
+    required this.count,
+  });
+
+  factory TransactionBucket.fromJson(Map<String, dynamic> j) => TransactionBucket(
+        label: j['label'] as String? ?? '',
+        total: (j['total'] as num?)?.toDouble() ?? 0,
+        count: (j['count'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Filtered ledger view backing the "View All" transactions screen.
+class TransactionsReport {
+  final String range; // "month" | "year" | "all"
+  final double total;
+  final int count;
+  final List<TransactionBucket> buckets;
+  final List<PaymentRow> transactions;
+
+  const TransactionsReport({
+    required this.range,
+    required this.total,
+    required this.count,
+    required this.buckets,
+    required this.transactions,
+  });
+
+  factory TransactionsReport.fromJson(Map<String, dynamic> j) => TransactionsReport(
+        range: j['range'] as String? ?? 'all',
+        total: (j['total'] as num?)?.toDouble() ?? 0,
+        count: (j['count'] as num?)?.toInt() ?? 0,
+        buckets: (j['buckets'] as List? ?? const [])
+            .map((e) => TransactionBucket.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        transactions: (j['transactions'] as List? ?? const [])
+            .map((e) => PaymentRow.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
 /// One slice of the active-subscription plan distribution.
 class PlanShare {
   final String planName;

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../../../../../config/headmaster_routes.dart';
+import '../../../../../widgets/profile_avatar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../controller/student_report_controller.dart';
 import '../models/student_report.dart';
@@ -20,10 +21,14 @@ class StudentReportView extends GetView<StudentReportController> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(
-        title: Obx(() =>
-            Text(controller.report.value?.studentName ?? 'Student Report')),
-      ),
+      appBar: AppBar(title: const Text('Student Report')),
+      bottomNavigationBar: Obx(() {
+        final r = controller.report.value;
+        if (controller.loading.value || r == null) {
+          return const SizedBox.shrink();
+        }
+        return _ActionBar(controller: controller, report: r);
+      }),
       body: Obx(() {
         if (controller.loading.value) {
           return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
@@ -41,6 +46,10 @@ class StudentReportView extends GetView<StudentReportController> {
               AppSpacing.containerPaddingMobile,
               AppSpacing.stackXl),
           children: [
+            // Identity: profile image + the student's name, in the body.
+            _ProfileHeader(name: r.studentName, avatarUrl: r.avatarUrl),
+            const SizedBox(height: AppSpacing.stackLg),
+
             // Headline stats.
             Row(
               children: [
@@ -158,8 +167,8 @@ class StudentReportView extends GetView<StudentReportController> {
               ],
             const SizedBox(height: AppSpacing.stackMd),
 
-            // Guardian + actions.
-            _GuardianActions(controller: controller, report: r),
+            // Guardian context (the actions live in the bottom bar).
+            _GuardianInfo(report: r),
           ],
         );
       }),
@@ -242,10 +251,62 @@ class _ExamRow extends StatelessWidget {
   }
 }
 
-class _GuardianActions extends StatelessWidget {
+/// Profile image + the student's name (username), shown at the top of the body.
+class _ProfileHeader extends StatelessWidget {
+  final String name;
+  final String? avatarUrl;
+  const _ProfileHeader({required this.name, this.avatarUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        ProfileAvatar(name: name, url: avatarUrl, size: 84),
+        const SizedBox(height: AppSpacing.stackMd),
+        Text(
+          name,
+          textAlign: TextAlign.center,
+          style: AppTypography.headlineLg.copyWith(fontWeight: FontWeight.w800),
+        ),
+      ],
+    );
+  }
+}
+
+/// The linked-guardian context line (the actions themselves live in the bottom
+/// action bar).
+class _GuardianInfo extends StatelessWidget {
+  final StudentReport report;
+  const _GuardianInfo({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final guardian =
+        report.guardians.isEmpty ? null : report.guardians.first.name;
+    return GlassSurface(
+      padding: const EdgeInsets.all(AppSpacing.stackLg),
+      child: Row(
+        children: [
+          const Icon(Icons.escalator_warning_rounded, color: AppColors.primary),
+          const SizedBox(width: AppSpacing.stackSm),
+          Expanded(
+            child: Text(
+              guardian == null ? 'No guardian linked' : 'Guardian: $guardian',
+              style: AppTypography.titleMd,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The four student actions as small rectangular icon buttons, fixed at the
+/// bottom of the screen.
+class _ActionBar extends StatelessWidget {
   final StudentReportController controller;
   final StudentReport report;
-  const _GuardianActions({required this.controller, required this.report});
+  const _ActionBar({required this.controller, required this.report});
 
   Future<void> _requestMeeting(BuildContext context) async {
     final now = DateTime.now();
@@ -267,66 +328,116 @@ class _GuardianActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final guardian =
-        report.guardians.isEmpty ? null : report.guardians.first.name;
-    return GlassSurface(
-      padding: const EdgeInsets.all(AppSpacing.stackLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        border: Border(top: BorderSide(color: AppColors.outlineVariant)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.stackMd, vertical: AppSpacing.stackSm),
+          child: Row(
             children: [
-              const Icon(Icons.escalator_warning_rounded,
-                  color: AppColors.primary),
+              Expanded(
+                child: Obx(() => _ActionButton(
+                      icon: Icons.event_available_rounded,
+                      label: 'Meeting',
+                      busy: controller.actionBusy.value,
+                      onTap: () => _requestMeeting(context),
+                    )),
+              ),
               const SizedBox(width: AppSpacing.stackSm),
               Expanded(
-                child: Text(
-                  guardian == null ? 'No guardian linked' : 'Guardian: $guardian',
-                  style: AppTypography.titleMd,
+                child: _ActionButton(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: 'Message',
+                  onTap: controller.hasGuardian
+                      ? controller.messageGuardian
+                      : null,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.stackSm),
+              Expanded(
+                child: _ActionButton(
+                  icon: Icons.report_gmailerrorred_rounded,
+                  label: 'Concern',
+                  onTap: controller.sendComplaint,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.stackSm),
+              Expanded(
+                child: _ActionButton(
+                  icon: Icons.history_rounded,
+                  label: 'History',
+                  onTap: () => Get.toNamed(
+                    HeadmasterRoutes.messageHistory,
+                    arguments: MessageHistoryArgs(
+                      studentId: report.studentId,
+                      studentName: report.studentName,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.stackMd),
-          Obx(() => PrimaryButton(
-                label: 'Request Meeting',
-                leadingIcon: Icons.event_available_rounded,
-                trailingIcon: null,
-                expanded: true,
-                isLoading: controller.actionBusy.value,
-                onPressed: () => _requestMeeting(context),
-              )),
-          const SizedBox(height: AppSpacing.stackSm),
-          GhostButton(
-            label: 'Message Guardian',
-            leadingIcon: Icons.chat_bubble_outline_rounded,
-            trailingIcon: null,
-            expanded: true,
-            onPressed: controller.hasGuardian ? controller.messageGuardian : null,
-          ),
-          const SizedBox(height: AppSpacing.stackSm),
-          GhostButton(
-            label: 'Raise a Concern',
-            leadingIcon: Icons.report_gmailerrorred_rounded,
-            trailingIcon: null,
-            expanded: true,
-            onPressed: controller.sendComplaint,
-          ),
-          const SizedBox(height: AppSpacing.stackSm),
-          GhostButton(
-            label: 'View Message History',
-            leadingIcon: Icons.history_rounded,
-            trailingIcon: Icons.chevron_right_rounded,
-            expanded: true,
-            onPressed: () => Get.toNamed(
-              HeadmasterRoutes.messageHistory,
-              arguments: MessageHistoryArgs(
-                studentId: report.studentId,
-                studentName: report.studentName,
-              ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool busy;
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.busy = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null && !busy;
+    final color = enabled ? AppColors.primary : AppColors.onSurfaceVariant;
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: Material(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppRadius.button),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackSm),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              border: Border.all(color: AppColors.outlineVariant),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                busy
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: color),
+                      )
+                    : Icon(icon, size: 20, color: color),
+                const SizedBox(height: 4),
+                Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.labelMd.copyWith(color: color)),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

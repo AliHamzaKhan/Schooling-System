@@ -35,6 +35,15 @@ async def list_classes(school_id: uuid.UUID, db: DbDep) -> list[schemas.ClassOut
     return await AcademicService(db).list_classes(school_id)
 
 
+@router.get(
+    "/students",
+    response_model=list[schemas.StudentRosterOut],
+    dependencies=[Depends(require_school_permission(Module.STUDENT_MANAGEMENT, PA.VIEW))],
+)
+async def student_roster(school_id: uuid.UUID, db: DbDep) -> list[schemas.StudentRosterOut]:
+    return await AcademicService(db).student_roster(school_id)
+
+
 @router.patch("/classes/{class_id}", response_model=schemas.ClassOut, dependencies=[_edit])
 async def update_class(
     school_id: uuid.UUID, class_id: uuid.UUID, data: schemas.ClassUpdate, db: DbDep

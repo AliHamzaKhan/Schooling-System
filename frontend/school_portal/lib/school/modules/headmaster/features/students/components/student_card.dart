@@ -57,7 +57,7 @@ class StudentCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text('Roll #${student.roll}',
+                  Text(student.roll.isEmpty ? 'Roll #—' : 'Roll #${student.roll}',
                       style: AppTypography.bodyMd
                           .copyWith(color: AppColors.onSurfaceVariant)),
                   const SizedBox(height: AppSpacing.stackMd),
@@ -65,10 +65,16 @@ class StudentCard extends StatelessWidget {
                     spacing: AppSpacing.stackSm,
                     runSpacing: 6,
                     children: [
-                      _Chip(icon: Icons.school_outlined, text: student.grade),
-                      _Chip(
-                          icon: Icons.groups_outlined,
-                          text: 'Sec ${student.section}'),
+                      if (student.grade.isNotEmpty)
+                        _Chip(icon: Icons.school_outlined, text: student.grade),
+                      if (student.section.isNotEmpty)
+                        _Chip(
+                            icon: Icons.groups_outlined,
+                            text: 'Sec ${student.section}'),
+                      if (student.grade.isEmpty && student.section.isEmpty)
+                        _Chip(
+                            icon: Icons.info_outline,
+                            text: 'Not enrolled'),
                     ],
                   ),
                 ],

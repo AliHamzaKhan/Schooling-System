@@ -59,12 +59,20 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                   AppSpacing.containerPaddingMobile,
                   AppSpacing.stackXl),
               children: [
-                const SizedBox(height: AppSpacing.stackSm),
-                DashboardIdentityCard(
-                  title: controller.headmasterName,
-                  subtitle: "Here's what's happening on campus today.",
-                  avatarUrl: Get.find<AuthService>().avatarUrl,
-                ),
+                const SizedBox(height: AppSpacing.stackMd),
+                Text('Hi! ${controller.headmasterName}',
+                    style: AppTypography.headlineLg
+                        .copyWith(fontWeight: FontWeight.w800)),
+                Obx(() {
+                  final school = controller.schoolName.value;
+                  if (school.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(school,
+                        style: AppTypography.bodyLg
+                            .copyWith(color: AppColors.onSurfaceVariant)),
+                  );
+                }),
                 const SizedBox(height: AppSpacing.stackLg),
 
                 // Subscription expiry alert (only near/after expiry).
@@ -250,7 +258,10 @@ class _MetricsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       const gap = AppSpacing.stackMd;
-      final width = (constraints.maxWidth - gap) / 2;
+      // 2 cards per row on a phone, 3 on a tablet, 4 on the web — otherwise the
+      // fixed 2-up layout stretches each card unpleasantly wide.
+      final cols = DashboardStatGrid.columnsFor(constraints.maxWidth);
+      final width = (constraints.maxWidth - gap * (cols - 1)) / cols;
       return Wrap(
         spacing: gap,
         runSpacing: gap,

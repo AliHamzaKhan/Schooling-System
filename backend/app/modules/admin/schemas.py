@@ -45,6 +45,27 @@ class BillingReport(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
+# Transactions (filtered ledger view for the "View All" screen)
+# --------------------------------------------------------------------------- #
+
+
+class TransactionBucket(BaseModel):
+    """One point on the transactions progress chart."""
+
+    label: str  # "YYYY-MM-DD" (month range) or "YYYY-MM" (year / all)
+    total: float
+    count: int
+
+
+class TransactionsReport(BaseModel):
+    range: str  # "month" | "year" | "all"
+    total: float  # sum of payments in the range
+    count: int  # number of payments in the range
+    buckets: list[TransactionBucket]  # chart series, chronological
+    transactions: list[PaymentRow]  # full listing, newest first
+
+
+# --------------------------------------------------------------------------- #
 # Metrics
 # --------------------------------------------------------------------------- #
 

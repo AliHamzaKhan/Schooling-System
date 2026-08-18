@@ -252,6 +252,19 @@ class AdminApiService {
     );
   }
 
+  /// Payment ledger filtered by range (month | year | all) with a chart series.
+  Future<ApiResponse<TransactionsReport>> fetchTransactions({
+    String range = 'all',
+  }) {
+    return _api.request<TransactionsReport>(
+      method: HttpMethod.get,
+      path: AdminEndpoints.adminTransactions,
+      query: {'range': range},
+      parser: (json) =>
+          TransactionsReport.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
   /// Platform metrics: KPIs, churn, plan distribution, revenue trend.
   Future<ApiResponse<MetricsReport>> fetchMetrics() {
     return _api.request<MetricsReport>(

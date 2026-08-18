@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../app/admin_routes.dart';
 import '../../../ui/admin_widgets/admin_top_bar.dart';
 import '../controller/subscriptions_controller.dart';
+import '../models/plan_features.dart';
 import '../models/subscription_models.dart';
 import '../../../ui/admin_theme.dart';
 
@@ -76,7 +78,7 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
   }
 
   void _openPlanForm(BuildContext context, {SubscriptionPlanModel? plan}) {
-    Get.dialog<void>(_PlanFormDialog(plan: plan));
+    Get.toNamed<void>(AdminRoutes.planForm, arguments: plan);
   }
 
   Future<void> _confirmArchive(SubscriptionPlanModel plan) async {
@@ -111,6 +113,16 @@ Color _accentFor(BillingPeriod p) => switch (p) {
       BillingPeriod.annual => AdminPalette.warning,
     };
 
+/// The catalog features a plan has switched on, in catalog order.
+List<PlanFeature> _enabledFeatures(SubscriptionPlanModel plan) {
+  final on = plan.modules.toSet();
+  return [
+    for (final g in kPlanFeatureGroups)
+      for (final f in g.features)
+        if (on.contains(f.key)) f,
+  ];
+}
+
 class _PlanCard extends StatelessWidget {
   final SubscriptionPlanModel plan;
   final VoidCallback onEdit;
@@ -125,6 +137,7 @@ class _PlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _accentFor(plan.billingPeriod);
+    final features = _enabledFeatures(plan);
     return Container(
       decoration: BoxDecoration(
         color: AdminPalette.card,
@@ -145,9 +158,10 @@ class _PlanCard extends StatelessWidget {
               _Chip(label: plan.billingPeriod.label, color: accent),
               const SizedBox(width: AppSpacing.stackSm),
               _Chip(
-                label:
-                    '${plan.modules.length} module${plan.modules.length == 1 ? '' : 's'}',
-                color: AdminPalette.muted,
+                label: plan.maxStudents == null
+                    ? 'Unlimited students'
+                    : 'Up to ${plan.maxStudents} students',
+                color: accent,
                 subtle: true,
               ),
               const Spacer(),
@@ -178,6 +192,34 @@ class _PlanCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.stackSm),
             Text(plan.description!, style: AdminType.body),
           ],
+
+          // ── What's included: the enabled add-on features ──
+          const SizedBox(height: AppSpacing.stackMd),
+          Divider(color: AdminPalette.divider, height: 1),
+          const SizedBox(height: AppSpacing.stackMd),
+          Row(
+            children: [
+              Text(
+                features.isEmpty ? 'No add-ons' : "What's included",
+                style: AdminType.label.copyWith(
+                    color: AdminPalette.muted, fontWeight: FontWeight.w700),
+              ),
+              const Spacer(),
+              if (features.isNotEmpty)
+                Text('${features.length} feature${features.length == 1 ? '' : 's'}',
+                    style: AdminType.meta.copyWith(color: AdminPalette.faint)),
+            ],
+          ),
+          if (features.isEmpty) ...[
+            const SizedBox(height: 6),
+            Text('Toggle features on with Edit Plan.',
+                style: AdminType.meta.copyWith(color: AdminPalette.faint)),
+          ] else ...[
+            const SizedBox(height: AppSpacing.stackSm),
+            for (final f in features)
+              _FeatureLine(feature: f, accent: accent),
+          ],
+
           const SizedBox(height: AppSpacing.stackLg),
           PrimaryButton(
             label: 'Edit Plan',
@@ -185,6 +227,43 @@ class _PlanCard extends StatelessWidget {
             trailingIcon: null,
             leadingIcon: Icons.edit_outlined,
             onPressed: onEdit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One "included feature" row on a plan card: a check badge, the feature's
+/// icon, and its label — matching the toggles on the plan editor.
+class _FeatureLine extends StatelessWidget {
+  final PlanFeature feature;
+  final Color accent;
+  const _FeatureLine({required this.feature, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.check_rounded, size: 13, color: accent),
+          ),
+          const SizedBox(width: 10),
+          Icon(feature.icon, size: 16, color: AdminPalette.muted),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(feature.label,
+                style: AdminType.body,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
           ),
         ],
       ),
@@ -209,110 +288,6 @@ class _Chip extends StatelessWidget {
       child: Text(label,
           style: AdminType.label
               .copyWith(color: color, fontWeight: FontWeight.w700)),
-    );
-  }
-}
-
-/// Create / edit form for a plan (name, price, billing duration, description).
-class _PlanFormDialog extends StatefulWidget {
-  final SubscriptionPlanModel? plan;
-  const _PlanFormDialog({this.plan});
-
-  @override
-  State<_PlanFormDialog> createState() => _PlanFormDialogState();
-}
-
-class _PlanFormDialogState extends State<_PlanFormDialog> {
-  final _controller = Get.find<SubscriptionsController>();
-  late final TextEditingController _name;
-  late final TextEditingController _price;
-  late final TextEditingController _description;
-  late BillingPeriod _period;
-  String? _error;
-
-  bool get _isEdit => widget.plan != null;
-
-  @override
-  void initState() {
-    super.initState();
-    final p = widget.plan;
-    _name = TextEditingController(text: p?.name ?? '');
-    _price = TextEditingController(text: p == null ? '' : p.price.toStringAsFixed(0));
-    _description = TextEditingController(text: p?.description ?? '');
-    _period = p?.billingPeriod ?? BillingPeriod.monthly;
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _price.dispose();
-    _description.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final name = _name.text.trim();
-    final price = double.tryParse(_price.text.trim());
-    if (name.length < 2 || price == null || price < 0) {
-      setState(() => _error = 'Enter a name and a valid price.');
-      return;
-    }
-    setState(() => _error = null);
-    final ok = await _controller.savePlan(
-      existing: widget.plan,
-      name: name,
-      price: price,
-      billingPeriod: _period,
-      description: _description.text.trim(),
-    );
-    if (ok) Get.back<void>();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(_isEdit ? 'Edit Plan' : 'New Plan'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: _name,
-                decoration: const InputDecoration(labelText: 'Plan name')),
-            TextField(
-              controller: _price,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                  labelText: 'Price', prefixText: '\$ '),
-            ),
-            DropdownButtonFormField<BillingPeriod>(
-              initialValue: _period,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Billing duration'),
-              items: BillingPeriod.values
-                  .map((p) => DropdownMenuItem(value: p, child: Text(p.label)))
-                  .toList(),
-              onChanged: (v) => setState(() => _period = v ?? _period),
-            ),
-            TextField(
-                controller: _description,
-                decoration:
-                    const InputDecoration(labelText: 'Description (optional)')),
-            const SizedBox(height: 8),
-            if (_error != null)
-              Text(_error!, style: const TextStyle(color: AdminPalette.danger)),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-            onPressed: () => Get.back<void>(), child: const Text('Cancel')),
-        Obx(() => TextButton(
-              onPressed: _controller.saving.value ? null : _submit,
-              child: Text(_controller.saving.value ? 'Saving…' : 'Save'),
-            )),
-      ],
     );
   }
 }

@@ -53,6 +53,13 @@ PLAN_PRICES: dict[PlanCode, float] = {
     PlanCode.PREMIUM: 1499.0,
 }
 
+# Default student cap seeded per plan (None = unlimited; admin-editable).
+PLAN_MAX_STUDENTS: dict[PlanCode, int | None] = {
+    PlanCode.BASIC: 200,
+    PlanCode.STANDARD: 750,
+    PlanCode.PREMIUM: None,
+}
+
 # --------------------------------------------------------------------------- #
 # Role provisioning
 # --------------------------------------------------------------------------- #

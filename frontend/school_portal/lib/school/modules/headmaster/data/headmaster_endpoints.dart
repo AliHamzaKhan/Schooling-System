@@ -47,6 +47,8 @@ class HeadmasterEndpoints {
       '/schools/$schoolId/academic/timetable';
   static String academicSubjects(String schoolId) =>
       '/schools/$schoolId/academic/subjects';
+  static String academicStudents(String schoolId) =>
+      '/schools/$schoolId/academic/students';
   static String timetableSlot(String schoolId, String slotId) =>
       '/schools/$schoolId/academic/timetable/$slotId';
   static String broadcasts(String schoolId) =>

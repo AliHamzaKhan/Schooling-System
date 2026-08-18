@@ -29,6 +29,17 @@ class StudentApiService {
   String get _uid =>
       Get.find<AuthService>().currentUser.value?['id']?.toString() ?? '';
 
+  static final _dt = DateTimeParserService();
+
+  /// Formats an ISO timestamp as a friendly "2 hours ago"; falls back to the
+  /// raw string when it can't be parsed. Keeps notification stamps consistent
+  /// with the rest of the app.
+  static String _relative(String? iso) {
+    if (iso == null || iso.isEmpty) return '';
+    final parsed = DateTime.tryParse(iso);
+    return parsed == null ? iso : _dt.toRelative(parsed.toLocal());
+  }
+
   static const _weekdayNames = [
     'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', //
   ];
@@ -362,7 +373,7 @@ class StudentApiService {
           title: m['title'] as String? ??
               (body.length > 40 ? '${body.substring(0, 40)}…' : body),
           body: body,
-          timeAgo: (m['sent_at'] ?? m['scheduled_at']) as String? ?? '',
+          timeAgo: _relative((m['sent_at'] ?? m['scheduled_at']) as String?),
           kind: NotificationKind.announcement,
         );
       }).toList(),

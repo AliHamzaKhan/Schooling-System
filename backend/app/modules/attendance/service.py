@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import (
@@ -72,6 +72,10 @@ class AttendanceService:
             existing.status = EnrollmentStatus.ACTIVE.value
             if data.session_id is not None:
                 existing.session_id = data.session_id
+            # Backfill a roll number for enrollments created before the field
+            # existed (or re-activated ones that never got one).
+            if existing.roll_number is None:
+                existing.roll_number = await self._next_roll_number(section_id)
             await self.db.flush()
             return existing
         enrollment = StudentEnrollment(
@@ -80,10 +84,21 @@ class AttendanceService:
             student_id=data.student_id,
             session_id=data.session_id,
             status=EnrollmentStatus.ACTIVE.value,
+            roll_number=await self._next_roll_number(section_id),
         )
         self.db.add(enrollment)
         await self.db.flush()
         return enrollment
+
+    async def _next_roll_number(self, section_id: uuid.UUID) -> int:
+        """The next sequential roll number for a section: max existing + 1,
+        starting at 1. Roll numbers are unique within a section."""
+        current_max = await self.db.scalar(
+            select(func.max(StudentEnrollment.roll_number)).where(
+                StudentEnrollment.section_id == section_id,
+            )
+        )
+        return (current_max or 0) + 1
 
     async def list_enrollments(
         self, school_id: uuid.UUID, section_id: uuid.UUID
@@ -102,7 +117,7 @@ class AttendanceService:
                 StudentEnrollment.section_id == section_id,
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
             )
-            .order_by(User.full_name)
+            .order_by(StudentEnrollment.roll_number.nulls_last(), User.full_name)
         )).all()
         return [
             schemas.EnrollmentOut(
@@ -112,6 +127,7 @@ class AttendanceService:
                 student_id=e.student_id,
                 session_id=e.session_id,
                 status=e.status,
+                roll_number=e.roll_number,
                 student_name=name,
             )
             for e, name in rows

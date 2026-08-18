@@ -25,6 +25,8 @@ class EnrollmentOut(BaseModel):
     student_id: uuid.UUID
     session_id: uuid.UUID | None = None
     status: str
+    # Sequential roll number within the section, auto-assigned on enrollment.
+    roll_number: int | None = None
 
     # Resolved so a marking roster can be rendered from this one call. Additive
     # and optional, so existing consumers are unaffected.

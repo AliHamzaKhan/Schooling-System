@@ -19,6 +19,7 @@ class AdminEndpoints {
   static const adminDashboard = '/admin/dashboard';
   static const adminRevenue = '/admin/revenue';
   static const adminBilling = '/admin/billing';
+  static const adminTransactions = '/admin/transactions';
   static const adminMetrics = '/admin/metrics';
 
   // ── Subscription plans (editable products) ──────────────────

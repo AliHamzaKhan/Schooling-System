@@ -26,6 +26,7 @@ from app.models.role import Role, RolePermission
 from app.models.school import School
 from app.models.user import User
 from app.modules.permissions.service import PermissionService
+from app.modules.subscriptions.capacity import enforce_student_capacity
 
 
 class UserService:
@@ -180,6 +181,9 @@ class UserService:
         roles = await self._resolve_roles(school_id, role_codes)
         modules = {self._module_for_role(code) for code in role_codes}
         await self._authorize_write(actor, school_id, modules, PermissionAction.CREATE)
+        # A new student must fit under the school's subscription student cap.
+        if SystemRole.STUDENT.value in role_codes:
+            await enforce_student_capacity(self.db, school_id)
         return await self._create_user(
             school_id, email, password, full_name, phone, roles,
             profile_metadata=profile_metadata,

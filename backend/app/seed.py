@@ -9,7 +9,7 @@ import asyncio
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.constants import PLAN_MODULES, PLAN_NAMES, PLAN_PRICES
+from app.core.constants import PLAN_MAX_STUDENTS, PLAN_MODULES, PLAN_NAMES, PLAN_PRICES
 from app.core.database import AsyncSessionLocal, engine
 from app.core.enums import BillingPeriod, Module, PermissionAction, SystemRole
 from app.core.security import hash_password
@@ -39,6 +39,7 @@ async def _seed_plans(db) -> None:
                     modules=module_values,
                     price=price,
                     billing_period=BillingPeriod.MONTHLY.value,
+                    max_students=PLAN_MAX_STUDENTS.get(code),
                 )
             )
         else:
@@ -47,6 +48,9 @@ async def _seed_plans(db) -> None:
             # Only seed a price if one hasn't been set yet (don't clobber admin edits).
             if not existing.price:
                 existing.price = price
+            # Backfill the student cap only when it was never set.
+            if existing.max_students is None:
+                existing.max_students = PLAN_MAX_STUDENTS.get(code)
 
 
 def _full_permission(module: str) -> RolePermission:

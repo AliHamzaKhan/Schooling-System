@@ -98,6 +98,7 @@ class StudentReport(BaseModel):
 
     student_id: uuid.UUID
     student_name: str
+    avatar_url: str | None = None
     guardians: list[ReportGuardian] = []
     attendance: ReportAttendance
     exams: list[ReportExam] = []

@@ -41,9 +41,6 @@ class ExamsView extends GetView<HeadmasterExamsController> {
                   AppSpacing.stackXl),
               children: [
                 Text('Exams & Results', style: AppTypography.headlineLg),
-                const SizedBox(height: AppSpacing.stackSm),
-                Text('Manage upcoming assessments and review performance.',
-                    style: AppTypography.bodyLg),
                 const SizedBox(height: AppSpacing.stackLg),
                 Row(
                   children: [

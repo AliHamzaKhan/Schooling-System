@@ -22,6 +22,10 @@ class HeadmasterDashboardController extends GetxController {
     return full.isEmpty ? 'Headmaster' : full;
   }
 
+  /// The school's display name, shown in the dashboard greeting. Loaded
+  /// best-effort alongside the dashboard; empty until it resolves.
+  final schoolName = ''.obs;
+
   /// Subscription status for the expiry alert (loaded alongside the dashboard,
   /// but never blocks it — a status failure just hides the alert).
   final subscription = Rxn<SubscriptionStatus>();
@@ -42,12 +46,18 @@ class HeadmasterDashboardController extends GetxController {
       error.value = res.error ?? 'Could not load dashboard.';
     }
     await _loadSubscription();
+    await _loadSchoolName();
     loading.value = false;
   }
 
   Future<void> _loadSubscription() async {
     final res = await _repo.loadSubscriptionStatus();
     subscription.value = res.success ? res.data : null;
+  }
+
+  Future<void> _loadSchoolName() async {
+    final res = await _repo.loadSchoolProfile();
+    if (res.success && res.data != null) schoolName.value = res.data!.name;
   }
 
   void approve(String id) =>

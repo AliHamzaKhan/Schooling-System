@@ -7,11 +7,12 @@ the same weekday).
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import grade_for
-from app.core.enums import AttendanceStatus, EnrollmentStatus, SubmissionStatus
+from app.core.enums import AttendanceStatus, EnrollmentStatus, SubmissionStatus, SystemRole
+from app.models.role import Role
 from app.core.exceptions import bad_request, not_found
 from app.models.academic import (
     Section,
@@ -80,6 +81,53 @@ class AcademicService:
             select(SchoolClass).where(SchoolClass.school_id == school_id).order_by(SchoolClass.level, SchoolClass.name)
         )
         return list(result.scalars().all())
+
+    async def student_roster(self, school_id: uuid.UUID) -> list[schemas.StudentRosterOut]:
+        """Every student in the school with their current active enrollment
+        (roll number, class, section) resolved. Students with no active
+        enrollment still appear, with those fields left blank.
+        """
+        await self._ensure_school(school_id)
+        rows = (await self.db.execute(
+            select(
+                User,
+                StudentEnrollment.roll_number,
+                SchoolClass.name.label("class_name"),
+                Section.name.label("section_name"),
+            )
+            .join(User.roles)
+            .where(User.school_id == school_id, Role.code == SystemRole.STUDENT.value)
+            .outerjoin(
+                StudentEnrollment,
+                and_(
+                    StudentEnrollment.student_id == User.id,
+                    StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                ),
+            )
+            .outerjoin(Section, Section.id == StudentEnrollment.section_id)
+            .outerjoin(SchoolClass, SchoolClass.id == Section.class_id)
+            .order_by(User.full_name, StudentEnrollment.created_at.desc())
+        )).all()
+
+        # A student can hold more than one active enrollment; keep the most
+        # recent (first, given the ordering above) so each appears once.
+        seen: set[uuid.UUID] = set()
+        roster: list[schemas.StudentRosterOut] = []
+        for user, roll, class_name, section_name in rows:
+            if user.id in seen:
+                continue
+            seen.add(user.id)
+            meta = user.profile_metadata or {}
+            roster.append(schemas.StudentRosterOut(
+                id=user.id,
+                full_name=user.full_name,
+                avatar_url=(meta.get("avatar_url") or None),
+                is_active=user.is_active,
+                roll_number=roll,
+                class_name=class_name,
+                section_name=section_name,
+            ))
+        return roster
 
     async def update_class(
         self, school_id: uuid.UUID, class_id: uuid.UUID, data: schemas.ClassUpdate

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import BillingPeriod, DiscountType, SubscriptionStatus
 from app.core.exceptions import bad_request, not_found
+from app.modules.subscriptions.capacity import active_student_count
 from app.models.school import School
 from app.models.subscription import (
     SchoolSubscription,
@@ -93,6 +94,7 @@ class SubscriptionService:
             price=Decimal(str(data.price)),
             billing_period=data.billing_period.value,
             modules=data.modules,
+            max_students=data.max_students,
         )
         self.db.add(plan)
         await self.db.flush()
@@ -162,6 +164,10 @@ class SubscriptionService:
                 .values(status=SubscriptionStatus.CANCELLED.value)
             )
 
+        # Snapshot the student cap from the plan unless the admin overrode it.
+        max_students = (
+            data.max_students if data.max_students is not None else plan.max_students
+        )
         sub = SchoolSubscription(
             school_id=school.id,
             plan_id=plan.id,
@@ -173,6 +179,7 @@ class SubscriptionService:
             discount_type=data.discount_type.value,
             discount_value=Decimal(str(data.discount_value)),
             net_amount=net,
+            max_students=max_students,
         )
         self.db.add(sub)
         await self.db.flush()
@@ -256,6 +263,7 @@ class SubscriptionService:
             discount_type=sub.discount_type,
             discount_value=float(sub.discount_value),
             net_amount=float(sub.net_amount),
+            max_students=sub.max_students,
             created_at=sub.created_at,
         )
 
@@ -345,4 +353,6 @@ class SubscriptionService:
             days_remaining=days_remaining,
             is_expiring_soon=is_expiring_soon,
             net_amount=float(sub.net_amount),
+            max_students=sub.max_students,
+            current_students=await active_student_count(self.db, school_id),
         )

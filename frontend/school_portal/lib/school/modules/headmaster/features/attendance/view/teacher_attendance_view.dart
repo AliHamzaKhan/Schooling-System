@@ -124,10 +124,10 @@ class _TeacherAttendanceViewState extends State<TeacherAttendanceView> {
     );
     _saving.value = false;
     if (res.success) {
+      Get.back();
       Get.snackbar('Attendance saved',
           'Marked ${entries.length} teachers for ${_fmt(_date.value)}',
           snackPosition: SnackPosition.BOTTOM);
-      await _fetch();
     } else {
       Get.snackbar('Could not save',
           res.error ?? 'Please try again.',

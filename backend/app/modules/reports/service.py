@@ -196,6 +196,7 @@ class ReportingService:
         """Cross-module 360-degree report for one student."""
         student = await self.db.get(User, student_id)
         name = student.full_name if student else ""
+        avatar_url = (student.profile_metadata or {}).get("avatar_url") if student else None
 
         # Active sections (assignment scope).
         section_ids = [
@@ -305,6 +306,7 @@ class ReportingService:
         return schemas.StudentReport(
             student_id=student_id,
             student_name=name,
+            avatar_url=avatar_url,
             guardians=guardians,
             attendance=attendance,
             exams=exams,

@@ -80,6 +80,9 @@ class SubscriptionPlanModel {
   final double price;
   final BillingPeriod billingPeriod;
   final List<String> modules;
+
+  /// Cap on active students a school on this plan may have. `null` = unlimited.
+  final int? maxStudents;
   final bool isActive;
 
   const SubscriptionPlanModel({
@@ -90,8 +93,13 @@ class SubscriptionPlanModel {
     required this.billingPeriod,
     this.description,
     this.modules = const [],
+    this.maxStudents,
     this.isActive = true,
   });
+
+  /// Human-readable cap: the number, or "Unlimited" when uncapped.
+  String get maxStudentsLabel =>
+      maxStudents == null ? 'Unlimited' : '$maxStudents';
 
   factory SubscriptionPlanModel.fromJson(Map<String, dynamic> j) =>
       SubscriptionPlanModel(
@@ -104,6 +112,7 @@ class SubscriptionPlanModel {
         modules: (j['modules'] as List? ?? const [])
             .map((e) => e.toString())
             .toList(),
+        maxStudents: (j['max_students'] as num?)?.toInt(),
         isActive: j['is_active'] as bool? ?? true,
       );
 }
@@ -122,6 +131,9 @@ class SchoolSubscriptionModel {
   final double basePrice;
   final double netAmount;
 
+  /// Student cap for this subscription (snapshot from the plan). `null` = unlimited.
+  final int? maxStudents;
+
   const SchoolSubscriptionModel({
     required this.id,
     required this.schoolId,
@@ -134,6 +146,7 @@ class SchoolSubscriptionModel {
     required this.netAmount,
     this.schoolName,
     this.planName,
+    this.maxStudents,
   });
 
   factory SchoolSubscriptionModel.fromJson(Map<String, dynamic> j) =>
@@ -151,5 +164,6 @@ class SchoolSubscriptionModel {
         billingPeriod: BillingPeriodX.fromCode(j['billing_period'] as String?),
         basePrice: (j['base_price'] as num?)?.toDouble() ?? 0,
         netAmount: (j['net_amount'] as num?)?.toDouble() ?? 0,
+        maxStudents: (j['max_students'] as num?)?.toInt(),
       );
 }

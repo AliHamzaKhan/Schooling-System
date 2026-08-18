@@ -17,28 +17,40 @@ class PlansRepository {
     required double price,
     required BillingPeriod billingPeriod,
     String? description,
+    int? maxStudents,
+    List<String> modules = const [],
   }) =>
       _api.createPlan({
         'name': name,
         'price': price,
         'billing_period': billingPeriod.code,
+        'modules': modules,
         if (description != null && description.isNotEmpty)
           'description': description,
+        // Sent as null when uncapped so the plan is explicitly unlimited.
+        'max_students': maxStudents,
       });
 
+  /// Full update from the plan editor. The editor always carries every field,
+  /// so all are sent — including `max_students: null` to mean "unlimited" and
+  /// `modules` (the enabled feature keys).
   Future<ApiResponse<SubscriptionPlanModel>> update(
     String id, {
-    String? name,
-    double? price,
-    BillingPeriod? billingPeriod,
+    required String name,
+    required double price,
+    required BillingPeriod billingPeriod,
+    required List<String> modules,
     String? description,
+    int? maxStudents,
   }) {
-    final payload = <String, dynamic>{};
-    if (name != null) payload['name'] = name;
-    if (price != null) payload['price'] = price;
-    if (billingPeriod != null) payload['billing_period'] = billingPeriod.code;
-    if (description != null) payload['description'] = description;
-    return _api.updatePlan(id, payload);
+    return _api.updatePlan(id, {
+      'name': name,
+      'price': price,
+      'billing_period': billingPeriod.code,
+      'modules': modules,
+      'description': description ?? '',
+      'max_students': maxStudents,
+    });
   }
 
   Future<ApiResponse<SubscriptionPlanModel>> archive(String id) =>

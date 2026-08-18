@@ -41,7 +41,9 @@ class SubscriptionsController extends GetxController {
     required String name,
     required double price,
     required BillingPeriod billingPeriod,
+    required List<String> modules,
     String? description,
+    int? maxStudents,
   }) async {
     saving.value = true;
     final res = existing == null
@@ -50,6 +52,8 @@ class SubscriptionsController extends GetxController {
             price: price,
             billingPeriod: billingPeriod,
             description: description,
+            maxStudents: maxStudents,
+            modules: modules,
           )
         : await _repo.update(
             existing.id,
@@ -57,6 +61,8 @@ class SubscriptionsController extends GetxController {
             price: price,
             billingPeriod: billingPeriod,
             description: description,
+            maxStudents: maxStudents,
+            modules: modules,
           );
     saving.value = false;
     if (res.success) {

@@ -125,25 +125,36 @@ class DashboardIdentityCard extends StatelessWidget {
   }
 }
 
-/// The four headline numbers, 2×2.
+/// The four headline numbers.
 ///
-/// Four and not three or five: two rows of two fill the width at a readable
-/// size on the narrowest phone this ships to, and an odd count leaves a hole
-/// that reads as a missing card rather than as a deliberate stop.
+/// Two per row on a phone (two rows of two fill the width at a readable size on
+/// the narrowest phone this ships to); the count steps up with width so the row
+/// doesn't stretch on larger screens — three on a tablet, four on the web.
 class DashboardStatGrid extends StatelessWidget {
   final List<DashboardStat> stats;
   const DashboardStatGrid({super.key, required this.stats});
 
+  /// Columns for the current width: 2 on phones, 3 on tablets, 4 on wide/web.
+  static int columnsFor(double width) {
+    if (width >= 1024) return 4;
+    if (width >= 600) return 3;
+    return 2;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppSpacing.stackMd,
-      crossAxisSpacing: AppSpacing.stackMd,
-      childAspectRatio: 1,
-      children: [for (final stat in stats) DashboardStatCard(stat: stat)],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return GridView.count(
+          crossAxisCount: columnsFor(constraints.maxWidth),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: AppSpacing.stackMd,
+          crossAxisSpacing: AppSpacing.stackMd,
+          childAspectRatio: 1,
+          children: [for (final stat in stats) DashboardStatCard(stat: stat)],
+        );
+      },
     );
   }
 }

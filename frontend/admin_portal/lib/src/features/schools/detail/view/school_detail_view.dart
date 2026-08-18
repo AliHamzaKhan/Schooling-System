@@ -364,6 +364,12 @@ class _SubscriptionCard extends StatelessWidget {
               k: 'Expires',
               v: '${_fmtDate(sub.endDate)}  ·  ${_expiryLabel(controller.daysRemaining)}',
             ),
+            _KV(
+              k: 'Students',
+              v: sub.maxStudents == null
+                  ? '${controller.stats.value?.students ?? 0}  ·  Unlimited'
+                  : '${controller.stats.value?.students ?? 0} / ${sub.maxStudents}',
+            ),
             _KV(k: 'Amount', v: _money(sub.netAmount)),
           ],
         ],

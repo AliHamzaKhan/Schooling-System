@@ -130,7 +130,7 @@ class PaymentsView extends GetView<PaymentsController> {
                       title: 'Recent Transactions',
                       large: true,
                       actionLabel: data.recent.isEmpty ? null : 'View All',
-                      onAction: () => Get.toNamed(AdminRoutes.revenue),
+                      onAction: () => Get.toNamed(AdminRoutes.transactions),
                     ),
                     const SizedBox(height: 14),
                     if (data.recent.isEmpty)

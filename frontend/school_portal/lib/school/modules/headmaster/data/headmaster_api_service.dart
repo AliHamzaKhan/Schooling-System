@@ -53,6 +53,17 @@ class HeadmasterApiService {
   String get _userName =>
       Get.find<AuthService>().currentUser.value?['full_name'] as String? ?? '';
 
+  static final _dt = DateTimeParserService();
+
+  /// Formats an ISO timestamp as a friendly "2 hours ago"; falls back to the
+  /// raw string when it can't be parsed. Keeps announcement stamps consistent
+  /// with the rest of the app.
+  static String _relative(String? iso) {
+    if (iso == null || iso.isEmpty) return '';
+    final parsed = DateTime.tryParse(iso);
+    return parsed == null ? iso : _dt.toRelative(parsed.toLocal());
+  }
+
   String _money(num v) =>
       '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
 
@@ -626,7 +637,7 @@ class HeadmasterApiService {
           return Announcement(
             id: '${m['id']}',
             scope: scope,
-            timestamp: (m['sent_at'] ?? m['scheduled_at']) as String? ?? '',
+            timestamp: _relative((m['sent_at'] ?? m['scheduled_at']) as String?),
             title: m['title'] as String? ??
                 (body.length > 40 ? '${body.substring(0, 40)}…' : body),
             body: body,
@@ -690,10 +701,11 @@ class HeadmasterApiService {
     );
   }
 
-  /// Live students from `/schools/{id}/users?role_code=student`. The backend
-  /// user payload has no roll/grade/section, so those are blank and the
-  /// grade/section filters are not applied server-side; [query] filters by name
-  /// client-side.
+  /// Live students from `/schools/{id}/academic/students` — every student user
+  /// joined to their current active enrollment, so roll number, class (grade),
+  /// and section come through populated. Roll numbers are auto-assigned per
+  /// section on enrollment. [query] filters by name client-side; the
+  /// grade/section filters are applied client-side against the resolved values.
   Future<ApiResponse<List<Student>>> fetchStudents({
     String query = '',
     String? grade,
@@ -702,17 +714,18 @@ class HeadmasterApiService {
     final q = query.trim().toLowerCase();
     return _api.request<List<Student>>(
       method: HttpMethod.get,
-      path: HeadmasterEndpoints.users(_sid),
-      query: {'role_code': 'student', 'limit': '200'},
+      path: HeadmasterEndpoints.academicStudents(_sid),
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
           .map((u) => Student(
                 id: '${u['id']}',
-                roll: '',
+                roll: u['roll_number'] == null ? '' : '${u['roll_number']}',
                 name: u['full_name'] as String? ?? '',
-                avatarUrl: _avatarOf(u),
-                grade: '',
-                section: '',
+                avatarUrl: (u['avatar_url'] as String?)?.trim().isEmpty ?? true
+                    ? null
+                    : (u['avatar_url'] as String?),
+                grade: u['class_name'] as String? ?? '',
+                section: u['section_name'] as String? ?? '',
                 status: (u['is_active'] as bool? ?? true)
                     ? StudentStatus.active
                     : StudentStatus.pending,

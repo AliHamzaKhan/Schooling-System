@@ -114,9 +114,6 @@ class _AttendanceViewState extends State<AttendanceView> {
                     )),
                 const SizedBox(height: AppSpacing.stackMd),
                 Text('Teacher\nAttendance', style: AppTypography.headlineLg),
-                const SizedBox(height: AppSpacing.stackSm),
-                Text('Daily check-ins for teaching staff.',
-                    style: AppTypography.bodyLg),
                 const SizedBox(height: AppSpacing.stackLg),
 
                 // Everything below depends on the fetched day. Scoping the Obx

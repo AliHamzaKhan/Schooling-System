@@ -67,6 +67,8 @@ class StudentEnrollment(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "student_enrollments"
     __table_args__ = (
         UniqueConstraint("section_id", "student_id", name="uq_enrollment_section_student"),
+        # Roll numbers are auto-assigned per section and must not collide within one.
+        UniqueConstraint("section_id", "roll_number", name="uq_enrollment_section_roll"),
     )
 
     school_id: Mapped[uuid.UUID] = mapped_column(
@@ -82,6 +84,9 @@ class StudentEnrollment(Base, UUIDMixin, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("academic_sessions.id", ondelete="SET NULL"), nullable=True
     )
     status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    # Sequential roll number within the section, auto-assigned on enrollment
+    # (1, 2, 3, …). Nullable for rows created before roll numbers existed.
+    roll_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Subject(Base, UUIDMixin, TimestampMixin):

@@ -23,6 +23,14 @@ async def billing(db: DbDep, _: SuperAdmin) -> schemas.BillingReport:
     return await AdminMetricsService(db).billing()
 
 
+@router.get("/transactions", response_model=schemas.TransactionsReport)
+async def transactions(
+    db: DbDep, _: SuperAdmin, range: str = "all"
+) -> schemas.TransactionsReport:
+    """Payment ledger filtered by range (month | year | all) with a chart series."""
+    return await AdminMetricsService(db).transactions(range_=range)
+
+
 @router.get("/metrics", response_model=schemas.MetricsReport)
 async def metrics(db: DbDep, _: SuperAdmin) -> schemas.MetricsReport:
     return await AdminMetricsService(db).metrics()

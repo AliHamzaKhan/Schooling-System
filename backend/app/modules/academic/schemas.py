@@ -259,3 +259,21 @@ class StudentTimetableSlot(BaseModel):
     subject: str
     teacher: str | None = None
     room: str | None = None
+
+
+# --------------------------------------------------------------------------- #
+# Student roster
+# --------------------------------------------------------------------------- #
+
+
+class StudentRosterOut(BaseModel):
+    """One row on the Headmaster student roster: the student plus their current
+    active enrollment (roll number, class, section) when they have one."""
+
+    id: uuid.UUID
+    full_name: str
+    avatar_url: str | None = None
+    is_active: bool = True
+    roll_number: int | None = None
+    class_name: str | None = None
+    section_name: str | None = None

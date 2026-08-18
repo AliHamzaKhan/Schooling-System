@@ -151,6 +151,100 @@ class AdminMetricsService:
             months=await self._revenue_buckets(6),
         )
 
+    # --------------------------- transactions ---------------------------- #
+
+    @staticmethod
+    def _range_start(range_: str) -> date | None:
+        """First day included in the range, or None for all-time."""
+        today = date.today()
+        if range_ == "month":
+            return today.replace(day=1)
+        if range_ == "year":
+            return today.replace(month=1, day=1)
+        return None  # "all"
+
+    async def transactions(
+        self, range_: str = "all", limit: int = 500
+    ) -> schemas.TransactionsReport:
+        """Payments in the selected range plus a bucketed series for the chart.
+
+        `month` buckets by day, `year` and `all` bucket by calendar month.
+        """
+        if range_ not in ("month", "year", "all"):
+            range_ = "all"
+        start = self._range_start(range_)
+        fmt = "YYYY-MM-DD" if range_ == "month" else "YYYY-MM"
+
+        def _scoped(stmt):  # apply the range's lower bound when there is one
+            return stmt if start is None else stmt.where(
+                SubscriptionPayment.paid_at >= start
+            )
+
+        # Chart buckets (chronological).
+        bucket = func.to_char(SubscriptionPayment.paid_at, fmt).label("label")
+        bucket_rows = (
+            await self.db.execute(
+                _scoped(
+                    select(
+                        bucket,
+                        func.coalesce(
+                            func.sum(SubscriptionPayment.amount), 0
+                        ).label("total"),
+                        func.count().label("count"),
+                    )
+                )
+                .group_by(bucket)
+                .order_by(bucket.asc())
+            )
+        ).all()
+        buckets = [
+            schemas.TransactionBucket(
+                label=r.label, total=float(r.total), count=r.count
+            )
+            for r in bucket_rows
+        ]
+
+        total = sum(b.total for b in buckets)
+        count = sum(b.count for b in buckets)
+
+        # Full listing (newest first, capped).
+        rows = (
+            await self.db.execute(
+                _scoped(
+                    select(SubscriptionPayment, School.name, SubscriptionPlan.name)
+                    .join(School, School.id == SubscriptionPayment.school_id)
+                    .join(
+                        SchoolSubscription,
+                        SchoolSubscription.id == SubscriptionPayment.subscription_id,
+                    )
+                    .join(
+                        SubscriptionPlan,
+                        SubscriptionPlan.id == SchoolSubscription.plan_id,
+                    )
+                )
+                .order_by(SubscriptionPayment.paid_at.desc())
+                .limit(limit)
+            )
+        ).all()
+        transactions = [
+            schemas.PaymentRow(
+                id=p.id,
+                school_name=school_name,
+                plan_name=plan_name,
+                amount=float(p.amount),
+                paid_at=p.paid_at,
+            )
+            for p, school_name, plan_name in rows
+        ]
+
+        return schemas.TransactionsReport(
+            range=range_,
+            total=float(total),
+            count=count,
+            buckets=buckets,
+            transactions=transactions,
+        )
+
     # ------------------------------ metrics ------------------------------ #
 
     async def metrics(self) -> schemas.MetricsReport:

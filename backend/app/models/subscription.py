@@ -15,6 +15,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Integer,
     Numeric,
     String,
     func,
@@ -39,6 +40,8 @@ class SubscriptionPlan(Base, UUIDMixin, TimestampMixin):
     )
     # Module values (app.core.enums.Module) unlocked by this plan.
     modules: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list, nullable=False)
+    # Cap on active students a school on this plan may have. NULL = unlimited.
+    max_students: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Archived plans (is_active=False) stay for history but are hidden from new
     # assignments instead of being hard-deleted.
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -78,6 +81,9 @@ class SchoolSubscription(Base, UUIDMixin, TimestampMixin):
     discount_value: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, nullable=False)
     # Final amount owed for the term after the discount is applied.
     net_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    # Student cap for this subscription, snapshot from the plan at assignment
+    # time (an admin may override it). NULL = unlimited.
+    max_students: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     school: Mapped["School"] = relationship(back_populates="subscriptions")  # noqa: F821
     plan: Mapped["SubscriptionPlan"] = relationship(

@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.enums import BillingPeriod, DiscountType, SubscriptionStatus
+from app.core.enums import BillingPeriod, DiscountType
 
 # --------------------------------------------------------------------------- #
 # Plans
@@ -17,6 +17,8 @@ class PlanCreate(BaseModel):
     price: float = Field(ge=0)
     billing_period: BillingPeriod = BillingPeriod.MONTHLY
     modules: list[str] = Field(default_factory=list)
+    # Max active students a school on this plan may have. None = unlimited.
+    max_students: int | None = Field(default=None, ge=1)
 
 
 class PlanUpdate(BaseModel):
@@ -25,6 +27,7 @@ class PlanUpdate(BaseModel):
     price: float | None = Field(default=None, ge=0)
     billing_period: BillingPeriod | None = None
     modules: list[str] | None = None
+    max_students: int | None = Field(default=None, ge=1)
     is_active: bool | None = None
 
 
@@ -38,6 +41,7 @@ class PlanOut(BaseModel):
     price: float
     billing_period: str
     modules: list[str]
+    max_students: int | None = None
     is_active: bool
 
 
@@ -55,6 +59,9 @@ class SubscriptionCreate(BaseModel):
     # When True the subscription starts active and an initial payment is
     # recorded; when False it is created as `pending` (no payment yet).
     activate: bool = True
+    # Optional override for the student cap; when omitted the plan's
+    # max_students is used. None = unlimited.
+    max_students: int | None = Field(default=None, ge=1)
 
 
 class SubscriptionRenew(BaseModel):
@@ -79,6 +86,7 @@ class SubscriptionOut(BaseModel):
     discount_type: str
     discount_value: float
     net_amount: float
+    max_students: int | None = None
     created_at: datetime
 
 
@@ -107,3 +115,6 @@ class SubscriptionStatusOut(BaseModel):
     days_remaining: int | None = None
     is_expiring_soon: bool = False
     net_amount: float | None = None
+    # Student capacity for the active subscription. max_students None = unlimited.
+    max_students: int | None = None
+    current_students: int | None = None

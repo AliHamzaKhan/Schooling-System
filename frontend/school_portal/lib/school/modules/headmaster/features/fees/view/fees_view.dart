@@ -40,9 +40,6 @@ class FeesView extends GetView<FeesController> {
                   AppSpacing.stackXl),
               children: [
                 Text('Fee Management', style: AppTypography.headlineLg),
-                const SizedBox(height: AppSpacing.stackSm),
-                Text('Overview of current academic year collections',
-                    style: AppTypography.bodyLg),
                 const SizedBox(height: AppSpacing.stackLg),
                 PrimaryButton(
                   label: 'Record Payment',

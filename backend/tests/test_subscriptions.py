@@ -225,6 +225,33 @@ async def test_admin_billing(client, sa_headers, school):
     assert body["recent"][0]["school_name"] is not None
 
 
+async def test_admin_transactions(client, sa_headers, school):
+    plan = await _create_plan(client, sa_headers, price=1000)
+    await client.post(
+        f"{API}/subscriptions",
+        headers=sa_headers,
+        json={"school_id": school["id"], "plan_id": plan["id"]},
+    )
+    for rng in ("month", "year", "all"):
+        r = await client.get(
+            f"{API}/admin/transactions", headers=sa_headers, params={"range": rng}
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["range"] == rng
+        assert body["count"] >= 1
+        assert body["total"] >= 1000.0
+        assert len(body["transactions"]) >= 1
+        assert body["transactions"][0]["school_name"] is not None
+        # The chart series buckets sum to the range total.
+        assert sum(b["count"] for b in body["buckets"]) == body["count"]
+
+
+async def test_transactions_require_super_admin(client, school):
+    r = await client.get(f"{API}/admin/transactions", headers=school["hm"])
+    assert r.status_code == 403
+
+
 async def test_admin_metrics(client, sa_headers, school):
     plan = await _create_plan(client, sa_headers, price=1200)
     await client.post(
@@ -262,3 +289,87 @@ async def test_school_payments_ledger(client, sa_headers, school):
 async def test_school_payments_require_super_admin(client, school):
     r = await client.get(f"{API}/schools/{school['id']}/payments", headers=school["hm"])
     assert r.status_code == 403
+
+
+# --------------------------- student cap enforcement -------------------- #
+
+
+async def _make_student(client, sid, hm):
+    from uuid import uuid4 as _u
+    email = f"student-{_u().hex[:8]}@test.edu"
+    return await client.post(
+        f"{API}/schools/{sid}/users",
+        headers=hm,
+        json={
+            "email": email,
+            "password": "Passw0rd1",
+            "full_name": "Cap Student",
+            "role_codes": ["student"],
+        },
+    )
+
+
+async def test_plan_and_subscription_carry_max_students(client, sa_headers, school):
+    plan = await _create_plan(client, sa_headers, price=500, max_students=3,
+                              modules=["student_management"])
+    assert plan["max_students"] == 3
+    r = await client.post(
+        f"{API}/subscriptions",
+        headers=sa_headers,
+        json={"school_id": school["id"], "plan_id": plan["id"]},
+    )
+    assert r.status_code == 201, r.text
+    # Cap is snapshot onto the subscription from the plan.
+    assert r.json()["max_students"] == 3
+
+
+async def test_student_cap_blocks_over_limit_and_frees_on_delete(client, sa_headers, school):
+    plan = await _create_plan(client, sa_headers, price=500, max_students=2,
+                              modules=["student_management"])
+    r = await client.post(
+        f"{API}/subscriptions",
+        headers=sa_headers,
+        json={"school_id": school["id"], "plan_id": plan["id"]},
+    )
+    assert r.status_code == 201, r.text
+
+    sid, hm = school["id"], school["hm"]
+    # Two students fit …
+    s1 = await _make_student(client, sid, hm)
+    assert s1.status_code == 201, s1.text
+    s2 = await _make_student(client, sid, hm)
+    assert s2.status_code == 201, s2.text
+    # … the third is blocked by the cap.
+    s3 = await _make_student(client, sid, hm)
+    assert s3.status_code == 403, s3.text
+
+    # Status reports live usage against the cap.
+    st = await client.get(f"{API}/schools/{sid}/subscription/status", headers=hm)
+    assert st.status_code == 200, st.text
+    body = st.json()
+    assert body["max_students"] == 2
+    assert body["current_students"] == 2
+
+    # Deactivating a student frees a slot, so a new one can be created again.
+    d = await client.post(
+        f"{API}/schools/{sid}/users/{s1.json()['id']}/deactivate", headers=hm
+    )
+    assert d.status_code == 200, d.text
+    s4 = await _make_student(client, sid, hm)
+    assert s4.status_code == 201, s4.text
+
+
+async def test_unlimited_plan_never_blocks_students(client, sa_headers, school):
+    plan = await _create_plan(client, sa_headers, price=500,  # no max_students → unlimited
+                              modules=["student_management"])
+    assert plan["max_students"] is None
+    r = await client.post(
+        f"{API}/subscriptions",
+        headers=sa_headers,
+        json={"school_id": school["id"], "plan_id": plan["id"]},
+    )
+    assert r.status_code == 201, r.text
+    sid, hm = school["id"], school["hm"]
+    for _ in range(3):
+        s = await _make_student(client, sid, hm)
+        assert s.status_code == 201, s.text

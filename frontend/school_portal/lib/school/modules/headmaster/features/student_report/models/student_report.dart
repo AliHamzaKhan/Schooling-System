@@ -71,6 +71,7 @@ class ReportQuiz {
 class StudentReport {
   final String studentId;
   final String studentName;
+  final String? avatarUrl;
   final List<ReportGuardian> guardians;
   final ReportAttendance attendance;
   final List<ReportExam> exams;
@@ -84,6 +85,7 @@ class StudentReport {
   const StudentReport({
     required this.studentId,
     required this.studentName,
+    this.avatarUrl,
     required this.guardians,
     required this.attendance,
     required this.exams,
@@ -98,6 +100,9 @@ class StudentReport {
   factory StudentReport.fromJson(Map<String, dynamic> j) => StudentReport(
         studentId: '${j['student_id']}',
         studentName: j['student_name'] as String? ?? '',
+        avatarUrl: (j['avatar_url'] as String?)?.trim().isEmpty ?? true
+            ? null
+            : (j['avatar_url'] as String?),
         guardians: ((j['guardians'] as List?) ?? const [])
             .cast<Map<String, dynamic>>()
             .map(ReportGuardian.fromJson)

@@ -8,7 +8,7 @@ import '../models/exam.dart';
 class CountdownCard extends StatelessWidget {
   final ExamCountdown next;
 
-  /// Tapping the card (or its ⋯ affordance) opens the exam detail, when wired.
+  /// Tapping the card opens the exam detail, when wired.
   final VoidCallback? onTap;
   const CountdownCard({super.key, required this.next, this.onTap});
 
@@ -47,17 +47,6 @@ class CountdownCard extends StatelessWidget {
                             .copyWith(color: AppColors.onPrimary)),
                   ],
                 ),
-              ),
-              const Spacer(),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.more_horiz_rounded,
-                    color: AppColors.onPrimary, size: 18),
               ),
             ],
           ),

@@ -40,12 +40,6 @@ class ClassesView extends GetView<HeadmasterClassesController> {
               children: [
                 Text('Class Directory',
                     style: AppTypography.displayLg.copyWith(fontSize: 32)),
-                const SizedBox(height: AppSpacing.stackSm),
-                Text(
-                    'Create classes, add sections, and manage homeroom teachers. '
-                    'Enroll students into a section and link guardians from the '
-                    'student profile.',
-                    style: AppTypography.bodyLg),
                 const SizedBox(height: AppSpacing.stackMd),
                 PrimaryButton(
                   label: 'New Class',

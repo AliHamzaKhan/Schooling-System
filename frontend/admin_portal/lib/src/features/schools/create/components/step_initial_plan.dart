@@ -105,7 +105,9 @@ class _PlanOption extends StatelessWidget {
                       style: AdminType.rowTitle
                           .copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text('${_money(plan.price)} ${plan.billingPeriod.priceSuffix}',
+                  Text(
+                      '${_money(plan.price)} ${plan.billingPeriod.priceSuffix}'
+                      '  ·  ${plan.maxStudents == null ? 'Unlimited' : plan.maxStudents} students',
                       style: AdminType.body),
                 ],
               ),
