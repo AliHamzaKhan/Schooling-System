@@ -54,7 +54,11 @@ class RequestIdLogFilter(logging.Filter):
 # A dedicated registry (rather than the global default) keeps test imports
 # idempotent and the exposition self-contained.
 registry = CollectorRegistry()
-registry.register(process_collector.ProcessCollector())
+# `ProcessCollector` self-registers into the registry it's given. Point it at
+# our dedicated registry (NOT the default kwarg, which is prometheus_client's
+# global REGISTRY — that one already has a ProcessCollector from import time, so
+# adding another there raises "Duplicated timeseries").
+process_collector.ProcessCollector(registry=registry)
 
 _REQUESTS = Counter(
     "http_requests_total",
