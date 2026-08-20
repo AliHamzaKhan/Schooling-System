@@ -15,6 +15,11 @@
     <!-- Biometric sign-in (local_auth). -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
 
+    <!-- Transport: device GPS for driver live-location + pickup capture
+         (geolocator). Fine location; coarse as a fallback. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
     <application
         android:label="Meri Taleem"
         android:name="${applicationName}"

@@ -15,6 +15,7 @@ import 'app_routes.dart';
 String? homeRouteForRoles(List<String> roleCodes) {
   if (roleCodes.contains('headmaster')) return AppRoutes.headmaster;
   if (roleCodes.contains('teacher')) return AppRoutes.teacher;
+  if (roleCodes.contains('driver')) return AppRoutes.driver;
   if (roleCodes.contains('student')) return AppRoutes.student;
   if (roleCodes.contains('guardian')) return AppRoutes.guardian;
   return null;

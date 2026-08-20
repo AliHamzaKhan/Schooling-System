@@ -21,7 +21,7 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AdminTopBar(showAvatar: true),
+          const AdminTopBar(showAvatar: true, showBack: true),
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
@@ -49,7 +49,7 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
                     const SizedBox(height: AppSpacing.stackLg),
                     PrimaryButton(
                       label: 'New Plan',
-                      leadingIcon: Icons.add,
+                      leadingIcon: AppIcons.add,
                       trailingIcon: null,
                       onPressed: () => _openPlanForm(context),
                     ),
@@ -104,7 +104,7 @@ class SubscriptionsView extends GetView<SubscriptionsController> {
 }
 
 String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+    v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
 /// Accent color per billing duration, so the three durations read distinctly.
 Color _accentFor(BillingPeriod p) => switch (p) {
@@ -166,7 +166,7 @@ class _PlanCard extends StatelessWidget {
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.archive_outlined,
+                icon: const Icon(AppIcons.archiveOutlined,
                     color: AdminPalette.muted),
                 tooltip: 'Archive',
                 visualDensity: VisualDensity.compact,
@@ -225,7 +225,7 @@ class _PlanCard extends StatelessWidget {
             label: 'Edit Plan',
             expanded: true,
             trailingIcon: null,
-            leadingIcon: Icons.edit_outlined,
+            leadingIcon: AppIcons.editOutlined,
             onPressed: onEdit,
           ),
         ],
@@ -254,7 +254,7 @@ class _FeatureLine extends StatelessWidget {
               color: accent.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.check_rounded, size: 13, color: accent),
+            child: Icon(AppIcons.checkRounded, size: 13, color: accent),
           ),
           const SizedBox(width: 10),
           Icon(feature.icon, size: 16, color: AdminPalette.muted),

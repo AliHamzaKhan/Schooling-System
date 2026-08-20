@@ -17,7 +17,7 @@ class PendingApproval {
   factory PendingApproval.fromJson(Map<String, dynamic> json) => PendingApproval(
         id: '${json['id']}',
         // icon is presentation only — defaulted, not from the API.
-        icon: Icons.pending_actions_rounded,
+        icon: AppIcons.pendingActionsRounded,
         title: json['title'] as String? ?? '',
         requestedBy: json['requested_by'] as String? ?? '',
       );
@@ -70,7 +70,7 @@ class DashboardMetric {
         value: '${json['value'] ?? ''}',
         trendPercent: (json['trend_percent'] as num?)?.toDouble() ?? 0,
         // icon/color are presentation only — defaulted, not from the API.
-        icon: Icons.insights_rounded,
+        icon: AppIcons.insightsRounded,
         color: AppColors.primary,
       );
 }

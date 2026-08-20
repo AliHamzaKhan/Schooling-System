@@ -34,7 +34,7 @@ class PortalFilterButton extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Icon(Icons.tune_rounded,
+              Icon(AppIcons.tuneRounded,
                   size: 20,
                   color: active ? AppColors.onPrimary : AppColors.primary),
               if (active)

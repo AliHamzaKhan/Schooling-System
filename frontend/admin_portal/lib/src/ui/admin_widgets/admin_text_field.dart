@@ -94,7 +94,7 @@ class AdminDropdownField<T> extends StatelessWidget {
         DropdownButtonFormField<T>(
           initialValue: value,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded,
+          icon: const Icon(AppIcons.keyboardArrowDownRounded,
               color: AdminPalette.muted),
           hint: Text(hint, style: AdminType.body.copyWith(color: AdminPalette.faint)),
           style: AdminType.body.copyWith(color: AdminPalette.ink),

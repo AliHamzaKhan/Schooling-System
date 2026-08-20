@@ -4,6 +4,7 @@ Refresh tokens are backed by `RefreshSession` rows so they can be rotated,
 revoked, and checked for reuse. Access tokens remain stateless; see
 `app/models/session.py` for the rationale.
 """
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -12,16 +13,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
-from app.core.exceptions import credentials_exception
+from app.core.exceptions import bad_request, credentials_exception
 from app.core.security import (
     ACCESS_TOKEN,
+    RESET_TOKEN,
     JWTError,
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
     decode_token,
+    hash_password,
     hash_token,
     verify_password,
 )
+from app.models.password_reset import PasswordReset
 from app.models.role import Role
 from app.models.session import RefreshSession
 from app.models.user import User
@@ -130,6 +135,118 @@ class AuthService:
             .values(revoked_at=datetime.now(timezone.utc))
         )
         return result.rowcount or 0
+
+    async def change_password(
+        self, user: User, current_password: str, new_password: str
+    ) -> None:
+        """Change the signed-in user's password after re-checking the current one,
+        then revoke every refresh session (all devices must re-authenticate)."""
+        if not verify_password(current_password, user.hashed_password):
+            raise bad_request("Current password is incorrect")
+        user.hashed_password = hash_password(new_password)
+        await self.revoke_all_for_user(user.id)
+
+    # --- password reset (forgot-password OTP flow) ------------------------- #
+
+    async def request_password_reset(self, email: str) -> str | None:
+        """Start a reset for `email`: mint an OTP, persist its hash, and return
+        the raw OTP for the caller to deliver (email/SMS).
+
+        Returns ``None`` when the address has no active account — the endpoint
+        still responds identically either way, so a caller can't use it to probe
+        which emails are registered. Any earlier pending OTP for the user is
+        burned so only the newest code is ever valid.
+        """
+        result = await self.db.execute(select(User).where(User.email == email.lower()))
+        user = result.scalar_one_or_none()
+        if user is None or not user.is_active:
+            return None
+
+        now = datetime.now(timezone.utc)
+        # Invalidate any still-pending OTP for this user.
+        await self.db.execute(
+            update(PasswordReset)
+            .where(
+                PasswordReset.user_id == user.id,
+                PasswordReset.consumed_at.is_(None),
+            )
+            .values(consumed_at=now)
+        )
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        self.db.add(
+            PasswordReset(
+                user_id=user.id,
+                code_hash=hash_token(code),
+                expires_at=now
+                + timedelta(minutes=settings.PASSWORD_RESET_OTP_TTL_MINUTES),
+            )
+        )
+        return code
+
+    async def verify_reset_otp(self, email: str, code: str) -> str:
+        """Check an OTP and, on success, return a short-lived reset token.
+
+        Every failure path raises the same generic error so the endpoint reveals
+        neither whether the email exists nor whether the code merely expired.
+        """
+        now = datetime.now(timezone.utc)
+        result = await self.db.execute(
+            select(PasswordReset)
+            .join(User, User.id == PasswordReset.user_id)
+            .where(User.email == email.lower(), PasswordReset.consumed_at.is_(None))
+            .order_by(PasswordReset.created_at.desc())
+            .limit(1)
+        )
+        reset = result.scalar_one_or_none()
+        invalid = bad_request("Invalid or expired code")
+
+        if (
+            reset is None
+            or reset.verified_at is not None  # already used to mint a token
+            or reset.expires_at <= now
+            or reset.attempts >= settings.PASSWORD_RESET_MAX_ATTEMPTS
+        ):
+            raise invalid
+
+        if reset.code_hash != hash_token(code):
+            reset.attempts += 1
+            await self.db.commit()  # persist the attempt even though we 400
+            raise invalid
+
+        reset.verified_at = now
+        await self.db.flush()
+        return create_password_reset_token(str(reset.user_id), str(reset.id))
+
+    async def reset_password(self, token: str, new_password: str) -> None:
+        """Complete a reset with the token from [verify_reset_otp]: set the new
+        password, burn the challenge, and sign the user out everywhere (a reset
+        is exactly when you want every existing session killed)."""
+        try:
+            payload = decode_token(token)
+            if payload.get("type") != RESET_TOKEN:
+                raise credentials_exception()
+            user_id = uuid.UUID(payload["sub"])
+            reset_id = uuid.UUID(payload["rid"])
+        except (JWTError, KeyError, ValueError, TypeError):
+            raise credentials_exception()
+
+        reset = await self.db.get(PasswordReset, reset_id)
+        now = datetime.now(timezone.utc)
+        if (
+            reset is None
+            or reset.user_id != user_id
+            or reset.verified_at is None
+            or reset.consumed_at is not None
+        ):
+            raise credentials_exception()
+
+        user = await self.db.get(User, user_id)
+        if user is None:
+            raise credentials_exception()
+
+        user.hashed_password = hash_password(new_password)
+        reset.consumed_at = now
+        await self.revoke_all_for_user(user_id)
 
     # --- internals --------------------------------------------------------- #
 

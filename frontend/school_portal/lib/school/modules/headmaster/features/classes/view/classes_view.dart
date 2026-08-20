@@ -43,7 +43,7 @@ class ClassesView extends GetView<HeadmasterClassesController> {
                 const SizedBox(height: AppSpacing.stackMd),
                 PrimaryButton(
                   label: 'New Class',
-                  leadingIcon: Icons.add,
+                  leadingIcon: AppIcons.add,
                   trailingIcon: null,
                   onPressed: controller.createClassFlow,
                 ),

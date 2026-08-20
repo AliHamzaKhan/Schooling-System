@@ -106,7 +106,7 @@ class _FilterPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
+              const Icon(AppIcons.tuneRounded, size: 16, color: AppColors.primary),
               const SizedBox(width: 6),
               Text(active ? 'Filter ($count)' : 'Filter',
                   style: AppTypography.labelMd

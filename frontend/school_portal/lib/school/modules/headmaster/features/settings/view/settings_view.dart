@@ -189,7 +189,7 @@ class _UniformColorPickerState extends State<_UniformColorPicker> {
                   ],
                 ),
               ),
-              const Icon(Icons.palette_outlined),
+              const Icon(AppIcons.paletteOutlined),
             ],
           ),
           const SizedBox(height: AppSpacing.stackMd),
@@ -390,7 +390,7 @@ class _LogoPickerFieldState extends State<_LogoPickerField> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2))
                     else
-                      const Icon(Icons.upload_rounded),
+                      const Icon(AppIcons.uploadRounded),
                   ],
                 ),
               ),
@@ -422,9 +422,9 @@ class _LogoThumb extends StatelessWidget {
       child = Image.network(url,
           fit: BoxFit.contain,
           errorBuilder: (_, _, _) =>
-              const Icon(Icons.image_not_supported_outlined));
+              const Icon(AppIcons.imageNotSupportedOutlined));
     } else {
-      child = const Icon(Icons.apartment_rounded);
+      child = const Icon(AppIcons.apartmentRounded);
     }
     return Container(
       width: 56,

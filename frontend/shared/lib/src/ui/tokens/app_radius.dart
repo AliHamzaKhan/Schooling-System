@@ -22,6 +22,6 @@ class AppRadius {
   /// Buttons + input fields → 12px squircle feel.
   static const double button = 12;
   /// Large cards → 24–32px (use `card` for default, `cardLarge` for hero).
-  static const double card = md;
-  static const double cardLarge = lg;
+  static const double card = defaultR;
+  static const double cardLarge = card;
 }

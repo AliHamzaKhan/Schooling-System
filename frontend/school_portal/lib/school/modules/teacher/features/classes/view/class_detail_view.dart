@@ -46,7 +46,7 @@ class ClassDetailView extends StatelessWidget {
             const SizedBox(height: AppSpacing.stackSm),
             Row(
               children: [
-                Icon(Icons.star_rounded, size: 16, color: accent),
+                Icon(AppIcons.starRounded, size: 16, color: accent),
                 const SizedBox(width: 4),
                 Text("You're the class teacher",
                     style: AppTypography.bodyMd.copyWith(
@@ -79,7 +79,7 @@ class ClassDetailView extends StatelessWidget {
             children: [
               Expanded(
                 child: _Stat(
-                  icon: Icons.people_alt_outlined,
+                  icon: AppIcons.peopleAltOutlined,
                   value: '${c.studentCount}',
                   label: 'Students',
                 ),
@@ -87,7 +87,7 @@ class ClassDetailView extends StatelessWidget {
               const SizedBox(width: AppSpacing.stackMd),
               Expanded(
                 child: _Stat(
-                  icon: Icons.schedule_rounded,
+                  icon: AppIcons.scheduleRounded,
                   value: '${c.periodsPerWeek}',
                   label: 'Periods / week',
                 ),
@@ -97,7 +97,7 @@ class ClassDetailView extends StatelessWidget {
           if (c.room != null) ...[
             const SizedBox(height: AppSpacing.stackMd),
             _Stat(
-              icon: Icons.location_on_outlined,
+              icon: AppIcons.locationOnOutlined,
               value: c.room!,
               label: 'Room',
             ),
@@ -114,7 +114,7 @@ class ClassDetailView extends StatelessWidget {
             childAspectRatio: 1.35,
             children: [
               _ActionTile(
-                icon: Icons.people_alt_outlined,
+                icon: AppIcons.peopleAltOutlined,
                 label: 'View Students',
                 color: AppColors.primary,
                 onTap: () => Get.toNamed(
@@ -126,19 +126,19 @@ class ClassDetailView extends StatelessWidget {
                 ),
               ),
               _ActionTile(
-                icon: Icons.grading_outlined,
+                icon: AppIcons.gradingOutlined,
                 label: 'Open Gradebook',
                 color: AppColors.tertiary,
                 onTap: () => Get.toNamed(TeacherRoutes.gradebook),
               ),
               _ActionTile(
-                icon: Icons.campaign_outlined,
+                icon: AppIcons.campaignOutlined,
                 label: 'Message Class',
                 color: AppColors.aiAccent,
                 onTap: () => Get.toNamed(TeacherRoutes.chat),
               ),
               _ActionTile(
-                icon: Icons.event_note_rounded,
+                icon: AppIcons.eventNoteRounded,
                 label: 'Schedule',
                 color: AppColors.secondary,
                 onTap: () => Get.toNamed(TeacherRoutes.calendar),

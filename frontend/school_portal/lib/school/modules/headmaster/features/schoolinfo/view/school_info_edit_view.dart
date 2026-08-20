@@ -73,7 +73,7 @@ class _SchoolInfoEditViewState extends State<SchoolInfoEditView>
                       const Spacer(),
                       TextButton.icon(
                         onPressed: () => _addAchievement(context),
-                        icon: const Icon(Icons.add_rounded, size: 18),
+                        icon: const Icon(AppIcons.addRounded, size: 18),
                         label: const Text('Add'),
                       ),
                     ],
@@ -141,7 +141,7 @@ class _SchoolInfoEditViewState extends State<SchoolInfoEditView>
                             : ((controller.uniformImageUrl.value ?? '').isEmpty
                                 ? 'Upload Image'
                                 : 'Replace Image'),
-                        leadingIcon: Icons.upload_rounded,
+                        leadingIcon: AppIcons.uploadRounded,
                         expanded: true,
                         onPressed: controller.uploading.value
                             ? null
@@ -165,7 +165,7 @@ class _SchoolInfoEditViewState extends State<SchoolInfoEditView>
 
             Obx(() => PrimaryButton(
                   label: 'Save Changes',
-                  leadingIcon: Icons.save_rounded,
+                  leadingIcon: AppIcons.saveRounded,
                   expanded: true,
                   isLoading: controller.saving.value,
                   onPressed: () async {
@@ -218,7 +218,7 @@ class _AchievementRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.stackSm),
       child: Row(
         children: [
-          const Icon(Icons.military_tech_outlined,
+          const Icon(AppIcons.militaryTechOutlined,
               size: 18, color: Color(0xFFE8A317)),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
@@ -228,7 +228,7 @@ class _AchievementRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded, size: 18),
+            icon: const Icon(AppIcons.closeRounded, size: 18),
             onPressed: onRemove,
           ),
         ],

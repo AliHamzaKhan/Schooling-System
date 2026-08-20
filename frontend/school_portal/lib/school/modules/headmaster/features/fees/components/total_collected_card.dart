@@ -18,7 +18,7 @@ class TotalCollectedCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_outlined,
+              const Icon(AppIcons.accountBalanceOutlined,
                   size: 18, color: AppColors.primary),
               const SizedBox(width: 6),
               Text('Total Collected',
@@ -43,7 +43,7 @@ class TotalCollectedCard extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.trending_up_rounded, size: 14, color: AppColors.tertiary),
+              const Icon(AppIcons.trendingUpRounded, size: 14, color: AppColors.tertiary),
               const SizedBox(width: 4),
               Text('+${data.trendPercent.toStringAsFixed(0)}% vs last term',
                   style: AppTypography.bodyMd

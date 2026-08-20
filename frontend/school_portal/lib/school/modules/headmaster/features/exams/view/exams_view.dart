@@ -86,16 +86,16 @@ class ExamsView extends GetView<HeadmasterExamsController> {
                 const SizedBox(height: AppSpacing.stackMd),
                 GhostButton(
                   label: 'Open Timetable Management',
-                  leadingIcon: Icons.grid_view_rounded,
-                  trailingIcon: Icons.chevron_right_rounded,
+                  leadingIcon: AppIcons.gridViewRounded,
+                  trailingIcon: AppIcons.chevronRightRounded,
                   expanded: true,
                   onPressed: onTimetable,
                 ),
                 const SizedBox(height: AppSpacing.stackSm),
                 GhostButton(
                   label: 'Exam Categories',
-                  leadingIcon: Icons.event_note_rounded,
-                  trailingIcon: Icons.chevron_right_rounded,
+                  leadingIcon: AppIcons.eventNoteRounded,
+                  trailingIcon: AppIcons.chevronRightRounded,
                   expanded: true,
                   onPressed: () =>
                       Get.toNamed(HeadmasterRoutes.examCategories),
@@ -103,8 +103,8 @@ class ExamsView extends GetView<HeadmasterExamsController> {
                 const SizedBox(height: AppSpacing.stackSm),
                 GhostButton(
                   label: 'Student Promotion',
-                  leadingIcon: Icons.trending_up_rounded,
-                  trailingIcon: Icons.chevron_right_rounded,
+                  leadingIcon: AppIcons.trendingUpRounded,
+                  trailingIcon: AppIcons.chevronRightRounded,
                   expanded: true,
                   onPressed: () => Get.toNamed(HeadmasterRoutes.promotion),
                 ),
@@ -121,7 +121,7 @@ class ExamsView extends GetView<HeadmasterExamsController> {
                             actionLabel: controller.activeFilterCount > 0
                                 ? 'Filter (${controller.activeFilterCount})'
                                 : 'Filter',
-                            actionIcon: Icons.filter_list_rounded,
+                            actionIcon: AppIcons.filterListRounded,
                             onAction: controller.openScheduleFilter,
                           )),
                       const SizedBox(height: AppSpacing.stackMd),

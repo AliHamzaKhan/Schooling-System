@@ -59,7 +59,7 @@ class ClassesView extends GetView<TeacherClassesController> {
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: _Message(
-                        icon: Icons.cloud_off_rounded,
+                        icon: AppIcons.cloudOffRounded,
                         text: controller.error.value!,
                         onRetry: controller.load,
                       ),
@@ -68,7 +68,7 @@ class ClassesView extends GetView<TeacherClassesController> {
                     const SliverFillRemaining(
                       hasScrollBody: false,
                       child: _Message(
-                        icon: Icons.class_outlined,
+                        icon: AppIcons.classOutlined,
                         text: 'No sections are timetabled to you yet.',
                       ),
                     )

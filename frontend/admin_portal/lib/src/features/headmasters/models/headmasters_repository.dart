@@ -46,8 +46,18 @@ class HeadmastersRepository {
     return ApiResponse.ok(filtered);
   }
 
-  /// Schools available to assign a new headmaster to (for the create form).
-  Future<ApiResponse<List<School>>> loadSchools() => _api.fetchSchools();
+  /// One page of schools for the create-headmaster picker. [query] runs a
+  /// server-side name/code search (empty = the newest schools); [limit]/[offset]
+  /// page the results so the whole directory is never loaded at once.
+  Future<ApiResponse<List<School>>> searchSchools({
+    String query = '',
+    int limit = schoolPageSize,
+    int offset = 0,
+  }) =>
+      _api.fetchSchools(limit: limit, offset: offset, search: query);
+
+  /// Page size for the school picker (also the API page limit).
+  static const schoolPageSize = 8;
 
   /// Creates a headmaster for [schoolId]. [payload] is the backend
   /// `HeadmasterCreate` body (`email`, `password`, `full_name`, optional `phone`).

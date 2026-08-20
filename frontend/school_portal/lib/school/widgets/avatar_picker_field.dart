@@ -92,7 +92,7 @@ class _AvatarPickerFieldState extends State<AvatarPickerField> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
+              leading: const Icon(AppIcons.cameraAltOutlined),
               title: const Text('Take photo'),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -100,7 +100,7 @@ class _AvatarPickerFieldState extends State<AvatarPickerField> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const Icon(AppIcons.photoLibraryOutlined),
               title: const Text('Choose from gallery'),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -109,7 +109,7 @@ class _AvatarPickerFieldState extends State<AvatarPickerField> {
             ),
             if (widget.urlController.text.isNotEmpty || _preview != null)
               ListTile(
-                leading: const Icon(Icons.delete_outline,
+                leading: const Icon(AppIcons.deleteOutline,
                     color: AppColors.error),
                 title: const Text('Remove photo',
                     style: TextStyle(color: AppColors.error)),
@@ -169,7 +169,7 @@ class _AvatarPickerFieldState extends State<AvatarPickerField> {
                           AppColors.primary.withValues(alpha: 0.12),
                       backgroundImage: image,
                       child: image == null
-                          ? const Icon(Icons.person_outline_rounded,
+                          ? const Icon(AppIcons.personOutlineRounded,
                               size: 32, color: AppColors.primary)
                           : null,
                     ),
@@ -201,7 +201,7 @@ class _AvatarPickerFieldState extends State<AvatarPickerField> {
                     ],
                   ),
                 ),
-                const Icon(Icons.camera_alt_outlined,
+                const Icon(AppIcons.cameraAltOutlined,
                     color: AppColors.onSurfaceVariant),
               ],
             ),

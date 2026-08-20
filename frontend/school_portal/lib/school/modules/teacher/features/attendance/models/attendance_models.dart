@@ -12,10 +12,10 @@ extension AttendanceMarkX on AttendanceMark {
       };
 
   IconData get icon => switch (this) {
-        AttendanceMark.present => Icons.check_circle_outline_rounded,
-        AttendanceMark.late => Icons.access_time_rounded,
-        AttendanceMark.absent => Icons.cancel_outlined,
-        AttendanceMark.unmarked => Icons.radio_button_unchecked_rounded,
+        AttendanceMark.present => AppIcons.checkCircleOutlineRounded,
+        AttendanceMark.late => AppIcons.accessTimeRounded,
+        AttendanceMark.absent => AppIcons.cancelOutlined,
+        AttendanceMark.unmarked => AppIcons.radioButtonUncheckedRounded,
       };
 
   String get label => switch (this) {
@@ -51,7 +51,7 @@ class AttendanceClass {
         grade: json['grade'] as String? ?? '',
         students: (json['students'] as num?)?.toInt() ?? 0,
         // icon/color are presentation only — defaulted, not from the API.
-        icon: Icons.class_outlined,
+        icon: AppIcons.classOutlined,
         color: AppColors.primary,
       );
 }

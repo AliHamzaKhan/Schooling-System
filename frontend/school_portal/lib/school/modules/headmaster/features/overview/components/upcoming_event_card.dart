@@ -71,7 +71,7 @@ class UpcomingEventCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.access_time_rounded,
+                      const Icon(AppIcons.accessTimeRounded,
                           size: 13, color: AppColors.onSurfaceVariant),
                       const SizedBox(width: 4),
                       Expanded(

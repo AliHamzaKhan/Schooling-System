@@ -27,7 +27,7 @@ class StatusPill extends StatelessWidget {
     return StatusPill(
       label: '$sign${percent.toStringAsFixed(percent.truncateToDouble() == percent ? 0 : 1)}%',
       color: positive ? AppColors.tertiary : AppColors.error,
-      icon: positive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+      icon: positive ? AppIcons.trendingUpRounded : AppIcons.trendingDownRounded,
     );
   }
 

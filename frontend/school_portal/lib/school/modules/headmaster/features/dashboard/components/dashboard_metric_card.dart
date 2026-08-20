@@ -56,7 +56,7 @@ class DashboardMetricCard extends StatelessWidget {
                           color: metric.color,
                           borderRadius: BorderRadius.circular(AppRadius.full),
                         ),
-                        child: const Icon(Icons.add,
+                        child: const Icon(AppIcons.add,
                             size: 18, color: Colors.white),
                       ),
                     )

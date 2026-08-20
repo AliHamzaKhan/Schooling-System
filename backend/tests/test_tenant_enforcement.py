@@ -38,6 +38,7 @@ async def test_cross_tenant_access_blocked(client, school):
         f"{API}/schools/{uuid4()}/reports/overview", headers=school["hm"]
     )
     assert r.status_code == 403, r.text
+    assert r.json()["error"]["code"] == "tenant_mismatch", r.text
 
 
 async def test_own_school_allowed(client, school):
@@ -60,6 +61,7 @@ async def test_expired_subscription_blocks_with_402(client, sa_headers, school):
         f"{API}/schools/{school['id']}/reports/overview", headers=school["hm"]
     )
     assert r.status_code == 402, r.text
+    assert r.json()["error"]["code"] == "subscription_inactive", r.text
 
 
 async def test_active_subscription_allows(client, sa_headers, school):
@@ -108,3 +110,4 @@ async def test_suspended_school_blocks(client, sa_headers, school):
         f"{API}/schools/{school['id']}/reports/overview", headers=school["hm"]
     )
     assert r.status_code == 403, r.text
+    assert r.json()["error"]["code"] == "tenant_disabled", r.text

@@ -12,6 +12,7 @@ import '../features/notifications/models/notification_item.dart';
 import '../features/performance/models/performance_data.dart';
 import '../features/report_card/models/report_card_data.dart';
 import '../features/timetable/models/timetable_data.dart';
+import '../features/transport/models/transport_models.dart';
 import '../shared/controller/guardian_session_controller.dart';
 import '../shared/models/child.dart';
 import 'guardian_endpoints.dart';
@@ -630,6 +631,68 @@ class GuardianApiService {
         'reason': ?reason,
       },
       parser: (json) => json,
+    );
+  }
+
+  // ------------------------------ transport ---------------------------- #
+
+  Future<ApiResponse<MyTransportRequest>> createTransportRequest({
+    required String studentId,
+    required String pickupAddress,
+    double? latitude,
+    double? longitude,
+    String? notes,
+  }) {
+    return _api.request<MyTransportRequest>(
+      method: HttpMethod.post,
+      path: GuardianEndpoints.transportRequests(_sid),
+      body: {
+        'student_id': studentId,
+        'pickup_address': pickupAddress,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
+        'notes': ?notes,
+      },
+      parser: (json) =>
+          MyTransportRequest.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<List<MyTransportRequest>>> fetchMyTransportRequests() {
+    return _api.request<List<MyTransportRequest>>(
+      method: HttpMethod.get,
+      path: GuardianEndpoints.transportRequestsMine(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(MyTransportRequest.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<List<ActiveTrip>>> fetchActiveTrips() {
+    return _api.request<List<ActiveTrip>>(
+      method: HttpMethod.get,
+      path: GuardianEndpoints.transportTripsActive(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(ActiveTrip.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<TripLocation>> fetchTripLocation(String tripId) {
+    return _api.request<TripLocation>(
+      method: HttpMethod.get,
+      path: GuardianEndpoints.transportTripLocation(_sid, tripId),
+      parser: (json) => TripLocation.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<TripEta>> fetchTripEta(String tripId) {
+    return _api.request<TripEta>(
+      method: HttpMethod.get,
+      path: GuardianEndpoints.transportTripEta(_sid, tripId),
+      parser: (json) => TripEta.fromJson(json as Map<String, dynamic>),
     );
   }
 }

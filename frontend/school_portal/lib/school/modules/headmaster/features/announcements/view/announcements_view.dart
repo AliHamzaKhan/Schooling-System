@@ -79,7 +79,7 @@ class AnnouncementsView extends GetView<AnnouncementsController> {
               onPressed: controller.composeFlow,
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.onPrimary,
-              child: const Icon(Icons.edit_outlined),
+              child: const Icon(AppIcons.editOutlined),
             ),
           ),
         ],
@@ -112,7 +112,7 @@ class _FilterPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.tune_rounded, size: 16, color: AppColors.onSurfaceVariant),
+            const Icon(AppIcons.tuneRounded, size: 16, color: AppColors.onSurfaceVariant),
             const SizedBox(width: 6),
             Text(value,
                 style: AppTypography.labelMd.copyWith(color: AppColors.onSurfaceVariant)),

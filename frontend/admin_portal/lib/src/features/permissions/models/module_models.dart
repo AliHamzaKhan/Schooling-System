@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../ui/admin_theme.dart';
+import 'package:shared/shared.dart';
 
 /// Per-module access status for a school, mirroring the backend `ModuleStatus`.
 ///
@@ -98,63 +99,53 @@ class ModuleGroup {
 }
 
 /// Static catalog of every toggleable module, grouped for display. Mirrors the
-/// backend `Module` enum (21 modules); the AI group is what lets a school be
-/// restricted from AI quizzes / AI insights.
+/// backend `Module` enum (17 modules); the AI group is what lets a school be
+/// restricted from AI quiz & exam generation.
 class ModuleCatalog {
   ModuleCatalog._();
 
   static const groups = <ModuleGroup>[
-    ModuleGroup('Academics', Icons.menu_book_outlined, AdminPalette.ink, [
+    ModuleGroup('Academics', AppIcons.menuBookOutlined, AdminPalette.ink, [
       ModuleMeta('student_management', 'Student Management',
-          'Enrollment, profiles and records', Icons.school_outlined),
+          'Enrollment, profiles and records', AppIcons.schoolOutlined),
       ModuleMeta('teacher_management', 'Teacher Management',
-          'Staff profiles and assignments', Icons.co_present_outlined),
+          'Staff profiles and assignments', AppIcons.coPresentOutlined),
       ModuleMeta('guardian_management', 'Guardian Management',
-          'Parent/guardian accounts and links', Icons.family_restroom_outlined),
+          'Parent/guardian accounts and links', AppIcons.familyRestroomOutlined),
       ModuleMeta('attendance', 'Attendance',
-          'Daily and subject attendance', Icons.fact_check_outlined),
+          'Daily and subject attendance', AppIcons.factCheckOutlined),
       ModuleMeta('homework', 'Homework',
-          'Assign and track homework', Icons.assignment_outlined),
+          'Assign and track homework', AppIcons.assignmentOutlined),
       ModuleMeta('exams', 'Exams',
-          'Exam scheduling and grading', Icons.edit_note_outlined),
+          'Exam scheduling and grading', AppIcons.editNoteOutlined),
       ModuleMeta('results', 'Results',
-          'Report cards and result publishing', Icons.grading_outlined),
+          'Report cards and result publishing', AppIcons.gradingOutlined),
       ModuleMeta('timetable', 'Timetable',
-          'Class and period scheduling', Icons.calendar_view_week_outlined),
+          'Class and period scheduling', AppIcons.calendarViewWeekOutlined),
     ]),
-    ModuleGroup('Operations', Icons.apartment_outlined, AdminPalette.warning, [
+    ModuleGroup('Operations', AppIcons.apartmentOutlined, AdminPalette.warning, [
       ModuleMeta('fee_management', 'Fee Management',
-          'Fee structures and collection', Icons.payments_outlined),
+          'Fee structures and collection', AppIcons.paymentsOutlined),
       ModuleMeta('hr_payroll', 'HR & Payroll',
-          'Staff payroll and HR records', Icons.badge_outlined),
+          'Staff payroll and HR records', AppIcons.badgeOutlined),
       ModuleMeta('inventory', 'Inventory',
-          'Assets and stock tracking', Icons.inventory_2_outlined),
-      ModuleMeta('library', 'Library',
-          'Catalog and lending', Icons.local_library_outlined),
+          'Assets and stock tracking', AppIcons.inventory2Outlined),
       ModuleMeta('transport', 'Transport',
-          'Routes and vehicle tracking', Icons.directions_bus_outlined),
-      ModuleMeta('hostel', 'Hostel',
-          'Rooms and boarding', Icons.night_shelter_outlined),
+          'Routes and vehicle tracking', AppIcons.directionsBusOutlined),
     ]),
-    ModuleGroup('Engagement', Icons.forum_outlined, AdminPalette.positive, [
+    ModuleGroup('Engagement', AppIcons.forumOutlined, AdminPalette.positive, [
       ModuleMeta('messaging', 'Messaging',
-          'In-app announcements and chat', Icons.chat_outlined),
-      ModuleMeta('online_classes', 'Online Classes',
-          'Live and recorded classes', Icons.video_camera_front_outlined),
+          'In-app announcements and chat', AppIcons.chatOutlined),
       ModuleMeta('meetings', 'Meetings',
-          'Parent-teacher meetings', Icons.groups_outlined),
+          'Parent-teacher meetings', AppIcons.groupsOutlined),
       ModuleMeta('leave_management', 'Leave Management',
-          'Leave requests and approvals', Icons.event_busy_outlined),
+          'Leave requests and approvals', AppIcons.eventBusyOutlined),
       ModuleMeta('reports', 'Reports',
-          'Analytics and exports', Icons.insights_outlined),
+          'Analytics and exports', AppIcons.insightsOutlined),
     ]),
-    ModuleGroup('AI & Platform', Icons.auto_awesome_outlined, AdminPalette.info, [
+    ModuleGroup('AI', AppIcons.autoAwesomeOutlined, AdminPalette.info, [
       ModuleMeta('ai_features', 'AI Features',
-          'AI quizzes, insights and summaries', Icons.smart_toy_outlined),
-      ModuleMeta('mobile_app', 'Mobile App',
-          'Access via mobile clients', Icons.phone_iphone_outlined),
-      ModuleMeta('api_access', 'API Access',
-          'Programmatic API tokens', Icons.api_outlined),
+          'AI quiz & exam generation', AppIcons.smartToyOutlined),
     ]),
   ];
 
@@ -170,6 +161,6 @@ class ModuleCatalog {
         .split('_')
         .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
-    return ModuleMeta(key, label, '', Icons.extension_outlined);
+    return ModuleMeta(key, label, '', AppIcons.extensionOutlined);
   }
 }

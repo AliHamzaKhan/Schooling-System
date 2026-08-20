@@ -53,7 +53,7 @@ class StudentPerformanceView extends GetView<TeacherPerformanceController> {
                               style: AppTypography.headlineLg
                                   .copyWith(color: AppColors.primary)),
                         ),
-                        const Icon(Icons.notifications_none_rounded,
+                        const Icon(AppIcons.notificationsNoneRounded,
                             color: AppColors.onSurface),
                       ],
                     ),
@@ -63,7 +63,7 @@ class StudentPerformanceView extends GetView<TeacherPerformanceController> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.arrow_back_rounded,
+                          const Icon(AppIcons.arrowBackRounded,
                               size: 16, color: AppColors.onSurfaceVariant),
                           const SizedBox(width: 4),
                           Text('Back to Gradebook',
@@ -90,7 +90,7 @@ class StudentPerformanceView extends GetView<TeacherPerformanceController> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.trending_up_rounded,
+                            const Icon(AppIcons.trendingUpRounded,
                                 size: 18, color: AppColors.primary),
                             const SizedBox(width: 6),
                             Text('Performance Trend',
@@ -120,7 +120,7 @@ class StudentPerformanceView extends GetView<TeacherPerformanceController> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.event_available_outlined,
+                            const Icon(AppIcons.eventAvailableOutlined,
                                 size: 18, color: Color(0xFFE8A317)),
                             const SizedBox(width: 6),
                             Text('Attendance Record',

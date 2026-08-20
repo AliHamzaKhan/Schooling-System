@@ -84,7 +84,7 @@ class _SummaryCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Row(
         children: [
@@ -158,7 +158,7 @@ class _ExamRow extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded,
+            const Icon(AppIcons.chevronRightRounded,
                 color: AppColors.onSurfaceVariant),
           ],
         ),
@@ -185,7 +185,7 @@ class _QuizRow extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.stackMd),
       child: Row(
         children: [
-          const Icon(Icons.quiz_outlined, color: AppColors.primary),
+          const Icon(AppIcons.quizOutlined, color: AppColors.primary),
           const SizedBox(width: AppSpacing.stackMd),
           Expanded(
             child: Column(

@@ -48,6 +48,8 @@ import '../modules/headmaster/features/teachers/binding/teachers_binding.dart';
 import '../modules/headmaster/features/teachers/view/teacher_registration_view.dart';
 import '../modules/headmaster/features/teachers/view/teachers_view.dart';
 import '../modules/headmaster/features/timetable/view/timetable_editor_view.dart';
+import '../modules/headmaster/features/transport/binding/transport_binding.dart';
+import '../modules/headmaster/features/transport/view/transport_view.dart';
 import '../modules/headmaster/headmaster_shell.dart';
 import 'headmaster_routes.dart';
 
@@ -164,6 +166,11 @@ class HeadmasterPages {
     GetPage(
       name: HeadmasterRoutes.generatePayslip,
       page: () => const GeneratePayslipView(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.transport,
+      page: () => const TransportView(),
+      binding: TransportBinding(),
     ),
 
     // Courses authoring.

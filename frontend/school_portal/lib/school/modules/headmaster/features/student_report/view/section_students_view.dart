@@ -120,7 +120,7 @@ class StudentRosterTile extends StatelessWidget {
                     .copyWith(fontWeight: FontWeight.w700),
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
+            const Icon(AppIcons.chevronRightRounded,
                 color: AppColors.onSurfaceVariant),
           ],
         ),

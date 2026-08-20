@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../app/admin_routes.dart';
 import '../../../ui/admin_widgets/admin_confirm_dialog.dart';
+import '../../../ui/admin_widgets/admin_page_header.dart';
 import '../../../ui/admin_widgets/admin_search_field.dart';
 import '../../../ui/admin_widgets/admin_text_field.dart';
 import '../../../ui/admin_widgets/filter_chips.dart';
@@ -15,7 +17,7 @@ import '../../../ui/admin_widgets/admin_surface.dart';
 /// Confirms then soft-deletes (deactivates) a headmaster.
 Future<void> _confirmDeleteHeadmaster(Headmaster h) async {
   final ok = await showAdminConfirm(
-    icon: Icons.block_rounded,
+    icon: AppIcons.blockRounded,
     title: 'Deactivate headmaster?',
     message:
         '${h.name} will be deactivated and lose access. You can reactivate them later.',
@@ -42,6 +44,13 @@ class HeadmastersView extends GetView<HeadmastersController> {
   Widget build(BuildContext context) {
     return AppScaffold(
       safeArea: false,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Get.toNamed<void>(AdminRoutes.createHeadmaster),
+        backgroundColor: AdminPalette.ink,
+        foregroundColor: Colors.white,
+        icon: const Icon(AppIcons.add),
+        label: const Text('New Headmaster'),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,7 +59,7 @@ class HeadmastersView extends GetView<HeadmastersController> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  _Header(),
+                  const AdminScreenHeader(title: 'Headmasters'),
                   const SizedBox(height: AppSpacing.stackMd),
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -79,7 +88,9 @@ class HeadmastersView extends GetView<HeadmastersController> {
                         horizontal: AppSpacing.containerPaddingMobile),
                     child: _list(),
                   ),
-                  const SizedBox(height: AppSpacing.stackXl),
+                  // Extra bottom gap so the floating "New Headmaster" button
+                  // never covers the pager / last card.
+                  const SizedBox(height: 96),
                 ],
               ),
             ),
@@ -130,186 +141,7 @@ class HeadmastersView extends GetView<HeadmastersController> {
   }
 }
 
-class _Header extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.containerPaddingMobile,
-        AppSpacing.stackSm,
-        AppSpacing.containerPaddingMobile,
-        AppSpacing.stackLg,
-      ),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFCEAD6), Color(0xFFF3DCE6), Color(0xFFD9CDEF)],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Get.back<void>(),
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AdminPalette.inkSoft,
-                  child: Icon(Icons.person, color: Colors.white, size: 20),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.stackSm),
-              Text('Meri Taleem Admin',
-                  style: AdminType.cardTitle.copyWith(
-                      color: AdminPalette.ink, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              const Icon(Icons.notifications_none_rounded, color: AdminPalette.ink),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.stackLg),
-          Text('Headmasters',
-              style: AdminType.metric.copyWith(color: AdminPalette.ink, fontSize: 34)),
-          const SizedBox(height: AppSpacing.stackSm),
-          Text('Manage school leadership and administrative access.',
-              style: AdminType.body.copyWith(color: AdminPalette.ink)),
-          const SizedBox(height: AppSpacing.stackLg),
-          PrimaryButton(
-            label: 'New Headmaster',
-            leadingIcon: Icons.add,
-            trailingIcon: null,
-            onPressed: () => Get.dialog<void>(const _CreateHeadmasterDialog()),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
-/// Create-headmaster form: pick a school, enter the account details, and POST
-/// to the backend via the controller. Refreshes the list on success.
-class _CreateHeadmasterDialog extends StatefulWidget {
-  const _CreateHeadmasterDialog();
-
-  @override
-  State<_CreateHeadmasterDialog> createState() => _CreateHeadmasterDialogState();
-}
-
-class _CreateHeadmasterDialogState extends State<_CreateHeadmasterDialog> {
-  final _controller = Get.find<HeadmastersController>();
-  final _name = TextEditingController();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  final _phone = TextEditingController();
-  String? _schoolId;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.submitError.value = null;
-    _controller.loadSchools();
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _email.dispose();
-    _password.dispose();
-    _phone.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (_schoolId == null ||
-        _name.text.trim().isEmpty ||
-        _email.text.trim().isEmpty ||
-        _password.text.length < 8) {
-      _controller.submitError.value =
-          'Pick a school and fill name, email, and a password (8+ chars).';
-      return;
-    }
-    final ok = await _controller.createHeadmaster(
-      schoolId: _schoolId!,
-      fullName: _name.text.trim(),
-      email: _email.text.trim(),
-      password: _password.text,
-      phone: _phone.text.trim(),
-    );
-    if (ok) {
-      Get.back<void>();
-      Get.snackbar('Headmaster created', '${_name.text.trim()} was added.',
-          snackPosition: SnackPosition.BOTTOM);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _HeadmasterDialogShell(
-      icon: Icons.person_add_alt_1_rounded,
-      title: 'New Headmaster',
-      subtitle: 'Provision a school administrator account.',
-      submitLabel: 'Create',
-      submittingLabel: 'Creating…',
-      onSubmit: _submit,
-      fields: [
-        Obx(() {
-          final loading = _controller.loadingSchools.value;
-          final schools = _controller.schools;
-          return _LabeledField(
-            label: 'School',
-            required: true,
-            child: DropdownButtonFormField<String>(
-              initialValue: _schoolId,
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: AdminPalette.muted),
-              hint: Text(loading ? 'Loading schools…' : 'Select a school',
-                  style: AdminType.body.copyWith(color: AdminPalette.faint)),
-              style: AdminType.body.copyWith(color: AdminPalette.ink),
-              decoration: _fieldDecoration(),
-              items: [
-                for (final s in schools)
-                  DropdownMenuItem(value: s.id, child: Text(s.name)),
-              ],
-              onChanged:
-                  loading ? null : (v) => setState(() => _schoolId = v),
-            ),
-          );
-        }),
-        const SizedBox(height: AppSpacing.stackMd),
-        AdminTextField(
-          label: 'Full name',
-          hint: 'Jane Doe',
-          controller: _name,
-          required: true,
-        ),
-        const SizedBox(height: AppSpacing.stackMd),
-        AdminTextField(
-          label: 'Email',
-          hint: 'head@school.edu',
-          controller: _email,
-          required: true,
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: AppSpacing.stackMd),
-        _PasswordField(
-          controller: _password,
-          label: 'Password',
-          hint: 'At least 8 characters',
-          required: true,
-        ),
-        const SizedBox(height: AppSpacing.stackMd),
-        AdminTextField(
-          label: 'Phone (optional)',
-          hint: '+1 (555) 123-4567',
-          controller: _phone,
-          keyboardType: TextInputType.phone,
-        ),
-      ],
-    );
-  }
-}
 
 class _Pager extends StatelessWidget {
   final int page;
@@ -331,12 +163,12 @@ class _Pager extends StatelessWidget {
       children: [
         IconButton(
           onPressed: page > 1 ? onPrev : null,
-          icon: const Icon(Icons.chevron_left_rounded),
+          icon: const Icon(AppIcons.chevronLeftRounded),
         ),
         Text('Page $page of $total', style: AdminType.label),
         IconButton(
           onPressed: page < total ? onNext : null,
-          icon: const Icon(Icons.chevron_right_rounded),
+          icon: const Icon(AppIcons.chevronRightRounded),
         ),
       ],
     );
@@ -389,7 +221,7 @@ class _EditHeadmasterDialogState extends State<_EditHeadmasterDialog> {
   @override
   Widget build(BuildContext context) {
     return _HeadmasterDialogShell(
-      icon: Icons.edit_rounded,
+      icon: AppIcons.editRounded,
       title: 'Edit Headmaster',
       subtitle: widget.headmaster.email.isNotEmpty
           ? widget.headmaster.email
@@ -508,7 +340,7 @@ class _HeadmasterDialogShell extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded,
+                        const Icon(AppIcons.errorOutlineRounded,
                             color: AdminPalette.danger, size: 18),
                         const SizedBox(width: AppSpacing.stackSm),
                         Expanded(
@@ -554,103 +386,3 @@ class _HeadmasterDialogShell extends StatelessWidget {
   }
 }
 
-/// Persistent-label wrapper matching [AdminTextField]'s look, for arbitrary
-/// field widgets (the school dropdown).
-class _LabeledField extends StatelessWidget {
-  final String label;
-  final bool required;
-  final Widget child;
-  const _LabeledField(
-      {required this.label, required this.child, this.required = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text.rich(
-          TextSpan(
-            text: label,
-            style: AdminType.label.copyWith(color: AdminPalette.ink),
-            children: [
-              if (required)
-                const TextSpan(
-                    text: ' *', style: TextStyle(color: AdminPalette.danger)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        child,
-      ],
-    );
-  }
-}
-
-/// Obscured password field with a show/hide toggle, styled like
-/// [AdminTextField].
-class _PasswordField extends StatefulWidget {
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final bool required;
-  const _PasswordField({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    this.required = false,
-  });
-
-  @override
-  State<_PasswordField> createState() => _PasswordFieldState();
-}
-
-class _PasswordFieldState extends State<_PasswordField> {
-  bool _obscure = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return _LabeledField(
-      label: widget.label,
-      required: widget.required,
-      child: TextField(
-        controller: widget.controller,
-        obscureText: _obscure,
-        style: AdminType.body.copyWith(color: AdminPalette.ink),
-        decoration: _fieldDecoration(hint: widget.hint).copyWith(
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscure
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined,
-              color: AdminPalette.muted,
-              size: 20,
-            ),
-            onPressed: () => setState(() => _obscure = !_obscure),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shared input decoration matching [AdminTextField] for the bespoke fields
-/// (dropdown, password) in the headmaster dialogs.
-InputDecoration _fieldDecoration({String? hint}) {
-  OutlineInputBorder border(Color color, {double width = 1}) =>
-      OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.button),
-        borderSide: BorderSide(color: color, width: width),
-      );
-  return InputDecoration(
-    hintText: hint,
-    hintStyle: AdminType.body.copyWith(color: AdminPalette.faint),
-    filled: true,
-    fillColor: AdminPalette.card,
-    isDense: true,
-    contentPadding:
-        const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd, vertical: 14),
-    enabledBorder: border(AdminPalette.border),
-    focusedBorder: border(AdminPalette.ink, width: 1.5),
-    border: border(AdminPalette.border),
-  );
-}

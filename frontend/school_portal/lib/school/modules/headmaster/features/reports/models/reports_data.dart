@@ -24,7 +24,7 @@ class ReportMetric {
         value: '${json['value'] ?? ''}',
         trendPercent: (json['trend_percent'] as num?)?.toDouble() ?? 0,
         // icon/color are presentation only — defaulted, not from the API.
-        icon: Icons.insights_rounded,
+        icon: AppIcons.insightsRounded,
         color: AppColors.primary,
         spark: ((json['spark'] as List?) ?? [])
             .map((e) => (e as num).toDouble())

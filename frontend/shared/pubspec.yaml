@@ -13,6 +13,9 @@ dependencies:
 
   # State management + DI (used across services, layout, and all features).
   get: ^4.6.6
+  # Icon set — single source of truth for iconography (see AppIcons) so the
+  # school & admin portals render bolder, more legible icons than Material's.
+  font_awesome_flutter: ^11.0.0
   # HTTP gateway (ApiService).
   http: ^1.2.2
   # Local persistence (DataStoreService).

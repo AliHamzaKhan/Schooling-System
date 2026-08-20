@@ -130,9 +130,9 @@ class _MarkEntryRowState extends State<MarkEntryRow> {
               Align(
                 alignment: Alignment.centerRight,
                 child: obtained != null
-                    ? const Icon(Icons.check_circle_outline_rounded,
+                    ? const Icon(AppIcons.checkCircleOutlineRounded,
                         size: 22, color: AppColors.tertiary)
-                    : const Icon(Icons.more_horiz_rounded,
+                    : const Icon(AppIcons.moreHorizRounded,
                         size: 22, color: AppColors.outline),
               ),
             ],

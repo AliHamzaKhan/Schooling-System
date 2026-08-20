@@ -38,7 +38,7 @@ class GradebookView extends GetView<GradebookController> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.menu_book_outlined,
+                      const Icon(AppIcons.menuBookOutlined,
                           size: 16, color: AppColors.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Expanded(
@@ -62,7 +62,7 @@ class GradebookView extends GetView<GradebookController> {
                     alignment: Alignment.centerLeft,
                     child: GhostButton(
                       label: 'Export CSV',
-                      leadingIcon: Icons.download_rounded,
+                      leadingIcon: AppIcons.downloadRounded,
                       onPressed: () {},
                     ),
                   ),
@@ -115,7 +115,7 @@ class _Footer extends StatelessWidget {
                 color: AppColors.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(AppRadius.button),
               ),
-              child: const Icon(Icons.bar_chart_rounded,
+              child: const Icon(AppIcons.barChartRounded,
                   color: AppColors.onSurfaceVariant, size: 22),
             ),
             const SizedBox(width: AppSpacing.stackSm),
@@ -140,7 +140,7 @@ class _Footer extends StatelessWidget {
             const SizedBox(width: AppSpacing.stackSm),
             Obx(() => PrimaryButton(
                   label: 'Save All\nMarks',
-                  leadingIcon: Icons.save_outlined,
+                  leadingIcon: AppIcons.saveOutlined,
                   trailingIcon: null,
                   isLoading: controller.saving.value,
                   onPressed: controller.saveAll,
@@ -178,13 +178,13 @@ class _PaperPicker extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackLg),
           if (err != null)
             _Empty(
-              icon: Icons.cloud_off_rounded,
+              icon: AppIcons.cloudOffRounded,
               text: err,
               onRetry: controller.loadPapers,
             )
           else if (papers.isEmpty)
             const _Empty(
-              icon: Icons.fact_check_outlined,
+              icon: AppIcons.factCheckOutlined,
               text: 'No exam papers have been set up yet.',
             )
           else
@@ -194,7 +194,7 @@ class _PaperPicker extends StatelessWidget {
                 onTap: () => controller.selectPaper(p.paperId),
                 child: Row(
                   children: [
-                    const Icon(Icons.menu_book_outlined,
+                    const Icon(AppIcons.menuBookOutlined,
                         color: AppColors.primary),
                     const SizedBox(width: AppSpacing.stackSm),
                     Expanded(
@@ -211,7 +211,7 @@ class _PaperPicker extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded,
+                    const Icon(AppIcons.chevronRightRounded,
                         color: AppColors.onSurfaceVariant),
                   ],
                 ),

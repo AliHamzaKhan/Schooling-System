@@ -23,7 +23,7 @@ class ReaderView extends GetView<ReaderController> {
         actions: [
           IconButton(
             tooltip: 'Search',
-            icon: const Icon(Icons.search_rounded),
+            icon: const Icon(AppIcons.searchRounded),
             onPressed: controller.toggleSearch,
           ),
           if (controller.args.isNote)
@@ -36,12 +36,12 @@ class ReaderView extends GetView<ReaderController> {
                 PopupMenuItem(
                     value: 'share',
                     child: ListTile(
-                        leading: Icon(Icons.ios_share_rounded),
+                        leading: Icon(AppIcons.iosShareRounded),
                         title: Text('Share'))),
                 PopupMenuItem(
                     value: 'print',
                     child: ListTile(
-                        leading: Icon(Icons.print_outlined),
+                        leading: Icon(AppIcons.printOutlined),
                         title: Text('Print'))),
               ],
             ),
@@ -103,7 +103,7 @@ class _SearchBarState extends State<_SearchBar> with ScreenTextControllers {
               decoration: const InputDecoration(
                 isDense: true,
                 hintText: 'Find in text…',
-                prefixIcon: Icon(Icons.search_rounded, size: 18),
+                prefixIcon: Icon(AppIcons.searchRounded, size: 18),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -119,15 +119,15 @@ class _SearchBarState extends State<_SearchBar> with ScreenTextControllers {
             );
           }),
           IconButton(
-            icon: const Icon(Icons.keyboard_arrow_up_rounded),
+            icon: const Icon(AppIcons.keyboardArrowUpRounded),
             onPressed: controller.findPrev,
           ),
           IconButton(
-            icon: const Icon(Icons.keyboard_arrow_down_rounded),
+            icon: const Icon(AppIcons.keyboardArrowDownRounded),
             onPressed: controller.findNext,
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded),
+            icon: const Icon(AppIcons.closeRounded),
             onPressed: controller.toggleSearch,
           ),
         ],
@@ -250,7 +250,7 @@ class _ChapterNavBar extends StatelessWidget {
           child: Obx(() => Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.chevron_left_rounded),
+                    icon: const Icon(AppIcons.chevronLeftRounded),
                     onPressed: controller.hasPrev ? controller.goPrevChapter : null,
                   ),
                   Expanded(
@@ -264,7 +264,7 @@ class _ChapterNavBar extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.chevron_right_rounded),
+                    icon: const Icon(AppIcons.chevronRightRounded),
                     onPressed: controller.hasNext ? controller.goNextChapter : null,
                   ),
                 ],

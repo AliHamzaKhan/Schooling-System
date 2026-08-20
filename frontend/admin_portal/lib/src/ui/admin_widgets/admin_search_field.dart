@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../admin_theme.dart';
+import 'package:shared/shared.dart';
 
 /// Rounded white search field used at the top of list screens. Optional
 /// trailing [action] (e.g. a filter button) sits to the right, outside the box.
@@ -35,7 +36,7 @@ class AdminSearchField extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.search_rounded,
+            const Icon(AppIcons.searchRounded,
                 size: 20, color: AdminPalette.faint),
             const SizedBox(width: 10),
             Expanded(

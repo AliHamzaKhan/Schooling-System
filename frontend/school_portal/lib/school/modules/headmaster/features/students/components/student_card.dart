@@ -50,7 +50,7 @@ class StudentCard extends StatelessWidget {
                           radius: 20,
                           child: const Padding(
                             padding: EdgeInsets.only(left: 6),
-                            child: Icon(Icons.more_vert_rounded,
+                            child: Icon(AppIcons.moreVertRounded,
                                 size: 20, color: AppColors.onSurfaceVariant),
                           ),
                         ),
@@ -66,14 +66,14 @@ class StudentCard extends StatelessWidget {
                     runSpacing: 6,
                     children: [
                       if (student.grade.isNotEmpty)
-                        _Chip(icon: Icons.school_outlined, text: student.grade),
+                        _Chip(icon: AppIcons.schoolOutlined, text: student.grade),
                       if (student.section.isNotEmpty)
                         _Chip(
-                            icon: Icons.groups_outlined,
+                            icon: AppIcons.groupsOutlined,
                             text: 'Sec ${student.section}'),
                       if (student.grade.isEmpty && student.section.isEmpty)
                         _Chip(
-                            icon: Icons.info_outline,
+                            icon: AppIcons.infoOutline,
                             text: 'Not enrolled'),
                     ],
                   ),

@@ -2,7 +2,7 @@
 import uuid
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class RoleOut(BaseModel):
@@ -39,3 +39,36 @@ class TokenPair(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+# ── Password reset (forgot-password OTP flow) ─────────────────────────────────
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=4, max_length=10)
+
+
+class ResetTokenOut(BaseModel):
+    """Returned by /auth/verify-otp; authorizes the subsequent /reset-password."""
+
+    reset_token: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class MessageOut(BaseModel):
+    """A neutral acknowledgement (kept deliberately uninformative for the reset
+    endpoints so they don't reveal whether an email is registered)."""
+
+    message: str

@@ -147,7 +147,7 @@ class _SubmissionCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.picture_as_pdf_rounded,
+                    const Icon(AppIcons.pictureAsPdfRounded,
                         size: 18, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Expanded(
@@ -161,7 +161,7 @@ class _SubmissionCard extends StatelessWidget {
                         style: AppTypography.labelMd.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w700)),
-                    const Icon(Icons.open_in_new_rounded,
+                    const Icon(AppIcons.openInNewRounded,
                         size: 14, color: AppColors.primary),
                   ],
                 ),
@@ -179,7 +179,7 @@ class _SubmissionCard extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
               onPressed: onGrade,
-              icon: Icon(row.isGraded ? Icons.edit_rounded : Icons.grade_rounded,
+              icon: Icon(row.isGraded ? AppIcons.editRounded : AppIcons.gradeRounded,
                   size: 18),
               label: Text(row.isGraded ? 'Update grade' : 'Grade'),
             ),
@@ -269,7 +269,7 @@ class _SubmissionCard extends StatelessWidget {
                       Navigator.of(sheet).pop();
                       _openAttachment(context);
                     },
-                    icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                    icon: const Icon(AppIcons.pictureAsPdfRounded, size: 18),
                     label: const Text('View attached PDF'),
                   ),
                 )
@@ -286,7 +286,7 @@ class _SubmissionCard extends StatelessWidget {
                     onGrade();
                   },
                   icon: Icon(
-                      row.isGraded ? Icons.edit_rounded : Icons.grade_rounded,
+                      row.isGraded ? AppIcons.editRounded : AppIcons.gradeRounded,
                       size: 18),
                   label: Text(row.isGraded ? 'Update grade' : 'Grade'),
                 ),

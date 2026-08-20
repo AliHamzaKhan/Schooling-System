@@ -26,7 +26,7 @@ class GradeFeedback {
         quote: json['quote'] as String? ?? '',
         grade: json['grade'] as String? ?? '',
         // icon/iconColor are presentation only — defaulted, not from the API.
-        icon: Icons.grading_rounded,
+        icon: AppIcons.gradingRounded,
         iconColor: AppColors.primary,
       );
 }

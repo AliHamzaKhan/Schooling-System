@@ -63,7 +63,7 @@ class Assignment {
         turnedIn: (json['turned_in'] as num?)?.toInt() ?? 0,
         total: (json['total'] as num?)?.toInt() ?? 0,
         // icon/iconAccent are presentation only — defaulted, not from the API.
-        icon: Icons.assignment_outlined,
+        icon: AppIcons.assignmentOutlined,
         iconAccent: AppColors.primary,
       );
 }

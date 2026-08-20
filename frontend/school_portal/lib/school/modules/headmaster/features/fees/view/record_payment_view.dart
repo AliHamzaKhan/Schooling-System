@@ -236,7 +236,7 @@ class _StudentResultTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
+            const Icon(AppIcons.chevronRightRounded,
                 color: AppColors.onSurfaceVariant),
           ],
         ),
@@ -267,7 +267,7 @@ class _StudentDetail extends StatelessWidget {
       children: [
         TextButton.icon(
           onPressed: onBack,
-          icon: const Icon(Icons.arrow_back_rounded, size: 18),
+          icon: const Icon(AppIcons.arrowBackRounded, size: 18),
           label: const Text('Back to search'),
         ),
         const SizedBox(height: AppSpacing.stackSm),

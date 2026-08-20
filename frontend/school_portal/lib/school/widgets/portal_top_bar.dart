@@ -78,7 +78,7 @@ class PortalTopBar extends StatelessWidget {
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.notifications_none_rounded,
+                const Icon(AppIcons.notificationsNoneRounded,
                     color: AppColors.onSurface, size: 24),
                 if (hasUnread)
                   Positioned(
@@ -101,7 +101,7 @@ class PortalTopBar extends StatelessWidget {
             splashRadius: 22,
             visualDensity: VisualDensity.compact,
             tooltip: 'Log out',
-            icon: const Icon(Icons.logout_rounded,
+            icon: const Icon(AppIcons.logoutRounded,
                 color: AppColors.onSurface, size: 22),
           ),
         ],
@@ -133,7 +133,7 @@ class PortalTopBar extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.stackSm),
             ListTile(
-              leading: const Icon(Icons.logout_rounded, color: AppColors.error),
+              leading: const Icon(AppIcons.logoutRounded, color: AppColors.error),
               title: const Text('Log out'),
               onTap: () {
                 Navigator.of(sheetContext).pop();

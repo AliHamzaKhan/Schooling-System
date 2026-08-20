@@ -120,7 +120,7 @@ class _PlanFormViewState extends State<PlanFormView> {
                 IconButton(
                   onPressed: () => Get.back<void>(),
                   icon:
-                      const Icon(Icons.close_rounded, color: AdminPalette.ink),
+                      const Icon(AppIcons.closeRounded, color: AdminPalette.ink),
                 ),
                 Text(_isEdit ? 'Edit Plan' : 'New Plan',
                     style: AdminType.cardTitle.copyWith(
@@ -335,7 +335,7 @@ class _SaveBar extends StatelessWidget {
               label: saving.value ? 'Saving…' : 'Save Plan',
               expanded: true,
               trailingIcon: null,
-              leadingIcon: Icons.check_rounded,
+              leadingIcon: AppIcons.checkRounded,
               onPressed: saving.value ? null : onSave,
             )),
       ),

@@ -13,6 +13,7 @@ import 'features/exams/view/exams_view.dart';
 import 'features/fees/binding/fees_binding.dart';
 import 'features/fees/view/fees_view.dart';
 import '../../config/headmaster_routes.dart';
+import 'package:shared/shared.dart';
 
 /// Headmaster module shell — hosts the 5 tabs (Dashboard / People / Schedule /
 /// Finance / Reports) behind a persistent dark bottom nav. Drill-in screens
@@ -27,11 +28,11 @@ class HeadmasterShell extends StatefulWidget {
 
 class _HeadmasterShellState extends State<HeadmasterShell> {
   static const _tabs = [
-    PortalTab(Icons.dashboard_rounded, 'Dashboard'),
-    PortalTab(Icons.groups_rounded, 'People'),
-    PortalTab(Icons.event_note_rounded, 'Schedule'),
-    PortalTab(Icons.payments_outlined, 'Finance'),
-    PortalTab(Icons.insights_rounded, 'Reports'),
+    PortalTab(AppIcons.dashboardRounded, 'Dashboard'),
+    PortalTab(AppIcons.groupsRounded, 'People'),
+    PortalTab(AppIcons.eventNoteRounded, 'Schedule'),
+    PortalTab(AppIcons.paymentsOutlined, 'Finance'),
+    PortalTab(AppIcons.insightsRounded, 'Reports'),
   ];
 
   @override

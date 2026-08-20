@@ -9,8 +9,10 @@ import '../services/data_store_service.dart';
 /// restores any existing session. Call once in `main()` after
 /// `EnvConfig.bootstrap(...)` and before `runApp`.
 ///
-/// On a 401 from an authenticated call the session is cleared and the app is
-/// routed back to the shared login.
+/// On a session-fatal failure from an authenticated call — an unrecoverable
+/// 401, or a tenant/subscription/account failure the backend flags via
+/// `error.code` — the session is cleared and the app is routed back to the
+/// shared login.
 ///
 /// Set [restoreSession] to false when the app has a splash screen that owns the
 /// restore itself. Session restore calls `/auth/me`, and awaiting it here means
@@ -27,7 +29,8 @@ Future<void> initSharedServices({bool restoreSession = true}) async {
   final auth = AuthService(api: api, store: store);
 
   // On a 401, ApiService first tries to renew the access token via the refresh
-  // token; only if that fails does onUnauthorized fire (clear session + login).
+  // token; only if that fails (or the failure is a tenant/subscription one a
+  // refresh can't fix) does onUnauthorized fire (clear session + login).
   api.tokenRefresher = auth.refreshSession;
   api.onUnauthorized = () {
     auth.logout();

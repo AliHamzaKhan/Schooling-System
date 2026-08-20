@@ -5,6 +5,7 @@ import '../../../../ui/tokens/app_radius.dart';
 import '../../../../ui/tokens/app_spacing.dart';
 import '../../../../ui/tokens/app_typography.dart';
 import '../../models/password_strength.dart';
+import 'package:shared/shared.dart';
 
 /// "Password must include:" checklist that ticks each rule live.
 class PasswordRequirements extends StatelessWidget {
@@ -47,7 +48,7 @@ class _RuleRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            ok ? Icons.check_circle : Icons.check_circle_outline,
+            ok ? AppIcons.checkCircle : AppIcons.checkCircleOutline,
             size: 18,
             color: ok ? AppColors.tertiary : AppColors.outline,
           ),

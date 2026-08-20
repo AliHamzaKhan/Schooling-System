@@ -111,7 +111,7 @@ class _ChildCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
+            const Icon(AppIcons.chevronRightRounded,
                 color: AppColors.onSurfaceVariant),
           ],
         ),

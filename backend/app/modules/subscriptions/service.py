@@ -14,6 +14,7 @@ from decimal import Decimal
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import cache
 from app.core.enums import BillingPeriod, DiscountType, SubscriptionStatus
 from app.core.exceptions import bad_request, not_found
 from app.modules.subscriptions.capacity import active_student_count
@@ -198,6 +199,7 @@ class SubscriptionService:
             school.status = "active"
 
         await self.db.flush()
+        await cache.invalidate(cache.tenant_status_key(school.id))
         return await self._load_out(sub.id)
 
     async def renew(
@@ -224,6 +226,7 @@ class SubscriptionService:
             )
         )
         await self.db.flush()
+        await cache.invalidate(cache.tenant_status_key(sub.school_id))
         return await self._load_out(sub.id)
 
     async def cancel(self, subscription_id: uuid.UUID) -> SchoolSubscription:
@@ -232,6 +235,7 @@ class SubscriptionService:
             raise not_found("Subscription not found")
         sub.status = SubscriptionStatus.CANCELLED.value
         await self.db.flush()
+        await cache.invalidate(cache.tenant_status_key(sub.school_id))
         return await self._load_out(sub.id)
 
     async def _load_out(self, subscription_id: uuid.UUID) -> schemas.SubscriptionOut:

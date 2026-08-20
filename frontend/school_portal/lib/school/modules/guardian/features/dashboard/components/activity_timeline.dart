@@ -15,7 +15,7 @@ class ActivityTimeline extends StatelessWidget {
       return GlassSurface(
         child: Row(
           children: [
-            const Icon(Icons.history_toggle_off_rounded,
+            const Icon(AppIcons.historyToggleOffRounded,
                 color: AppColors.outline),
             const SizedBox(width: AppSpacing.stackSm),
             Expanded(

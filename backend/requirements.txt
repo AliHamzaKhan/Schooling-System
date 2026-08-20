@@ -13,5 +13,7 @@ python-multipart==0.0.20
 email-validator==2.2.0
 slowapi==0.1.9
 redis==5.2.1  # shared storage backend for slowapi rate-limit counters
+arq==0.26.3  # Redis-backed background task queue (worker offload); see app/worker.py
+prometheus-client==0.21.1  # /metrics exposition (request counts/latency, process CPU/mem)
 httpx==0.28.1
 pypdf==5.1.0

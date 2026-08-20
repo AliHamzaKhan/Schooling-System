@@ -17,7 +17,7 @@ class ExamCategoriesView extends GetView<ExamCategoriesController> {
       appBar: AppBar(title: const Text('Exam Categories')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.createFlow,
-        icon: const Icon(Icons.add_rounded),
+        icon: const Icon(AppIcons.addRounded),
         label: const Text('New Category'),
       ),
       body: Obx(() {
@@ -91,7 +91,7 @@ class _CategoryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.event_note_rounded, color: AppColors.primary),
+              const Icon(AppIcons.eventNoteRounded, color: AppColors.primary),
               const SizedBox(width: AppSpacing.stackMd),
               Expanded(
                 child: Column(
@@ -126,26 +126,26 @@ class _CategoryCard extends StatelessWidget {
           Row(
             children: [
               _Action(
-                icon: Icons.calendar_month_rounded,
+                icon: AppIcons.calendarMonthRounded,
                 label: 'Timetable',
                 onTap: () => controller.openTimetable(category),
               ),
               const SizedBox(width: AppSpacing.stackSm),
               _Action(
                 icon: category.announced
-                    ? Icons.campaign_rounded
-                    : Icons.campaign_outlined,
+                    ? AppIcons.campaignRounded
+                    : AppIcons.campaignOutlined,
                 label: category.announced ? 'Re-announce' : 'Announce',
                 enabled: category.canAnnounce,
                 onTap: () => controller.announceFlow(category),
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 20),
+                icon: const Icon(AppIcons.editOutlined, size: 20),
                 onPressed: () => controller.editFlow(category),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline,
+                icon: const Icon(AppIcons.deleteOutline,
                     size: 20, color: AppColors.error),
                 onPressed: () => controller.deleteFlow(category),
               ),

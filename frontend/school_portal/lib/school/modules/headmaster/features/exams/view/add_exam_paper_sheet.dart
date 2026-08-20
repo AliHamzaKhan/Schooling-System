@@ -173,7 +173,7 @@ class _AddExamPaperSheetState extends State<_AddExamPaperSheet> {
                   child: _PickerTile(
                     label: 'DATE',
                     value: _dateLabel(),
-                    icon: Icons.calendar_today_rounded,
+                    icon: AppIcons.calendarTodayRounded,
                     onTap: _pickDate,
                   ),
                 ),
@@ -182,7 +182,7 @@ class _AddExamPaperSheetState extends State<_AddExamPaperSheet> {
                   child: _PickerTile(
                     label: 'TIME',
                     value: _timeLabel(),
-                    icon: Icons.schedule_rounded,
+                    icon: AppIcons.scheduleRounded,
                     onTap: _pickTime,
                   ),
                 ),

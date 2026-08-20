@@ -28,7 +28,7 @@ class PulseMetric {
         label: json['label'] as String? ?? '',
         value: '${json['value'] ?? ''}',
         // icon/accent are presentation only — defaulted, not from the API.
-        icon: Icons.insights_rounded,
+        icon: AppIcons.insightsRounded,
         accent: AppColors.primary,
         trendLabel: json['trend_label'] as String?,
       );
@@ -64,7 +64,7 @@ class UpcomingEvent {
         day: '${json['day'] ?? ''}',
         // tint/icon are presentation only — defaulted, not from the API.
         tint: AppColors.primary,
-        icon: Icons.event_rounded,
+        icon: AppIcons.eventRounded,
       );
 }
 

@@ -104,7 +104,7 @@ class _MonthlyCard extends StatelessWidget {
           StatusPill(
             label: percent >= 90 ? 'On track' : 'Needs attention',
             color: percent >= 90 ? AppColors.tertiary : const Color(0xFFE8A317),
-            icon: Icons.insights_rounded,
+            icon: AppIcons.insightsRounded,
           ),
         ],
       ),
@@ -148,22 +148,22 @@ class _RecordRow extends StatelessWidget {
         AttendanceStatus.present => (
             label: 'Present',
             color: AppColors.tertiary,
-            icon: Icons.check_circle_outline_rounded
+            icon: AppIcons.checkCircleOutlineRounded
           ),
         AttendanceStatus.absent => (
             label: 'Absent',
             color: AppColors.error,
-            icon: Icons.cancel_outlined
+            icon: AppIcons.cancelOutlined
           ),
         AttendanceStatus.late => (
             label: 'Late',
             color: const Color(0xFFE8A317),
-            icon: Icons.schedule_rounded
+            icon: AppIcons.scheduleRounded
           ),
         AttendanceStatus.holiday => (
             label: 'Holiday',
             color: AppColors.onSurfaceVariant,
-            icon: Icons.beach_access_outlined
+            icon: AppIcons.beachAccessOutlined
           ),
       };
 

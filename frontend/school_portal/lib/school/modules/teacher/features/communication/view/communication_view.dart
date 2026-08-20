@@ -5,7 +5,6 @@ import 'package:shared/shared.dart';
 import '../../../../../config/teacher_routes.dart';
 import '../../../../../widgets/portal_filter_button.dart';
 import '../../../../../widgets/portal_search_field.dart';
-import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/skeletons.dart';
 import '../components/message_thread_row.dart';
 import '../controller/communication_controller.dart';
@@ -50,64 +49,94 @@ class _CommunicationViewState extends State<CommunicationView> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PortalTopBar(title: 'Teacher Portal', onBell: () => Get.back<void>()),
-          Expanded(
-            child: Obx(() {
-              if (controller.loading.value) {
-                return _firstLoad();
-              }
-              return RefreshIndicator(
-                onRefresh: controller.fetch,
-                child: CustomScrollView(
-                  controller: _scroll,
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.containerPaddingMobile,
-                          0,
-                          AppSpacing.containerPaddingMobile,
-                          AppSpacing.stackMd),
-                      sliver: SliverToBoxAdapter(child: _header(context)),
-                    ),
-                    _list(),
-                  ],
-                ),
-              );
-            }),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: Text('Communication',
+            style: AppTypography.titleLg.copyWith(
+                color: AppColors.primary, fontWeight: FontWeight.w700)),
+      ),
+      bottomNavigationBar: _bottomBar(context),
+      body: Obx(() {
+        if (controller.loading.value) {
+          return _firstLoad();
+        }
+        return RefreshIndicator(
+          onRefresh: controller.fetch,
+          child: CustomScrollView(
+            controller: _scroll,
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.containerPaddingMobile,
+                    AppSpacing.stackMd,
+                    AppSpacing.containerPaddingMobile,
+                    AppSpacing.stackMd),
+                sliver: SliverToBoxAdapter(child: _searchRow(context)),
+              ),
+              _list(),
+            ],
           ),
-        ],
+        );
+      }),
+    );
+  }
+
+  /// The two module actions, pinned to the bottom at half width each so they
+  /// stay reachable while the thread list scrolls above them.
+  Widget _bottomBar(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackSm,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackSm),
+        child: Row(
+          children: [
+            Expanded(
+              child: PrimaryButton(
+                label: 'Announce',
+                leadingIcon: AppIcons.campaignOutlined,
+                trailingIcon: null,
+                expanded: true,
+                onPressed: () async {
+                  final sent =
+                      await Get.toNamed(TeacherRoutes.createAnnouncement);
+                  // A published announcement becomes a new thread — pull it in.
+                  if (sent == true) await controller.fetch();
+                },
+              ),
+            ),
+            const SizedBox(width: AppSpacing.stackSm),
+            Expanded(
+              child: GhostButton(
+                label: 'Messages',
+                leadingIcon: AppIcons.forumOutlined,
+                expanded: true,
+                onPressed: () => Get.toNamed(TeacherRoutes.messages),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /// First paint: header skeleton plus shimmer rows, so the screen never shows
-  /// a bare spinner.
+  /// First paint: search-row skeleton plus shimmer rows, so the screen never
+  /// shows a bare spinner.
   Widget _firstLoad() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.containerPaddingMobile,
-          0,
+          AppSpacing.stackMd,
           AppSpacing.containerPaddingMobile,
           AppSpacing.stackXl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
           Shimmer(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonBox(width: 220, height: 26),
-                SizedBox(height: AppSpacing.stackSm),
-                SkeletonBox(width: 260, height: 13),
-                SizedBox(height: AppSpacing.stackMd),
-                SkeletonBox(height: 46, radius: AppRadius.button),
-                SizedBox(height: AppSpacing.stackLg),
-                SkeletonBox(height: 48, radius: AppRadius.button),
-              ],
-            ),
+            child: SkeletonBox(height: 48, radius: AppRadius.button),
           ),
           SizedBox(height: AppSpacing.stackLg),
           Expanded(child: SkeletonThreadList()),
@@ -116,35 +145,10 @@ class _CommunicationViewState extends State<CommunicationView> {
     );
   }
 
-  Widget _header(BuildContext context) {
+  Widget _searchRow(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Communication\nCenter',
-            style:
-                AppTypography.headlineLg.copyWith(color: AppColors.primary)),
-        const SizedBox(height: AppSpacing.stackSm),
-        Text('Manage conversations with parents, students, and staff.',
-            style: AppTypography.bodyLg),
-        const SizedBox(height: AppSpacing.stackMd),
-        PrimaryButton(
-          label: 'New Announcement',
-          leadingIcon: Icons.campaign_outlined,
-          trailingIcon: null,
-          onPressed: () async {
-            final sent = await Get.toNamed(TeacherRoutes.createAnnouncement);
-            // A published announcement becomes a new thread — pull it in.
-            if (sent == true) await controller.fetch();
-          },
-        ),
-        const SizedBox(height: AppSpacing.stackSm),
-        GhostButton(
-          label: 'Direct Messages',
-          leadingIcon: Icons.forum_outlined,
-          expanded: true,
-          onPressed: () => Get.toNamed(TeacherRoutes.messages),
-        ),
-        const SizedBox(height: AppSpacing.stackLg),
         Row(
           children: [
             // Filter moved off the page into a sheet, reached from this icon.
@@ -300,8 +304,8 @@ class _CommunicationViewState extends State<CommunicationView> {
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(
                             controller.filterIndex.value == i
-                                ? Icons.radio_button_checked_rounded
-                                : Icons.radio_button_unchecked_rounded,
+                                ? AppIcons.radioButtonCheckedRounded
+                                : AppIcons.radioButtonUncheckedRounded,
                             color: controller.filterIndex.value == i
                                 ? AppColors.primary
                                 : AppColors.outline,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../admin_theme.dart';
+import 'package:shared/shared.dart';
 
 /// Numbered pager with prev/next chevrons and ellipsis collapsing
 /// (e.g. `‹ 1 2 3 … 12 ›`). 1-based [current] page.
@@ -38,7 +39,7 @@ class PaginationBar extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _Chevron(
-          icon: Icons.chevron_left_rounded,
+          icon: AppIcons.chevronLeftRounded,
           enabled: current > 1,
           onTap: () => onChanged(current - 1),
         ),
@@ -54,7 +55,7 @@ class PaginationBar extends StatelessWidget {
           const SizedBox(width: 6),
         ],
         _Chevron(
-          icon: Icons.chevron_right_rounded,
+          icon: AppIcons.chevronRightRounded,
           enabled: current < total,
           onTap: () => onChanged(current + 1),
         ),

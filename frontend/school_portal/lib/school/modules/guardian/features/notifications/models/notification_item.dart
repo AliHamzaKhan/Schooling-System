@@ -14,10 +14,10 @@ extension AlertLevelStyle on AlertLevel {
       };
 
   IconData get icon => switch (this) {
-        AlertLevel.info => Icons.info_outline_rounded,
-        AlertLevel.success => Icons.check_circle_outline_rounded,
-        AlertLevel.warning => Icons.warning_amber_rounded,
-        AlertLevel.critical => Icons.error_outline_rounded,
+        AlertLevel.info => AppIcons.infoOutlineRounded,
+        AlertLevel.success => AppIcons.checkCircleOutlineRounded,
+        AlertLevel.warning => AppIcons.warningAmberRounded,
+        AlertLevel.critical => AppIcons.errorOutlineRounded,
       };
 }
 

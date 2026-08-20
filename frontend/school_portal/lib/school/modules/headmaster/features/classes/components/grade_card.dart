@@ -36,7 +36,7 @@ class GradeCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.full),
                 child: const Padding(
                   padding: EdgeInsets.all(4),
-                  child: Icon(Icons.more_vert_rounded,
+                  child: Icon(AppIcons.moreVertRounded,
                       size: 20, color: AppColors.onSurfaceVariant),
                 ),
               ),
@@ -82,7 +82,7 @@ class _LevelBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (level == GradeLevel.primary) ...[
-            Icon(Icons.star_rounded, size: 14, color: color),
+            Icon(AppIcons.starRounded, size: 14, color: color),
             const SizedBox(width: 4),
           ],
           Text(level.label,
@@ -123,7 +123,7 @@ class _SectionRow extends StatelessWidget {
                 child: Text(section.name,
                     style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w600)),
               ),
-              const Icon(Icons.person_outline_rounded,
+              const Icon(AppIcons.personOutlineRounded,
                   size: 14, color: AppColors.onSurfaceVariant),
               const SizedBox(width: 4),
               Text('${section.students} Students', style: AppTypography.bodySm),
@@ -139,7 +139,7 @@ class _SectionRow extends StatelessWidget {
                     ? NetworkImage(section.teacherAvatarUrl!)
                     : null,
                 child: section.teacherAvatarUrl == null
-                    ? const Icon(Icons.person, size: 16, color: AppColors.outline)
+                    ? const Icon(AppIcons.person, size: 16, color: AppColors.outline)
                     : null,
               ),
               const SizedBox(width: AppSpacing.stackSm),
@@ -179,7 +179,7 @@ class _AddSectionButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.add_circle_outline_rounded,
+              const Icon(AppIcons.addCircleOutlineRounded,
                   size: 18, color: AppColors.primary),
               const SizedBox(width: 6),
               Text('Add Section',

@@ -58,7 +58,7 @@ class OverdueRow extends StatelessWidget {
               child: const SizedBox(
                 width: 36,
                 height: 36,
-                child: Icon(Icons.send_rounded, color: AppColors.onPrimary, size: 18),
+                child: Icon(AppIcons.sendRounded, color: AppColors.onPrimary, size: 18),
               ),
             ),
           ),

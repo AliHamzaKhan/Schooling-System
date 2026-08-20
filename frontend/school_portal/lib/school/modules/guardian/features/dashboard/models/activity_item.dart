@@ -7,13 +7,13 @@ enum ActivityKind { attendance, grade, homework, fee, exam, meeting, notice }
 
 extension ActivityKindStyle on ActivityKind {
   IconData get icon => switch (this) {
-        ActivityKind.attendance => Icons.event_available_rounded,
-        ActivityKind.grade => Icons.grading_rounded,
-        ActivityKind.homework => Icons.assignment_outlined,
-        ActivityKind.fee => Icons.payments_outlined,
-        ActivityKind.exam => Icons.school_outlined,
-        ActivityKind.meeting => Icons.groups_outlined,
-        ActivityKind.notice => Icons.campaign_outlined,
+        ActivityKind.attendance => AppIcons.eventAvailableRounded,
+        ActivityKind.grade => AppIcons.gradingRounded,
+        ActivityKind.homework => AppIcons.assignmentOutlined,
+        ActivityKind.fee => AppIcons.paymentsOutlined,
+        ActivityKind.exam => AppIcons.schoolOutlined,
+        ActivityKind.meeting => AppIcons.groupsOutlined,
+        ActivityKind.notice => AppIcons.campaignOutlined,
       };
 
   Color get color => switch (this) {

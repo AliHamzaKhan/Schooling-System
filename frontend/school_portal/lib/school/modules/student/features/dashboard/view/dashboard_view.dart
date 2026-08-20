@@ -73,28 +73,28 @@ class DashboardView extends GetView<StudentDashboardController> {
                   DashboardStatGrid(
                     stats: [
                       DashboardStat(
-                        icon: Icons.event_available_rounded,
+                        icon: AppIcons.eventAvailableRounded,
                         accent: AppColors.tertiary,
                         value: '${controller.attendancePercent}%',
                         label: 'Attendance',
                         sub: 'This month',
                       ),
                       DashboardStat(
-                        icon: Icons.assignment_outlined,
+                        icon: AppIcons.assignmentOutlined,
                         accent: const Color(0xFFE8A317),
                         value: '${controller.toDoCount}',
                         label: 'Pending homework',
                         sub: controller.toDoCount == 0 ? 'All clear' : 'Due soon',
                       ),
                       DashboardStat(
-                        icon: Icons.fact_check_outlined,
+                        icon: AppIcons.factCheckOutlined,
                         accent: AppColors.primary,
                         value: '${controller.examsThisMonth}',
                         label: 'Exams',
                         sub: 'This month',
                       ),
                       DashboardStat(
-                        icon: Icons.timer_outlined,
+                        icon: AppIcons.timerOutlined,
                         accent: AppColors.secondary,
                         // An em dash rather than "0d": no exam scheduled and an
                         // exam today are not the same thing, and "0" reads as
@@ -114,7 +114,7 @@ class DashboardView extends GetView<StudentDashboardController> {
                   const SizedBox(height: AppSpacing.stackLg),
 
                   DashboardPrimaryAction(
-                    icon: Icons.event_busy_rounded,
+                    icon: AppIcons.eventBusyRounded,
                     label: 'Leave Application',
                     onTap: () => Get.toNamed(StudentRoutes.leave),
                   ),
@@ -123,34 +123,39 @@ class DashboardView extends GetView<StudentDashboardController> {
                   DashboardQuickLinks(
                     links: [
                       DashboardLink(
-                        icon: Icons.grading_rounded,
+                        icon: AppIcons.gradingRounded,
                         label: 'My Results',
                         onTap: () => Get.toNamed(StudentRoutes.results),
                       ),
                       DashboardLink(
-                        icon: Icons.calendar_month_outlined,
+                        icon: AppIcons.calendarMonthOutlined,
                         label: 'Timetable',
                         onTap: () => Get.toNamed(StudentRoutes.timetable),
                       ),
                       DashboardLink(
-                        icon: Icons.quiz_rounded,
+                        icon: AppIcons.quizRounded,
                         label: 'Quizzes',
                         onTap: onOpenQuizzes,
                       ),
                       DashboardLink(
-                        icon: Icons.menu_book_rounded,
+                        icon: AppIcons.menuBookRounded,
                         label: 'Courses',
                         onTap: () => Get.toNamed(StudentRoutes.courses),
                       ),
                       DashboardLink(
-                        icon: Icons.forum_outlined,
+                        icon: AppIcons.forumOutlined,
                         label: 'Messages',
                         onTap: () => Get.toNamed(StudentRoutes.messages),
                       ),
                       DashboardLink(
-                        icon: Icons.apartment_rounded,
+                        icon: AppIcons.apartmentRounded,
                         label: 'My School',
                         onTap: () => Get.toNamed(StudentRoutes.schoolInfo),
+                      ),
+                      DashboardLink(
+                        icon: AppIcons.directionsBusOutlined,
+                        label: 'Transport',
+                        onTap: () => Get.toNamed(StudentRoutes.transport),
                       ),
                     ],
                   ),
@@ -173,10 +178,9 @@ class DashboardView extends GetView<StudentDashboardController> {
 
                   // Attendance detail.
                   if (attendance != null)
-                    MonthlyAverageCard(
+                    AttendanceRingCard(
                       percent: attendance.monthlyAverage,
                       delta: attendance.deltaPercent,
-                      week: attendance.week,
                     ),
                 ],
               ),
@@ -198,7 +202,7 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_outline_rounded,
+          const Icon(AppIcons.checkCircleOutlineRounded,
               color: AppColors.tertiary, size: 20),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(child: Text(text, style: AppTypography.bodyMd)),

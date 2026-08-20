@@ -48,4 +48,16 @@ class GuardianEndpoints {
       '${_base(schoolId)}/leave/requests';
   static String leaveMine(String schoolId) =>
       '${_base(schoolId)}/leave/requests/mine';
+
+  // ── Transport (requests for a child + live tracking) ──
+  static String transportRequests(String schoolId) =>
+      '${_base(schoolId)}/transport/requests';
+  static String transportRequestsMine(String schoolId) =>
+      '${_base(schoolId)}/transport/requests/mine';
+  static String transportTripsActive(String schoolId) =>
+      '${_base(schoolId)}/transport/trips/active';
+  static String transportTripLocation(String schoolId, String tripId) =>
+      '${_base(schoolId)}/transport/trips/$tripId/location';
+  static String transportTripEta(String schoolId, String tripId) =>
+      '${_base(schoolId)}/transport/trips/$tripId/eta';
 }

@@ -37,7 +37,7 @@ class OutstandingCard extends StatelessWidget {
                   children: [
                     Row(
                       children: const [
-                        Icon(Icons.warning_amber_rounded, color: _amber, size: 18),
+                        Icon(AppIcons.warningAmberRounded, color: _amber, size: 18),
                         SizedBox(width: 6),
                         Text('Outstanding',
                             style: TextStyle(
@@ -56,7 +56,7 @@ class OutstandingCard extends StatelessWidget {
                     const SizedBox(height: AppSpacing.stackLg),
                     GhostButton(
                       label: 'Remind All',
-                      leadingIcon: Icons.mail_outline_rounded,
+                      leadingIcon: AppIcons.mailOutlineRounded,
                       expanded: true,
                       onPressed: onRemindAll,
                     ),

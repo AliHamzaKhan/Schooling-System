@@ -1,12 +1,13 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/models/admin_metrics.dart';
 import '../admin_theme.dart';
 import 'admin_surface.dart';
 
-/// Monthly-revenue bar chart (used by Billing and Metrics). One bar per
-/// [RevenueMonth]; the latest month is picked out in navy with its value in a
-/// tooltip above the bar, the rest sit in a neutral wash.
+/// Monthly-revenue line chart (used by Billing and Metrics). One point per
+/// [RevenueMonth], drawn as a smooth navy line with a soft area fill; touch a
+/// point to see its value.
 class RevenueTrendCard extends StatelessWidget {
   final String title;
   final List<RevenueMonth> months;
@@ -29,7 +30,7 @@ class RevenueTrendCard extends StatelessWidget {
   }
 
   static String money(double v) =>
-      '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+      v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
   @override
   Widget build(BuildContext context) {
@@ -83,103 +84,107 @@ class _Bars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maxV = months.fold<double>(1, (m, r) => r.total > m ? r.total : m);
-    final activeIndex = months.length - 1;
+    final lastIndex = months.length - 1;
+    final spots = [
+      for (var i = 0; i < months.length; i++)
+        FlSpot(i.toDouble(), months[i].total),
+    ];
 
-    return Column(
-      children: [
-        // Tooltip lane — reserves a fixed strip so bars stay aligned whichever
-        // column is highlighted.
-        SizedBox(
-          height: 26,
-          child: Row(
-            children: [
-              for (var i = 0; i < months.length; i++) ...[
-                Expanded(
-                  child: i == activeIndex
-                      ? Align(
-                          alignment: Alignment.bottomCenter,
-                          child: _Tooltip(
-                              value: RevenueTrendCard.money(months[i].total)),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                if (i != months.length - 1) const SizedBox(width: 10),
-              ],
-            ],
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (months.length - 1).toDouble().clamp(0, double.infinity),
+        minY: 0,
+        maxY: maxV * 1.2,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxV / 3 <= 0 ? 1 : maxV / 3,
+          getDrawingHorizontalLine: (_) => FlLine(
+            color: AdminPalette.border.withValues(alpha: 0.5),
+            strokeWidth: 1,
           ),
         ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (var i = 0; i < months.length; i++) ...[
-                Expanded(
-                  child: FractionallySizedBox(
-                    alignment: Alignment.bottomCenter,
-                    heightFactor: (months[i].total / maxV).clamp(0.04, 1.0),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 6),
-                      decoration: BoxDecoration(
-                        color: i == activeIndex
-                            ? AdminPalette.ink
-                            : AdminPalette.tint,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              reservedSize: 24,
+              getTitlesWidget: (value, meta) {
+                final i = value.toInt();
+                if (i < 0 || i >= months.length) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    RevenueTrendCard._short(months[i].month),
+                    style: AdminType.meta.copyWith(
+                      fontSize: 12,
+                      color: i == lastIndex
+                          ? AdminPalette.ink
+                          : AdminPalette.faint,
+                      fontWeight:
+                          i == lastIndex ? FontWeight.w700 : FontWeight.w400,
                     ),
                   ),
+                );
+              },
+            ),
+          ),
+        ),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (touchedSpots) => [
+              for (final s in touchedSpots)
+                LineTooltipItem(
+                  RevenueTrendCard.money(s.y),
+                  const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                if (i != months.length - 1) const SizedBox(width: 10),
-              ],
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            for (var i = 0; i < months.length; i++) ...[
-              Expanded(
-                child: Text(
-                  RevenueTrendCard._short(months[i].month),
-                  textAlign: TextAlign.center,
-                  style: AdminType.meta.copyWith(
-                    fontSize: 12,
-                    color: i == activeIndex
-                        ? AdminPalette.ink
-                        : AdminPalette.faint,
-                    fontWeight:
-                        i == activeIndex ? FontWeight.w700 : FontWeight.w400,
-                  ),
-                ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            curveSmoothness: 0.28,
+            color: AdminPalette.ink,
+            barWidth: 2.5,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, bar, index) =>
+                  FlDotCirclePainter(
+                radius: index == lastIndex ? 4 : 3,
+                color: AdminPalette.ink,
+                strokeWidth: 0,
+                strokeColor: Colors.transparent,
               ),
-              if (i != months.length - 1) const SizedBox(width: 10),
-            ],
-          ],
-        ),
-      ],
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AdminPalette.ink.withValues(alpha: 0.22),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
-}
-
-/// Dark value bubble that sits above the highlighted bar.
-class _Tooltip extends StatelessWidget {
-  final String value;
-  const _Tooltip({required this.value});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AdminPalette.ink,
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.visible,
-          softWrap: false,
-          style: AdminType.meta.copyWith(
-              color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-        ),
-      );
 }

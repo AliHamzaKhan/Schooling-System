@@ -13,6 +13,7 @@ import '../../../../ui/forms/screen_text_controllers.dart';
 import '../components/password_requirements.dart';
 import '../components/password_strength_bar.dart';
 import '../controller/reset_password_controller.dart';
+import 'package:shared/shared.dart';
 
 class ResetPasswordView extends StatefulWidget {
   const ResetPasswordView({super.key});
@@ -34,7 +35,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: AuthIconBadge(icon: Icons.lock_reset, size: 56)),
+          const Center(child: AuthIconBadge(icon: AppIcons.lockReset, size: 56)),
           const SizedBox(height: AppSpacing.stackLg),
           Text('Create New Password',
               textAlign: TextAlign.center, style: AppTypography.headlineLg),
@@ -103,7 +104,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView>
           Center(
             child: AuthLinkButton(
               label: 'Cancel and return to Login',
-              leadingIcon: Icons.logout,
+              leadingIcon: AppIcons.logout,
               onTap: controller.cancel,
             ),
           ),
@@ -123,7 +124,7 @@ class _EyeButton extends StatelessWidget {
     return IconButton(
       splashRadius: 18,
       icon: Icon(
-        obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+        obscured ? AppIcons.visibilityOutlined : AppIcons.visibilityOffOutlined,
         size: 20,
         color: AppColors.onSurfaceVariant,
       ),

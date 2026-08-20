@@ -88,6 +88,7 @@ async def _seed_system_roles(db) -> None:
         (SystemRole.TEACHER, "Teacher"),
         (SystemRole.GUARDIAN, "Guardian"),
         (SystemRole.STUDENT, "Student"),
+        (SystemRole.DRIVER, "Driver"),
     ):
         existing = await db.scalar(
             select(Role).where(Role.code == role_code.value, Role.school_id.is_(None))

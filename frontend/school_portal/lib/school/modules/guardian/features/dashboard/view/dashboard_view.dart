@@ -78,7 +78,7 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
                       ),
                       const SizedBox(height: AppSpacing.stackLg),
                       DashboardPrimaryAction(
-                        icon: Icons.event_busy_rounded,
+                        icon: AppIcons.eventBusyRounded,
                         label: 'Leave Application',
                         onTap: () => Get.toNamed(GuardianRoutes.leave),
                       ),
@@ -124,28 +124,28 @@ class _SummaryGrid extends StatelessWidget {
     return DashboardStatGrid(
       stats: [
         DashboardStat(
-          icon: Icons.event_available_rounded,
+          icon: AppIcons.eventAvailableRounded,
           accent: AppColors.tertiary,
           label: 'Attendance',
           value: '${child.attendancePercent}%',
           sub: 'This month',
         ),
         DashboardStat(
-          icon: Icons.grading_rounded,
+          icon: AppIcons.gradingRounded,
           accent: AppColors.primary,
           label: 'GPA',
           value: child.gpa.toStringAsFixed(1),
           sub: 'Term average',
         ),
         DashboardStat(
-          icon: Icons.assignment_outlined,
+          icon: AppIcons.assignmentOutlined,
           accent: const Color(0xFFE8A317),
           label: 'Pending homework',
           value: '${child.pendingHomework}',
           sub: child.pendingHomework == 0 ? 'All clear' : 'Due soon',
         ),
         DashboardStat(
-          icon: Icons.payments_outlined,
+          icon: AppIcons.paymentsOutlined,
           accent: child.feesDue ? AppColors.error : AppColors.tertiary,
           label: 'Fees',
           value: child.feesDue ? 'Due' : 'Paid',
@@ -178,25 +178,29 @@ class _QuickLinks extends StatelessWidget {
     return DashboardQuickLinks(
       links: [
         DashboardLink(
-            icon: Icons.grading_rounded,
+            icon: AppIcons.gradingRounded,
             label: 'Report Card',
             onTap: onOpenReportCard),
         DashboardLink(
-            icon: Icons.calendar_month_outlined,
+            icon: AppIcons.calendarMonthOutlined,
             label: 'Timetable',
             onTap: onOpenTimetable),
         DashboardLink(
-            icon: Icons.school_outlined, label: 'Exams', onTap: onOpenExams),
+            icon: AppIcons.schoolOutlined, label: 'Exams', onTap: onOpenExams),
         DashboardLink(
-            icon: Icons.groups_outlined,
+            icon: AppIcons.groupsOutlined,
             label: 'Meetings',
             onTap: onOpenMeetings),
         DashboardLink(
-            icon: Icons.payments_outlined, label: 'Fees', onTap: onOpenFees),
+            icon: AppIcons.paymentsOutlined, label: 'Fees', onTap: onOpenFees),
         DashboardLink(
-            icon: Icons.forum_outlined,
+            icon: AppIcons.forumOutlined,
             label: 'Messages',
             onTap: onOpenMessages),
+        DashboardLink(
+            icon: AppIcons.directionsBusOutlined,
+            label: 'Transport',
+            onTap: () => Get.toNamed(GuardianRoutes.transport)),
       ],
     );
   }

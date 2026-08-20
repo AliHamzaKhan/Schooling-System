@@ -27,6 +27,9 @@ class StudentRoutes {
   // ── Leave ──
   static const leave = '$_base/leave';
 
+  // ── Transport ──
+  static const transport = '$_base/transport';
+
   // ── School info ──
   static const schoolInfo = '$_base/school';
 }

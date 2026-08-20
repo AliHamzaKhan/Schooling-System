@@ -54,7 +54,7 @@ class SignupDropdown extends StatelessWidget {
               hint: Text(hint ?? 'Select',
                   style: AppTypography.bodyLg.copyWith(color: AppColors.outline)),
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.onSurfaceVariant),
+              icon: const Icon(AppIcons.keyboardArrowDownRounded, color: AppColors.onSurfaceVariant),
               style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),
               borderRadius: BorderRadius.circular(AppRadius.md),
               items: options

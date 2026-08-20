@@ -65,17 +65,17 @@ class GuardianCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(AppRadius.full),
                           child: const Padding(
                             padding: EdgeInsets.all(4),
-                            child: Icon(Icons.more_vert_rounded,
+                            child: Icon(AppIcons.moreVertRounded,
                                 size: 20, color: AppColors.onSurfaceVariant),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.stackMd),
-                    _InfoRow(icon: Icons.mail_outline_rounded, text: g.email),
+                    _InfoRow(icon: AppIcons.mailOutlineRounded, text: g.email),
                     const SizedBox(height: 6),
                     _InfoRow(
-                      icon: Icons.phone_outlined,
+                      icon: AppIcons.phoneOutlined,
                       text: g.phone ?? 'No phone added',
                       muted: g.phone == null,
                     ),
@@ -85,7 +85,7 @@ class GuardianCard extends StatelessWidget {
                     if (isPending)
                       PrimaryButton(
                         label: 'Invite to Portal',
-                        leadingIcon: Icons.send_rounded,
+                        leadingIcon: AppIcons.sendRounded,
                         trailingIcon: null,
                         expanded: true,
                         onPressed: onInvite,
@@ -137,7 +137,7 @@ class _StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.shield_outlined, size: 13, color: status.color),
+          Icon(AppIcons.shieldOutlined, size: 13, color: status.color),
           const SizedBox(width: 4),
           Text(status.label,
               style: AppTypography.labelMd.copyWith(color: status.color)),

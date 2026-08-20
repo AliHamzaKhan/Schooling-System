@@ -4,6 +4,7 @@ import '../tokens/app_colors.dart';
 import '../tokens/app_elevation.dart';
 import '../tokens/app_radius.dart';
 import '../tokens/app_typography.dart';
+import 'package:shared/shared.dart';
 
 /// Pill-shaped chip with subtle purple glow — for AI/predictive content only.
 ///
@@ -34,7 +35,7 @@ class AIInsightChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon ?? Icons.auto_awesome, size: 14, color: AppColors.aiAccent),
+          Icon(icon ?? AppIcons.autoAwesome, size: 14, color: AppColors.aiAccent),
           const SizedBox(width: 6),
           Text(
             label.toUpperCase(),

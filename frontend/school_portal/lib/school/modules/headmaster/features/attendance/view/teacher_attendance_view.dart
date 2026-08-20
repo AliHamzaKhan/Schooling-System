@@ -251,7 +251,7 @@ class _Header extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.button),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today_outlined,
+                  const Icon(AppIcons.calendarTodayOutlined,
                       size: 18, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(formatted, style: AppTypography.titleMd),
@@ -388,7 +388,7 @@ class _TeacherAttendanceTile extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.schedule_rounded,
+                        const Icon(AppIcons.scheduleRounded,
                             size: 14, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text(

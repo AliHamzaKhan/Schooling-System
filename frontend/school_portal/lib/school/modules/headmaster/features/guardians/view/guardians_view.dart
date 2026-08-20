@@ -50,7 +50,7 @@ class GuardiansView extends GetView<GuardiansController> {
                       const SizedBox(width: AppSpacing.stackMd),
                       PrimaryButton(
                         label: 'Add Guardian',
-                        leadingIcon: Icons.add,
+                        leadingIcon: AppIcons.add,
                         trailingIcon: null,
                         onPressed: controller.addGuardianFlow,
                       ),
@@ -96,8 +96,8 @@ void _showGuardian(BuildContext context, Guardian g) {
     statusLabel: g.status.label,
     statusColor: g.status.color,
     fields: [
-      DetailField(Icons.email_outlined, 'Email', g.email),
-      if (g.phone != null) DetailField(Icons.phone_outlined, 'Phone', g.phone!),
+      DetailField(AppIcons.emailOutlined, 'Email', g.email),
+      if (g.phone != null) DetailField(AppIcons.phoneOutlined, 'Phone', g.phone!),
     ],
     chipsLabel: g.linkedStudents.isEmpty ? null : 'LINKED STUDENTS',
     chips: [for (final s in g.linkedStudents) s.label],
@@ -120,7 +120,7 @@ class _AllGuardiansChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.groups_outlined, size: 16, color: AppColors.primary),
+          const Icon(AppIcons.groupsOutlined, size: 16, color: AppColors.primary),
           const SizedBox(width: 6),
           Text('All Guardians ($count)',
               style: AppTypography.labelMd

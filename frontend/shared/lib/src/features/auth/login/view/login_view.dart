@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../../../ui/tokens/app_colors.dart';
 import '../../../../ui/tokens/app_radius.dart';
 import '../../../../ui/tokens/app_spacing.dart';
@@ -13,6 +12,7 @@ import '../../components/auth_shell.dart';
 import '../components/institution_dropdown.dart';
 import '../components/remember_me_checkbox.dart';
 import '../controller/login_controller.dart';
+import 'package:shared/shared.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -62,7 +62,7 @@ class _LoginViewState extends State<LoginView> with ScreenTextControllers {
             hint: 'name@school.edu',
             controller: _emailCtrl,
             keyboardType: TextInputType.emailAddress,
-            prefixIcon: Icons.alternate_email,
+            prefixIcon: AppIcons.alternateEmail,
           ),
           const SizedBox(height: AppSpacing.stackLg),
 
@@ -86,14 +86,14 @@ class _LoginViewState extends State<LoginView> with ScreenTextControllers {
                 hint: '••••••••',
                 controller: _passwordCtrl,
                 obscureText: controller.obscurePassword.value,
-                prefixIcon: Icons.lock_outline,
+                prefixIcon: AppIcons.lockOutline,
                 onSubmitted: (_) => controller.submit(),
                 suffix: IconButton(
                   splashRadius: 18,
                   icon: Icon(
                     controller.obscurePassword.value
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
+                        ? AppIcons.visibilityOutlined
+                        : AppIcons.visibilityOffOutlined,
                     size: 20,
                     color: AppColors.onSurfaceVariant,
                   ),
@@ -153,7 +153,7 @@ class _BrandMark extends StatelessWidget {
                     width: _size,
                     height: _size,
                     color: AppColors.primary.withValues(alpha: 0.10),
-                    child: const Icon(Icons.school_rounded,
+                    child: const Icon(AppIcons.schoolRounded,
                         size: 40, color: AppColors.primary),
                   )
                 : Image.asset(

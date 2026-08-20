@@ -88,7 +88,7 @@ class _ClassRow extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.onSurfaceVariant),
+          const Icon(AppIcons.chevronRightRounded, color: AppColors.onSurfaceVariant),
         ],
       ),
     );

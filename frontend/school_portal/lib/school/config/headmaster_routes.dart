@@ -40,6 +40,9 @@ class HeadmasterRoutes {
   static const salary = '$_base/salary';
   static const generatePayslip = '$_base/salary/payslip/new';
 
+  // Transport management (drivers, requests, fleet).
+  static const transport = '$_base/transport';
+
   // Courses authoring.
   static const coursesAdmin = '$_base/courses';
   static const courseContent = '$_base/courses/content';

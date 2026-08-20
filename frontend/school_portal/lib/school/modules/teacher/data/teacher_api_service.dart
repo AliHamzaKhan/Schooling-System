@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
@@ -129,7 +128,7 @@ class TeacherApiService {
         subject: subjects.join(', '),
         grade: '${first.className} ${first.sectionName}',
         students: first.studentCount,
-        icon: Icons.class_outlined,
+        icon: AppIcons.classOutlined,
         color: AppColors.primary,
       );
     }).toList()
@@ -203,7 +202,7 @@ class TeacherApiService {
                 isClosed ? AssignmentStatus.closed : AssignmentStatus.active,
             turnedIn: (a['submission_count'] as num?)?.toInt() ?? 0,
             total: 0,
-            icon: Icons.assignment_outlined,
+            icon: AppIcons.assignmentOutlined,
             iconAccent: AppColors.primary,
             maxMarks: (a['max_marks'] as num?)?.toDouble(),
           );

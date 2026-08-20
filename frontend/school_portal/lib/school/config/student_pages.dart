@@ -10,6 +10,8 @@ import '../modules/student/features/courses/view/reader_view.dart';
 import '../modules/student/features/exams/view/exam_detail_view.dart';
 import '../modules/student/features/leave/binding/leave_binding.dart';
 import '../modules/student/features/leave/view/leave_view.dart';
+import '../modules/student/features/transport/binding/transport_binding.dart';
+import '../modules/student/features/transport/view/transport_view.dart';
 import '../modules/student/features/school_info/binding/school_info_binding.dart';
 import '../modules/student/features/school_info/view/school_info_view.dart';
 import '../modules/student/features/notifications/binding/notifications_binding.dart';
@@ -107,6 +109,13 @@ class StudentPages {
       name: StudentRoutes.leave,
       page: () => const LeaveView(),
       binding: LeaveBinding(),
+    ),
+
+    // ── Transport ──
+    GetPage(
+      name: StudentRoutes.transport,
+      page: () => const StudentTransportView(),
+      binding: StudentTransportBinding(),
     ),
 
     // ── School info ──

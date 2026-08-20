@@ -13,7 +13,9 @@ from app.core.enums import (
     MessageStatus,
     SystemRole,
 )
+from app.core.config import settings
 from app.core.exceptions import bad_request, not_found
+from app.core.queue import enqueue
 from app.models.academic import Section, StudentEnrollment
 from app.models.associations import guardian_students
 from app.models.communication import (
@@ -219,7 +221,7 @@ class CommunicationService:
             )
             self.db.add(message)
             await self.db.flush()
-            await self._send(message)
+            await self._dispatch_delivery(message)
             messages.append(message)
         return messages
 
@@ -251,8 +253,37 @@ class CommunicationService:
         await self.db.flush()
 
         if data.scheduled_at is None:
-            await self._send(message)
+            await self._dispatch_delivery(message)
         return message
+
+    async def _dispatch_delivery(self, message: Message) -> None:
+        """Send ``message`` — offloaded to the background worker when a broker is
+        configured, inline otherwise.
+
+        In production the fan-out to external providers (potentially hundreds of
+        recipients × a network call each) must not block the request or hold its
+        DB connection, so it is handed to the `arq` worker, which re-loads the
+        message on its own session once this request commits. The message stays
+        ``PENDING`` until the worker finishes and moves it to sent/partial/failed.
+
+        With no broker (local dev / tests) — or if enqueueing fails — the work
+        runs inline on this request's session exactly as before, so nothing is
+        ever dropped and small/offline deployments keep working untouched.
+        """
+        if settings.TASK_QUEUE_ENABLED and await enqueue(
+            "deliver_message", str(message.id), defer=1
+        ):
+            return
+        await self._send(message)
+
+    async def deliver_by_id(self, message_id: uuid.UUID) -> Message | None:
+        """Load a persisted message and run its delivery. Returns ``None`` when
+        the row isn't visible yet (used by the worker to detect the
+        enqueue-before-commit race and retry). Entry point for the worker."""
+        message = await self.db.get(Message, message_id)
+        if message is None:
+            return None
+        return await self._send(message)
 
     async def _send(self, message: Message) -> Message:
         recipients = await self._resolve_audience(
@@ -314,7 +345,7 @@ class CommunicationService:
         )
         due = list(rows.scalars().all())
         for message in due:
-            await self._send(message)
+            await self._dispatch_delivery(message)
         return due
 
     async def list_messages(self, school_id: uuid.UUID) -> list[Message]:

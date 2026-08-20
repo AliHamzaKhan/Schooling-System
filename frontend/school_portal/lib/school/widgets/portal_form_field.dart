@@ -103,7 +103,7 @@ class PortalDropdownField<T> extends StatelessWidget {
         DropdownButtonFormField<T>(
           initialValue: value,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded,
+          icon: const Icon(AppIcons.keyboardArrowDownRounded,
               color: AppColors.onSurfaceVariant),
           hint: Text(hint,
               style: AppTypography.bodyLg.copyWith(color: AppColors.outline)),

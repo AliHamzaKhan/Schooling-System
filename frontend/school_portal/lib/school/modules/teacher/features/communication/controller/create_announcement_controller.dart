@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../data/teacher_repository.dart';
 import '../../classes/models/my_class.dart';
+import 'package:shared/shared.dart';
 
 /// Who an announcement goes to. Maps onto the backend's `AudienceType`.
 enum AnnouncementAudience {
@@ -17,10 +18,10 @@ enum AnnouncementAudience {
 
 /// Channel the message is delivered over. Maps onto the backend's `Channel`.
 enum AnnouncementChannel {
-  push('push', 'Push notification', Icons.notifications_active_outlined),
-  sms('sms', 'SMS', Icons.sms_outlined),
-  whatsapp('whatsapp', 'WhatsApp', Icons.chat_outlined),
-  email('email', 'Email', Icons.mail_outline_rounded);
+  push('push', 'Push notification', AppIcons.notificationsActiveOutlined),
+  sms('sms', 'SMS', AppIcons.smsOutlined),
+  whatsapp('whatsapp', 'WhatsApp', AppIcons.chatOutlined),
+  email('email', 'Email', AppIcons.mailOutlineRounded);
 
   const AnnouncementChannel(this.wire, this.label, this.icon);
   final String wire;

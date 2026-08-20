@@ -52,13 +52,13 @@ class PendingApprovalRow extends StatelessWidget {
           const SizedBox(width: AppSpacing.stackSm),
           _ActionDot(
             color: AppColors.error,
-            icon: Icons.close_rounded,
+            icon: AppIcons.closeRounded,
             onTap: onReject,
           ),
           const SizedBox(width: 6),
           _ActionDot(
             color: AppColors.tertiary,
-            icon: Icons.check_rounded,
+            icon: AppIcons.checkRounded,
             onTap: onApprove,
           ),
         ],

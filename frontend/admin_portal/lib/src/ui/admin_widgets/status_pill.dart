@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../admin_theme.dart';
+import 'package:shared/shared.dart';
 
 /// Small rounded status/trend chip. Tint the text via [color]; the background
 /// is a soft wash of it, or an explicit [background].
@@ -33,7 +34,7 @@ class StatusPill extends StatelessWidget {
       color: color,
       background:
           positive ? AdminPalette.positiveSoft : AdminPalette.dangerSoft,
-      icon: positive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+      icon: positive ? AppIcons.trendingUpRounded : AppIcons.trendingDownRounded,
     );
   }
 

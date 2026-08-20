@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../ui/admin_theme.dart';
 import '../../../ui/admin_widgets/admin_surface.dart';
 import '../models/school.dart';
+import 'package:shared/shared.dart';
 
 /// Schools Directory row: logo chip, name + code, status chip, the school's
 /// key facts, and a "Manage" action with the overflow menu.
@@ -68,24 +69,24 @@ class SchoolCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           AdminMetaRow(
-              icon: Icons.location_on_outlined, text: school.location),
+              icon: AppIcons.locationOnOutlined, text: school.location),
           const SizedBox(height: 10),
           AdminMetaRow(
-            icon: Icons.people_alt_outlined,
+            icon: AppIcons.peopleAltOutlined,
             text: '${_compact(school.students)} Students',
           ),
           const SizedBox(height: 10),
           AdminMetaRow(
-            icon: Icons.desktop_windows_outlined,
+            icon: AppIcons.desktopWindowsOutlined,
             text: school.planName ?? school.planCode ?? 'No plan',
           ),
           const SizedBox(height: 10),
           AdminMetaRow(
             icon: school.status == SchoolStatus.trial
-                ? Icons.timer_outlined
+                ? AppIcons.timerOutlined
                 : school.status == SchoolStatus.expired
-                    ? Icons.history_rounded
-                    : Icons.calendar_today_outlined,
+                    ? AppIcons.historyRounded
+                    : AppIcons.calendarTodayOutlined,
             text: school.tenureLabel,
             tint: school.status == SchoolStatus.trial
                 ? school.status.color
@@ -104,7 +105,7 @@ class SchoolCard extends StatelessWidget {
               const Spacer(),
               AdminInlineAction(
                 label: 'Manage',
-                trailingIcon: Icons.arrow_forward_rounded,
+                trailingIcon: AppIcons.arrowForwardRounded,
                 onTap: onTap,
               ),
             ],
@@ -136,7 +137,7 @@ class _Logo extends StatelessWidget {
         ),
       );
     }
-    return const AdminIconTile(icon: Icons.school_outlined, size: 46);
+    return const AdminIconTile(icon: AppIcons.schoolOutlined, size: 46);
   }
 }
 
@@ -161,7 +162,7 @@ class _OverflowMenu extends StatelessWidget {
       padding: EdgeInsets.zero,
       color: AdminPalette.card,
       shape: const RoundedRectangleBorder(borderRadius: AdminRadius.brTile),
-      icon: const Icon(Icons.more_horiz_rounded,
+      icon: const Icon(AppIcons.moreHorizRounded,
           size: 20, color: AdminPalette.faint),
       onSelected: (v) {
         if (v == 'edit') onEdit?.call();
@@ -170,14 +171,14 @@ class _OverflowMenu extends StatelessWidget {
         if (v == 'activate') onActivate?.call();
       },
       itemBuilder: (_) => [
-        _item('edit', Icons.edit_outlined, 'Edit', AdminPalette.ink),
-        _item('subscription', Icons.card_membership_outlined, 'Subscription',
+        _item('edit', AppIcons.editOutlined, 'Edit', AdminPalette.ink),
+        _item('subscription', AppIcons.cardMembershipOutlined, 'Subscription',
             AdminPalette.ink),
         if (isSuspended)
-          _item('activate', Icons.check_circle_outline_rounded, 'Activate',
+          _item('activate', AppIcons.checkCircleOutlineRounded, 'Activate',
               AdminPalette.positive)
         else
-          _item('delete', Icons.block_rounded, 'Deactivate',
+          _item('delete', AppIcons.blockRounded, 'Deactivate',
               AdminPalette.danger),
       ],
     );

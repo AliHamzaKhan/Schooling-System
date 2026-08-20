@@ -61,7 +61,7 @@ class StepInitialPlan extends StatelessWidget {
 }
 
 String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+    v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
 class _PlanOption extends StatelessWidget {
   final SubscriptionPlanModel plan;
@@ -93,7 +93,7 @@ class _PlanOption extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              selected ? AppIcons.radioButtonChecked : AppIcons.radioButtonOff,
               color: selected ? AdminPalette.ink : AdminPalette.faint,
             ),
             const SizedBox(width: AppSpacing.stackMd),
@@ -149,7 +149,7 @@ class _DiscountSectionState extends State<_DiscountSection>
                     label: switch (t) {
                       DiscountType.none => 'None',
                       DiscountType.percent => 'Percent %',
-                      DiscountType.fixed => 'Fixed \$',
+                      DiscountType.fixed => 'Fixed amount',
                     },
                     selected: controller.discountType.value == t,
                     onTap: () => controller.setDiscountType(t),
@@ -172,7 +172,7 @@ class _DiscountSectionState extends State<_DiscountSection>
               onChanged: (_) => controller.discountType.refresh(),
               decoration: InputDecoration(
                 labelText: isPercent ? 'Percent off' : 'Amount off',
-                prefixText: isPercent ? null : '\$ ',
+                prefixText: null,
                 suffixText: isPercent ? '%' : null,
               ),
             ),

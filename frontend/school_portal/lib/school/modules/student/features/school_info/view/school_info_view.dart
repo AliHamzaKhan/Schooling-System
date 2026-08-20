@@ -44,7 +44,7 @@ class SchoolInfoView extends GetView<SchoolInfoController> {
 
               if ((info.about ?? '').isNotEmpty) ...[
                 _Section(
-                  icon: Icons.info_outline_rounded,
+                  icon: AppIcons.infoOutlineRounded,
                   title: 'About Us',
                   child: Text(info.about!,
                       style: AppTypography.bodyLg.copyWith(height: 1.5)),
@@ -54,7 +54,7 @@ class SchoolInfoView extends GetView<SchoolInfoController> {
 
               if (info.achievements.isNotEmpty) ...[
                 _Section(
-                  icon: Icons.emoji_events_outlined,
+                  icon: AppIcons.emojiEventsOutlined,
                   title: 'Achievements',
                   child: Column(
                     children: [
@@ -70,23 +70,23 @@ class SchoolInfoView extends GetView<SchoolInfoController> {
               ],
 
               _Section(
-                icon: Icons.checkroom_rounded,
+                icon: AppIcons.checkroomRounded,
                 title: 'School Uniform',
                 child: _Uniform(url: info.uniformImageUrl),
               ),
               const SizedBox(height: AppSpacing.stackMd),
 
               _Section(
-                icon: Icons.contact_page_outlined,
+                icon: AppIcons.contactPageOutlined,
                 title: 'Contact Us',
                 child: Column(
                   children: [
                     if ((info.address ?? '').isNotEmpty)
-                      _ContactRow(icon: Icons.location_on_outlined, value: info.address!),
+                      _ContactRow(icon: AppIcons.locationOnOutlined, value: info.address!),
                     if ((info.contactPhone ?? '').isNotEmpty)
-                      _ContactRow(icon: Icons.call_outlined, value: info.contactPhone!),
+                      _ContactRow(icon: AppIcons.callOutlined, value: info.contactPhone!),
                     if ((info.contactEmail ?? '').isNotEmpty)
-                      _ContactRow(icon: Icons.mail_outline_rounded, value: info.contactEmail!),
+                      _ContactRow(icon: AppIcons.mailOutlineRounded, value: info.contactEmail!),
                     if ((info.address ?? '').isEmpty &&
                         (info.contactPhone ?? '').isEmpty &&
                         (info.contactEmail ?? '').isEmpty)
@@ -142,7 +142,7 @@ class _AchievementRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.military_tech_outlined,
+        const Icon(AppIcons.militaryTechOutlined,
             size: 20, color: Color(0xFFE8A317)),
         const SizedBox(width: AppSpacing.stackMd),
         Expanded(
@@ -194,7 +194,7 @@ class _Uniform extends StatelessWidget {
               top: 4,
               right: 4,
               child: IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                icon: const Icon(AppIcons.closeRounded, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
@@ -209,7 +209,7 @@ class _Uniform extends StatelessWidget {
     if ((url ?? '').isEmpty) {
       return Row(
         children: [
-          const Icon(Icons.image_not_supported_outlined,
+          const Icon(AppIcons.imageNotSupportedOutlined,
               size: 18, color: AppColors.onSurfaceVariant),
           const SizedBox(width: 6),
           Expanded(

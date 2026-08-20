@@ -10,6 +10,7 @@ import '../../components/auth_link_button.dart';
 import '../../components/auth_shell.dart';
 import '../controller/verify_otp_controller.dart';
 import '../components/otp_input.dart';
+import 'package:shared/shared.dart';
 
 class VerifyOtpView extends GetView<VerifyOtpController> {
   const VerifyOtpView({super.key});
@@ -20,7 +21,7 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: AuthIconBadge(icon: Icons.verified_user_outlined)),
+          const Center(child: AuthIconBadge(icon: AppIcons.verifiedUserOutlined)),
           const SizedBox(height: AppSpacing.stackLg),
           Text('Verify Your Account',
               textAlign: TextAlign.center, style: AppTypography.headlineLg),
@@ -93,7 +94,7 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.shield_outlined,
+              const Icon(AppIcons.shieldOutlined,
                   size: 16, color: AppColors.outline),
               const SizedBox(width: 8),
               Text('SECURE ACADEMIC GATEWAY',

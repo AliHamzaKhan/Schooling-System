@@ -91,7 +91,7 @@ class TeachersView extends GetView<TeachersController> {
               onPressed: controller.addTeacherFlow,
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.onPrimary,
-              icon: const Icon(Icons.person_add_alt_1_rounded),
+              icon: const Icon(AppIcons.personAddAlt1Rounded),
               label: const Text('Add Teacher'),
             ),
           ),
@@ -111,8 +111,8 @@ void _showTeacher(BuildContext context, Teacher t) {
     statusLabel: t.status.label,
     statusColor: t.status.color,
     fields: [
-      DetailField(Icons.badge_outlined, 'ID', t.id),
-      DetailField(Icons.apartment_outlined, 'Department', t.department),
+      DetailField(AppIcons.badgeOutlined, 'ID', t.id),
+      DetailField(AppIcons.apartmentOutlined, 'Department', t.department),
     ],
   );
 }

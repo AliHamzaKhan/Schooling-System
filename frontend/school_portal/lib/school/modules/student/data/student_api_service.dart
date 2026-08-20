@@ -6,6 +6,7 @@ import '../features/attendance/models/attendance_data.dart';
 import '../features/courses/models/course_models.dart';
 import '../features/leave/models/leave_models.dart';
 import '../features/school_info/models/school_info_models.dart';
+import '../features/transport/models/transport_models.dart';
 import '../features/exams/models/exam.dart';
 import '../features/notifications/models/notification_item.dart';
 import '../features/results/models/exam_result.dart';
@@ -206,9 +207,11 @@ class StudentApiService {
           final match = raw.firstWhere(
               (e) => e['start_date'] == soonest.toIso8601String().split('T').first,
               orElse: () => raw.first);
+          final diff = soonest.difference(now);
           next = ExamCountdown(
-            days: soonest.difference(now).inDays,
-            hours: 0,
+            days: diff.inDays,
+            hours: diff.inHours % 24,
+            minutes: diff.inMinutes % 60,
             title: match['name'] as String? ?? '',
             date: match['start_date'] as String? ?? '',
             time: '',
@@ -611,6 +614,66 @@ class StudentApiService {
         'reason': ?reason,
       },
       parser: (json) => LeaveRequest.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  // ------------------------------ transport ---------------------------- #
+
+  Future<ApiResponse<MyTransportRequest>> createTransportRequest({
+    required String pickupAddress,
+    double? latitude,
+    double? longitude,
+    String? notes,
+  }) {
+    return _api.request<MyTransportRequest>(
+      method: HttpMethod.post,
+      path: StudentEndpoints.transportRequests(_sid),
+      body: {
+        'pickup_address': pickupAddress,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
+        'notes': ?notes,
+      },
+      parser: (json) =>
+          MyTransportRequest.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<List<MyTransportRequest>>> fetchMyTransportRequests() {
+    return _api.request<List<MyTransportRequest>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.transportRequestsMine(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(MyTransportRequest.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<List<ActiveTrip>>> fetchActiveTrips() {
+    return _api.request<List<ActiveTrip>>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.transportTripsActive(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(ActiveTrip.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<TripLocation>> fetchTripLocation(String tripId) {
+    return _api.request<TripLocation>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.transportTripLocation(_sid, tripId),
+      parser: (json) => TripLocation.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<TripEta>> fetchTripEta(String tripId) {
+    return _api.request<TripEta>(
+      method: HttpMethod.get,
+      path: StudentEndpoints.transportTripEta(_sid, tripId),
+      parser: (json) => TripEta.fromJson(json as Map<String, dynamic>),
     );
   }
 

@@ -59,7 +59,7 @@ class AnnouncementCard extends StatelessWidget {
                           const CircleAvatar(
                             radius: 14,
                             backgroundColor: Color(0xFF8D6E63),
-                            child: Icon(Icons.person, size: 16, color: Colors.white),
+                            child: Icon(AppIcons.person, size: 16, color: Colors.white),
                           ),
                           const SizedBox(width: AppSpacing.stackSm),
                           Text(a.author!,
@@ -82,7 +82,7 @@ class AnnouncementCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.arrow_forward_rounded,
+                            const Icon(AppIcons.arrowForwardRounded,
                                 size: 16, color: AppColors.primary),
                           ],
                         ),
@@ -149,7 +149,7 @@ class _AttachmentChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.attach_file_rounded, size: 16, color: AppColors.onSurfaceVariant),
+              const Icon(AppIcons.attachFileRounded, size: 16, color: AppColors.onSurfaceVariant),
               const SizedBox(width: AppSpacing.stackSm),
               Expanded(
                 child: Text(filename,
@@ -157,7 +157,7 @@ class _AttachmentChip extends StatelessWidget {
                     overflow: TextOverflow.ellipsis),
               ),
               const SizedBox(width: AppSpacing.stackSm),
-              const Icon(Icons.download_rounded, size: 18, color: AppColors.onSurfaceVariant),
+              const Icon(AppIcons.downloadRounded, size: 18, color: AppColors.onSurfaceVariant),
             ],
           ),
         ),

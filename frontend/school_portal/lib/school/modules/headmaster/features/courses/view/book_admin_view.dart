@@ -15,7 +15,7 @@ class BookAdminView extends GetView<BookAdminController> {
       appBar: AppBar(title: Text(controller.book.title)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.addChapterFlow,
-        icon: const Icon(Icons.add_rounded),
+        icon: const Icon(AppIcons.addRounded),
         label: const Text('Add Chapter'),
       ),
       body: Obx(() {

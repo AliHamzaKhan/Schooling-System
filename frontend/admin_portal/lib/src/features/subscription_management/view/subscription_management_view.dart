@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../../../ui/admin_widgets/admin_confirm_dialog.dart';
 import '../../../ui/admin_widgets/filter_chips.dart';
 import '../../../ui/admin_widgets/status_pill.dart';
 import '../../subscriptions/models/subscription_models.dart';
 import '../controller/subscription_management_controller.dart';
 import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_page_header.dart';
 import '../../../ui/admin_widgets/admin_surface.dart';
 
 /// Subscription Management — every school's subscription instance, filtered by
@@ -24,7 +26,7 @@ class SubscriptionManagementView
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Header(),
+            const AdminScreenHeader(title: 'Subscriptions'),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.containerPaddingMobile,
@@ -82,7 +84,48 @@ String _fmtDate(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+    v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+
+/// Confirms then renews the subscription for another billing period.
+Future<void> _confirmRenew(SchoolSubscriptionModel sub) async {
+  final ok = await showAdminConfirm(
+    icon: AppIcons.autorenewRounded,
+    title: 'Renew subscription?',
+    message:
+        'This extends ${sub.schoolName ?? 'the school'}\'s subscription for another '
+        '${sub.billingPeriod.label.toLowerCase()} term and records a payment of '
+        '${_money(sub.netAmount)}.',
+    confirmLabel: 'Renew',
+    details: [
+      AdminConfirmDetail(label: 'School', value: sub.schoolName ?? '—'),
+      AdminConfirmDetail(label: 'Plan', value: sub.planName ?? '—'),
+      AdminConfirmDetail(label: 'Amount', value: _money(sub.netAmount)),
+    ],
+  );
+  if (!ok) return;
+  await Get.find<SubscriptionManagementController>().renew(sub);
+}
+
+/// Confirms then cancels the subscription (destructive).
+Future<void> _confirmCancel(SchoolSubscriptionModel sub) async {
+  final ok = await showAdminConfirm(
+    icon: AppIcons.closeRounded,
+    title: 'Cancel subscription?',
+    message:
+        '${sub.schoolName ?? 'This school'}\'s subscription will be cancelled and the '
+        'school may lose access to its features. This cannot be undone — you would '
+        'need to assign a new subscription to restore access.',
+    confirmLabel: 'Cancel subscription',
+    cancelLabel: 'Keep it',
+    destructive: true,
+    details: [
+      AdminConfirmDetail(label: 'School', value: sub.schoolName ?? '—'),
+      AdminConfirmDetail(label: 'Plan', value: sub.planName ?? '—'),
+    ],
+  );
+  if (!ok) return;
+  await Get.find<SubscriptionManagementController>().cancel(sub);
+}
 
 class _SubscriptionCard extends StatelessWidget {
   final SchoolSubscriptionModel sub;
@@ -117,7 +160,7 @@ class _SubscriptionCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackSm),
           Row(
             children: [
-              Icon(Icons.event_rounded,
+              Icon(AppIcons.eventRounded,
                   size: 16, color: AdminPalette.muted),
               const SizedBox(width: 6),
               Text('${_fmtDate(sub.startDate)} → ${_fmtDate(sub.endDate)}',
@@ -134,9 +177,8 @@ class _SubscriptionCard extends StatelessWidget {
                 Expanded(
                   child: GhostButton(
                     label: 'Renew',
-                    trailingIcon: Icons.autorenew_rounded,
-                    onPressed: () => Get.find<SubscriptionManagementController>()
-                        .renew(sub),
+                    trailingIcon: AppIcons.autorenewRounded,
+                    onPressed: () => _confirmRenew(sub),
                   ),
                 ),
                 if (sub.status == SubscriptionStatus.active) ...[
@@ -144,67 +186,14 @@ class _SubscriptionCard extends StatelessWidget {
                   Expanded(
                     child: GhostButton(
                       label: 'Cancel',
-                      trailingIcon: Icons.close_rounded,
-                      onPressed: () =>
-                          Get.find<SubscriptionManagementController>()
-                              .cancel(sub),
+                      trailingIcon: AppIcons.closeRounded,
+                      onPressed: () => _confirmCancel(sub),
                     ),
                   ),
                 ],
               ],
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.containerPaddingMobile,
-        AppSpacing.stackSm,
-        AppSpacing.containerPaddingMobile,
-        AppSpacing.stackLg,
-      ),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFCEAD6), Color(0xFFF3DCE6), Color(0xFFD9CDEF)],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Get.back<void>(),
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AdminPalette.inkSoft,
-                  child: Icon(Icons.arrow_back_rounded,
-                      color: Colors.white, size: 20),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.stackSm),
-              Text('Meri Taleem Admin',
-                  style: AdminType.cardTitle.copyWith(
-                      color: AdminPalette.ink, fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.stackLg),
-          Text('Subscriptions',
-              style: AdminType.metric
-                  .copyWith(color: AdminPalette.ink, fontSize: 34)),
-          const SizedBox(height: AppSpacing.stackSm),
-          Text('Every school\'s subscription, by status.',
-              style:
-                  AdminType.body.copyWith(color: AdminPalette.ink)),
         ],
       ),
     );
@@ -220,7 +209,7 @@ class _EmptyState extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: const [
         SizedBox(height: 80),
-        Icon(Icons.inbox_rounded, size: 48, color: AdminPalette.faint),
+        Icon(AppIcons.inboxRounded, size: 48, color: AdminPalette.faint),
         SizedBox(height: AppSpacing.stackMd),
         Center(child: Text('No subscriptions here yet.')),
       ],

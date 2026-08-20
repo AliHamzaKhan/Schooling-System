@@ -43,6 +43,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   persistent_bottom_nav_bar: 6.2.1
 
+  # Charts (line charts on dashboard / revenue / analytics).
+  fl_chart: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -85,7 +85,7 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                 // waiting on a decision, so they get the full-width row and the
                 // rest become shortcuts.
                 DashboardPrimaryAction(
-                  icon: Icons.event_available_outlined,
+                  icon: AppIcons.eventAvailableOutlined,
                   label: 'Leave Requests',
                   subtitle: 'Staff and student applications to review',
                   onTap: () => Get.toNamed(HeadmasterRoutes.leaveReview),
@@ -95,19 +95,24 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                 DashboardQuickLinks(
                   links: [
                     DashboardLink(
-                      icon: Icons.settings_outlined,
+                      icon: AppIcons.settingsOutlined,
                       label: 'Settings',
                       onTap: onSettings,
                     ),
                     DashboardLink(
-                      icon: Icons.payments_outlined,
+                      icon: AppIcons.paymentsOutlined,
                       label: 'Salaries',
                       onTap: onSalary,
                     ),
                     DashboardLink(
-                      icon: Icons.apartment_rounded,
+                      icon: AppIcons.apartmentRounded,
                       label: 'School Info',
                       onTap: () => Get.toNamed(HeadmasterRoutes.schoolInfoEdit),
+                    ),
+                    DashboardLink(
+                      icon: AppIcons.directionsBusOutlined,
+                      label: 'Transport',
+                      onTap: () => Get.toNamed(HeadmasterRoutes.transport),
                     ),
                   ],
                 ),
@@ -129,7 +134,7 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.assignment_late_outlined,
+                          const Icon(AppIcons.assignmentLateOutlined,
                               size: 18, color: AppColors.primary),
                           const SizedBox(width: 6),
                           Expanded(
@@ -167,7 +172,7 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.campaign_outlined,
+                          const Icon(AppIcons.campaignOutlined,
                               size: 18, color: AppColors.primary),
                           const SizedBox(width: 6),
                           Expanded(
@@ -216,7 +221,7 @@ _MetricMeta _metricMetaFor(String label) {
   final l = label.toLowerCase();
   if (l.contains('student')) {
     return _MetricMeta(
-      icon: Icons.school_rounded,
+      icon: AppIcons.schoolRounded,
       color: AppColors.primary,
       route: HeadmasterRoutes.students,
       createRoute: HeadmasterRoutes.studentRegistration,
@@ -224,7 +229,7 @@ _MetricMeta _metricMetaFor(String label) {
   }
   if (l.contains('teacher')) {
     return _MetricMeta(
-      icon: Icons.person_outline_rounded,
+      icon: AppIcons.personOutlineRounded,
       color: const Color(0xFFF59E0B),
       route: HeadmasterRoutes.teachers,
       createRoute: HeadmasterRoutes.teacherRegistration,
@@ -232,20 +237,20 @@ _MetricMeta _metricMetaFor(String label) {
   }
   if (l.contains('class')) {
     return _MetricMeta(
-      icon: Icons.class_outlined,
+      icon: AppIcons.classOutlined,
       color: AppColors.secondary,
       route: HeadmasterRoutes.classes,
     );
   }
   if (l.contains('subject')) {
     return _MetricMeta(
-      icon: Icons.menu_book_rounded,
+      icon: AppIcons.menuBookRounded,
       color: AppColors.tertiary,
       route: HeadmasterRoutes.coursesAdmin,
     );
   }
   return const _MetricMeta(
-    icon: Icons.insights_rounded,
+    icon: AppIcons.insightsRounded,
     color: AppColors.primary,
   );
 }
@@ -312,7 +317,7 @@ class _NewButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.add, size: 14, color: AppColors.onPrimary),
+              const Icon(AppIcons.add, size: 14, color: AppColors.onPrimary),
               const SizedBox(width: 4),
               Text('New',
                   style: AppTypography.labelMd.copyWith(color: AppColors.onPrimary)),
@@ -357,7 +362,7 @@ class _ExpiryAlert extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, color: AppColors.error),
+          const Icon(AppIcons.warningAmberRounded, color: AppColors.error),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
             child: Column(

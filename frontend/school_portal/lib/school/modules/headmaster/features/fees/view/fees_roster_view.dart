@@ -32,10 +32,10 @@ extension on _StatusFilter {
         _StatusFilter.overdue => 'Overdue',
       };
   IconData get icon => switch (this) {
-        _StatusFilter.all => Icons.people_alt_outlined,
-        _StatusFilter.paid => Icons.check_circle_outline,
-        _StatusFilter.pending => Icons.schedule_rounded,
-        _StatusFilter.overdue => Icons.warning_amber_rounded,
+        _StatusFilter.all => AppIcons.peopleAltOutlined,
+        _StatusFilter.paid => AppIcons.checkCircleOutline,
+        _StatusFilter.pending => AppIcons.scheduleRounded,
+        _StatusFilter.overdue => AppIcons.warningAmberRounded,
       };
   Color get color => switch (this) {
         _StatusFilter.all => AppColors.primary,

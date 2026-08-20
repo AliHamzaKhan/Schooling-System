@@ -9,6 +9,7 @@ import '../../../ui/admin_widgets/stat_card.dart';
 import '../components/alert_tile.dart';
 import '../components/quick_action_card.dart';
 import '../controller/dashboard_controller.dart';
+import 'package:shared/shared.dart';
 
 /// Admin home — a welcome header, KPI cards, the recent alerts feed, and the
 /// primary quick actions.
@@ -34,9 +35,9 @@ class DashboardView extends GetView<DashboardController> {
   /// Icon per KPI card, in the order the repository builds the metrics
   /// (0=schools, 1=subscriptions, 2=revenue).
   static const _icons = [
-    Icons.apartment_rounded,
-    Icons.verified_rounded,
-    Icons.bar_chart_rounded,
+    AppIcons.apartmentRounded,
+    AppIcons.verifiedRounded,
+    AppIcons.barChartRounded,
   ];
 
   /// Maps a KPI card index to its drill-in action.
@@ -124,20 +125,20 @@ class DashboardView extends GetView<DashboardController> {
                       label: 'Create New School',
                       description:
                           'Add a new institution to the platform and invite administrators.',
-                      leadingIcon: Icons.add_rounded,
-                      watermarkIcon: Icons.add_business_rounded,
+                      leadingIcon: AppIcons.addRounded,
+                      watermarkIcon: AppIcons.addBusinessRounded,
                       onTap: onCreateSchool ?? () {},
                     ),
                     const SizedBox(height: 14),
                     AdminNavTile(
-                      icon: Icons.manage_accounts_rounded,
+                      icon: AppIcons.manageAccountsRounded,
                       title: 'Manage Headmasters',
                       subtitle: 'Review and manage user roles.',
                       onTap: onManageHeadmasters ?? () {},
                     ),
                     const SizedBox(height: 14),
                     AdminNavTile(
-                      icon: Icons.receipt_long_rounded,
+                      icon: AppIcons.receiptLongRounded,
                       title: 'Manage Subscriptions',
                       subtitle: 'View plans and billing details.',
                       onTap: onViewSubscriptions ?? () {},
@@ -166,13 +167,13 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const AdminIconTile(icon: Icons.cloud_off_rounded, size: 52),
+            const AdminIconTile(icon: AppIcons.cloudOffRounded, size: 52),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center, style: AdminType.body),
             const SizedBox(height: 20),
             TextButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
+              icon: const Icon(AppIcons.refreshRounded, size: 18),
               label: const Text('Retry'),
               style: TextButton.styleFrom(
                 foregroundColor: AdminPalette.ink,

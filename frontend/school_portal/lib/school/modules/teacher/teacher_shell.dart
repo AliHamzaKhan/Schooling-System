@@ -15,6 +15,7 @@ import 'features/dashboard/binding/dashboard_binding.dart';
 import 'features/dashboard/view/dashboard_view.dart';
 import 'features/performance/binding/performance_binding.dart';
 import 'features/performance/view/class_performance_view.dart';
+import 'package:shared/shared.dart';
 
 /// Teacher module shell — hosts the 5 tabs (Home / Classes / Attendance /
 /// Tasks / Performance) behind a persistent dark bottom nav. Drill-in screens
@@ -29,11 +30,11 @@ class TeacherShell extends StatefulWidget {
 
 class _TeacherShellState extends State<TeacherShell> {
   static const _tabs = [
-    PortalTab(Icons.dashboard_rounded, 'Home'),
-    PortalTab(Icons.groups_rounded, 'Classes'),
-    PortalTab(Icons.fact_check_outlined, 'Attendance'),
-    PortalTab(Icons.assignment_outlined, 'Tasks'),
-    PortalTab(Icons.insights_rounded, 'Performance'),
+    PortalTab(AppIcons.dashboardRounded, 'Home'),
+    PortalTab(AppIcons.groupsRounded, 'Classes'),
+    PortalTab(AppIcons.factCheckOutlined, 'Attendance'),
+    PortalTab(AppIcons.assignmentOutlined, 'Tasks'),
+    PortalTab(AppIcons.insightsRounded, 'Performance'),
   ];
 
   // Tab indices, so dashboard quick actions can jump between tabs.

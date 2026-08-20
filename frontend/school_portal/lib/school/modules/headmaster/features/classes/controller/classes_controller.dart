@@ -120,7 +120,7 @@ class HeadmasterClassesController extends GetxController {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
+              leading: const Icon(AppIcons.editOutlined),
               title: const Text('Rename class'),
               onTap: () {
                 Get.back<void>();
@@ -128,7 +128,7 @@ class HeadmasterClassesController extends GetxController {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: AppColors.error),
+              leading: const Icon(AppIcons.deleteOutline, color: AppColors.error),
               title: const Text('Delete class',
                   style: TextStyle(color: AppColors.error)),
               onTap: () {

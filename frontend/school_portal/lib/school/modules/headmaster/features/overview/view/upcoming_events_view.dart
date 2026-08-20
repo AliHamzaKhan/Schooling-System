@@ -75,11 +75,11 @@ class _EventTile extends StatelessWidget {
                     style: AppTypography.titleMd
                         .copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                _MetaRow(icon: Icons.schedule_rounded, label: event.time),
+                _MetaRow(icon: AppIcons.scheduleRounded, label: event.time),
                 if (event.location.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   _MetaRow(
-                      icon: Icons.place_outlined, label: event.location),
+                      icon: AppIcons.placeOutlined, label: event.location),
                 ],
               ],
             ),

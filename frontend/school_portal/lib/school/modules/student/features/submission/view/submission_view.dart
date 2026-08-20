@@ -9,10 +9,10 @@ import '../components/dashed_upload_box.dart';
 import '../controller/submission_controller.dart';
 import '../../../../../widgets/skeletons.dart';
 
-/// Assignment Detail / Submission — subject pill, title, due line, points
-/// badge, instructions, optional reference materials, then a "Submit
-/// Assignment" card with a dashed file drop zone, an additional-notes field,
-/// and a Turn In CTA.
+/// Assignment Detail / Submission — an enhanced header (subject, due, points),
+/// instructions, then either the submit form (un-submitted) or the read-only
+/// state: Your Submission (file + teacher comments), a Final Grade hero once
+/// graded, and the Submission Status timeline.
 class SubmissionView extends GetView<SubmissionController> {
   const SubmissionView({super.key});
 
@@ -27,7 +27,7 @@ class SubmissionView extends GetView<SubmissionController> {
             actions: [
               IconButton(
                 onPressed: () => Get.back<void>(),
-                icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary),
+                icon: const Icon(AppIcons.arrowBackRounded, color: AppColors.primary),
               ),
             ],
           ),
@@ -45,78 +45,13 @@ class SubmissionView extends GetView<SubmissionController> {
                     AppSpacing.containerPaddingMobile,
                     AppSpacing.stackXl),
                 children: [
-                  GlassSurface(
-                    padding: EdgeInsets.zero,
-                    child: IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Container(
-                            width: 5,
-                            decoration: BoxDecoration(
-                              color: a.accent,
-                              borderRadius: const BorderRadius.horizontal(
-                                left: Radius.circular(AppRadius.card),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(AppSpacing.stackLg),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceContainerHigh,
-                                      borderRadius: BorderRadius.circular(AppRadius.full),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.bookmark_outline_rounded,
-                                            size: 14, color: a.accent),
-                                        const SizedBox(width: 4),
-                                        Text(a.subject,
-                                            style: AppTypography.labelMd
-                                                .copyWith(color: AppColors.onSurface)),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.stackMd),
-                                  Text(a.title,
-                                      style: AppTypography.displayLg
-                                          .copyWith(fontSize: 30)),
-                                  const SizedBox(height: AppSpacing.stackSm),
-                                  Text(a.dueLine, style: AppTypography.bodyLg),
-                                  const SizedBox(height: AppSpacing.stackMd),
-                                  _PointsBadge(points: a.points),
-                                  const SizedBox(height: AppSpacing.stackLg),
-                                  Text('Instructions',
-                                      style: AppTypography.titleMd
-                                          .copyWith(fontWeight: FontWeight.w700)),
-                                  const SizedBox(height: 4),
-                                  Text(a.description, style: AppTypography.bodyLg),
-                                  if (a.attachment != null) ...[
-                                    const SizedBox(height: AppSpacing.stackMd),
-                                    _ReferenceBox(filename: a.attachment!),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _HeaderCard(assignment: a),
                   const SizedBox(height: AppSpacing.stackLg),
                   // Already turned in → read-only status. Otherwise the submit
                   // form. `showForm` also covers an opt-in "replace submission".
                   Obx(() => controller.showForm
                       ? _SubmitForm(controller: controller)
-                      : _SubmissionStatus(
+                      : _SubmittedState(
                           submission: controller.assignment.value!.submission!,
                           maxMarks: controller.assignment.value!.points,
                           onResubmit: controller.startResubmit,
@@ -124,6 +59,103 @@ class SubmissionView extends GetView<SubmissionController> {
                 ],
               );
             }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Assignment header: subject pill + points on the right, title, due line,
+/// then the instructions and any reference material.
+class _HeaderCard extends StatelessWidget {
+  final StudentAssignment assignment;
+  const _HeaderCard({required this.assignment});
+
+  @override
+  Widget build(BuildContext context) {
+    final a = assignment;
+    return GlassSurface(
+      padding: const EdgeInsets.all(AppSpacing.stackLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(child: _SubjectPill(subject: a.subject, accent: a.accent)),
+              const Spacer(),
+              if (a.points > 0) _PointsBadge(points: a.points),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text(a.title, style: AppTypography.displayLg.copyWith(fontSize: 28)),
+          if (a.dueLine.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.stackSm),
+            Row(
+              children: [
+                Icon(
+                  a.dueIsUrgent
+                      ? AppIcons.accessTimeRounded
+                      : AppIcons.calendarTodayOutlined,
+                  size: 15,
+                  color: a.dueIsUrgent
+                      ? AppColors.error
+                      : AppColors.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Text(a.dueLine,
+                    style: AppTypography.bodyLg.copyWith(
+                      color: a.dueIsUrgent
+                          ? AppColors.error
+                          : AppColors.onSurfaceVariant,
+                      fontWeight:
+                          a.dueIsUrgent ? FontWeight.w700 : FontWeight.w400,
+                    )),
+              ],
+            ),
+          ],
+          const SizedBox(height: AppSpacing.stackLg),
+          const Divider(height: 1, color: AppColors.outlineVariant),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text('Instructions',
+              style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text(a.description, style: AppTypography.bodyLg),
+          if (a.attachment != null) ...[
+            const SizedBox(height: AppSpacing.stackMd),
+            _ReferenceBox(filename: a.attachment!),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SubjectPill extends StatelessWidget {
+  final String subject;
+  final Color accent;
+  const _SubjectPill({required this.subject, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(AppIcons.bookmarkRounded, size: 14, color: accent),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(subject.isEmpty ? 'Assignment' : subject,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.labelMd
+                    .copyWith(color: accent, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -157,7 +189,7 @@ class _SubmitFormState extends State<_SubmitForm> with ScreenTextControllers {
         children: [
           Row(
             children: [
-              const Icon(Icons.cloud_upload_outlined,
+              const Icon(AppIcons.cloudUploadOutlined,
                   size: 18, color: AppColors.primary),
               const SizedBox(width: 6),
               Text(resubmitting ? 'Replace Submission' : 'Submit Assignment',
@@ -189,7 +221,7 @@ class _SubmitFormState extends State<_SubmitForm> with ScreenTextControllers {
           const SizedBox(height: AppSpacing.stackLg),
           Obx(() => PrimaryButton(
                 label: resubmitting ? 'Resubmit' : 'Turn In Assignment',
-                leadingIcon: Icons.send_rounded,
+                leadingIcon: AppIcons.sendRounded,
                 trailingIcon: null,
                 expanded: true,
                 isLoading: controller.submitting.value,
@@ -210,18 +242,179 @@ class _SubmitFormState extends State<_SubmitForm> with ScreenTextControllers {
   }
 }
 
-/// Read-only status for an assignment the student has already turned in: a
-/// progress timeline (Submitted → Under review → Graded), the attached file,
-/// and the awarded marks + teacher feedback once graded.
-class _SubmissionStatus extends StatelessWidget {
+/// Read-only state for an already-submitted assignment: Your Submission
+/// (file + teacher comments), the Final Grade hero once graded, and the
+/// Submission Status timeline.
+class _SubmittedState extends StatelessWidget {
   final StudentSubmission submission;
   final int maxMarks;
   final VoidCallback onResubmit;
-  const _SubmissionStatus({
+  const _SubmittedState({
     required this.submission,
     required this.maxMarks,
     required this.onResubmit,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _YourSubmissionCard(submission: submission),
+        if (submission.isGraded) ...[
+          const SizedBox(height: AppSpacing.stackLg),
+          _FinalGradeCard(submission: submission, maxMarks: maxMarks),
+        ],
+        const SizedBox(height: AppSpacing.stackLg),
+        _SubmissionTimelineCard(submission: submission),
+        if (!submission.isGraded) ...[
+          const SizedBox(height: AppSpacing.stackMd),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onResubmit,
+              icon: const Icon(AppIcons.refreshRounded, size: 18),
+              label: const Text('Replace submission'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _YourSubmissionCard extends StatelessWidget {
+  final StudentSubmission submission;
+  const _YourSubmissionCard({required this.submission});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasFeedback = (submission.feedback ?? '').isNotEmpty;
+    return GlassSurface(
+      padding: const EdgeInsets.all(AppSpacing.stackLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Your Submission', style: AppTypography.titleLg),
+              const Spacer(),
+              _StatusChip(submission: submission),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          if (submission.attachmentUrl != null)
+            _SubmittedFileRow(
+              url: submission.attachmentUrl!,
+              submittedOn: submission.submittedOn,
+            )
+          else
+            Text('No file attached to this submission.',
+                style: AppTypography.bodyMd
+                    .copyWith(color: AppColors.onSurfaceVariant)),
+          if (hasFeedback) ...[
+            const SizedBox(height: AppSpacing.stackMd),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.stackMd),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(AppRadius.button),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Teacher Comments',
+                      style: AppTypography.labelMd.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(submission.feedback!, style: AppTypography.bodyLg),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Navy hero showing the awarded letter grade + percentage once graded.
+class _FinalGradeCard extends StatelessWidget {
+  final StudentSubmission submission;
+  final int maxMarks;
+  const _FinalGradeCard({required this.submission, required this.maxMarks});
+
+  @override
+  Widget build(BuildContext context) {
+    final marks = submission.marksObtained ?? 0;
+    final pct = maxMarks > 0 ? (marks / maxMarks * 100).round() : null;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.stackLg),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: const [
+          BoxShadow(color: Color(0x330F172A), blurRadius: 24, offset: Offset(0, 8)),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: 4,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Icon(AppIcons.starRounded,
+                  size: 72, color: Colors.white.withValues(alpha: 0.12)),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text('FINAL GRADE',
+                  style: AppTypography.labelCaps.copyWith(
+                      color: AppColors.onPrimary.withValues(alpha: 0.75),
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(pct == null ? _fmt(marks) : _letter(pct.toDouble()),
+                  style: AppTypography.displayLg
+                      .copyWith(fontSize: 52, color: AppColors.onPrimary)),
+              const SizedBox(height: 2),
+              Text(
+                maxMarks > 0
+                    ? '${_fmt(marks)} / $maxMarks   ·   $pct%'
+                    : _fmt(marks),
+                style: AppTypography.bodyMd
+                    .copyWith(color: AppColors.onPrimary.withValues(alpha: 0.85)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _fmt(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+
+  static String _letter(double pct) {
+    if (pct >= 95) return 'A+';
+    if (pct >= 90) return 'A';
+    if (pct >= 85) return 'A-';
+    if (pct >= 80) return 'B+';
+    if (pct >= 75) return 'B';
+    if (pct >= 70) return 'B-';
+    if (pct >= 60) return 'C';
+    if (pct >= 50) return 'D';
+    return 'F';
+  }
+}
+
+class _SubmissionTimelineCard extends StatelessWidget {
+  final StudentSubmission submission;
+  const _SubmissionTimelineCard({required this.submission});
 
   @override
   Widget build(BuildContext context) {
@@ -232,33 +425,29 @@ class _SubmissionStatus extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.assignment_turned_in_outlined,
+              const Icon(AppIcons.assignmentTurnedInOutlined,
                   size: 18, color: AppColors.tertiary),
               const SizedBox(width: 6),
               Text('Submission Status', style: AppTypography.titleLg),
-              const Spacer(),
-              _StatusChip(submission: submission),
             ],
           ),
           const SizedBox(height: AppSpacing.stackLg),
-
-          // Progress timeline.
           _StatusStep(
-            icon: Icons.send_rounded,
+            icon: AppIcons.sendRounded,
             title: submission.isLate ? 'Submitted (late)' : 'Submitted',
             subtitle: submission.submittedOn.isEmpty
                 ? 'Turned in'
-                : 'Turned in on ${submission.submittedOn}',
+                : submission.submittedOn,
             done: true,
             accent:
                 submission.isLate ? const Color(0xFFE8A317) : AppColors.tertiary,
           ),
           _StatusStep(
             icon: submission.isRejected
-                ? Icons.report_gmailerrorred_rounded
+                ? AppIcons.reportGmailerrorredRounded
                 : (submission.isSeen
-                    ? Icons.mark_email_read_outlined
-                    : Icons.reviews_outlined),
+                    ? AppIcons.markEmailReadOutlined
+                    : AppIcons.reviewsOutlined),
             title: submission.isRejected
                 ? 'Needs resubmission'
                 : (submission.isReviewed
@@ -270,11 +459,10 @@ class _SubmissionStatus extends StatelessWidget {
                     ? 'Your teacher has opened your submission'
                     : 'Waiting for your teacher'),
             done: submission.isSeen,
-            accent:
-                submission.isRejected ? AppColors.error : AppColors.primary,
+            accent: submission.isRejected ? AppColors.error : AppColors.primary,
           ),
           _StatusStep(
-            icon: Icons.grade_outlined,
+            icon: AppIcons.gradeOutlined,
             title: submission.isGraded ? 'Graded' : 'Grade pending',
             subtitle: submission.isGraded
                 ? 'Score released'
@@ -283,66 +471,9 @@ class _SubmissionStatus extends StatelessWidget {
             accent: AppColors.tertiary,
             isLast: true,
           ),
-
-          if (submission.attachmentUrl != null) ...[
-            const SizedBox(height: AppSpacing.stackMd),
-            _SubmittedFileRow(url: submission.attachmentUrl!),
-          ],
-
-          // Marks + feedback (graded only).
-          if (submission.isGraded) ...[
-            const SizedBox(height: AppSpacing.stackLg),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.stackMd),
-              decoration: BoxDecoration(
-                color: AppColors.tertiary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(AppRadius.button),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Your Marks',
-                      style: AppTypography.labelCaps
-                          .copyWith(color: AppColors.onSurfaceVariant)),
-                  const SizedBox(height: 2),
-                  Text(
-                    maxMarks > 0
-                        ? '${_fmt(submission.marksObtained)} / $maxMarks'
-                        : _fmt(submission.marksObtained),
-                    style: AppTypography.displayLg.copyWith(
-                        fontSize: 26, color: AppColors.tertiary),
-                  ),
-                  if ((submission.feedback ?? '').isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.stackSm),
-                    Text('Teacher feedback',
-                        style: AppTypography.labelMd
-                            .copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text(submission.feedback!, style: AppTypography.bodyMd),
-                  ],
-                ],
-              ),
-            ),
-          ],
-
-          // Replace submission — only while it can still be changed.
-          if (!submission.isGraded) ...[
-            const SizedBox(height: AppSpacing.stackLg),
-            OutlinedButton.icon(
-              onPressed: onResubmit,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Replace submission'),
-            ),
-          ],
         ],
       ),
     );
-  }
-
-  static String _fmt(double? v) {
-    if (v == null) return '—';
-    return v == v.roundToDouble() ? v.toInt().toString() : v.toString();
   }
 }
 
@@ -414,15 +545,11 @@ class _StatusStep extends StatelessWidget {
                       : AppColors.surfaceContainerHigh,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon,
-                    size: 17, color: done ? accent : dim),
+                child: Icon(icon, size: 17, color: done ? accent : dim),
               ),
               if (!isLast)
                 Expanded(
-                  child: Container(
-                    width: 2,
-                    color: AppColors.outlineVariant,
-                  ),
+                  child: Container(width: 2, color: AppColors.outlineVariant),
                 ),
             ],
           ),
@@ -451,7 +578,8 @@ class _StatusStep extends StatelessWidget {
 
 class _SubmittedFileRow extends StatelessWidget {
   final String url;
-  const _SubmittedFileRow({required this.url});
+  final String submittedOn;
+  const _SubmittedFileRow({required this.url, this.submittedOn = ''});
 
   @override
   Widget build(BuildContext context) {
@@ -461,18 +589,39 @@ class _SubmittedFileRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppRadius.button),
+        border: Border.all(color: AppColors.outlineVariant),
       ),
       child: Row(
         children: [
-          const Icon(Icons.insert_drive_file_outlined,
-              size: 18, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.bodyMd),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: const Icon(AppIcons.pictureAsPdfRounded,
+                size: 20, color: AppColors.error),
           ),
+          const SizedBox(width: AppSpacing.stackSm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.titleMd
+                        .copyWith(fontWeight: FontWeight.w700)),
+                if (submittedOn.isNotEmpty)
+                  Text('Submitted $submittedOn',
+                      style: AppTypography.bodySm
+                          .copyWith(color: AppColors.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          const Icon(AppIcons.downloadRounded,
+              size: 20, color: AppColors.onSurfaceVariant),
         ],
       ),
     );
@@ -485,23 +634,16 @@ class _PointsBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('$points',
-              style: AppTypography.displayLg
-                  .copyWith(fontSize: 22, color: AppColors.onPrimary)),
-          Text('POINTS',
-              style: AppTypography.labelCaps
-                  .copyWith(color: AppColors.onPrimary, letterSpacing: 1)),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('$points',
+            style: AppTypography.displayLg
+                .copyWith(fontSize: 24, color: AppColors.primary)),
+        Text('Points Possible',
+            style: AppTypography.labelMd
+                .copyWith(color: AppColors.onSurfaceVariant)),
+      ],
     );
   }
 }
@@ -523,7 +665,7 @@ class _ReferenceBox extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.attach_file_rounded,
+              const Icon(AppIcons.attachFileRounded,
                   size: 16, color: AppColors.primary),
               const SizedBox(width: 6),
               Text('Reference Materials',
@@ -534,7 +676,7 @@ class _ReferenceBox extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.insert_drive_file_outlined,
+              const Icon(AppIcons.insertDriveFileOutlined,
                   size: 16, color: AppColors.onSurfaceVariant),
               const SizedBox(width: 6),
               Expanded(child: Text(filename, style: AppTypography.bodyMd)),

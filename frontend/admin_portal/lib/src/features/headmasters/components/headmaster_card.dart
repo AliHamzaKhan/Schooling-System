@@ -23,81 +23,74 @@ class HeadmasterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final h = headmaster;
     return AdminCard(
-      padding: EdgeInsets.zero,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: h.status.color, width: 5)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.stackMd, AppSpacing.stackMd, AppSpacing.stackSm, AppSpacing.stackMd),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  _Avatar(headmaster: h),
-                  const SizedBox(width: AppSpacing.stackMd),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(h.name,
-                            style: AdminType.cardTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 4),
-                        _StatusBadge(status: h.status),
-                      ],
+              _Avatar(headmaster: h),
+              const SizedBox(width: AppSpacing.stackMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(h.name,
+                        style: AdminType.cardTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    _StatusBadge(status: h.status),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(AppIcons.moreVertRounded,
+                    size: 20, color: AdminPalette.muted),
+                onSelected: (v) {
+                  if (v == 'edit') onEdit?.call();
+                  if (v == 'delete') onDelete?.call();
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(AppIcons.editOutlined),
+                      title: Text('Edit'),
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert_rounded,
-                        size: 20, color: AdminPalette.muted),
-                    onSelected: (v) {
-                      if (v == 'edit') onEdit?.call();
-                      if (v == 'delete') onDelete?.call();
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.edit_outlined),
-                          title: Text('Edit'),
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.block_rounded, color: AdminPalette.danger),
-                          title: Text('Deactivate', style: TextStyle(color: AdminPalette.danger)),
-                        ),
-                      ),
-                    ],
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(AppIcons.blockRounded, color: AdminPalette.danger),
+                      title: Text('Deactivate', style: TextStyle(color: AdminPalette.danger)),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.stackMd),
-              _InfoRow(
-                icon: Icons.apartment_rounded,
-                text: h.school ?? 'Unassigned',
-                muted: h.school == null,
-              ),
-              const SizedBox(height: AppSpacing.stackSm),
-              _InfoRow(icon: Icons.mail_outline_rounded, text: h.email),
-              const SizedBox(height: AppSpacing.stackSm),
-              _InfoRow(
-                icon: Icons.phone_outlined,
-                text: h.phone ?? 'Not provided',
-                muted: h.phone == null,
-              ),
             ],
           ),
-        ),
+          const SizedBox(height: AppSpacing.stackMd),
+          const Divider(height: 1, color: AdminPalette.border),
+          const SizedBox(height: AppSpacing.stackMd),
+          _InfoRow(
+            icon: AppIcons.apartmentRounded,
+            text: h.school ?? 'Unassigned',
+            muted: h.school == null,
+          ),
+          const SizedBox(height: AppSpacing.stackSm),
+          _InfoRow(icon: AppIcons.mailOutlineRounded, text: h.email),
+          const SizedBox(height: AppSpacing.stackSm),
+          _InfoRow(
+            icon: AppIcons.phoneOutlined,
+            text: h.phone ?? 'Not provided',
+            muted: h.phone == null,
+          ),
+        ],
       ),
     );
   }
@@ -109,14 +102,24 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (headmaster.avatarUrl != null) {
-      return CircleAvatar(radius: 24, backgroundImage: NetworkImage(headmaster.avatarUrl!));
-    }
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: AdminPalette.tint,
-      child: Text(headmaster.initials,
-          style: AdminType.rowTitle.copyWith(color: AdminPalette.muted)),
+    final ring = headmaster.status.color;
+    final Widget avatar = headmaster.avatarUrl != null
+        ? CircleAvatar(radius: 24, backgroundImage: NetworkImage(headmaster.avatarUrl!))
+        : CircleAvatar(
+            radius: 24,
+            backgroundColor: ring.withValues(alpha: 0.12),
+            child: Text(headmaster.initials,
+                style: AdminType.rowTitle.copyWith(color: ring)),
+          );
+    // Thin status-colored ring around the avatar — keeps the status cue the
+    // removed left rail used to carry.
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: ring.withValues(alpha: 0.55), width: 2),
+      ),
+      child: avatar,
     );
   }
 }

@@ -89,7 +89,7 @@ class _CreateExamViewState extends State<CreateExamView>
                                 onTap: () =>
                                     controller.pickStartDate(context),
                                 suffix: const Icon(
-                                    Icons.calendar_today_outlined,
+                                    AppIcons.calendarTodayOutlined,
                                     size: 18,
                                     color: AppColors.onSurfaceVariant),
                               ),
@@ -103,7 +103,7 @@ class _CreateExamViewState extends State<CreateExamView>
                                 readOnly: true,
                                 onTap: () => controller.pickEndDate(context),
                                 suffix: const Icon(
-                                    Icons.calendar_today_outlined,
+                                    AppIcons.calendarTodayOutlined,
                                     size: 18,
                                     color: AppColors.onSurfaceVariant),
                               ),
@@ -123,7 +123,7 @@ class _CreateExamViewState extends State<CreateExamView>
                               style: AppTypography.titleLg)),
                       TextButton.icon(
                         onPressed: controller.addPaper,
-                        icon: const Icon(Icons.add_rounded, size: 18),
+                        icon: const Icon(AppIcons.addRounded, size: 18),
                         label: const Text('Add paper'),
                       ),
                     ],
@@ -161,7 +161,7 @@ class _CreateExamViewState extends State<CreateExamView>
                   }),
                   Obx(() => PrimaryButton(
                         label: 'Create Exam',
-                        leadingIcon: Icons.fact_check_outlined,
+                        leadingIcon: AppIcons.factCheckOutlined,
                         trailingIcon: null,
                         expanded: true,
                         isLoading: controller.submitting.value,
@@ -228,7 +228,7 @@ class _PaperCardState extends State<_PaperCard> with ScreenTextControllers {
               if (controller.papers.length > 1)
                 IconButton(
                   onPressed: () => controller.removePaper(index),
-                  icon: const Icon(Icons.delete_outline_rounded,
+                  icon: const Icon(AppIcons.deleteOutlineRounded,
                       color: AppColors.error),
                 ),
             ],

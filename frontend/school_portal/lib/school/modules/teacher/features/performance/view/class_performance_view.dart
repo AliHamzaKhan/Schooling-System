@@ -37,14 +37,14 @@ class ClassPerformanceView extends GetView<ClassPerformanceController> {
             }
             if (controller.sectionsError.value != null) {
               return _Message(
-                icon: Icons.cloud_off_rounded,
+                icon: AppIcons.cloudOffRounded,
                 text: controller.sectionsError.value!,
                 onRetry: controller.loadSections,
               );
             }
             if (controller.sections.isEmpty) {
               return const _Message(
-                icon: Icons.insights_rounded,
+                icon: AppIcons.insightsRounded,
                 text: 'No sections are timetabled to you yet.',
               );
             }
@@ -112,7 +112,7 @@ class _SectionTabs extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (s.isClassTeacher) ...[
-                      Icon(Icons.star_rounded,
+                      Icon(AppIcons.starRounded,
                           size: 13,
                           color:
                               active ? AppColors.onPrimary : AppColors.primary),
@@ -155,7 +155,7 @@ class _Roster extends StatelessWidget {
       final err = controller.currentError;
       if (err != null) {
         return _Message(
-          icon: Icons.cloud_off_rounded,
+          icon: AppIcons.cloudOffRounded,
           text: err,
           onRetry: controller.refreshCurrent,
         );
@@ -164,7 +164,7 @@ class _Roster extends StatelessWidget {
       if (data == null) return const SizedBox.shrink();
       if (data.students.isEmpty) {
         return const _Message(
-          icon: Icons.people_outline_rounded,
+          icon: AppIcons.peopleOutlineRounded,
           text: 'No students are enrolled in this section yet.',
         );
       }
@@ -217,7 +217,7 @@ class _Roster extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.stackSm),
             ListTile(
-              leading: const Icon(Icons.insights_rounded,
+              leading: const Icon(AppIcons.insightsRounded,
                   color: AppColors.primary),
               title: const Text('View performance'),
               subtitle: Text(s.fullName),
@@ -228,7 +228,7 @@ class _Roster extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.description_outlined,
+              leading: const Icon(AppIcons.descriptionOutlined,
                   color: AppColors.primary),
               title: const Text('Full student report'),
               onTap: () {
@@ -271,7 +271,7 @@ class _Summary extends StatelessWidget {
             child: _SummaryTile(
               label: 'Students',
               value: '${data.students.length}',
-              icon: Icons.people_alt_outlined,
+              icon: AppIcons.peopleAltOutlined,
             ),
           ),
           const SizedBox(width: AppSpacing.stackSm),
@@ -279,7 +279,7 @@ class _Summary extends StatelessWidget {
             child: _SummaryTile(
               label: 'Avg attendance',
               value: avgAtt == null ? '—' : '${(avgAtt * 100).round()}%',
-              icon: Icons.event_available_outlined,
+              icon: AppIcons.eventAvailableOutlined,
             ),
           ),
           const SizedBox(width: AppSpacing.stackSm),
@@ -287,7 +287,7 @@ class _Summary extends StatelessWidget {
             child: _SummaryTile(
               label: 'Avg marks',
               value: avgMark == null ? '—' : '${avgMark.toStringAsFixed(0)}%',
-              icon: Icons.school_outlined,
+              icon: AppIcons.schoolOutlined,
             ),
           ),
         ],

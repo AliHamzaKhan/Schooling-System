@@ -48,7 +48,7 @@ class ExamScheduleItem {
         schedule: json['schedule'] as String? ?? '',
         location: json['location'] as String? ?? '',
         // icon/iconColor are presentation only — defaulted, not from the API.
-        icon: Icons.school_outlined,
+        icon: AppIcons.schoolOutlined,
         iconColor: AppColors.primary,
         status: ExamStatus.values.firstWhere(
           (s) => s.name == json['status'],

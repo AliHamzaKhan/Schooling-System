@@ -46,11 +46,11 @@ class NotesListView extends GetView<NotesController> {
               padding: const EdgeInsets.all(AppSpacing.stackMd),
               child: Row(
                 children: [
-                  const Icon(Icons.sticky_note_2_outlined,
+                  const Icon(AppIcons.stickyNote2Outlined,
                       color: AppColors.tertiary),
                   const SizedBox(width: AppSpacing.stackMd),
                   Expanded(child: Text(n.title, style: AppTypography.bodyLg)),
-                  const Icon(Icons.chevron_right_rounded,
+                  const Icon(AppIcons.chevronRightRounded,
                       color: AppColors.onSurfaceVariant),
                 ],
               ),

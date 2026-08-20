@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/dashboard_stats.dart';
 import '../../../ui/admin_theme.dart';
 import '../../../ui/admin_widgets/admin_surface.dart';
+import 'package:shared/shared.dart';
 
 /// One row in the Recent Alerts feed — leading severity chip, title + body,
 /// and a time stamp. Severity drives the chip color only; the row itself stays
@@ -17,17 +18,17 @@ class AlertTile extends StatelessWidget {
       AlertSeverity.critical => (
           AdminPalette.danger,
           AdminPalette.dangerSoft,
-          Icons.warning_amber_rounded,
+          AppIcons.warningAmberRounded,
         ),
       AlertSeverity.warning => (
           AdminPalette.warning,
           AdminPalette.warningSoft,
-          Icons.schedule_rounded,
+          AppIcons.scheduleRounded,
         ),
       AlertSeverity.info => (
           AdminPalette.ink,
           AdminPalette.tint,
-          Icons.group_add_rounded,
+          AppIcons.groupAddRounded,
         ),
     };
 

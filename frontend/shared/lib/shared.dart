@@ -14,6 +14,9 @@ export 'src/ui/tokens/app_spacing.dart';
 export 'src/ui/tokens/app_radius.dart';
 export 'src/ui/tokens/app_elevation.dart';
 
+// ── Iconography (Font Awesome, single source of truth) ──────────
+export 'src/assets/app_icons.dart';
+
 // ── Theme / layout / responsive ─────────────────────────────────
 export 'src/ui/theme/app_theme.dart';
 export 'src/ui/layout/app_scaffold.dart';

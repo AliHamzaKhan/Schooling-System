@@ -38,7 +38,7 @@ class ReportCardView extends GetView<ReportCardController> {
                 children: [
                   PrimaryButton(
                     label: 'Download PDF Report',
-                    leadingIcon: Icons.download_rounded,
+                    leadingIcon: AppIcons.downloadRounded,
                     trailingIcon: null,
                     expanded: true,
                     onPressed: () => Get.snackbar(
@@ -56,7 +56,7 @@ class ReportCardView extends GetView<ReportCardController> {
                       StatusPill(
                         label: 'GPA: ${d.gpa.toStringAsFixed(1)}',
                         color: AppColors.primary,
-                        icon: Icons.school_rounded,
+                        icon: AppIcons.schoolRounded,
                       ),
                     ],
                   ),
@@ -206,7 +206,7 @@ class _Empty extends StatelessWidget {
     return GlassSurface(
       child: Row(
         children: [
-          const Icon(Icons.inbox_outlined, color: AppColors.outline),
+          const Icon(AppIcons.inboxOutlined, color: AppColors.outline),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(child: Text(text, style: AppTypography.bodyMd)),
         ],

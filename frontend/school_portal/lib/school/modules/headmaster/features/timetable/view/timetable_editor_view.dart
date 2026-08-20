@@ -202,7 +202,7 @@ class _TimetableEditorViewState extends State<TimetableEditorView>
         if (_selectedSectionId.value == null) return const SizedBox.shrink();
         return FloatingActionButton.extended(
           onPressed: () => _openSlotEditor(),
-          icon: const Icon(Icons.add),
+          icon: const Icon(AppIcons.add),
           label: const Text('Add slot'),
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.onPrimary,
@@ -433,7 +433,7 @@ class _DaySlots extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded,
+                const Icon(AppIcons.chevronRightRounded,
                     color: AppColors.onSurfaceVariant),
               ],
             ),
@@ -678,7 +678,7 @@ class _SlotEditorSheetState extends State<_SlotEditorSheet> {
                   Expanded(
                     child: GhostButton(
                       label: 'Delete',
-                      leadingIcon: Icons.delete_outline,
+                      leadingIcon: AppIcons.deleteOutline,
                       onPressed: () async {
                         await widget.onDelete!();
                       },
@@ -740,7 +740,7 @@ class _TimeField extends StatelessWidget {
                     style: AppTypography.bodyLg,
                   ),
                 ),
-                const Icon(Icons.schedule_rounded,
+                const Icon(AppIcons.scheduleRounded,
                     color: AppColors.onSurfaceVariant),
               ],
             ),

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../modules/splash/binding/splash_binding.dart';
 import '../modules/splash/view/splash_view.dart';
 import 'app_routes.dart';
+import 'driver_pages.dart';
 import 'guardian_pages.dart';
 import 'headmaster_pages.dart';
 import 'student_pages.dart';
@@ -34,6 +35,7 @@ class AppPages {
     ...TeacherPages.pages,
     ...StudentPages.pages,
     ...GuardianPages.pages,
+    ...DriverPages.pages,
     // ...StaffPages.pages,
   ];
 }

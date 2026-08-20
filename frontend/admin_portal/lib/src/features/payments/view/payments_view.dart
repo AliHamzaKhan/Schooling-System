@@ -11,6 +11,7 @@ import '../../../ui/admin_widgets/section_header.dart';
 import '../components/payment_stat_card.dart';
 import '../controller/payments_controller.dart';
 import '../models/payments_data.dart';
+import 'package:shared/shared.dart';
 
 /// Financial Overview — billing KPIs, the revenue trend, and the most recent
 /// transactions, plus a shortcut into the plan editor.
@@ -18,10 +19,10 @@ class PaymentsView extends GetView<PaymentsController> {
   const PaymentsView({super.key});
 
   static String _money(double v) =>
-      '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+      v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
   static String _amount(double v) =>
-      '\$${v.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+\.)'), (m) => '${m[1]},')}';
+      v.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+\.)'), (m) => '${m[1]},');
 
   /// Month-over-month change from the last two revenue buckets, or null when
   /// there isn't a full prior month to compare against.
@@ -41,13 +42,13 @@ class PaymentsView extends GetView<PaymentsController> {
       PaymentStat(
         label: 'Total Revenue',
         value: _money(d.totalRevenue),
-        icon: Icons.account_balance_outlined,
+        icon: AppIcons.accountBalanceOutlined,
         color: AdminPalette.ink,
       ),
       PaymentStat(
         label: 'This Month',
         value: _money(d.thisMonthRevenue),
-        icon: Icons.calendar_month_outlined,
+        icon: AppIcons.calendarMonthOutlined,
         color: AdminPalette.ink,
         caption: delta,
         captionColor:
@@ -58,13 +59,13 @@ class PaymentsView extends GetView<PaymentsController> {
       PaymentStat(
         label: 'Payments',
         value: '${d.paymentCount}',
-        icon: Icons.receipt_long_outlined,
+        icon: AppIcons.receiptLongOutlined,
         color: AdminPalette.ink,
       ),
       PaymentStat(
         label: 'Pending',
         value: _money(d.pendingAmount),
-        icon: Icons.pending_actions_outlined,
+        icon: AppIcons.pendingActionsOutlined,
         color: AdminPalette.ink,
       ),
     ];
@@ -147,7 +148,7 @@ class PaymentsView extends GetView<PaymentsController> {
 
                     const SizedBox(height: 14),
                     AdminNavTile(
-                      icon: Icons.workspace_premium_outlined,
+                      icon: AppIcons.workspacePremiumOutlined,
                       title: 'Manage Subscription Plans',
                       subtitle: 'Review and edit pricing tiers.',
                       onTap: () => Get.toNamed(AdminRoutes.subscriptions),
@@ -180,7 +181,7 @@ class _TransactionCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(
         children: [
-          const AdminIconTile(icon: Icons.school_outlined, size: 40),
+          const AdminIconTile(icon: AppIcons.schoolOutlined, size: 40),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

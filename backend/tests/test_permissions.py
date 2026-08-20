@@ -20,7 +20,7 @@ async def test_super_admin_has_all_modules(client, sa_headers):
     r = await client.get(f"{API}/permissions/me", headers=sa_headers)
     body = r.json()
     assert body["is_super_admin"] is True
-    assert len(body["modules"]) >= 20
+    assert len(body["modules"]) >= 15
 
 
 async def test_standard_plan_excludes_premium_modules(client, sa_headers):
@@ -28,8 +28,8 @@ async def test_standard_plan_excludes_premium_modules(client, sa_headers):
     r = await client.get(f"{API}/schools/{sid}/modules", headers=sa_headers)
     effective = set(r.json()["effective_modules"])
     assert "exams" in effective
-    assert "library" not in effective  # premium-only
-    assert "hr_payroll" not in effective
+    assert "transport" not in effective  # premium-only
+    assert "ai_features" not in effective
 
 
 async def test_disabling_toggle_removes_module(client, sa_headers):
@@ -46,14 +46,14 @@ async def test_disabling_toggle_removes_module(client, sa_headers):
 
 async def test_enabling_out_of_plan_module_stays_unavailable(client, sa_headers):
     sid = await _make_school(client, sa_headers, "standard")
-    # Try to enable library (not in standard plan) — must stay unavailable.
+    # Try to enable transport (not in standard plan) — must stay unavailable.
     r = await client.put(
         f"{API}/schools/{sid}/modules", headers=sa_headers,
-        json={"toggles": [{"module": "library", "enabled": True}]},
+        json={"toggles": [{"module": "transport", "enabled": True}]},
     )
     modules = {m["module"]: m for m in r.json()["modules"]}
-    assert modules["library"]["in_plan"] is False
-    assert modules["library"]["effective"] is False
+    assert modules["transport"]["in_plan"] is False
+    assert modules["transport"]["effective"] is False
 
 
 async def test_headmaster_permissions_bounded_and_present(client, school):

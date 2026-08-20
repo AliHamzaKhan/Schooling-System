@@ -30,6 +30,7 @@ _DEFAULT_CODES = {
     SystemRole.TEACHER.value,
     SystemRole.GUARDIAN.value,
     SystemRole.STUDENT.value,
+    SystemRole.DRIVER.value,
 }
 
 

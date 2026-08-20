@@ -101,7 +101,7 @@ class _DayChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(AppRadius.full),
+          borderRadius: BorderRadius.circular(AppRadius.defaultR),
           border: Border.all(
             color: selected
                 ? AppColors.primary

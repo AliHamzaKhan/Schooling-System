@@ -30,7 +30,7 @@ class CreateSchoolView extends GetView<CreateSchoolController> {
               children: [
                 IconButton(
                   onPressed: () => Get.back<void>(),
-                  icon: const Icon(Icons.close_rounded, color: AdminPalette.ink),
+                  icon: const Icon(AppIcons.closeRounded, color: AdminPalette.ink),
                 ),
                 Text(controller.title,
                     style: AdminType.cardTitle.copyWith(

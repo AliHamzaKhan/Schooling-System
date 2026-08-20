@@ -46,6 +46,14 @@ class Settings(BaseSettings):
     # limiting, which only works with a single worker process.
     REDIS_URL: str = ""
 
+    # Background task queue (arq over Redis). When True, slow work (notification
+    # fan-out to external providers) is handed to the worker (`app/worker.py`)
+    # instead of running inside the request. Requires REDIS_URL *and* a running
+    # worker — leave False (the default) and delivery runs inline, so enabling
+    # offload is a deliberate step paired with deploying the worker rather than a
+    # silent switch that would strand jobs with no consumer.
+    TASK_QUEUE_ENABLED: bool = False
+
     # JWT
     JWT_SECRET_KEY: str = "change-this-in-production"
     JWT_ALGORITHM: str = "HS256"
@@ -58,6 +66,20 @@ class Settings(BaseSettings):
     # a user stays signed in. Rotation plus reuse detection means a stolen
     # refresh token is single-use and trips session revocation on replay.
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    # Seconds a school's serviceability status (active + subscription valid) is
+    # cached in Redis to keep the per-request tenant check off Postgres. Bounds
+    # how long a just-suspended/expired tenant might still be served (the mutation
+    # paths also invalidate explicitly, so this is a fallback ceiling). 0 disables
+    # the cache. No effect without REDIS_URL.
+    TENANT_STATUS_CACHE_TTL: int = 30
+
+    # --- Password reset (forgot-password OTP flow) --- #
+    # How long the emailed OTP stays valid, how many wrong guesses are allowed
+    # before it's burned, and how long the post-verification reset token lives.
+    PASSWORD_RESET_OTP_TTL_MINUTES: int = 10
+    PASSWORD_RESET_MAX_ATTEMPTS: int = 5
+    PASSWORD_RESET_TOKEN_TTL_MINUTES: int = 15
 
     # First super admin (created by the seed script)
     FIRST_SUPERADMIN_EMAIL: str = "admin@platform.com"
@@ -131,6 +153,14 @@ class Settings(BaseSettings):
                 f"postgresql+asyncpg://{self.DB_USER}:{password}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _require_redis_for_queue(self) -> "Settings":
+        """Offload needs a broker — fail fast (in every env) rather than silently
+        run inline when someone flips the flag but forgets REDIS_URL."""
+        if self.TASK_QUEUE_ENABLED and not self.REDIS_URL:
+            raise ValueError("TASK_QUEUE_ENABLED requires REDIS_URL to be set")
         return self
 
     @model_validator(mode="after")

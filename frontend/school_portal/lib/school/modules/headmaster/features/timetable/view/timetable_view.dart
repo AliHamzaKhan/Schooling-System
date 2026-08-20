@@ -46,14 +46,14 @@ class TimetableView extends GetView<HeadmasterTimetableController> {
                       style: AppTypography.bodyLg),
                   const SizedBox(height: AppSpacing.stackLg),
                   DropdownFilter(
-                    icon: Icons.filter_list_rounded,
+                    icon: AppIcons.filterListRounded,
                     value: controller.classFilter.value,
                     options: HeadmasterTimetableController.classOptions,
                     onChanged: controller.selectClass,
                   ),
                   const SizedBox(height: AppSpacing.stackSm),
                   DropdownFilter(
-                    icon: Icons.person_outline_rounded,
+                    icon: AppIcons.personOutlineRounded,
                     value: controller.teacherFilter.value,
                     options: HeadmasterTimetableController.teacherOptions,
                     onChanged: controller.selectTeacher,
@@ -61,7 +61,7 @@ class TimetableView extends GetView<HeadmasterTimetableController> {
                   const SizedBox(height: AppSpacing.stackMd),
                   PrimaryButton(
                     label: 'New Class',
-                    leadingIcon: Icons.add,
+                    leadingIcon: AppIcons.add,
                     trailingIcon: null,
                     onPressed: controller.createClassFlow,
                   ),

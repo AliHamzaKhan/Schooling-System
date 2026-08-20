@@ -73,15 +73,10 @@ _ALL = set(PermissionAction)
 # the Role & Permission Management module. Effective access is still gated by
 # the subscription/module cascade at runtime.
 DEFAULT_ROLE_PERMISSIONS: dict[str, dict[Module, set[PermissionAction]]] = {
-    # The Headmaster runs the whole school: grant all actions on every
-    # operational module. Platform-level toggles (mobile app / API access) are
-    # excluded. Effective access is still bounded by the subscription/toggle
-    # cascade, so a module the plan omits stays unavailable regardless.
-    SystemRole.HEADMASTER.value: {
-        module: _ALL
-        for module in Module
-        if module not in (Module.MOBILE_APP, Module.API_ACCESS)
-    },
+    # The Headmaster runs the whole school: grant all actions on every module.
+    # Effective access is still bounded by the subscription/toggle cascade, so a
+    # module the plan omits stays unavailable regardless.
+    SystemRole.HEADMASTER.value: {module: _ALL for module in Module},
     SystemRole.TEACHER.value: {
         Module.ATTENDANCE: {_A.VIEW, _A.CREATE, _A.EDIT},
         Module.HOMEWORK: {_A.VIEW, _A.CREATE, _A.EDIT, _A.DELETE},
@@ -109,6 +104,11 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, dict[Module, set[PermissionAction]]] = {
         Module.TIMETABLE: {_A.VIEW},
         Module.MESSAGING: {_A.VIEW},
     },
+    # A driver reads their assigned students/trips and updates trip state
+    # (start/end, board/drop). No create/delete — the Headmaster owns setup.
+    SystemRole.DRIVER.value: {
+        Module.TRANSPORT: {_A.VIEW, _A.EDIT},
+    },
 }
 
 ROLE_DISPLAY_NAMES: dict[str, str] = {
@@ -116,6 +116,7 @@ ROLE_DISPLAY_NAMES: dict[str, str] = {
     SystemRole.TEACHER.value: "Teacher",
     SystemRole.GUARDIAN.value: "Guardian",
     SystemRole.STUDENT.value: "Student",
+    SystemRole.DRIVER.value: "Driver",
 }
 
 # Maps a role code to the module that governs creating/managing such a user.
@@ -123,6 +124,8 @@ ROLE_MODULE_MAP: dict[str, Module] = {
     SystemRole.TEACHER.value: Module.TEACHER_MANAGEMENT,
     SystemRole.STUDENT.value: Module.STUDENT_MANAGEMENT,
     SystemRole.GUARDIAN.value: Module.GUARDIAN_MANAGEMENT,
+    # Creating/managing a driver is governed by the Transport module.
+    SystemRole.DRIVER.value: Module.TRANSPORT,
 }
 
 # Module governing creation of custom/staff roles (anything not in ROLE_MODULE_MAP).

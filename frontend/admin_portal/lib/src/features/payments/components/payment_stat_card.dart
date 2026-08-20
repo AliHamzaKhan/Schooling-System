@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../ui/admin_theme.dart';
 import '../../../ui/admin_widgets/admin_surface.dart';
 import '../models/payments_data.dart';
+import 'package:shared/shared.dart';
 
 /// Compact billing KPI tile sized for a two-column grid: a small icon and an
 /// uppercase label on top, the value below, and an optional caption line.
@@ -40,7 +41,7 @@ class PaymentStatCard extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                Icon(Icons.trending_up_rounded,
+                Icon(AppIcons.trendingUpRounded,
                     size: 13, color: stat.captionColor ?? AdminPalette.muted),
                 const SizedBox(width: 4),
                 Expanded(

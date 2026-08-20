@@ -43,15 +43,15 @@ class FeesView extends GetView<FeesController> {
                 const SizedBox(height: AppSpacing.stackLg),
                 PrimaryButton(
                   label: 'Record Payment',
-                  leadingIcon: Icons.add,
+                  leadingIcon: AppIcons.add,
                   trailingIcon: null,
                   onPressed: controller.recordPaymentFlow,
                 ),
                 const SizedBox(height: AppSpacing.stackMd),
                 GhostButton(
                   label: 'All Students · Fees',
-                  leadingIcon: Icons.groups_rounded,
-                  trailingIcon: Icons.chevron_right_rounded,
+                  leadingIcon: AppIcons.groupsRounded,
+                  trailingIcon: AppIcons.chevronRightRounded,
                   expanded: true,
                   onPressed: () =>
                       Get.toNamed(HeadmasterRoutes.feesRoster),

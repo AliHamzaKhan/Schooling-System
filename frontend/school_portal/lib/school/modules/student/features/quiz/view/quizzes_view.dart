@@ -77,7 +77,7 @@ class _QuizRow extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppRadius.button),
             ),
-            child: const Icon(Icons.quiz_outlined, color: AppColors.primary),
+            child: const Icon(AppIcons.quizOutlined, color: AppColors.primary),
           ),
           const SizedBox(width: AppSpacing.stackMd),
           Expanded(
@@ -102,7 +102,7 @@ class _QuizRow extends StatelessWidget {
             ),
           ),
           if (attempted)
-            const Icon(Icons.check_circle_rounded, color: AppColors.tertiary)
+            const Icon(AppIcons.checkCircleRounded, color: AppColors.tertiary)
           else
             _PlayButton(onTap: onPlay),
         ],
@@ -131,7 +131,7 @@ class _PlayButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.play_arrow_rounded,
+              const Icon(AppIcons.playArrowRounded,
                   size: 18, color: AppColors.onPrimary),
               const SizedBox(width: 4),
               Text('Play',

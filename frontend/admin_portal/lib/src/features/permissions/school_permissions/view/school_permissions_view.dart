@@ -26,7 +26,7 @@ class SchoolPermissionsView extends GetView<SchoolPermissionsController> {
               children: [
                 IconButton(
                   onPressed: () => Get.back<void>(),
-                  icon: const Icon(Icons.arrow_back_rounded, color: AdminPalette.ink),
+                  icon: const Icon(AppIcons.arrowBackRounded, color: AdminPalette.ink),
                 ),
                 Expanded(
                   child: Text('School Permissions',
@@ -102,7 +102,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, size: 40, color: AdminPalette.muted),
+            const Icon(AppIcons.cloudOffRounded, size: 40, color: AdminPalette.muted),
             const SizedBox(height: AppSpacing.stackMd),
             Text(message, textAlign: TextAlign.center, style: AdminType.body),
             const SizedBox(height: AppSpacing.stackMd),

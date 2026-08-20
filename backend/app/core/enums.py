@@ -7,7 +7,7 @@ from enum import Enum
 
 
 class Module(str, Enum):
-    """The 20 toggleable modules a Super Admin can enable per school."""
+    """The toggleable modules a Super Admin can enable per school."""
 
     STUDENT_MANAGEMENT = "student_management"
     TEACHER_MANAGEMENT = "teacher_management"
@@ -18,19 +18,14 @@ class Module(str, Enum):
     RESULTS = "results"
     FEE_MANAGEMENT = "fee_management"
     TIMETABLE = "timetable"
-    LIBRARY = "library"
     TRANSPORT = "transport"
-    HOSTEL = "hostel"
     HR_PAYROLL = "hr_payroll"
     INVENTORY = "inventory"
     MESSAGING = "messaging"
-    ONLINE_CLASSES = "online_classes"
     AI_FEATURES = "ai_features"
     REPORTS = "reports"
     LEAVE_MANAGEMENT = "leave_management"
     MEETINGS = "meetings"
-    MOBILE_APP = "mobile_app"
-    API_ACCESS = "api_access"
 
 
 class PermissionAction(str, Enum):
@@ -52,6 +47,36 @@ class SystemRole(str, Enum):
     TEACHER = "teacher"
     GUARDIAN = "guardian"
     STUDENT = "student"
+    DRIVER = "driver"
+
+
+class TransportRequestStatus(str, Enum):
+    """Lifecycle of a student/guardian transport support request."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class TripType(str, Enum):
+    PICKUP = "pickup"
+    DROPOFF = "dropoff"
+
+
+class TripStatus(str, Enum):
+    SCHEDULED = "scheduled"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class TripStudentStatus(str, Enum):
+    """Per-student state within a trip's pickup/drop-off manifest."""
+
+    PENDING = "pending"
+    BOARDED = "boarded"
+    ABSENT = "absent"
+    DROPPED = "dropped"
 
 
 class PlanCode(str, Enum):
@@ -227,11 +252,6 @@ class DeliveryStatus(str, Enum):
     FAILED = "failed"
 
 
-class LoanStatus(str, Enum):
-    BORROWED = "borrowed"
-    RETURNED = "returned"
-
-
 class NotificationEvent(str, Enum):
     """Configurable event triggers from docs/permissions/08."""
 
@@ -249,3 +269,7 @@ class NotificationEvent(str, Enum):
     ANNOUNCEMENT = "announcement"
     MEETING_SCHEDULED = "meeting_scheduled"
     LEAVE_STATUS = "leave_status"
+    TRANSPORT_TRIP_STARTED = "transport_trip_started"
+    BUS_NEAR_PICKUP = "bus_near_pickup"
+    STUDENT_BOARDED = "student_boarded"
+    STUDENT_DROPPED = "student_dropped"

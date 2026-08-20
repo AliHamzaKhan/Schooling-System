@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../data/models/admin_metrics.dart';
 import '../controller/revenue_controller.dart';
 import '../../../ui/admin_theme.dart';
+import '../../../ui/admin_widgets/admin_page_header.dart';
 import '../../../ui/admin_widgets/admin_surface.dart';
 
 /// Revenue report — subscription earnings grouped by calendar month. Opened
@@ -20,7 +21,7 @@ class RevenueView extends GetView<RevenueController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Header(),
+            const AdminScreenHeader(title: 'Revenue'),
             Expanded(
               child: Obx(() {
                 if (controller.loading.value) {
@@ -72,7 +73,7 @@ class RevenueView extends GetView<RevenueController> {
 }
 
 String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+    v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
 /// "2026-07" → "Jul 2026".
 String _monthLabel(String ym) {
@@ -148,57 +149,6 @@ class _MonthRow extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.containerPaddingMobile,
-        AppSpacing.stackSm,
-        AppSpacing.containerPaddingMobile,
-        AppSpacing.stackLg,
-      ),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFCEAD6), Color(0xFFF3DCE6), Color(0xFFD9CDEF)],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Get.back<void>(),
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AdminPalette.inkSoft,
-                  child: Icon(Icons.arrow_back_rounded,
-                      color: Colors.white, size: 20),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.stackSm),
-              Text('Meri Taleem Admin',
-                  style: AdminType.cardTitle.copyWith(
-                      color: AdminPalette.ink, fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.stackLg),
-          Text('Revenue',
-              style: AdminType.metric
-                  .copyWith(color: AdminPalette.ink, fontSize: 34)),
-          const SizedBox(height: AppSpacing.stackSm),
-          Text('Subscription earnings by month.',
-              style:
-                  AdminType.body.copyWith(color: AdminPalette.ink)),
-        ],
-      ),
-    );
-  }
-}
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -208,7 +158,7 @@ class _EmptyState extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: const [
         SizedBox(height: 80),
-        Icon(Icons.bar_chart_rounded, size: 48, color: AdminPalette.faint),
+        Icon(AppIcons.barChartRounded, size: 48, color: AdminPalette.faint),
         SizedBox(height: AppSpacing.stackMd),
         Center(child: Text('No revenue recorded yet.')),
       ],

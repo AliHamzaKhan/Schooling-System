@@ -109,7 +109,7 @@ class _SubscriptionSheetState extends State<_SubscriptionSheet> {
     final plan = _selectedPlan;
     final isSame = plan?.code == widget.school.planCode;
     final confirmed = await showAdminConfirm(
-      icon: Icons.card_membership_rounded,
+      icon: AppIcons.cardMembershipRounded,
       title: 'Change subscription?',
       message:
           '${widget.school.name} will be moved to the ${plan?.name ?? 'selected'} plan. '
@@ -247,7 +247,7 @@ class _SubscriptionSheetState extends State<_SubscriptionSheet> {
 }
 
 String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+    v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
 class _PlanRow extends StatelessWidget {
   final SubscriptionPlanModel plan;
@@ -275,7 +275,7 @@ class _PlanRow extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              selected ? AppIcons.radioButtonChecked : AppIcons.radioButtonOff,
               color: selected ? AdminPalette.ink : AdminPalette.faint,
             ),
             const SizedBox(width: AppSpacing.stackMd),

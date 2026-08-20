@@ -75,8 +75,8 @@ class _BalanceHero extends StatelessWidget {
                 label: cleared ? 'All paid' : 'Action needed',
                 color: cleared ? AppColors.tertiary : AppColors.error,
                 icon: cleared
-                    ? Icons.verified_outlined
-                    : Icons.error_outline_rounded,
+                    ? AppIcons.verifiedOutlined
+                    : AppIcons.errorOutlineRounded,
               ),
             ],
           ),

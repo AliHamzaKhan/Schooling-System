@@ -81,7 +81,7 @@ class _TeacherAttendanceReportCardState
           children: [
             Row(
               children: [
-                const Icon(Icons.co_present_outlined,
+                const Icon(AppIcons.coPresentOutlined,
                     size: 18, color: AppColors.primary),
                 const SizedBox(width: 6),
                 Text('Teacher Attendance', style: AppTypography.titleLg),
@@ -95,7 +95,7 @@ class _TeacherAttendanceReportCardState
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.edit_calendar_outlined,
+                        const Icon(AppIcons.editCalendarOutlined,
                             size: 14, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text('Record',
@@ -118,8 +118,8 @@ class _TeacherAttendanceReportCardState
               const SizedBox(height: AppSpacing.stackMd),
               GhostButton(
                 label: 'Record Today\'s Attendance',
-                leadingIcon: Icons.edit_calendar_outlined,
-                trailingIcon: Icons.chevron_right_rounded,
+                leadingIcon: AppIcons.editCalendarOutlined,
+                trailingIcon: AppIcons.chevronRightRounded,
                 expanded: true,
                 onPressed: _openMarking,
               ),
@@ -152,7 +152,7 @@ class _MetricsRow extends StatelessWidget {
                 label: 'Present Rate',
                 value: _rate,
                 color: AppColors.tertiary,
-                icon: Icons.trending_up_rounded,
+                icon: AppIcons.trendingUpRounded,
               ),
             ),
             const SizedBox(width: AppSpacing.stackSm),
@@ -161,7 +161,7 @@ class _MetricsRow extends StatelessWidget {
                 label: 'Present',
                 value: '${day.present}',
                 color: AppColors.tertiary,
-                icon: Icons.check_circle_outline,
+                icon: AppIcons.checkCircleOutline,
               ),
             ),
           ],
@@ -174,7 +174,7 @@ class _MetricsRow extends StatelessWidget {
                 label: 'Absent',
                 value: '${day.absent}',
                 color: AppColors.error,
-                icon: Icons.person_off_outlined,
+                icon: AppIcons.personOffOutlined,
                 onTap: day.absent == 0
                     ? null
                     : () => onOpen(
@@ -187,7 +187,7 @@ class _MetricsRow extends StatelessWidget {
                 label: 'Late Comers',
                 value: '${day.late}',
                 color: const Color(0xFFF59E0B),
-                icon: Icons.schedule_rounded,
+                icon: AppIcons.scheduleRounded,
                 onTap: day.late == 0
                     ? null
                     : () => onOpen(
@@ -246,7 +246,7 @@ class _Tile extends StatelessWidget {
                       style: AppTypography.labelMd.copyWith(color: color)),
                 ),
                 if (onTap != null)
-                  Icon(Icons.chevron_right_rounded, size: 16, color: color),
+                  Icon(AppIcons.chevronRightRounded, size: 16, color: color),
               ],
             ),
             const SizedBox(height: 4),

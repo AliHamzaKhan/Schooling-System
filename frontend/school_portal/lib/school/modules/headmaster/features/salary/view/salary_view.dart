@@ -150,7 +150,7 @@ class _PayslipCard extends StatelessWidget {
               ),
             ),
             if (isPaid)
-              const Icon(Icons.check_circle, color: AppColors.primary, size: 22)
+              const Icon(AppIcons.checkCircle, color: AppColors.primary, size: 22)
             else
               TextButton(
                 onPressed: () => controller.markPaid(payslip),

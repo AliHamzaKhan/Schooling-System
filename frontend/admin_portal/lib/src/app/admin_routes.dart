@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../features/headmasters/binding/headmasters_binding.dart';
+import '../features/headmasters/view/create_headmaster_view.dart';
 import '../features/headmasters/view/headmasters_view.dart';
 import '../features/permissions/school_modules/binding/school_modules_binding.dart';
 import '../features/permissions/school_modules/view/school_modules_view.dart';
@@ -38,6 +39,7 @@ class AdminRoutes {
   static const revenue = '/revenue';
   static const transactions = '/transactions';
   static const headmasters = '/headmasters';
+  static const createHeadmaster = '/headmasters/create';
   static const schoolPermissions = '/permissions/schools';
   static const schoolModules = '/permissions/schools/modules';
 
@@ -85,6 +87,13 @@ class AdminRoutes {
       name: headmasters,
       page: () => const HeadmastersView(),
       binding: HeadmastersBinding(),
+    ),
+    GetPage(
+      // Reuses the HeadmastersController from the list (its binding stays alive),
+      // so the create screen shares the loaded school list + submit state.
+      name: createHeadmaster,
+      page: () => const CreateHeadmasterView(),
+      fullscreenDialog: true,
     ),
     GetPage(
       name: schoolPermissions,

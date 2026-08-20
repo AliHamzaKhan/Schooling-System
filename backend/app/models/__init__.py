@@ -34,23 +34,31 @@ from app.models.course import (
 )
 from app.models.direct_message import DirectMessage
 from app.models.homework import Assignment, Submission
-from app.models.library import Book, BookLoan
-from app.models.hostel import HostelAllocation, HostelBlock, HostelRoom
 from app.models.hr import Payslip, StaffProfile
 from app.models.inventory import InventoryItem, StockTransaction
 from app.models.ai import AIInteraction
 from app.models.leave import LeaveRequest
 from app.models.meeting import Meeting
-from app.models.online_class import OnlineClass
 from app.models.quiz import Quiz, QuizAnswer, QuizAssignment, QuizAttempt, QuizQuestion
 from app.models.promotion import PromotionRecord
 from app.models.calendar import CalendarEvent
 from app.models.document import StudentDocument
 from app.models.lesson import LessonPlan
-from app.models.transport import Route, RouteStop, TransportAssignment, Vehicle
+from app.models.transport import (
+    Driver,
+    Route,
+    RouteStop,
+    TransportAssignment,
+    TransportRequest,
+    TransportTrip,
+    TripStudentEvent,
+    Vehicle,
+    VehicleLocation,
+)
 from app.models.base import Base
 from app.models.role import Role, RolePermission
 from app.models.school import AcademicSession, School, SchoolModule
+from app.models.password_reset import PasswordReset
 from app.models.school_info import SchoolInfo
 from app.models.session import RefreshSession
 from app.models.subscription import (
@@ -73,6 +81,7 @@ __all__ = [
     "SubscriptionPayment",
     "User",
     "RefreshSession",
+    "PasswordReset",
     "SchoolClass",
     "Section",
     "Subject",
@@ -103,20 +112,19 @@ __all__ = [
     "MessageDelivery",
     "DirectMessage",
     "DeviceToken",
-    "Book",
-    "BookLoan",
     "Vehicle",
+    "Driver",
     "Route",
     "RouteStop",
     "TransportAssignment",
-    "HostelBlock",
-    "HostelRoom",
-    "HostelAllocation",
+    "TransportRequest",
+    "TransportTrip",
+    "TripStudentEvent",
+    "VehicleLocation",
     "StaffProfile",
     "Payslip",
     "InventoryItem",
     "StockTransaction",
-    "OnlineClass",
     "AIInteraction",
     "LeaveRequest",
     "Meeting",

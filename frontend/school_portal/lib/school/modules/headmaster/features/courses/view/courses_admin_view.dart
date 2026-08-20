@@ -17,7 +17,7 @@ class CoursesAdminView extends GetView<CoursesAdminController> {
       appBar: AppBar(title: const Text('Manage Courses')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.createFlow,
-        icon: const Icon(Icons.add_rounded),
+        icon: const Icon(AppIcons.addRounded),
         label: const Text('New Course'),
       ),
       body: Obx(() {
@@ -85,7 +85,7 @@ class _CourseCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Row(
         children: [
-          const Icon(Icons.menu_book_rounded, color: AppColors.primary),
+          const Icon(AppIcons.menuBookRounded, color: AppColors.primary),
           const SizedBox(width: AppSpacing.stackMd),
           Expanded(
             child: Column(
@@ -101,7 +101,7 @@ class _CourseCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded,
+          const Icon(AppIcons.chevronRightRounded,
               color: AppColors.onSurfaceVariant),
         ],
       ),

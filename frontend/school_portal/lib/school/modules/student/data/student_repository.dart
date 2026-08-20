@@ -11,6 +11,7 @@ import '../features/quiz/models/quiz_models.dart';
 import '../features/results/models/exam_result.dart';
 import '../features/results/models/report_card.dart';
 import '../features/timetable/models/timetable_data.dart';
+import '../features/transport/models/transport_models.dart';
 import 'student_api_service.dart';
 
 /// Single data gateway for the Student module. Every Student controller depends
@@ -25,6 +26,31 @@ class StudentRepository {
 
   Future<ApiResponse<AttendanceData>> loadAttendance() =>
       _api.fetchAttendance();
+
+  // ------------------------------ transport ---------------------------- #
+
+  Future<ApiResponse<MyTransportRequest>> createTransportRequest({
+    required String pickupAddress,
+    double? latitude,
+    double? longitude,
+    String? notes,
+  }) =>
+      _api.createTransportRequest(
+        pickupAddress: pickupAddress, latitude: latitude,
+        longitude: longitude, notes: notes,
+      );
+
+  Future<ApiResponse<List<MyTransportRequest>>> loadMyTransportRequests() =>
+      _api.fetchMyTransportRequests();
+
+  Future<ApiResponse<List<ActiveTrip>>> loadActiveTrips() =>
+      _api.fetchActiveTrips();
+
+  Future<ApiResponse<TripLocation>> loadTripLocation(String tripId) =>
+      _api.fetchTripLocation(tripId);
+
+  Future<ApiResponse<TripEta>> loadTripEta(String tripId) =>
+      _api.fetchTripEta(tripId);
 
   Future<ApiResponse<AssignmentsData>> loadAssignments() =>
       _api.fetchAssignments();

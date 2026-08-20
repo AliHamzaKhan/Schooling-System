@@ -180,7 +180,7 @@ class _CalendarViewState extends State<CalendarView> {
       );
     }
     if (_error != null) {
-      return _Empty(icon: Icons.cloud_off_rounded, message: _error!, onRetry: _load);
+      return _Empty(icon: AppIcons.cloudOffRounded, message: _error!, onRetry: _load);
     }
 
     final slots = _daySlots;
@@ -210,15 +210,13 @@ class _CalendarViewState extends State<CalendarView> {
           const SizedBox(height: AppSpacing.stackLg),
           if (slots.isEmpty)
             const _Empty(
-              icon: Icons.event_available_outlined,
+              icon: AppIcons.eventAvailableOutlined,
               message: 'Nothing on the timetable for this day.',
             )
           else
             for (final s in slots) ...[
               _PeriodCard(
                 slot: s,
-                day: _selected,
-                isNext: identical(s, next),
                 onFinish: s.attendanceMarked ? null : () => _finish(s),
               ),
               const SizedBox(height: AppSpacing.stackMd),
@@ -319,11 +317,11 @@ class _UpNextBanner extends StatelessWidget {
     final until = start.difference(now);
 
     final (label, accent, icon) = live
-        ? ('In progress now', AppColors.tertiary, Icons.play_circle_outline)
+        ? ('In progress now', AppColors.tertiary, AppIcons.playCircleOutline)
         : (
             'Starts in ${_humanise(until)}',
             until.inMinutes <= 15 ? AppColors.error : AppColors.primary,
-            Icons.schedule_rounded,
+            AppIcons.scheduleRounded,
           );
 
     return GlassSurface(
@@ -366,116 +364,88 @@ class _UpNextBanner extends StatelessWidget {
 
 class _PeriodCard extends StatelessWidget {
   final TeacherSlot slot;
-  final DateTime day;
-  final bool isNext;
 
   /// Null once the period is finished, which disables the action.
   final VoidCallback? onFinish;
 
   const _PeriodCard({
     required this.slot,
-    required this.day,
-    required this.isNext,
     this.onFinish,
   });
 
   @override
   Widget build(BuildContext context) {
     final done = slot.attendanceMarked;
-    final accent = done
-        ? AppColors.tertiary
-        : (isNext ? AppColors.primary : AppColors.outlineVariant);
 
     return GlassSurface(
-      padding: EdgeInsets.zero,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(slot.timeRange,
+                  style: AppTypography.titleMd
+                      .copyWith(fontWeight: FontWeight.w800)),
+              const Spacer(),
+              if (done)
+                const _Pill(
+                  label: 'Done',
+                  color: AppColors.tertiary,
+                  icon: AppIcons.checkCircleRounded,
+                )
+              else if (slot.isClassTeacher)
+                const _Pill(
+                  label: 'Class teacher',
+                  color: AppColors.primary,
+                  icon: AppIcons.starRounded,
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(slot.title,
+              style: AppTypography.titleMd
+                  .copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: AppSpacing.stackMd,
+            runSpacing: 4,
+            children: [
+              if (slot.room != null)
+                _Meta(icon: AppIcons.locationOnOutlined, text: slot.room!),
+              if (slot.studentCount > 0)
+                _Meta(
+                  icon: AppIcons.peopleAltOutlined,
+                  text: '${slot.studentCount} students',
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onFinish,
+              icon: Icon(done
+                  ? AppIcons.checkCircleOutline
+                  : AppIcons.factCheckOutlined),
+              label: Text(done
+                  ? 'Attendance recorded'
+                  : 'Mark attendance & finish'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor:
+                    done ? AppColors.tertiary : AppColors.primary,
+                side: BorderSide(
+                  color: done
+                      ? AppColors.tertiary
+                      : AppColors.outlineVariant,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackMd),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(slot.timeRange,
-                            style: AppTypography.titleMd
-                                .copyWith(fontWeight: FontWeight.w800)),
-                        const Spacer(),
-                        if (done)
-                          const _Pill(
-                            label: 'Done',
-                            color: AppColors.tertiary,
-                            icon: Icons.check_circle_rounded,
-                          )
-                        else if (slot.isClassTeacher)
-                          const _Pill(
-                            label: 'Class teacher',
-                            color: AppColors.primary,
-                            icon: Icons.star_rounded,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(slot.title,
-                        style: AppTypography.titleMd
-                            .copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: AppSpacing.stackMd,
-                      runSpacing: 4,
-                      children: [
-                        if (slot.room != null)
-                          _Meta(icon: Icons.location_on_outlined, text: slot.room!),
-                        if (slot.studentCount > 0)
-                          _Meta(
-                            icon: Icons.people_alt_outlined,
-                            text: '${slot.studentCount} students',
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.stackMd),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: onFinish,
-                        icon: Icon(done
-                            ? Icons.check_circle_outline
-                            : Icons.fact_check_outlined),
-                        label: Text(done
-                            ? 'Attendance recorded'
-                            : 'Mark attendance & finish'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor:
-                              done ? AppColors.tertiary : AppColors.primary,
-                          side: BorderSide(
-                            color: done
-                                ? AppColors.tertiary
-                                : AppColors.outlineVariant,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.button),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

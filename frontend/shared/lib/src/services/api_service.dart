@@ -48,9 +48,12 @@ class ApiService {
   final http.Client _client;
   final DataStoreService _store;
 
-  /// Optional global hook fired whenever an **authenticated** request returns
-  /// HTTP 401 (token expired / revoked). Wire this once at boot to clear the
-  /// session and route to login. Kept as a plain callback so `shared` stays
+  /// Optional global hook fired whenever an **authenticated** request comes back
+  /// with a session-fatal failure — a still-401 after a refresh attempt (token
+  /// expired / revoked), or a tenant/subscription failure the backend flagged
+  /// via [ApiResponse.isSessionFatal] (disabled tenant, lapsed subscription,
+  /// deactivated account, cross-tenant access). Wire this once at boot to clear
+  /// the session and route to login. Kept as a plain callback so `shared` stays
   /// free of any app-level routing/auth dependency.
   void Function()? onUnauthorized;
 
@@ -115,9 +118,16 @@ class ApiService {
               method, uri, headersToUse, body, files, asForm, effectiveTimeout);
           parsed = _parseResponse<T>(response, parser);
         }
-        // Still unauthorized after a refresh attempt → clear session/redirect.
-        if (parsed.statusCode == 401) onUnauthorized?.call();
       }
+
+      // Any session-fatal failure on an authenticated call clears the session
+      // and routes to login: a still-401 after the refresh attempt above, plus
+      // the tenant/subscription/account failures the backend flags with an
+      // `error.code` (disabled tenant, expired subscription, deactivated
+      // account, cross-tenant access). A token refresh can't rescue those, so
+      // they don't go through the retry path. Unauthenticated calls
+      // (login/refresh) are exempt so a bad-credentials attempt stays local.
+      if (requiresAuth && parsed.isSessionFatal) onUnauthorized?.call();
       return parsed;
     } on TimeoutException {
       return _transportFailure(
@@ -269,6 +279,7 @@ class ApiService {
         success: false,
         statusCode: status,
         error: _extractError(decoded) ?? 'HTTP $status',
+        errorCode: _extractErrorCode(decoded),
         fieldErrors: _extractFieldErrors(decoded),
         rawJson: decoded is Map<String, dynamic> ? decoded : null,
       );
@@ -299,6 +310,16 @@ class ApiService {
       meta: meta,
       rawJson: payload is Map<String, dynamic> ? payload : null,
     );
+  }
+
+  /// The machine-readable `error.code` from the backend envelope
+  /// `{error: {code, message}}`, or null for pre-envelope error shapes.
+  String? _extractErrorCode(dynamic decoded) {
+    if (decoded is Map) {
+      final err = decoded['error'];
+      if (err is Map && err['code'] is String) return err['code'] as String;
+    }
+    return null;
   }
 
   String? _extractError(dynamic decoded) {

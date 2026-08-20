@@ -88,7 +88,7 @@ class _CreateHomeworkViewState extends State<CreateHomeworkView>
                 }),
                 Obx(() => PrimaryButton(
                       label: 'Post Homework',
-                      leadingIcon: Icons.send_rounded,
+                      leadingIcon: AppIcons.sendRounded,
                       trailingIcon: null,
                       expanded: true,
                       isLoading: controller.submitting.value,
@@ -178,7 +178,7 @@ class _LogisticsCard extends StatelessWidget {
                       controller: dueCtrl,
                       readOnly: true,
                       onTap: () => controller.pickDueDate(context),
-                      suffix: const Icon(Icons.calendar_today_outlined,
+                      suffix: const Icon(AppIcons.calendarTodayOutlined,
                           size: 18, color: AppColors.onSurfaceVariant),
                     ),
                     const SizedBox(height: AppSpacing.stackLg),

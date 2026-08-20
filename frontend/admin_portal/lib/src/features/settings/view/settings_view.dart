@@ -15,7 +15,7 @@ class SettingsView extends StatelessWidget {
 
   Future<void> _signOut() async {
     final confirmed = await showAdminConfirm(
-      icon: Icons.logout_rounded,
+      icon: AppIcons.logoutRounded,
       title: 'Sign out?',
       message: 'You will need to sign in again to manage the platform.',
       confirmLabel: 'Sign Out',
@@ -43,14 +43,14 @@ class SettingsView extends StatelessWidget {
 
                 const AdminGroupLabel('Access Control'),
                 AdminNavTile(
-                  icon: Icons.admin_panel_settings_outlined,
+                  icon: AppIcons.adminPanelSettingsOutlined,
                   title: 'School Permissions',
                   subtitle: 'Manage modules and access levels per school.',
                   onTap: () => Get.toNamed(AdminRoutes.schoolPermissions),
                 ),
                 const SizedBox(height: 12),
                 AdminNavTile(
-                  icon: Icons.manage_accounts_outlined,
+                  icon: AppIcons.manageAccountsOutlined,
                   title: 'Headmasters',
                   subtitle: 'Review and manage headmaster accounts.',
                   onTap: () => Get.toNamed(AdminRoutes.headmasters),
@@ -59,21 +59,21 @@ class SettingsView extends StatelessWidget {
                 const SizedBox(height: 28),
                 const AdminGroupLabel('Billing'),
                 AdminNavTile(
-                  icon: Icons.credit_card_outlined,
+                  icon: AppIcons.creditCardOutlined,
                   title: 'Subscription Plans',
                   subtitle: 'Review and edit pricing tiers.',
                   onTap: () => Get.toNamed(AdminRoutes.subscriptions),
                 ),
                 const SizedBox(height: 12),
                 AdminNavTile(
-                  icon: Icons.receipt_long_outlined,
+                  icon: AppIcons.receiptLongOutlined,
                   title: 'School Subscriptions',
                   subtitle: 'Assign plans and review billing status.',
                   onTap: () => Get.toNamed(AdminRoutes.subscriptionManagement),
                 ),
                 const SizedBox(height: 12),
                 AdminNavTile(
-                  icon: Icons.account_balance_outlined,
+                  icon: AppIcons.accountBalanceOutlined,
                   title: 'Revenue Report',
                   subtitle: 'Monthly revenue and payment history.',
                   onTap: () => Get.toNamed(AdminRoutes.revenue),
@@ -83,7 +83,7 @@ class SettingsView extends StatelessWidget {
                 Center(
                   child: TextButton.icon(
                     onPressed: _signOut,
-                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    icon: const Icon(AppIcons.logoutRounded, size: 18),
                     label: const Text('Sign Out'),
                     style: TextButton.styleFrom(
                       foregroundColor: AdminPalette.danger,

@@ -47,7 +47,7 @@ class AssignmentStatCard extends StatelessWidget {
               ),
               const Spacer(),
               if (onTap != null)
-                const Icon(Icons.chevron_right_rounded,
+                const Icon(AppIcons.chevronRightRounded,
                     size: 18, color: AppColors.onSurfaceVariant),
             ],
           ),

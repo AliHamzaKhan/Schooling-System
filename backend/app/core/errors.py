@@ -29,9 +29,52 @@ import uuid
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core.exceptions import AppHTTPException, ErrorCode
+
 logger = logging.getLogger("app.errors")
+
+# Fallback code per status for plain HTTPExceptions raised without an explicit
+# `ErrorCode` (e.g. `raise HTTPException(404)` deep in a module). None of these
+# defaults are session-fatal on the client — deliberate fatal failures always go
+# through the `app.core.exceptions` helpers, which set an explicit code.
+_STATUS_DEFAULT_CODE: dict[int, ErrorCode] = {
+    400: ErrorCode.BAD_REQUEST,
+    403: ErrorCode.PERMISSION_DENIED,
+    404: ErrorCode.NOT_FOUND,
+    409: ErrorCode.CONFLICT,
+}
+
+
+async def _http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
+    """Serialize every deliberate ``HTTPException`` into the standard envelope.
+
+    Shape: ``{"detail": <msg>, "error": {"code": <code>, "message": <msg>}}``.
+    ``detail`` is retained for backward compatibility with any client still
+    reading FastAPI's default field; ``error.code`` is the machine-readable
+    identifier the frontend switches on. Status code and headers (e.g.
+    ``WWW-Authenticate`` on a 401) are preserved.
+    """
+    if isinstance(exc, AppHTTPException):
+        code = exc.code
+    elif exc.status_code == 401:
+        code = ErrorCode.INVALID_CREDENTIALS
+    elif exc.status_code == 402:
+        code = ErrorCode.SUBSCRIPTION_INACTIVE
+    else:
+        code = _STATUS_DEFAULT_CODE.get(exc.status_code)
+
+    message = exc.detail if isinstance(exc.detail, str) else "Request failed"
+    body: dict = {"detail": exc.detail}
+    if code is not None:
+        body["error"] = {"code": code.value, "message": message}
+    return JSONResponse(
+        status_code=exc.status_code, content=body, headers=exc.headers or None
+    )
 
 
 def _failure_body(error_id: str, detail: str) -> dict[str, str]:
@@ -112,17 +155,32 @@ async def _sqlalchemy_error_handler(request: Request, exc: Exception) -> JSONRes
 
 
 def configure_logging() -> None:
-    """Give the root logger a handler when the host process hasn't.
+    """Give the root logger a handler when the host process hasn't, and make every
+    line carry the request correlation id.
 
     Uvicorn configures only its own loggers, so without this an application
     ``logger.exception`` falls back to Python's last-resort handler and loses
-    its timestamp and logger name.
+    its timestamp and logger name. The ``[%(request_id)s]`` field ties each line
+    to one request across instances (see ``app/core/observability.py``).
     """
-    if not logging.getLogger().handlers:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
+    from app.core.observability import RequestIdLogFilter
+
+    root = logging.getLogger()
+    if not root.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s %(levelname)-8s %(name)s [%(request_id)s]: %(message)s"
+            )
         )
+        root.addHandler(handler)
+        root.setLevel(logging.INFO)
+    # Ensure the filter is present on all root handlers so third-party records
+    # (uvicorn, sqlalchemy) also get a `request_id` attribute for the format.
+    request_filter = RequestIdLogFilter()
+    for handler in root.handlers:
+        if not any(isinstance(f, RequestIdLogFilter) for f in handler.filters):
+            handler.addFilter(request_filter)
 
 
 def install_error_handling(app: FastAPI) -> None:
@@ -133,5 +191,6 @@ def install_error_handling(app: FastAPI) -> None:
     ends up innermost.
     """
     configure_logging()
+    app.add_exception_handler(StarletteHTTPException, _http_exception_handler)
     app.add_exception_handler(SQLAlchemyError, _sqlalchemy_error_handler)
     app.add_middleware(CatchAllErrorMiddleware)

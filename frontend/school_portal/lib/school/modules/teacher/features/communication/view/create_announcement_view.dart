@@ -125,7 +125,7 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
                 padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline_rounded,
+                    const Icon(AppIcons.errorOutlineRounded,
                         size: 16, color: AppColors.error),
                     const SizedBox(width: 6),
                     Expanded(
@@ -142,7 +142,7 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
                   label: controller.submitting.value
                       ? 'Sending…'
                       : 'Send Announcement',
-                  leadingIcon: Icons.campaign_outlined,
+                  leadingIcon: AppIcons.campaignOutlined,
                   trailingIcon: null,
                   expanded: true,
                   onPressed: controller.submitting.value

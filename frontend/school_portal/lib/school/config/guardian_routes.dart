@@ -16,4 +16,5 @@ class GuardianRoutes {
   static const notifications = '$_base/notifications';
   static const leave = '$_base/leave';
   static const messages = '$_base/messages'; // two-way direct messages
+  static const transport = '$_base/transport';
 }

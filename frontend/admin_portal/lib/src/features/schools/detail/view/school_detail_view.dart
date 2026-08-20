@@ -108,7 +108,7 @@ class _Header extends GetView<SchoolDetailController> {
         children: [
           IconButton(
             onPressed: () => Get.back<void>(),
-            icon: const Icon(Icons.arrow_back_rounded, color: AdminPalette.ink),
+            icon: const Icon(AppIcons.arrowBackRounded, color: AdminPalette.ink),
           ),
           Expanded(
             child: Text(s.name,
@@ -117,7 +117,7 @@ class _Header extends GetView<SchoolDetailController> {
                 overflow: TextOverflow.ellipsis),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: AdminPalette.muted),
+            icon: const Icon(AppIcons.moreVertRounded, color: AdminPalette.muted),
             onSelected: (v) {
               if (v == 'edit') _openEdit();
               if (v == 'subscription') _openSubscription();
@@ -129,7 +129,7 @@ class _Header extends GetView<SchoolDetailController> {
                 child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.edit_outlined),
+                    leading: Icon(AppIcons.editOutlined),
                     title: Text('Edit profile')),
               ),
               const PopupMenuItem(
@@ -137,7 +137,7 @@ class _Header extends GetView<SchoolDetailController> {
                 child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.card_membership_outlined),
+                    leading: Icon(AppIcons.cardMembershipOutlined),
                     title: Text('Change subscription')),
               ),
               PopupMenuItem(
@@ -147,8 +147,8 @@ class _Header extends GetView<SchoolDetailController> {
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(
                       s.status == SchoolStatus.active
-                          ? Icons.block_rounded
-                          : Icons.check_circle_outline_rounded,
+                          ? AppIcons.blockRounded
+                          : AppIcons.checkCircleOutlineRounded,
                       color: s.status == SchoolStatus.active
                           ? AdminPalette.danger
                           : AdminPalette.ink),
@@ -198,22 +198,22 @@ class _ProfileCard extends StatelessWidget {
               StatusPill(
                   label: school.status.label,
                   color: school.status.color,
-                  icon: Icons.circle),
+                  icon: AppIcons.circle),
             ],
           ),
           const SizedBox(height: AppSpacing.stackMd),
           if ((school.contactEmail ?? '').isNotEmpty)
-            _InfoRow(icon: Icons.email_outlined, text: school.contactEmail!),
+            _InfoRow(icon: AppIcons.emailOutlined, text: school.contactEmail!),
           if ((school.contactPhone ?? '').isNotEmpty)
-            _InfoRow(icon: Icons.phone_outlined, text: school.contactPhone!),
+            _InfoRow(icon: AppIcons.phoneOutlined, text: school.contactPhone!),
           if ((school.address ?? '').isNotEmpty)
-            _InfoRow(icon: Icons.location_on_outlined, text: school.address!),
+            _InfoRow(icon: AppIcons.locationOnOutlined, text: school.address!),
           if (uniform != null)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.stackSm),
               child: Row(
                 children: [
-                  const Icon(Icons.checkroom_outlined,
+                  const Icon(AppIcons.checkroomOutlined,
                       size: 16, color: AdminPalette.muted),
                   const SizedBox(width: AppSpacing.stackSm),
                   Text('Uniform', style: AdminType.body),
@@ -245,22 +245,22 @@ class _StatsGrid extends StatelessWidget {
     final s = stats;
     final tiles = <Widget>[
       _StatTile(
-          icon: Icons.school_outlined,
+          icon: AppIcons.schoolOutlined,
           label: 'Students',
           value: s?.students,
           color: AdminPalette.ink),
       _StatTile(
-          icon: Icons.co_present_outlined,
+          icon: AppIcons.coPresentOutlined,
           label: 'Teachers',
           value: s?.teachers,
           color: AdminPalette.positive),
       _StatTile(
-          icon: Icons.family_restroom_outlined,
+          icon: AppIcons.familyRestroomOutlined,
           label: 'Guardians',
           value: s?.guardians,
           color: AdminPalette.warning),
       _StatTile(
-          icon: Icons.groups_outlined,
+          icon: AppIcons.groupsOutlined,
           label: 'Total users',
           value: s?.totalUsers,
           color: AdminPalette.info),
@@ -335,7 +335,7 @@ class _SubscriptionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.card_membership_outlined,
+              const Icon(AppIcons.cardMembershipOutlined,
                   size: 18, color: AdminPalette.ink),
               const SizedBox(width: AppSpacing.stackSm),
               Text('Subscription',
@@ -357,7 +357,7 @@ class _SubscriptionCard extends StatelessWidget {
             _KV(
               k: 'Status',
               vWidget: StatusPill(
-                  label: sub.status.label, color: sub.status.color, icon: Icons.circle),
+                  label: sub.status.label, color: sub.status.color, icon: AppIcons.circle),
             ),
             _KV(k: 'Started', v: _fmtDate(sub.startDate)),
             _KV(
@@ -392,7 +392,7 @@ class _PaymentModeCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_outlined,
+              const Icon(AppIcons.accountBalanceOutlined,
                   size: 18, color: AdminPalette.warning),
               const SizedBox(width: AppSpacing.stackSm),
               Text('Payment mode',
@@ -437,7 +437,7 @@ class _TransactionsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.receipt_long_outlined,
+              const Icon(AppIcons.receiptLongOutlined,
                   size: 18, color: AdminPalette.ink),
               const SizedBox(width: AppSpacing.stackSm),
               Text('Transactions',
@@ -597,7 +597,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, size: 40, color: AdminPalette.muted),
+            const Icon(AppIcons.cloudOffRounded, size: 40, color: AdminPalette.muted),
             const SizedBox(height: AppSpacing.stackMd),
             Text(message, textAlign: TextAlign.center, style: AdminType.body),
             const SizedBox(height: AppSpacing.stackMd),
@@ -634,4 +634,4 @@ String _expiryLabel(int? days) {
 }
 
 String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+    v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');

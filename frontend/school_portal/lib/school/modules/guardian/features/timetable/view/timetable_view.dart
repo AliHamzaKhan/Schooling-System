@@ -150,7 +150,7 @@ class _EntryCard extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.restaurant_rounded,
+            const Icon(AppIcons.restaurantRounded,
                 size: 16, color: AppColors.onSurfaceVariant),
             const SizedBox(width: AppSpacing.stackSm),
             Text(entry.subject, style: AppTypography.labelMd),
@@ -188,7 +188,7 @@ class _EntryCard extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.schedule_rounded,
+              const Icon(AppIcons.scheduleRounded,
                   size: 15, color: AppColors.primary),
               const SizedBox(width: 4),
               Text('${entry.startTime} - ${entry.endTime}',
@@ -204,11 +204,11 @@ class _EntryCard extends StatelessWidget {
           Row(
             children: [
               if (entry.teacher != null)
-                _Meta(icon: Icons.person_outline, text: entry.teacher!),
+                _Meta(icon: AppIcons.personOutline, text: entry.teacher!),
               if (entry.teacher != null && entry.room != null)
                 const SizedBox(width: AppSpacing.stackMd),
               if (entry.room != null)
-                _Meta(icon: Icons.meeting_room_outlined, text: entry.room!),
+                _Meta(icon: AppIcons.meetingRoomOutlined, text: entry.room!),
             ],
           ),
         ],

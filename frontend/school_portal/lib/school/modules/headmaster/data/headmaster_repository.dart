@@ -23,6 +23,7 @@ import '../features/settings/models/school_profile.dart';
 import '../features/students/models/student.dart';
 import '../features/teachers/models/teacher.dart';
 import '../features/timetable/models/timetable_data.dart';
+import '../features/transport/models/transport_models.dart';
 import 'headmaster_api_service.dart';
 
 /// Single data gateway for the Headmaster module. Every Headmaster controller
@@ -37,6 +38,67 @@ class HeadmasterRepository {
       : _api = api ?? HeadmasterApiService();
 
   Future<ApiResponse<DashboardData>> loadDashboard() => _api.fetchDashboard();
+
+  // ------------------------------ transport ---------------------------- #
+
+  Future<ApiResponse<List<DriverRow>>> loadDrivers() => _api.fetchDrivers();
+
+  Future<ApiResponse<DriverRow>> createDriver({
+    required String email,
+    required String password,
+    required String fullName,
+    String? phone,
+    String? licenseNo,
+  }) =>
+      _api.createDriver(
+        email: email, password: password, fullName: fullName,
+        phone: phone, licenseNo: licenseNo,
+      );
+
+  Future<ApiResponse<DriverRow>> updateDriver({
+    required String driverId,
+    String? licenseNo,
+    String? phone,
+    String? status,
+  }) =>
+      _api.updateDriver(
+        driverId: driverId, licenseNo: licenseNo, phone: phone, status: status,
+      );
+
+  Future<ApiResponse<List<OnlineDriver>>> loadOnlineDrivers() =>
+      _api.fetchOnlineDrivers();
+
+  Future<ApiResponse<List<TransportRequestRow>>> loadTransportRequests({
+    String? status,
+  }) =>
+      _api.fetchTransportRequests(status: status);
+
+  Future<ApiResponse<dynamic>> approveTransportRequest(String id) =>
+      _api.approveTransportRequest(id);
+
+  Future<ApiResponse<dynamic>> rejectTransportRequest(String id, {String? reason}) =>
+      _api.rejectTransportRequest(id, reason: reason);
+
+  Future<ApiResponse<List<RouteOption>>> loadTransportRoutes() =>
+      _api.fetchTransportRoutes();
+
+  Future<ApiResponse<List<AssignmentRow>>> loadTransportAssignments() =>
+      _api.fetchTransportAssignments();
+
+  Future<ApiResponse<RouteOption>> createTransportRoute(String name) =>
+      _api.createTransportRoute(name);
+
+  Future<ApiResponse<dynamic>> assignTransportStudent({
+    required String requestId,
+    required String routeId,
+    required String driverId,
+  }) =>
+      _api.assignTransportStudent(
+        requestId: requestId, routeId: routeId, driverId: driverId,
+      );
+
+  Future<ApiResponse<List<TripRow>>> loadTransportTrips({String? status}) =>
+      _api.fetchTransportTrips(status: status);
 
   Future<ApiResponse<SubscriptionStatus>> loadSubscriptionStatus() =>
       _api.fetchSubscriptionStatus();

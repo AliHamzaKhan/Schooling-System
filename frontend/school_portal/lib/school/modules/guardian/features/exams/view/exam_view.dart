@@ -84,20 +84,20 @@ class _UpcomingCard extends StatelessWidget {
               StatusPill(
                   label: entry.date,
                   color: AppColors.primary,
-                  icon: Icons.event_rounded),
+                  icon: AppIcons.eventRounded),
             ],
           ),
           const SizedBox(height: AppSpacing.stackSm),
           Row(
             children: [
-              _Meta(icon: Icons.schedule_rounded, text: entry.time),
+              _Meta(icon: AppIcons.scheduleRounded, text: entry.time),
               const SizedBox(width: AppSpacing.stackMd),
-              _Meta(icon: Icons.meeting_room_outlined, text: entry.room),
+              _Meta(icon: AppIcons.meetingRoomOutlined, text: entry.room),
             ],
           ),
           if (entry.syllabus != null) ...[
             const SizedBox(height: AppSpacing.stackSm),
-            _Meta(icon: Icons.menu_book_outlined, text: entry.syllabus!),
+            _Meta(icon: AppIcons.menuBookOutlined, text: entry.syllabus!),
           ],
         ],
       ),
@@ -147,7 +147,7 @@ class _ResultRow extends StatelessWidget {
           StatusPill(
               label: entry.result!,
               color: AppColors.tertiary,
-              icon: Icons.workspace_premium_outlined),
+              icon: AppIcons.workspacePremiumOutlined),
         ],
       ),
     );
@@ -163,7 +163,7 @@ class _Empty extends StatelessWidget {
     return GlassSurface(
       child: Row(
         children: [
-          const Icon(Icons.inbox_outlined, color: AppColors.outline),
+          const Icon(AppIcons.inboxOutlined, color: AppColors.outline),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(child: Text(text, style: AppTypography.bodyMd)),
         ],

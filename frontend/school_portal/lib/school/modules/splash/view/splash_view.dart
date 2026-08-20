@@ -167,7 +167,7 @@ class _Unreachable extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.cloud_off_rounded,
+        Icon(AppIcons.cloudOffRounded,
             size: 28, color: AppColors.onPrimary.withValues(alpha: 0.85)),
         const SizedBox(height: AppSpacing.stackMd),
         Text(

@@ -187,7 +187,7 @@ class _AttendanceViewState extends State<AttendanceView> {
                       const SizedBox(height: AppSpacing.stackLg),
                       PrimaryButton(
                         label: 'Record Attendance',
-                        leadingIcon: Icons.edit_calendar_outlined,
+                        leadingIcon: AppIcons.editCalendarOutlined,
                         trailingIcon: null,
                         expanded: true,
                         onPressed: _openMarking,
@@ -195,7 +195,7 @@ class _AttendanceViewState extends State<AttendanceView> {
                       const SizedBox(height: AppSpacing.stackMd),
                       GhostButton(
                         label: 'Open Reports & Analytics',
-                        trailingIcon: Icons.arrow_forward,
+                        trailingIcon: AppIcons.arrowForward,
                         expanded: true,
                         onPressed: widget.onAnalytics,
                       ),
@@ -234,14 +234,14 @@ class _DateSelector extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.calendar_today_outlined,
+              const Icon(AppIcons.calendarTodayOutlined,
                   size: 14, color: AppColors.primary),
               const SizedBox(width: 6),
               Text(label,
                   style: AppTypography.labelMd
                       .copyWith(color: AppColors.primary)),
               const SizedBox(width: 4),
-              const Icon(Icons.expand_more_rounded,
+              const Icon(AppIcons.expandMoreRounded,
                   size: 16, color: AppColors.primary),
             ],
           ),
@@ -269,7 +269,7 @@ class _StatusTiles extends StatelessWidget {
                 label: 'Present',
                 value: day.present,
                 color: AppColors.tertiary,
-                icon: Icons.check_circle_outline,
+                icon: AppIcons.checkCircleOutline,
                 onTap: day.present == 0
                     ? null
                     : () => onOpen(TeacherAttendanceStatus.present,
@@ -282,7 +282,7 @@ class _StatusTiles extends StatelessWidget {
                 label: 'Absent',
                 value: day.absent,
                 color: AppColors.error,
-                icon: Icons.person_off_outlined,
+                icon: AppIcons.personOffOutlined,
                 onTap: day.absent == 0
                     ? null
                     : () => onOpen(
@@ -299,7 +299,7 @@ class _StatusTiles extends StatelessWidget {
                 label: 'Late Comers',
                 value: day.late,
                 color: const Color(0xFFF59E0B),
-                icon: Icons.schedule_rounded,
+                icon: AppIcons.scheduleRounded,
                 onTap: day.late == 0
                     ? null
                     : () =>
@@ -312,7 +312,7 @@ class _StatusTiles extends StatelessWidget {
                 label: 'On Leave',
                 value: day.onLeave,
                 color: AppColors.primary,
-                icon: Icons.event_busy_outlined,
+                icon: AppIcons.eventBusyOutlined,
                 onTap: day.onLeave == 0
                     ? null
                     : () => onOpen(
@@ -365,7 +365,7 @@ class _Tile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis),
                 ),
                 if (onTap != null)
-                  Icon(Icons.chevron_right_rounded, size: 16, color: color),
+                  Icon(AppIcons.chevronRightRounded, size: 16, color: color),
               ],
             ),
             const SizedBox(height: 4),
@@ -398,7 +398,7 @@ class _UnmarkedBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.help_outline_rounded,
+            const Icon(AppIcons.helpOutlineRounded,
                 size: 18, color: AppColors.onSurfaceVariant),
             const SizedBox(width: AppSpacing.stackSm),
             Expanded(
@@ -408,7 +408,7 @@ class _UnmarkedBanner extends StatelessWidget {
                     .copyWith(color: AppColors.onSurfaceVariant),
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
+            const Icon(AppIcons.chevronRightRounded,
                 size: 18, color: AppColors.onSurfaceVariant),
           ],
         ),

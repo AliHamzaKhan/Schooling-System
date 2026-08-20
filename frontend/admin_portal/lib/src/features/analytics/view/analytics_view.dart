@@ -27,37 +27,37 @@ class AnalyticsView extends GetView<AnalyticsController> {
   ];
 
   static String _money(double v) =>
-      '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+      v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
   List<AnalyticsMetric> _tiles(MetricsReport d) => [
         AnalyticsMetric(
           label: 'Total Schools',
           value: '${d.totalSchools}',
-          icon: Icons.apartment_rounded,
+          icon: AppIcons.apartmentRounded,
           iconColor: AdminPalette.ink,
         ),
         AnalyticsMetric(
           label: 'Active Subscriptions',
           value: '${d.activeSubscriptions}',
-          icon: Icons.verified_rounded,
+          icon: AppIcons.verifiedRounded,
           iconColor: AdminPalette.positive,
         ),
         AnalyticsMetric(
           label: 'Total Users',
           value: '${d.totalUsers}',
-          icon: Icons.groups_rounded,
+          icon: AppIcons.groupsRounded,
           iconColor: AdminPalette.info,
         ),
         AnalyticsMetric(
           label: 'Monthly Revenue',
           value: _money(d.monthlyRevenue),
-          icon: Icons.trending_up_rounded,
+          icon: AppIcons.trendingUpRounded,
           iconColor: AdminPalette.warning,
         ),
         AnalyticsMetric(
           label: 'Churn Rate',
           value: '${d.churnRate}%',
-          icon: Icons.sell_rounded,
+          icon: AppIcons.sellRounded,
           iconColor: AdminPalette.danger,
         ),
       ];

@@ -33,7 +33,7 @@ class DropdownFilter extends StatelessWidget {
           Text(value,
               style: AppTypography.titleMd
                   .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
-          const Icon(Icons.keyboard_arrow_down_rounded,
+          const Icon(AppIcons.keyboardArrowDownRounded,
               size: 20, color: AppColors.primary),
         ],
       ),

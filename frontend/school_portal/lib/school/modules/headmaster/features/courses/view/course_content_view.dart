@@ -30,7 +30,7 @@ class CourseContentView extends GetView<CourseContentController> {
             children: [
               // Books.
               _SectionHeader(
-                icon: Icons.auto_stories_rounded,
+                icon: AppIcons.autoStoriesRounded,
                 title: 'Books',
                 actionLabel: 'Add Book',
                 onAction: controller.addBookFlow,
@@ -46,7 +46,7 @@ class CourseContentView extends GetView<CourseContentController> {
                     padding: const EdgeInsets.all(AppSpacing.stackMd),
                     child: Row(
                       children: [
-                        const Icon(Icons.book_outlined, color: AppColors.primary),
+                        const Icon(AppIcons.bookOutlined, color: AppColors.primary),
                         const SizedBox(width: AppSpacing.stackMd),
                         Expanded(
                           child: Column(
@@ -61,7 +61,7 @@ class CourseContentView extends GetView<CourseContentController> {
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right_rounded,
+                        const Icon(AppIcons.chevronRightRounded,
                             color: AppColors.onSurfaceVariant),
                       ],
                     ),
@@ -72,7 +72,7 @@ class CourseContentView extends GetView<CourseContentController> {
 
               // Notes.
               _SectionHeader(
-                icon: Icons.sticky_note_2_outlined,
+                icon: AppIcons.stickyNote2Outlined,
                 title: 'Notes',
                 actionLabel: 'Add Note',
                 onAction: controller.addNoteFlow,
@@ -86,7 +86,7 @@ class CourseContentView extends GetView<CourseContentController> {
                     padding: const EdgeInsets.all(AppSpacing.stackMd),
                     child: Row(
                       children: [
-                        const Icon(Icons.description_outlined,
+                        const Icon(AppIcons.descriptionOutlined,
                             color: AppColors.tertiary),
                         const SizedBox(width: AppSpacing.stackMd),
                         Expanded(child: Text(n.title, style: AppTypography.bodyLg)),
@@ -126,7 +126,7 @@ class _SectionHeader extends StatelessWidget {
         const Spacer(),
         TextButton.icon(
           onPressed: onAction,
-          icon: const Icon(Icons.add_rounded, size: 18),
+          icon: const Icon(AppIcons.addRounded, size: 18),
           label: Text(actionLabel),
         ),
       ],

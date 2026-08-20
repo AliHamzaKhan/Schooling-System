@@ -44,20 +44,6 @@ async def test_reports_overview(client, school):
     assert r.json()["teachers"] >= 1
 
 
-async def test_library_issue_return(client, school):
-    sid, hm = school["id"], school["hm"]
-    member = await create_user(client, sid, hm, "student")
-    book = (await client.post(f"{API}/schools/{sid}/library/books", headers=hm,
-            json={"title": "Book", "total_copies": 1})).json()
-    loan = await client.post(f"{API}/schools/{sid}/library/books/{book['id']}/issue", headers=hm,
-                             json={"member_id": member["id"], "due_date": "2026-07-01"})
-    assert loan.status_code == 201
-    # No copies left now.
-    again = await client.post(f"{API}/schools/{sid}/library/books/{book['id']}/issue", headers=hm,
-                              json={"member_id": member["id"], "due_date": "2026-07-01"})
-    assert again.status_code == 400
-
-
 async def test_transport_capacity(client, school):
     sid, hm = school["id"], school["hm"]
     vehicle = (await client.post(f"{API}/schools/{sid}/transport/vehicles", headers=hm,
@@ -72,21 +58,6 @@ async def test_transport_capacity(client, school):
     full = await client.post(f"{API}/schools/{sid}/transport/assignments", headers=hm,
                              json={"student_id": s2["id"], "route_id": route["id"]})
     assert full.status_code == 400
-
-
-async def test_hostel_allocation(client, school):
-    sid, hm = school["id"], school["hm"]
-    block = (await client.post(f"{API}/schools/{sid}/hostel/blocks", headers=hm, json={"name": "B1"})).json()
-    room = (await client.post(f"{API}/schools/{sid}/hostel/blocks/{block['id']}/rooms", headers=hm,
-            json={"room_no": "101", "capacity": 1})).json()
-    s1 = await create_user(client, sid, hm, "student")
-    s2 = await create_user(client, sid, hm, "student")
-    a1 = await client.post(f"{API}/schools/{sid}/hostel/allocations", headers=hm,
-                           json={"student_id": s1["id"], "room_id": room["id"]})
-    assert a1.status_code == 201
-    a2 = await client.post(f"{API}/schools/{sid}/hostel/allocations", headers=hm,
-                           json={"student_id": s2["id"], "room_id": room["id"]})
-    assert a2.status_code == 400  # room full
 
 
 async def test_hr_payslip(client, school):
@@ -109,17 +80,6 @@ async def test_inventory_stock(client, school):
     out = await client.post(f"{API}/schools/{sid}/inventory/items/{item['id']}/movements", headers=hm,
                             json={"type": "out", "quantity": 5})
     assert out.status_code == 400  # only 3 available
-
-
-async def test_online_class(client, school):
-    sid, hm = school["id"], school["hm"]
-    ac = await make_academics(client, sid, hm)
-    r = await client.post(f"{API}/schools/{sid}/online-classes", headers=hm, json={
-        "section_id": ac["section_id"], "title": "Live Class",
-        "meeting_url": "https://meet.example/x",
-        "scheduled_start": "2026-06-20T09:00:00Z", "scheduled_end": "2026-06-20T10:00:00Z",
-    })
-    assert r.status_code == 201 and r.json()["status"] == "scheduled"
 
 
 async def test_ai_generate_stub(client, school):

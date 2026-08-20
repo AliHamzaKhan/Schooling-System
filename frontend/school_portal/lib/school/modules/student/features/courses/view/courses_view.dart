@@ -71,7 +71,7 @@ class _CourseCard extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
-                child: const Icon(Icons.menu_book_rounded,
+                child: const Icon(AppIcons.menuBookRounded,
                     color: AppColors.primary, size: 22),
               ),
               const SizedBox(width: AppSpacing.stackMd),
@@ -89,7 +89,7 @@ class _CourseCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded,
+              const Icon(AppIcons.chevronRightRounded,
                   color: AppColors.onSurfaceVariant),
             ],
           ),
@@ -102,12 +102,12 @@ class _CourseCard extends StatelessWidget {
           Row(
             children: [
               _MetaPill(
-                  icon: Icons.auto_stories_rounded,
+                  icon: AppIcons.autoStoriesRounded,
                   label: '${course.bookCount} '
                       '${course.bookCount == 1 ? 'book' : 'books'}'),
               const SizedBox(width: AppSpacing.stackSm),
               _MetaPill(
-                  icon: Icons.sticky_note_2_outlined,
+                  icon: AppIcons.stickyNote2Outlined,
                   label: '${course.noteCount} '
                       '${course.noteCount == 1 ? 'note' : 'notes'}'),
             ],

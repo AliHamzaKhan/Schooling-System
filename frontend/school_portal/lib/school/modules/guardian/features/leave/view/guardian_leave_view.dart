@@ -17,7 +17,7 @@ class GuardianLeaveView extends GetView<GuardianLeaveController> {
       appBar: AppBar(title: const Text('Leave Application')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(context),
-        icon: const Icon(Icons.add_rounded),
+        icon: const Icon(AppIcons.addRounded),
         label: const Text('Apply'),
       ),
       body: Obx(() {
@@ -46,7 +46,7 @@ class GuardianLeaveView extends GetView<GuardianLeaveController> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded,
+                    const Icon(AppIcons.infoOutlineRounded,
                         size: 18, color: AppColors.primary),
                     const SizedBox(width: AppSpacing.stackSm),
                     Expanded(
@@ -225,7 +225,7 @@ class _SubmitSheetState extends State<_SubmitSheet> with ScreenTextControllers {
 
             Obx(() => PrimaryButton(
                   label: 'Submit Application',
-                  leadingIcon: Icons.send_rounded,
+                  leadingIcon: AppIcons.sendRounded,
                   expanded: true,
                   isLoading: controller.submitting.value,
                   onPressed: () async {
@@ -273,7 +273,7 @@ class _DateField extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded,
+                  const Icon(AppIcons.calendarTodayRounded,
                       size: 16, color: AppColors.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Text(

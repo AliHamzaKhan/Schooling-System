@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../admin_theme.dart';
+import 'package:shared/shared.dart';
 
 /// Numbered-circle step indicator with connecting lines and labels beneath
 /// (e.g. 1 School Details — 2 Contact Info — 3 Initial Plan).
@@ -58,7 +59,7 @@ class _StepNode extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: done
-                ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                ? const Icon(AppIcons.checkRounded, color: Colors.white, size: 18)
                 : Text('${index + 1}',
                     style: AdminType.rowTitle.copyWith(
                       color: filled ? Colors.white : AdminPalette.muted,

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core import cache
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.enums import (
@@ -19,6 +20,7 @@ from app.core.enums import (
     SystemRole,
 )
 from app.core.exceptions import (
+    ErrorCode,
     credentials_exception,
     forbidden,
     not_found,
@@ -227,26 +229,59 @@ async def enforce_school_context(
     if PermissionService.is_super_admin(user):
         return user
 
-    # 1. Tenant isolation.
+    # 1. Tenant isolation. A child account (Teacher/Student/Guardian) shares its
+    #    Headmaster's `school_id`, so this single check ties every caller — the
+    #    Headmaster and their children alike — to exactly one tenant.
     if user.school_id != school_id:
-        raise forbidden("You can only access data within your own school")
+        raise forbidden(
+            "You can only access data within your own school",
+            code=ErrorCode.TENANT_MISMATCH,
+        )
 
     # 2. Account status.
     if not user.is_active:
-        raise forbidden("Your account is inactive")
+        raise forbidden("Your account is inactive", code=ErrorCode.ACCOUNT_INACTIVE)
+
+    # 3. School lifecycle + subscription. This is the same on every request for a
+    #    given school, so the resolved status is cached in Redis for a short TTL
+    #    (and invalidated on the mutation paths) to keep the School fetch + the
+    #    subscription queries off Postgres on the hot path. `_tenant_status`
+    #    returns one of: "active" | "not_found" | "disabled" | "expired".
+    status = await _tenant_status(db, school_id)
+    if status == "active":
+        return user
+    if status == "not_found":
+        raise not_found("School not found", code=ErrorCode.TENANT_NOT_FOUND)
+    if status == "disabled":
+        raise forbidden("This school is not active", code=ErrorCode.TENANT_DISABLED)
+    raise payment_required(
+        "This school's subscription has expired. Please renew to continue."
+    )
+
+
+async def _tenant_status(db: AsyncSession, school_id: uuid.UUID) -> str:
+    """Resolve (and cache) a school's serviceability for [enforce_school_context].
+
+    One of ``active`` / ``not_found`` / ``disabled`` / ``expired``. Cached in
+    Redis for ``TENANT_STATUS_CACHE_TTL`` seconds; a miss recomputes from the DB.
+    """
+    key = cache.tenant_status_key(school_id)
+    ttl = settings.TENANT_STATUS_CACHE_TTL
+    if ttl > 0:
+        cached = await cache.get_json(key)
+        if isinstance(cached, str):
+            return cached
 
     school = await db.get(School, school_id)
     if school is None:
-        raise not_found("School not found")
+        status = "not_found"
+    elif school.status != SchoolStatus.ACTIVE.value:
+        status = "disabled"
+    elif not await _subscription_active(db, school):
+        status = "expired"
+    else:
+        status = "active"
 
-    # 3a. School lifecycle status (pending / suspended are blocked).
-    if school.status != SchoolStatus.ACTIVE.value:
-        raise forbidden(f"This school is {school.status}")
-
-    # 3b. Subscription must be active / non-expired.
-    if not await _subscription_active(db, school):
-        raise payment_required(
-            "This school's subscription has expired. Please renew to continue."
-        )
-
-    return user
+    if ttl > 0:
+        await cache.set_json(key, status, ttl)
+    return status

@@ -76,19 +76,97 @@ class HeadmastersController extends GetxController {
     loading.value = false;
   }
 
-  // ── Create headmaster ───────────────────────────────────────
-  final schools = <School>[].obs;
-  final loadingSchools = false.obs;
+  // ── Create headmaster + server-side school picker ───────────
   final submitting = false.obs;
   final submitError = RxnString();
 
-  /// Lazily loads the school list for the create-headmaster picker.
-  Future<void> loadSchools() async {
-    if (schools.isNotEmpty || loadingSchools.value) return;
+  /// Server-side school search + pagination for the create-headmaster picker.
+  /// Only one page is ever held in memory, so a directory of thousands never
+  /// loads whole. Typing runs the search after [_minSearchChars] characters with
+  /// a [_searchDebounce] delay (or immediately via [searchSchoolsNow]).
+  static const schoolPageSize = HeadmastersRepository.schoolPageSize;
+  static const _minSearchChars = 3;
+  static const _searchDebounce = Duration(seconds: 3);
+
+  /// The current page of schools (server-filtered).
+  final schoolResults = <School>[].obs;
+  final loadingSchools = false.obs;
+  final schoolQuery = ''.obs;
+  final schoolPickerPage = 1.obs;
+
+  /// True when the last page came back full, i.e. another page likely exists.
+  final schoolHasMore = false.obs;
+  Timer? _schoolDebounce;
+
+  /// Loads the current [schoolPickerPage] for the active [schoolQuery] from the
+  /// API. `hasMore` is inferred from a full page (the list endpoint returns rows
+  /// only, no total count).
+  Future<void> loadSchoolPage() async {
     loadingSchools.value = true;
-    final res = await _repo.loadSchools();
-    if (res.success && res.data != null) schools.assignAll(res.data!);
+    final res = await _repo.searchSchools(
+      query: schoolQuery.value.trim(),
+      limit: schoolPageSize,
+      offset: (schoolPickerPage.value - 1) * schoolPageSize,
+    );
+    if (res.success && res.data != null) {
+      schoolResults.assignAll(res.data!);
+      schoolHasMore.value = res.data!.length == schoolPageSize;
+    } else {
+      schoolResults.clear();
+      schoolHasMore.value = false;
+    }
     loadingSchools.value = false;
+  }
+
+  /// Debounced search-as-you-type. Blank clears back to the first page of the
+  /// unfiltered list immediately; 1–2 characters wait (too short to search);
+  /// 3+ characters trigger the API after [_searchDebounce].
+  void onSchoolSearch(String value) {
+    schoolQuery.value = value;
+    _schoolDebounce?.cancel();
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      schoolPickerPage.value = 1;
+      loadSchoolPage();
+      return;
+    }
+    if (trimmed.length < _minSearchChars) return;
+    _schoolDebounce = Timer(_searchDebounce, () {
+      schoolPickerPage.value = 1;
+      loadSchoolPage();
+    });
+  }
+
+  /// Runs the search immediately (the search button / submit affordance),
+  /// bypassing the debounce. Ignored for 1–2 character queries.
+  void searchSchoolsNow() {
+    _schoolDebounce?.cancel();
+    final trimmed = schoolQuery.value.trim();
+    if (trimmed.isNotEmpty && trimmed.length < _minSearchChars) return;
+    schoolPickerPage.value = 1;
+    loadSchoolPage();
+  }
+
+  void schoolPickerPrev() {
+    if (schoolPickerPage.value <= 1) return;
+    schoolPickerPage.value -= 1;
+    loadSchoolPage();
+  }
+
+  void schoolPickerNext() {
+    if (!schoolHasMore.value) return;
+    schoolPickerPage.value += 1;
+    loadSchoolPage();
+  }
+
+  /// Resets and loads the first page (called when the create screen opens).
+  void resetSchoolPicker() {
+    _schoolDebounce?.cancel();
+    schoolQuery.value = '';
+    schoolPickerPage.value = 1;
+    schoolHasMore.value = false;
+    submitError.value = null;
+    loadSchoolPage();
   }
 
   /// Creates a headmaster for [schoolId]; returns true on success and refreshes
@@ -158,6 +236,7 @@ class HeadmastersController extends GetxController {
   @override
   void onClose() {
     _debounce?.cancel();
+    _schoolDebounce?.cancel();
     super.onClose();
   }
 }

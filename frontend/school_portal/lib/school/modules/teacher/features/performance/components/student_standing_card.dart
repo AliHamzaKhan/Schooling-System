@@ -66,7 +66,7 @@ class StudentStandingCard extends StatelessWidget {
                   Row(
                     children: [
                       _Metric(
-                        icon: Icons.event_available_outlined,
+                        icon: AppIcons.eventAvailableOutlined,
                         label: student.totalDays == 0
                             ? '—'
                             : '${(student.attendanceRate * 100).round()}%',
@@ -74,7 +74,7 @@ class StudentStandingCard extends StatelessWidget {
                       ),
                       const SizedBox(width: AppSpacing.stackMd),
                       _Metric(
-                        icon: Icons.school_outlined,
+                        icon: AppIcons.schoolOutlined,
                         label: student.papersCounted == 0
                             ? '—'
                             : '${student.averagePercentage.toStringAsFixed(0)}%',
@@ -91,7 +91,7 @@ class StudentStandingCard extends StatelessWidget {
             IconButton(
               onPressed: onMenu,
               visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.more_vert_rounded,
+              icon: const Icon(AppIcons.moreVertRounded,
                   size: 20, color: AppColors.onSurfaceVariant),
             ),
         ],

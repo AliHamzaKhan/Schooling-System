@@ -11,6 +11,7 @@ import '../features/notifications/models/notification_item.dart';
 import '../features/performance/models/performance_data.dart';
 import '../features/report_card/models/report_card_data.dart';
 import '../features/timetable/models/timetable_data.dart';
+import '../features/transport/models/transport_models.dart';
 import '../shared/models/child.dart';
 import 'guardian_api_service.dart';
 
@@ -29,6 +30,32 @@ class GuardianRepository {
       : _api = api ?? GuardianApiService();
 
   Future<ApiResponse<List<Child>>> loadChildren() => _api.fetchChildren();
+
+  // ------------------------------ transport ---------------------------- #
+
+  Future<ApiResponse<MyTransportRequest>> createTransportRequest({
+    required String studentId,
+    required String pickupAddress,
+    double? latitude,
+    double? longitude,
+    String? notes,
+  }) =>
+      _api.createTransportRequest(
+        studentId: studentId, pickupAddress: pickupAddress,
+        latitude: latitude, longitude: longitude, notes: notes,
+      );
+
+  Future<ApiResponse<List<MyTransportRequest>>> loadMyTransportRequests() =>
+      _api.fetchMyTransportRequests();
+
+  Future<ApiResponse<List<ActiveTrip>>> loadActiveTrips() =>
+      _api.fetchActiveTrips();
+
+  Future<ApiResponse<TripLocation>> loadTripLocation(String tripId) =>
+      _api.fetchTripLocation(tripId);
+
+  Future<ApiResponse<TripEta>> loadTripEta(String tripId) =>
+      _api.fetchTripEta(tripId);
 
   Future<ApiResponse<List<ActivityItem>>> loadDashboardFeed(String childId) =>
       _api.fetchDashboardFeed(childId);

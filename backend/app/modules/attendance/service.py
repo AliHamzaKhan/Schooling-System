@@ -303,9 +303,20 @@ class AttendanceService:
             if subject is not None:
                 subject_name = f" for {subject.name}"
 
+        # Batch-load the students' names in one query instead of one `get` per
+        # student — attendance is marked a whole class at a time, so this is the
+        # difference between 1 and N queries on a hot write path.
+        student_ids = [sid for sid, _ in notifiable]
+        names_by_id = {
+            uid: full_name
+            for uid, full_name in (
+                await self.db.execute(
+                    select(User.id, User.full_name).where(User.id.in_(student_ids))
+                )
+            ).all()
+        }
         for student_id, status_value in notifiable:
-            student = await self.db.get(User, student_id)
-            name = student.full_name if student is not None else "Your child"
+            name = names_by_id.get(student_id) or "Your child"
             label = status_value.replace("_", " ")
             period = f" ({data.period_label})" if data.period_label else ""
             try:

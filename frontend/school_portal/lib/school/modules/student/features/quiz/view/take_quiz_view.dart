@@ -61,7 +61,7 @@ class TakeQuizView extends GetView<TakeQuizController> {
             Obx(() => PrimaryButton(
                   label:
                       'Submit (${controller.answeredCount}/${quiz.questions.length})',
-                  leadingIcon: Icons.check_rounded,
+                  leadingIcon: AppIcons.checkRounded,
                   trailingIcon: null,
                   expanded: true,
                   isLoading: controller.submitting.value,
@@ -121,8 +121,8 @@ class _QuestionCard extends StatelessWidget {
                       children: [
                         Icon(
                           selected
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_unchecked,
+                              ? AppIcons.radioButtonChecked
+                              : AppIcons.radioButtonUnchecked,
                           size: 18,
                           color: selected
                               ? AppColors.primary
@@ -163,10 +163,10 @@ class _ResultBody extends StatelessWidget {
           children: [
             Icon(
               pending
-                  ? Icons.hourglass_bottom_rounded
+                  ? AppIcons.hourglassBottomRounded
                   : (passed
-                      ? Icons.emoji_events_rounded
-                      : Icons.replay_rounded),
+                      ? AppIcons.emojiEventsRounded
+                      : AppIcons.replayRounded),
               size: 56,
               color: accent,
             ),

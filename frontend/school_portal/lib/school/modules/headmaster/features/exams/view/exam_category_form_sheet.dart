@@ -236,7 +236,7 @@ class _DateTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today_rounded, size: 18),
+                const Icon(AppIcons.calendarTodayRounded, size: 18),
                 const SizedBox(width: AppSpacing.stackMd),
                 Expanded(
                   child: Text(value,
@@ -248,7 +248,7 @@ class _DateTile extends StatelessWidget {
                 if (onClear != null)
                   GestureDetector(
                     onTap: onClear,
-                    child: const Icon(Icons.close_rounded, size: 18),
+                    child: const Icon(AppIcons.closeRounded, size: 18),
                   ),
               ],
             ),

@@ -7,6 +7,7 @@ import '../../../ui/tokens/app_spacing.dart';
 import '../../../ui/tokens/app_typography.dart';
 import '../auth_config.dart';
 import 'auth_footer.dart';
+import 'package:shared/shared.dart';
 
 /// One scaffold for every auth screen so spacing, the brand bar, the card, the
 /// background and the footer stay pixel-identical across login / forgot / OTP /
@@ -97,7 +98,7 @@ class _TopBar extends StatelessWidget {
       child: Row(
         children: [
           if (showBack)
-            _CircleIconButton(icon: Icons.arrow_back, onTap: () => Get.back())
+            _CircleIconButton(icon: AppIcons.arrowBack, onTap: () => Get.back())
           else
             const SizedBox(width: 4),
           const SizedBox(width: 8),

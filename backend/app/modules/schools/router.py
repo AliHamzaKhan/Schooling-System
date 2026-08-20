@@ -21,9 +21,15 @@ async def create_school(
 
 @router.get("", response_model=list[schemas.SchoolOut])
 async def list_schools(
-    db: DbDep, _: SuperAdmin, limit: int = 50, offset: int = 0
+    db: DbDep,
+    _: SuperAdmin,
+    limit: int = 50,
+    offset: int = 0,
+    search: str | None = None,
 ) -> list[schemas.SchoolOut]:
-    return await SchoolService(db).list_schools(limit=limit, offset=offset)
+    return await SchoolService(db).list_schools(
+        limit=limit, offset=offset, search=search
+    )
 
 
 @router.get("/{school_id}", response_model=schemas.SchoolOut)

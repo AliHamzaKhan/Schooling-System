@@ -35,6 +35,7 @@ class UpcomingExam {
 class ExamCountdown {
   final int days;
   final int hours;
+  final int minutes;
   final String title;
   final String date;
   final String time;
@@ -43,6 +44,7 @@ class ExamCountdown {
   const ExamCountdown({
     required this.days,
     required this.hours,
+    this.minutes = 0,
     required this.title,
     required this.date,
     required this.time,
@@ -52,6 +54,7 @@ class ExamCountdown {
   factory ExamCountdown.fromJson(Map<String, dynamic> json) => ExamCountdown(
         days: (json['days'] as num?)?.toInt() ?? 0,
         hours: (json['hours'] as num?)?.toInt() ?? 0,
+        minutes: (json['minutes'] as num?)?.toInt() ?? 0,
         title: json['title'] as String? ?? '',
         date: json['date'] as String? ?? '',
         time: json['time'] as String? ?? '',

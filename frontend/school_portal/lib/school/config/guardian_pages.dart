@@ -12,6 +12,8 @@ import '../modules/guardian/features/notifications/binding/notification_binding.
 import '../modules/guardian/features/notifications/view/notification_view.dart';
 import '../modules/guardian/features/leave/binding/guardian_leave_binding.dart';
 import '../modules/guardian/features/leave/view/guardian_leave_view.dart';
+import '../modules/guardian/features/transport/binding/transport_binding.dart';
+import '../modules/guardian/features/transport/view/transport_view.dart';
 import '../modules/guardian/features/report_card/binding/report_card_binding.dart';
 import '../modules/guardian/features/report_card/view/report_card_view.dart';
 import '../modules/guardian/features/timetable/binding/timetable_binding.dart';
@@ -72,6 +74,11 @@ class GuardianPages {
       name: GuardianRoutes.leave,
       page: () => const GuardianLeaveView(),
       binding: GuardianLeaveBinding(),
+    ),
+    GetPage(
+      name: GuardianRoutes.transport,
+      page: () => const GuardianTransportView(),
+      binding: GuardianTransportBinding(),
     ),
   ];
 }

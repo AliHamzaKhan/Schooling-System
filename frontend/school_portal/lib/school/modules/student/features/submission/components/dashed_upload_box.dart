@@ -29,8 +29,8 @@ class DashedUploadBox extends StatelessWidget {
                 ),
                 child: Icon(
                   filename == null
-                      ? Icons.upload_file_rounded
-                      : Icons.check_circle_outline_rounded,
+                      ? AppIcons.uploadFileRounded
+                      : AppIcons.checkCircleOutlineRounded,
                   color: AppColors.primary,
                   size: 26,
                 ),

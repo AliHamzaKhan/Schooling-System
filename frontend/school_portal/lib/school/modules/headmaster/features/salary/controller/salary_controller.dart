@@ -210,7 +210,7 @@ class SalaryController extends GetxController {
                   Expanded(
                     child: GhostButton(
                       label: 'Share PDF',
-                      leadingIcon: Icons.picture_as_pdf_outlined,
+                      leadingIcon: AppIcons.pictureAsPdfOutlined,
                       onPressed: () async {
                         Get.back();
                         await sharePayslipPdf(p);

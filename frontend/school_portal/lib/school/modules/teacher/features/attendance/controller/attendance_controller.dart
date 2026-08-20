@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
@@ -103,7 +102,7 @@ class AttendanceMarkController extends GetxController {
     subject: 'Mathematics',
     grade: 'Grade 8',
     students: 28,
-    icon: Icons.functions_rounded,
+    icon: AppIcons.functionsRounded,
     color: AppColors.primary,
   );
 }

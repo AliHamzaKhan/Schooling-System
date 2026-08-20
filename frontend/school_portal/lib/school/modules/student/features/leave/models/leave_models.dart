@@ -17,9 +17,9 @@ extension LeaveStatusX on LeaveStatus {
       };
 
   IconData get icon => switch (this) {
-        LeaveStatus.pending => Icons.hourglass_top_rounded,
-        LeaveStatus.approved => Icons.check_circle_outline_rounded,
-        LeaveStatus.rejected => Icons.cancel_outlined,
+        LeaveStatus.pending => AppIcons.hourglassTopRounded,
+        LeaveStatus.approved => AppIcons.checkCircleOutlineRounded,
+        LeaveStatus.rejected => AppIcons.cancelOutlined,
       };
 }
 

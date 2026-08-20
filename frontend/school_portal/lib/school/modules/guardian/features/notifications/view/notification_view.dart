@@ -59,7 +59,7 @@ class NotificationView extends GetView<NotificationController> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.notifications_off_outlined,
+                    const Icon(AppIcons.notificationsOffOutlined,
                         size: 40, color: AppColors.outline),
                     const SizedBox(height: AppSpacing.stackSm),
                     Text('You\'re all caught up',
@@ -103,85 +103,64 @@ class _AlertCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: GlassSurface(
-        padding: EdgeInsets.zero,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: 5,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(AppRadius.card)),
-                ),
+        padding: const EdgeInsets.all(AppSpacing.stackMd),
+        fill: !item.read ? color.withValues(alpha: 0.06) : null,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.stackMd),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              child: Icon(item.level.icon, size: 18, color: color),
+            ),
+            const SizedBox(width: AppSpacing.stackMd),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.14),
-                          shape: BoxShape.circle,
-                        ),
-                        child:
-                            Icon(item.level.icon, size: 18, color: color),
-                      ),
-                      const SizedBox(width: AppSpacing.stackMd),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(item.title,
-                                      style: AppTypography.titleMd.copyWith(
-                                          fontWeight: FontWeight.w800)),
-                                ),
-                                if (!item.read)
-                                  Container(
-                                    width: 9,
-                                    height: 9,
-                                    decoration: const BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(item.body, style: AppTypography.bodyMd),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                if (item.childName != null) ...[
-                                  Text(item.childName!,
-                                      style: AppTypography.labelMd.copyWith(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w700)),
-                                  Text('  ·  ',
-                                      style: AppTypography.labelMd.copyWith(
-                                          color: AppColors.onSurfaceVariant)),
-                                ],
-                                Text(item.timeAgo,
-                                    style: AppTypography.labelMd.copyWith(
-                                        color: AppColors.onSurfaceVariant)),
-                              ],
-                            ),
-                          ],
-                        ),
+                        child: Text(item.title,
+                            style: AppTypography.titleMd.copyWith(
+                                fontWeight: FontWeight.w800)),
                       ),
+                      if (!item.read)
+                        Container(
+                          width: 9,
+                          height: 9,
+                          decoration: BoxDecoration(
+                              color: color, shape: BoxShape.circle),
+                        ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 2),
+                  Text(item.body, style: AppTypography.bodyMd),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (item.childName != null) ...[
+                        Text(item.childName!,
+                            style: AppTypography.labelMd.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700)),
+                        Text('  ·  ',
+                            style: AppTypography.labelMd.copyWith(
+                                color: AppColors.onSurfaceVariant)),
+                      ],
+                      Text(item.timeAgo,
+                          style: AppTypography.labelMd.copyWith(
+                              color: AppColors.onSurfaceVariant)),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

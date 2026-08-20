@@ -26,7 +26,7 @@ class SchoolModulesEditorView extends GetView<SchoolModulesController> {
               children: [
                 IconButton(
                   onPressed: () => Get.back<void>(),
-                  icon: const Icon(Icons.arrow_back_rounded, color: AdminPalette.ink),
+                  icon: const Icon(AppIcons.arrowBackRounded, color: AdminPalette.ink),
                 ),
                 Expanded(
                   child: Column(
@@ -114,7 +114,7 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.stackMd),
-          Icon(Icons.grid_view_rounded,
+          Icon(AppIcons.gridViewRounded,
               size: 44, color: AdminPalette.ink.withValues(alpha: 0.6)),
         ],
       ),
@@ -284,7 +284,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, size: 40, color: AdminPalette.muted),
+            const Icon(AppIcons.cloudOffRounded, size: 40, color: AdminPalette.muted),
             const SizedBox(height: AppSpacing.stackMd),
             Text(message, textAlign: TextAlign.center, style: AdminType.body),
             const SizedBox(height: AppSpacing.stackMd),

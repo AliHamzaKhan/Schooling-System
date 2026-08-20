@@ -9,6 +9,7 @@ import '../../../ui/tokens/app_typography.dart';
 import '../controller/conversation_controller.dart';
 import '../models/direct_message.dart';
 import 'messaging_format.dart';
+import 'package:shared/shared.dart';
 
 /// One conversation thread with a single counterpart: a scrollable list of
 /// chat bubbles above a compose bar. Reachable from the inbox or by starting a
@@ -123,7 +124,7 @@ class _ConversationViewState extends State<ConversationView> {
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: const Icon(AppIcons.arrowBackRounded),
               color: AppColors.onSurface,
               onPressed: () => Get.back<void>(),
             ),
@@ -158,7 +159,7 @@ class _ConversationViewState extends State<ConversationView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.forum_outlined, size: 44, color: AppColors.outline),
+            const Icon(AppIcons.forumOutlined, size: 44, color: AppColors.outline),
             const SizedBox(height: AppSpacing.stackMd),
             Text('No messages yet.',
                 style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface)),
@@ -204,7 +205,7 @@ class _ConversationViewState extends State<ConversationView> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.flag_rounded,
+                        Icon(AppIcons.flagRounded,
                             size: 13,
                             color: mine ? AppColors.onPrimary : AppColors.error),
                         const SizedBox(width: 4),
@@ -301,7 +302,7 @@ class _SendButton extends StatelessWidget {
                   child: CircularProgressIndicator(
                       strokeWidth: 2.4, color: AppColors.onPrimary),
                 )
-              : const Icon(Icons.send_rounded,
+              : const Icon(AppIcons.sendRounded,
                   color: AppColors.onPrimary, size: 20),
         ),
       ),

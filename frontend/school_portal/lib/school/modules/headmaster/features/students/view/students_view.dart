@@ -34,7 +34,7 @@ class StudentsView extends GetView<StudentsController> {
               onPressed: controller.enrollStudentFlow,
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.onPrimary,
-              icon: const Icon(Icons.person_add_alt_1_rounded),
+              icon: const Icon(AppIcons.personAddAlt1Rounded),
               label: const Text('Enroll Student'),
             ),
           ),
@@ -131,11 +131,11 @@ class _Header extends StatelessWidget {
                 child: const CircleAvatar(
                   radius: 18,
                   backgroundColor: AppColors.primaryContainer,
-                  child: Icon(Icons.person, color: AppColors.onPrimary, size: 20),
+                  child: Icon(AppIcons.person, color: AppColors.onPrimary, size: 20),
                 ),
               ),
               const Spacer(),
-              const Icon(Icons.notifications_none_rounded, color: AppColors.onSurface),
+              const Icon(AppIcons.notificationsNoneRounded, color: AppColors.onSurface),
             ],
           ),
           const SizedBox(height: AppSpacing.stackLg),
@@ -184,7 +184,7 @@ class _Pager extends StatelessWidget {
       children: [
         IconButton(
           onPressed: page > 1 ? () => onChanged(page - 1) : null,
-          icon: const Icon(Icons.chevron_left_rounded),
+          icon: const Icon(AppIcons.chevronLeftRounded),
         ),
         for (var i = 1; i <= total; i++)
           GestureDetector(
@@ -206,7 +206,7 @@ class _Pager extends StatelessWidget {
           ),
         IconButton(
           onPressed: page < total ? () => onChanged(page + 1) : null,
-          icon: const Icon(Icons.chevron_right_rounded),
+          icon: const Icon(AppIcons.chevronRightRounded),
         ),
       ],
     );

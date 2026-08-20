@@ -19,81 +19,60 @@ class SchoolPermissionCard extends StatelessWidget {
     final accent = school.status.color;
     final hasPlan = (school.planName ?? '').isNotEmpty;
     return AdminCard(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
       onTap: onTap,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
+                child: Text(school.initial,
+                    style: AdminType.cardTitle.copyWith(color: accent)),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.stackMd),
+              const SizedBox(width: AppSpacing.stackMd),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                          ),
-                          child: Text(school.initial,
-                              style: AdminType.cardTitle.copyWith(color: accent)),
-                        ),
-                        const SizedBox(width: AppSpacing.stackMd),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(school.name, style: AdminType.cardTitle),
-                              if (school.code.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(school.code, style: AdminType.body),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right_rounded,
-                            color: AdminPalette.muted),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.stackMd),
-                    Row(
-                      children: [
-                        _Badge(
-                          icon: Icons.verified_user_outlined,
-                          label: hasPlan ? school.planName! : 'No plan',
-                          color: hasPlan ? AdminPalette.ink : AdminPalette.muted,
-                          neutral: !hasPlan,
-                        ),
-                        const SizedBox(width: AppSpacing.stackSm),
-                        _Badge(
-                          icon: Icons.circle,
-                          label: school.status.label,
-                          color: accent,
-                        ),
-                      ],
-                    ),
+                    Text(school.name, style: AdminType.cardTitle),
+                    if (school.code.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(school.code, style: AdminType.body),
+                    ],
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
+              const Icon(AppIcons.chevronRightRounded,
+                  color: AdminPalette.muted),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Row(
+            children: [
+              _Badge(
+                icon: AppIcons.verifiedUserOutlined,
+                label: hasPlan ? school.planName! : 'No plan',
+                color: hasPlan ? AdminPalette.ink : AdminPalette.muted,
+                neutral: !hasPlan,
+              ),
+              const SizedBox(width: AppSpacing.stackSm),
+              _Badge(
+                icon: AppIcons.circle,
+                label: school.status.label,
+                color: accent,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

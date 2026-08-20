@@ -11,9 +11,9 @@ extension NotificationKindX on NotificationKind {
       };
 
   IconData get icon => switch (this) {
-        NotificationKind.assignment => Icons.assignment_outlined,
-        NotificationKind.examResult => Icons.bar_chart_rounded,
-        NotificationKind.announcement => Icons.campaign_outlined,
+        NotificationKind.assignment => AppIcons.assignmentOutlined,
+        NotificationKind.examResult => AppIcons.barChartRounded,
+        NotificationKind.announcement => AppIcons.campaignOutlined,
       };
 }
 

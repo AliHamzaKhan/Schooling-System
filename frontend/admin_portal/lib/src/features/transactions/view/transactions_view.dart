@@ -5,6 +5,7 @@ import '../../../data/models/admin_metrics.dart';
 import '../../../ui/admin_theme.dart';
 import '../../../ui/admin_widgets/admin_surface.dart';
 import '../controller/transactions_controller.dart';
+import 'package:shared/shared.dart';
 
 /// Transactions — the full payment ledger opened from the "View All" link on
 /// the billing overview. A range filter (This month / This year / All time)
@@ -13,95 +14,97 @@ class TransactionsView extends GetView<TransactionsController> {
   const TransactionsView({super.key});
 
   static String _money(double v) =>
-      '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+      v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
   static String _amount(double v) =>
-      '\$${v.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+\.)'), (m) => '${m[1]},')}';
+      v.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+\.)'), (m) => '${m[1]},');
 
   @override
   Widget build(BuildContext context) {
     return AdminScreen(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, kAdminGutter, 8),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () => Get.back<void>(),
-                  icon: const Icon(Icons.arrow_back_rounded,
-                      color: AdminPalette.ink),
-                ),
-                Text('Transactions',
-                    style: AdminType.cardTitle.copyWith(
-                        color: AdminPalette.ink, fontWeight: FontWeight.w700)),
-              ],
+      child: Scaffold(
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, kAdminGutter, 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Get.back<void>(),
+                    icon: const Icon(AppIcons.arrowBackRounded,
+                        color: AdminPalette.ink),
+                  ),
+                  Text('Transactions',
+                      style: AdminType.cardTitle.copyWith(
+                          color: AdminPalette.ink, fontWeight: FontWeight.w700)),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: Obx(() {
-              if (controller.loading.value && controller.report.value == null) {
-                return const Center(
-                    child: CircularProgressIndicator(color: AdminPalette.ink));
-              }
-              if (controller.error.value != null &&
-                  controller.report.value == null) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(controller.error.value!,
-                        textAlign: TextAlign.center, style: AdminType.body),
+            Expanded(
+              child: Obx(() {
+                if (controller.loading.value && controller.report.value == null) {
+                  return const Center(
+                      child: CircularProgressIndicator(color: AdminPalette.ink));
+                }
+                if (controller.error.value != null &&
+                    controller.report.value == null) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(controller.error.value!,
+                          textAlign: TextAlign.center, style: AdminType.body),
+                    ),
+                  );
+                }
+                final data = controller.report.value;
+                return RefreshIndicator(
+                  onRefresh: controller.load,
+                  color: AdminPalette.ink,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding:
+                    const EdgeInsets.fromLTRB(kAdminGutter, 4, kAdminGutter, 36),
+                    children: [
+                      _RangeFilter(
+                        range: controller.range.value,
+                        onSelect: controller.selectRange,
+                      ),
+                      const SizedBox(height: 18),
+                      if (data != null) ...[
+                        _ChartCard(
+                          report: data,
+                          moneyOf: _money,
+                        ),
+                        const SizedBox(height: 20),
+                        Text('All Transactions',
+                            style: AdminType.sectionTitle),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${data.count} payment${data.count == 1 ? '' : 's'} • ${_money(data.total)}',
+                          style: AdminType.meta.copyWith(color: AdminPalette.muted),
+                        ),
+                        const SizedBox(height: 14),
+                        if (data.transactions.isEmpty)
+                          AdminCard(
+                            padding: const EdgeInsets.all(20),
+                            child: Text('No transactions in this range.',
+                                style: AdminType.body),
+                          )
+                        else
+                          for (final p in data.transactions) ...[
+                            _TransactionCard(payment: p, amountOf: _amount),
+                            const SizedBox(height: 10),
+                          ],
+                      ],
+                    ],
                   ),
                 );
-              }
-              final data = controller.report.value;
-              return RefreshIndicator(
-                onRefresh: controller.load,
-                color: AdminPalette.ink,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding:
-                      const EdgeInsets.fromLTRB(kAdminGutter, 4, kAdminGutter, 36),
-                  children: [
-                    _RangeFilter(
-                      range: controller.range.value,
-                      onSelect: controller.selectRange,
-                    ),
-                    const SizedBox(height: 18),
-                    if (data != null) ...[
-                      _ChartCard(
-                        report: data,
-                        moneyOf: _money,
-                      ),
-                      const SizedBox(height: 20),
-                      Text('All Transactions',
-                          style: AdminType.sectionTitle),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${data.count} payment${data.count == 1 ? '' : 's'} • ${_money(data.total)}',
-                        style: AdminType.meta.copyWith(color: AdminPalette.muted),
-                      ),
-                      const SizedBox(height: 14),
-                      if (data.transactions.isEmpty)
-                        AdminCard(
-                          padding: const EdgeInsets.all(20),
-                          child: Text('No transactions in this range.',
-                              style: AdminType.body),
-                        )
-                      else
-                        for (final p in data.transactions) ...[
-                          _TransactionCard(payment: p, amountOf: _amount),
-                          const SizedBox(height: 10),
-                        ],
-                    ],
-                  ],
-                ),
-              );
-            }),
-          ),
-        ],
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -292,7 +295,7 @@ class _TransactionCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(
         children: [
-          const AdminIconTile(icon: Icons.school_outlined, size: 40),
+          const AdminIconTile(icon: AppIcons.schoolOutlined, size: 40),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

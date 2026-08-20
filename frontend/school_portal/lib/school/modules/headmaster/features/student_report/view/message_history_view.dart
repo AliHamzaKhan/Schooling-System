@@ -131,7 +131,7 @@ class _MessageCard extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              Icon(message.read ? Icons.done_all_rounded : Icons.done_rounded,
+              Icon(message.read ? AppIcons.doneAllRounded : AppIcons.doneRounded,
                   size: 14,
                   color: message.read
                       ? AppColors.tertiary

@@ -39,6 +39,35 @@ async def test_list_and_get_school(client, sa_headers):
     assert one.status_code == 200 and one.json()["id"] == s["id"]
 
 
+async def test_list_schools_server_side_search(client, sa_headers):
+    """The `search` param filters by name/code so the picker never loads all."""
+    token = uuid4().hex[:8]
+    named = await _create_school(client, sa_headers, name=f"Zephyr {token} Academy")
+    coded = await _create_school(client, sa_headers, code=f"ZS-{token}")
+
+    # Match by name substring.
+    by_name = await client.get(
+        f"{API}/schools", headers=sa_headers, params={"search": token}
+    )
+    assert by_name.status_code == 200, by_name.text
+    ids = {x["id"] for x in by_name.json()}
+    assert named["id"] in ids and coded["id"] in ids
+
+    # A term that matches nothing returns an empty list, not the whole directory.
+    none = await client.get(
+        f"{API}/schools", headers=sa_headers, params={"search": "no-such-" + token}
+    )
+    assert none.status_code == 200 and none.json() == []
+
+    # limit/offset still page the (filtered) results.
+    paged = await client.get(
+        f"{API}/schools",
+        headers=sa_headers,
+        params={"search": token, "limit": 1, "offset": 0},
+    )
+    assert paged.status_code == 200 and len(paged.json()) == 1
+
+
 async def test_get_unknown_school_returns_404(client, sa_headers):
     r = await client.get(f"{API}/schools/{uuid4()}", headers=sa_headers)
     assert r.status_code == 404

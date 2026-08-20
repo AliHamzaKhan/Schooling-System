@@ -93,7 +93,7 @@ class ClassStat {
         label: json['label'] as String? ?? '',
         value: '${json['value'] ?? ''}',
         // icon/color are presentation only — defaulted, not from the API.
-        icon: Icons.insights_rounded,
+        icon: AppIcons.insightsRounded,
         color: AppColors.primary,
       );
 }

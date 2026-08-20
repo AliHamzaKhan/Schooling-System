@@ -13,6 +13,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ACCESS_TOKEN = "access"
 REFRESH_TOKEN = "refresh"
+RESET_TOKEN = "reset"
 
 
 def hash_password(password: str) -> str:
@@ -71,6 +72,21 @@ def create_refresh_token(subject: str, session_id: str) -> str:
     )
 
 
+def create_password_reset_token(subject: str, reset_id: str) -> str:
+    """Mint the short-lived token that authorizes `POST /auth/reset-password`.
+
+    Issued only after an OTP has been verified. Bound to the `PasswordReset` row
+    (`rid`) so the token alone can't reset a password — the row must still be in
+    the verified, unconsumed, unexpired state when redeemed.
+    """
+    return _create_token(
+        subject,
+        RESET_TOKEN,
+        timedelta(minutes=settings.PASSWORD_RESET_TOKEN_TTL_MINUTES),
+        rid=reset_id,
+    )
+
+
 def decode_token(token: str) -> dict[str, Any]:
     """Decode and validate a JWT. Raises JWTError on failure."""
     return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
@@ -82,8 +98,10 @@ __all__ = [
     "hash_token",
     "create_access_token",
     "create_refresh_token",
+    "create_password_reset_token",
     "decode_token",
     "JWTError",
     "ACCESS_TOKEN",
     "REFRESH_TOKEN",
+    "RESET_TOKEN",
 ]

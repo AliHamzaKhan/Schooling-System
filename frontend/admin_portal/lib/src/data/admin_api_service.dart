@@ -21,16 +21,22 @@ class AdminApiService {
   AdminApiService({ApiService? api}) : _api = api ?? Get.find<ApiService>();
 
   // ── Schools ─────────────────────────────────────────────────
-  /// Fetches schools (backend supports `limit`/`offset` only — search and
-  /// status filtering happen client-side in the repository).
+  /// Fetches schools paged by `limit`/`offset`. When [search] is provided the
+  /// backend returns only schools whose name or code matches (server-side
+  /// search), so large directories are never loaded whole.
   Future<ApiResponse<List<School>>> fetchSchools({
     int limit = 200,
     int offset = 0,
+    String? search,
   }) {
     return _api.request<List<School>>(
       method: HttpMethod.get,
       path: AdminEndpoints.schools,
-      query: {'limit': '$limit', 'offset': '$offset'},
+      query: {
+        'limit': '$limit',
+        'offset': '$offset',
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      },
       parser: (json) => (json as List)
           .map((e) => School.fromJson(e as Map<String, dynamic>))
           .toList(),

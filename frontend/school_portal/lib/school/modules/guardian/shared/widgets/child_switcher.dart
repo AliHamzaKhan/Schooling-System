@@ -101,7 +101,7 @@ class _ManageButton extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: AppColors.surfaceContainerHigh,
               ),
-              child: const Icon(Icons.tune_rounded,
+              child: const Icon(AppIcons.tuneRounded,
                   size: 20, color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: 4),

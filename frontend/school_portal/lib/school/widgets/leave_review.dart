@@ -118,7 +118,7 @@ class LeaveReviewCard extends StatelessWidget {
           if (item.classSectionLabel != null)
             Row(
               children: [
-                const Icon(Icons.class_outlined,
+                const Icon(AppIcons.classOutlined,
                     size: 14, color: AppColors.onSurfaceVariant),
                 const SizedBox(width: 4),
                 Text(item.classSectionLabel!,
@@ -133,7 +133,7 @@ class LeaveReviewCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackSm),
           Row(
             children: [
-              const Icon(Icons.event_rounded,
+              const Icon(AppIcons.eventRounded,
                   size: 16, color: AppColors.onSurfaceVariant),
               const SizedBox(width: 6),
               Text(range, style: AppTypography.bodyMd),
@@ -156,7 +156,7 @@ class LeaveReviewCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: onReject,
-                    icon: const Icon(Icons.close_rounded, size: 18),
+                    icon: const Icon(AppIcons.closeRounded, size: 18),
                     label: const Text('Reject'),
                     style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.error),
@@ -166,7 +166,7 @@ class LeaveReviewCard extends StatelessWidget {
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: onApprove,
-                    icon: const Icon(Icons.check_rounded, size: 18),
+                    icon: const Icon(AppIcons.checkRounded, size: 18),
                     label: const Text('Approve'),
                   ),
                 ),
@@ -185,7 +185,7 @@ class LeaveReviewCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: onHistory,
-                icon: const Icon(Icons.history_rounded, size: 16),
+                icon: const Icon(AppIcons.historyRounded, size: 16),
                 label: const Text('Leave history'),
                 style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
@@ -241,7 +241,7 @@ class LeaveHistorySheet extends StatelessWidget {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.circle,
+                        Icon(AppIcons.circle,
                             size: 8, color: _statusColor(h.status)),
                         const SizedBox(width: AppSpacing.stackSm),
                         Expanded(

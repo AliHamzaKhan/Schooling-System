@@ -64,7 +64,7 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
                   const SizedBox(height: AppSpacing.stackSm),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined,
+                      const Icon(AppIcons.calendarTodayOutlined,
                           size: 16, color: AppColors.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Text('Oct 24, 2023', style: AppTypography.bodyMd),
@@ -108,7 +108,7 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
           onPressed: controller.submit,
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.onPrimary,
-          icon: const Icon(Icons.send_rounded),
+          icon: const Icon(AppIcons.sendRounded),
           label: const Text('Submit Attendance'),
         ),
       ),
@@ -135,7 +135,7 @@ class _MarkAllPresentButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.done_all_rounded,
+            const Icon(AppIcons.doneAllRounded,
                 size: 18, color: AppColors.primary),
             const SizedBox(width: 6),
             Text('Mark All Present',

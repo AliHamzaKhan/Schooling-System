@@ -76,4 +76,16 @@ class StudentEndpoints {
 
   // ── School info ──
   static String schoolInfo(String schoolId) => '/schools/$schoolId/info';
+
+  // ── Transport ──
+  static String transportRequests(String schoolId) =>
+      '/schools/$schoolId/transport/requests';
+  static String transportRequestsMine(String schoolId) =>
+      '/schools/$schoolId/transport/requests/mine';
+  static String transportTripsActive(String schoolId) =>
+      '/schools/$schoolId/transport/trips/active';
+  static String transportTripLocation(String schoolId, String tripId) =>
+      '/schools/$schoolId/transport/trips/$tripId/location';
+  static String transportTripEta(String schoolId, String tripId) =>
+      '/schools/$schoolId/transport/trips/$tripId/eta';
 }

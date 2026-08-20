@@ -14,6 +14,7 @@ import 'features/notifications/binding/notification_binding.dart';
 import 'features/notifications/view/notification_view.dart';
 import 'features/performance/binding/performance_binding.dart';
 import 'features/performance/view/performance_view.dart';
+import 'package:shared/shared.dart';
 
 /// Guardian (parent) module shell — 5-tab nav: Home (Dashboard) / Academics
 /// (Performance) / Attendance / Homework / Alerts (Notifications Center).
@@ -35,11 +36,11 @@ class _GuardianShellState extends State<GuardianShell> {
   final _tabController = PersistentTabController(initialIndex: 0);
 
   static const _tabs = [
-    PortalTab(Icons.dashboard_rounded, 'Home'),
-    PortalTab(Icons.insights_rounded, 'Academics'),
-    PortalTab(Icons.event_available_rounded, 'Attendance'),
-    PortalTab(Icons.assignment_outlined, 'Homework'),
-    PortalTab(Icons.notifications_outlined, 'Alerts'),
+    PortalTab(AppIcons.dashboardRounded, 'Home'),
+    PortalTab(AppIcons.insightsRounded, 'Academics'),
+    PortalTab(AppIcons.eventAvailableRounded, 'Attendance'),
+    PortalTab(AppIcons.assignmentOutlined, 'Homework'),
+    PortalTab(AppIcons.notificationsOutlined, 'Alerts'),
   ];
 
   void _openAlerts() => _tabController.jumpToTab(_alertsTab);

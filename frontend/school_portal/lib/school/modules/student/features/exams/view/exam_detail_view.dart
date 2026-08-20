@@ -74,7 +74,7 @@ class _ExamDetailViewState extends State<ExamDetailView> {
                 const SizedBox(height: AppSpacing.stackSm),
                 if (_exam.date.isNotEmpty)
                   _MetaRow(
-                    icon: Icons.calendar_today_outlined,
+                    icon: AppIcons.calendarTodayOutlined,
                     label: [_exam.date, _exam.time]
                         .where((s) => s.isNotEmpty)
                         .join('  •  '),
@@ -82,7 +82,7 @@ class _ExamDetailViewState extends State<ExamDetailView> {
                 if (_exam.location.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   _MetaRow(
-                      icon: Icons.meeting_room_outlined,
+                      icon: AppIcons.meetingRoomOutlined,
                       label: _exam.location),
                 ],
               ],
@@ -133,7 +133,7 @@ class _PaperTile extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppRadius.button),
             ),
-            child: const Icon(Icons.menu_book_outlined,
+            child: const Icon(AppIcons.menuBookOutlined,
                 color: AppColors.primary, size: 20),
           ),
           const SizedBox(width: AppSpacing.stackMd),

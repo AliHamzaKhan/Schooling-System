@@ -46,7 +46,7 @@ class PortalSearchField extends StatelessWidget {
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
         prefixIcon:
-            const Icon(Icons.search_rounded, size: 20, color: AppColors.outline),
+            const Icon(AppIcons.searchRounded, size: 20, color: AppColors.outline),
         prefixIconConstraints:
             const BoxConstraints(minWidth: 44, minHeight: 44),
         suffixIcon: suffixIcon,

@@ -8,6 +8,7 @@ import '../ui/widgets/glass_surface.dart';
 import '../ui/widgets/primary_button.dart';
 import 'biometric_result.dart';
 import 'biometric_service.dart';
+import 'package:shared/shared.dart';
 
 /// A reusable lock screen that gates [child] behind a biometric prompt.
 ///
@@ -110,8 +111,8 @@ class _BiometricGateState extends State<BiometricGate> {
               children: [
                 Icon(
                   _service.hasFace
-                      ? Icons.face_retouching_natural
-                      : Icons.fingerprint,
+                      ? AppIcons.faceRetouchingNatural
+                      : AppIcons.fingerprint,
                   size: 56,
                   color: AppColors.primary,
                 ),
@@ -136,7 +137,7 @@ class _BiometricGateState extends State<BiometricGate> {
                 Obx(
                   () => PrimaryButton(
                     label: 'Unlock',
-                    leadingIcon: Icons.lock_open,
+                    leadingIcon: AppIcons.lockOpen,
                     trailingIcon: null,
                     expanded: true,
                     isLoading: _service.isAuthenticating.value,

@@ -54,6 +54,26 @@ class HeadmasterEndpoints {
   static String broadcasts(String schoolId) =>
       '/schools/$schoolId/communication/broadcasts';
 
+  // ── Transport ──
+  static String transportDrivers(String schoolId) =>
+      '/schools/$schoolId/transport/drivers';
+  static String transportDriver(String schoolId, String driverId) =>
+      '/schools/$schoolId/transport/drivers/$driverId';
+  static String transportDriversOnline(String schoolId) =>
+      '/schools/$schoolId/transport/drivers/online';
+  static String transportRequests(String schoolId) =>
+      '/schools/$schoolId/transport/requests';
+  static String transportRequestApprove(String schoolId, String requestId) =>
+      '/schools/$schoolId/transport/requests/$requestId/approve';
+  static String transportRequestReject(String schoolId, String requestId) =>
+      '/schools/$schoolId/transport/requests/$requestId/reject';
+  static String transportRoutes(String schoolId) =>
+      '/schools/$schoolId/transport/routes';
+  static String transportAssignments(String schoolId) =>
+      '/schools/$schoolId/transport/assignments';
+  static String transportTrips(String schoolId) =>
+      '/schools/$schoolId/transport/trips';
+
   // ── Write paths (create actions) ──
   static String classSections(String schoolId, String classId) =>
       '/schools/$schoolId/academic/classes/$classId/sections';

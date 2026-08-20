@@ -117,7 +117,7 @@ class DashboardIdentityCard extends StatelessWidget {
             ),
           ),
           if (onTap != null)
-            const Icon(Icons.chevron_right_rounded,
+            const Icon(AppIcons.chevronRightRounded,
                 color: AppColors.onSurfaceVariant),
         ],
       ),
@@ -256,7 +256,7 @@ class DashboardPrimaryAction extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded,
+          const Icon(AppIcons.chevronRightRounded,
               color: AppColors.onSurfaceVariant),
         ],
       ),

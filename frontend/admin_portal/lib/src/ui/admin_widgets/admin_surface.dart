@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../admin_theme.dart';
+import 'package:shared/shared.dart';
 
 /// Horizontal page gutter used by every admin screen.
 const double kAdminGutter = 20;
@@ -218,7 +219,7 @@ class AdminNavTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded,
+            const Icon(AppIcons.chevronRightRounded,
                 size: 22, color: AdminPalette.faint),
           ],
         ),

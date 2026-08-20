@@ -112,7 +112,7 @@ class _ChipInputState extends State<ChipInput> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.add_circle_outline_rounded,
+                    icon: const Icon(AppIcons.addCircleOutlineRounded,
                         color: AppColors.primary, size: 22),
                     onPressed: _add,
                     splashRadius: 18,

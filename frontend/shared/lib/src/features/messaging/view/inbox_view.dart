@@ -11,6 +11,7 @@ import '../models/conversation.dart';
 import 'conversation_view.dart';
 import 'messaging_format.dart';
 import 'new_message_sheet.dart';
+import 'package:shared/shared.dart';
 
 /// Shared Messages inbox: a searchable list of conversations grouped by the
 /// person on the other side. Mounted by any portal (teacher, guardian,
@@ -74,7 +75,7 @@ class _InboxViewState extends State<InboxView> {
         onPressed: _newMessage,
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
-        child: const Icon(Icons.edit_rounded),
+        child: const Icon(AppIcons.editRounded),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,7 +133,7 @@ class _InboxViewState extends State<InboxView> {
                     child: InkWell(
                       onTap: () => Get.back<void>(),
                       borderRadius: BorderRadius.circular(AppRadius.full),
-                      child: const Icon(Icons.arrow_back_rounded,
+                      child: const Icon(AppIcons.arrowBackRounded,
                           color: AppColors.onSurface),
                     ),
                   ),
@@ -163,7 +164,7 @@ class _InboxViewState extends State<InboxView> {
               style: AppTypography.bodyMd.copyWith(color: AppColors.onSurface),
               decoration: InputDecoration(
                 hintText: 'Search conversations…',
-                prefixIcon: const Icon(Icons.search_rounded),
+                prefixIcon: const Icon(AppIcons.searchRounded),
                 filled: true,
                 fillColor: AppColors.surfaceContainer,
                 contentPadding:
@@ -191,7 +192,7 @@ class _InboxViewState extends State<InboxView> {
               AppSpacing.stackMd),
           child: Column(
             children: [
-              const Icon(Icons.forum_outlined,
+              const Icon(AppIcons.forumOutlined,
                   size: 48, color: AppColors.outline),
               const SizedBox(height: AppSpacing.stackMd),
               Text(text,
@@ -267,7 +268,7 @@ class _ConversationRow extends StatelessWidget {
               const Padding(
                 padding: EdgeInsets.only(right: 4),
                 child:
-                    Icon(Icons.flag_rounded, size: 13, color: AppColors.error),
+                    Icon(AppIcons.flagRounded, size: 13, color: AppColors.error),
               ),
             Expanded(
               child: Text(last.body,

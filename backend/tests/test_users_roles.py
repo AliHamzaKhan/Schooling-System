@@ -45,7 +45,7 @@ async def test_role_grant_bounded_by_school_modules(client, sa_headers):
     await client.post(f"{API}/schools/{sid}/status", headers=sa_headers, json={"status": "active"})
     r = await client.post(
         f"{API}/schools/{sid}/roles", headers=sa_headers,
-        json={"name": "Librarian", "permissions": [{"module": "library", "actions": ["view"]}]},
+        json={"name": "Transport Staff", "permissions": [{"module": "transport", "actions": ["view"]}]},
     )
     assert r.status_code == 400
 

@@ -55,7 +55,7 @@ class ExamTimetableView extends GetView<ExamTimetableController> {
                     ),
                     TextButton.icon(
                       onPressed: () => _addSubject(context),
-                      icon: const Icon(Icons.add_rounded, size: 18),
+                      icon: const Icon(AppIcons.addRounded, size: 18),
                       label: const Text('Add subject'),
                     ),
                   ],
@@ -144,7 +144,7 @@ class _PaperTile extends StatelessWidget {
           horizontal: AppSpacing.stackLg, vertical: AppSpacing.stackMd),
       child: Row(
         children: [
-          const Icon(Icons.menu_book_rounded, color: AppColors.primary, size: 20),
+          const Icon(AppIcons.menuBookRounded, color: AppColors.primary, size: 20),
           const SizedBox(width: AppSpacing.stackMd),
           Expanded(
             child: Column(

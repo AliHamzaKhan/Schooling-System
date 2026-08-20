@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared/shared.dart';
 
 /// A single admin-togglable plan feature. Its [key] is what gets stored in the
 /// plan's `modules` array on the backend; the rest is presentation only.
@@ -37,91 +38,91 @@ class PlanFeatureGroup {
 const List<PlanFeatureGroup> kPlanFeatureGroups = [
   PlanFeatureGroup(
     title: 'Notifications',
-    icon: Icons.notifications_active_outlined,
+    icon: AppIcons.notificationsActiveOutlined,
     features: [
       PlanFeature(
         key: 'notifications_push',
         label: 'Push notifications (Firebase)',
         description: 'In-app and device push via Firebase.',
-        icon: Icons.phonelink_ring_outlined,
+        icon: AppIcons.phonelinkRingOutlined,
       ),
       PlanFeature(
         key: 'notifications_sms',
         label: 'SMS notifications (SIM)',
         description: 'Text-message alerts over a SIM gateway.',
-        icon: Icons.sms_outlined,
+        icon: AppIcons.smsOutlined,
       ),
       PlanFeature(
         key: 'notifications_whatsapp',
         label: 'WhatsApp notifications',
         description: 'Alerts delivered over WhatsApp.',
-        icon: Icons.chat_outlined,
+        icon: AppIcons.chatOutlined,
       ),
     ],
   ),
   PlanFeatureGroup(
     title: 'AI',
-    icon: Icons.auto_awesome_outlined,
+    icon: AppIcons.autoAwesomeOutlined,
     features: [
       PlanFeature(
         key: 'ai_exam_generation',
         label: 'AI exam generation',
         description: 'Generate exams from course content.',
-        icon: Icons.assignment_outlined,
+        icon: AppIcons.assignmentOutlined,
       ),
       PlanFeature(
         key: 'ai_quiz_generation',
         label: 'AI quiz generation',
         description: 'Generate quizzes automatically.',
-        icon: Icons.quiz_outlined,
+        icon: AppIcons.quizOutlined,
       ),
     ],
   ),
   PlanFeatureGroup(
     title: 'Communication',
-    icon: Icons.forum_outlined,
+    icon: AppIcons.forumOutlined,
     features: [
       PlanFeature(
         key: 'two_way_messaging',
         label: 'Two-way messaging',
         description: 'Guardians and staff can reply, not just receive.',
-        icon: Icons.swap_horiz_outlined,
+        icon: AppIcons.swapHorizOutlined,
       ),
     ],
   ),
   PlanFeatureGroup(
     title: 'Reporting',
-    icon: Icons.insights_outlined,
+    icon: AppIcons.insightsOutlined,
     features: [
       PlanFeature(
         key: 'advanced_reports',
         label: 'Advanced reports & audit logs',
         description: 'Deeper analytics plus a full audit trail.',
-        icon: Icons.fact_check_outlined,
+        icon: AppIcons.factCheckOutlined,
       ),
     ],
   ),
   PlanFeatureGroup(
     title: 'Operations',
-    icon: Icons.directions_bus_outlined,
+    icon: AppIcons.directionsBusOutlined,
     features: [
       PlanFeature(
         key: 'transport',
         label: 'Transport',
         description: 'Routes, vehicles, and pickup management.',
-        icon: Icons.directions_bus_outlined,
+        icon: AppIcons.directionsBusOutlined,
       ),
     ],
   ),
   PlanFeatureGroup(
     title: 'Support',
-    icon: Icons.support_agent_outlined,
+    icon: AppIcons.supportAgentOutlined,
     features: [
       PlanFeature(
         key: 'priority_support',
         label: 'Priority support',
         description: 'Faster response times and a dedicated channel.',
-        icon: Icons.bolt_outlined,
+        icon: AppIcons.boltOutlined,
       ),
     ],
   ),

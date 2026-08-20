@@ -3,8 +3,8 @@ import 'package:shared/shared.dart';
 
 import '../models/exam.dart';
 
-/// One row in the Upcoming Timeline: small accent dot on a vertical line, then
-/// a glass card with date short, title, time pill, divider, and location row.
+/// One row in the Upcoming Timeline: a day/month date circle on a vertical
+/// connector, then a clean card with the exam title, date, time, and location.
 class TimelineCard extends StatelessWidget {
   final UpcomingExam exam;
   final bool isLast;
@@ -12,92 +12,91 @@ class TimelineCard extends StatelessWidget {
   const TimelineCard(
       {super.key, required this.exam, this.isLast = false, this.onTap});
 
+  static const _months = [
+    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', //
+    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final d = DateTime.tryParse(exam.date.isNotEmpty ? exam.date : exam.dateShort);
+    final day = d?.day.toString() ?? '--';
+    final month = d != null ? _months[d.month - 1] : '';
+
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 24,
-            child: Column(
-              children: [
-                const SizedBox(height: 14),
-                Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                        color: exam.accent, shape: BoxShape.circle)),
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    color: isLast
-                        ? Colors.transparent
-                        : AppColors.outlineVariant,
-                  ),
+          Column(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: exam.accent.withValues(alpha: 0.4), width: 2),
                 ),
-              ],
-            ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(day,
+                        style: AppTypography.titleLg.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                            height: 1.0)),
+                    Text(month,
+                        style: AppTypography.labelCaps.copyWith(
+                            fontSize: 10,
+                            color: AppColors.onSurfaceVariant,
+                            fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(width: 2, color: AppColors.outlineVariant),
+                ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.stackSm),
+          const SizedBox(width: AppSpacing.stackMd),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
-              child: GestureDetector(
+              child: GlassSurface(
+                padding: const EdgeInsets.all(AppSpacing.stackMd),
                 onTap: onTap,
-                child: GlassSurface(
-                padding: EdgeInsets.zero,
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        width: 5,
-                        decoration: BoxDecoration(
-                          color: exam.accent,
-                          borderRadius: const BorderRadius.horizontal(
-                            left: Radius.circular(AppRadius.card),
-                          ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(exam.title,
+                              style: AppTypography.headlineLg
+                                  .copyWith(fontSize: 20)),
                         ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.stackMd),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(exam.dateShort,
-                                      style: AppTypography.labelCaps
-                                          .copyWith(color: exam.accent, fontWeight: FontWeight.w800)),
-                                  const Spacer(),
-                                  _TimePill(time: exam.time),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(exam.title,
-                                  style: AppTypography.headlineLg
-                                      .copyWith(fontSize: 22)),
-                              const SizedBox(height: AppSpacing.stackMd),
-                              const Divider(height: 1, color: AppColors.outlineVariant),
-                              const SizedBox(height: AppSpacing.stackSm),
-                              Row(
-                                children: [
-                                  const Icon(Icons.meeting_room_outlined,
-                                      size: 14, color: AppColors.onSurfaceVariant),
-                                  const SizedBox(width: 4),
-                                  Text(exam.location,
-                                      style: AppTypography.bodyMd),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                        const Icon(AppIcons.chevronRightRounded,
+                            size: 20, color: AppColors.onSurfaceVariant),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.stackSm),
+                    _MetaRow(
+                      icon: AppIcons.calendarTodayOutlined,
+                      text: exam.dateShort.isEmpty ? exam.date : exam.dateShort,
+                    ),
+                    if (exam.time.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      _MetaRow(
+                          icon: AppIcons.accessTimeRounded, text: exam.time),
                     ],
-                  ),
-                ),
+                    if (exam.location.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      _MetaRow(
+                          icon: AppIcons.meetingRoomOutlined,
+                          text: exam.location),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -108,28 +107,23 @@ class TimelineCard extends StatelessWidget {
   }
 }
 
-class _TimePill extends StatelessWidget {
-  final String time;
-  const _TimePill({required this.time});
+class _MetaRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _MetaRow({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.access_time_rounded,
-              size: 12, color: AppColors.onSurfaceVariant),
-          const SizedBox(width: 4),
-          Text(time,
-              style: AppTypography.bodySm.copyWith(color: AppColors.onSurface)),
-        ],
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(text,
+              style: AppTypography.bodyMd
+                  .copyWith(color: AppColors.onSurfaceVariant)),
+        ),
+      ],
     );
   }
 }

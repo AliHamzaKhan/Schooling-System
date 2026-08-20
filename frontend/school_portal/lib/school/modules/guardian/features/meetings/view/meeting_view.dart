@@ -104,8 +104,8 @@ class _MeetingCard extends StatelessWidget {
                 ),
                 child: Icon(
                     meeting.mode == MeetingMode.video
-                        ? Icons.videocam_outlined
-                        : Icons.groups_outlined,
+                        ? AppIcons.videocamOutlined
+                        : AppIcons.groupsOutlined,
                     size: 20,
                     color: AppColors.primary),
               ),
@@ -127,7 +127,7 @@ class _MeetingCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackSm),
           Row(
             children: [
-              const Icon(Icons.event_rounded,
+              const Icon(AppIcons.eventRounded,
                   size: 15, color: AppColors.onSurfaceVariant),
               const SizedBox(width: 4),
               Text('${meeting.date} · ${meeting.time}',
@@ -155,7 +155,7 @@ class _Empty extends StatelessWidget {
     return GlassSurface(
       child: Row(
         children: [
-          const Icon(Icons.inbox_outlined, color: AppColors.outline),
+          const Icon(AppIcons.inboxOutlined, color: AppColors.outline),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(child: Text(text, style: AppTypography.bodyMd)),
         ],

@@ -393,7 +393,7 @@ class _DateField extends StatelessWidget {
                             : AppColors.onSurface),
                   ),
                 ),
-                const Icon(Icons.calendar_today_outlined,
+                const Icon(AppIcons.calendarTodayOutlined,
                     size: 18, color: AppColors.onSurfaceVariant),
               ],
             ),

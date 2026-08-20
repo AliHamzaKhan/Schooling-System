@@ -9,6 +9,7 @@ import '../ui/tokens/app_colors.dart';
 import '../ui/tokens/app_radius.dart';
 import '../ui/tokens/app_spacing.dart';
 import '../ui/tokens/app_typography.dart';
+import 'package:shared/shared.dart';
 
 /// Result of the splash version check.
 enum VersionStatus { ok, updateAvailable, forceUpdate }
@@ -179,7 +180,7 @@ class _VersionGateState extends State<VersionGate> {
                 color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(AppRadius.cardLarge),
               ),
-              child: const Icon(Icons.health_and_safety_outlined,
+              child: const Icon(AppIcons.healthAndSafetyOutlined,
                   size: 38, color: AppColors.primary),
             ),
             const SizedBox(height: AppSpacing.stackLg),
@@ -226,7 +227,7 @@ class MandatoryUpdateScreen extends StatelessWidget {
                         color: AppColors.primary.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.system_update_rounded,
+                      child: const Icon(AppIcons.systemUpdateRounded,
                           size: 40, color: AppColors.primary),
                     ),
                     const SizedBox(height: AppSpacing.stackLg),
@@ -257,7 +258,7 @@ class MandatoryUpdateScreen extends StatelessWidget {
                             snackPosition: SnackPosition.BOTTOM,
                           );
                         },
-                        icon: const Icon(Icons.download_rounded, size: 18),
+                        icon: const Icon(AppIcons.downloadRounded, size: 18),
                         label: const Text('Update now'),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),

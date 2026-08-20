@@ -28,7 +28,7 @@ class LogoUploadBox extends StatelessWidget {
                   color: AdminPalette.ink.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.cloud_upload_outlined,
+                child: const Icon(AppIcons.cloudUploadOutlined,
                     color: AdminPalette.ink, size: 26),
               ),
               const SizedBox(height: AppSpacing.stackMd),

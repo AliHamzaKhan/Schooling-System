@@ -6,9 +6,10 @@ docs/permissions/04 and 07.
 """
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import cache
 from app.core.enums import Module, PlanCode, SchoolStatus
 from app.core.exceptions import bad_request, not_found
 from app.models.associations import user_roles
@@ -72,10 +73,18 @@ class SchoolService:
         await self.db.refresh(school)
         return school
 
-    async def list_schools(self, limit: int = 50, offset: int = 0) -> list[School]:
-        result = await self.db.execute(
-            select(School).order_by(School.created_at.desc()).limit(limit).offset(offset)
-        )
+    async def list_schools(
+        self, limit: int = 50, offset: int = 0, search: str | None = None
+    ) -> list[School]:
+        """Newest-first schools, paged by limit/offset. When `search` is given,
+        only schools whose name or code matches (case-insensitive substring) are
+        returned — the server-side search that backs the admin pickers, so the
+        client never has to load the full directory."""
+        stmt = select(School).order_by(School.created_at.desc())
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            stmt = stmt.where(or_(School.name.ilike(term), School.code.ilike(term)))
+        result = await self.db.execute(stmt.limit(limit).offset(offset))
         return list(result.scalars().all())
 
     async def get_school(self, school_id: uuid.UUID) -> School:
@@ -148,6 +157,8 @@ class SchoolService:
         school.status = status.value
         await self.db.flush()
         await self.db.refresh(school)
+        # Serviceability changed — drop the cached tenant status immediately.
+        await cache.invalidate(cache.tenant_status_key(school_id))
         return school
 
     # --------------------------- subscription ---------------------------- #
@@ -157,6 +168,7 @@ class SchoolService:
         school.subscription_plan = await self._get_plan(plan_code)
         await self.db.flush()
         await self.db.refresh(school)
+        await cache.invalidate(cache.tenant_status_key(school_id))
         return school
 
     # ----------------------------- modules ------------------------------- #

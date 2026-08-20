@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../../../ui/tokens/app_colors.dart';
 import '../../../../ui/tokens/app_radius.dart';
 import '../../../../ui/tokens/app_spacing.dart';
@@ -13,6 +12,7 @@ import '../../components/auth_link_button.dart';
 import '../../components/auth_shell.dart';
 import '../../components/or_divider.dart';
 import '../controller/forgot_password_controller.dart';
+import 'package:shared/shared.dart';
 
 class ForgotPasswordView extends StatefulWidget {
   const ForgotPasswordView({super.key});
@@ -34,7 +34,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: AuthIconBadge(icon: Icons.lock_reset)),
+          const Center(child: AuthIconBadge(icon: AppIcons.lockReset)),
           const SizedBox(height: AppSpacing.stackLg),
           Text('Forgot Password?',
               textAlign: TextAlign.center, style: AppTypography.headlineLg),
@@ -51,7 +51,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView>
             hint: 'name@university.edu',
             controller: _identifierCtrl,
             keyboardType: TextInputType.emailAddress,
-            prefixIcon: Icons.mail_outline,
+            prefixIcon: AppIcons.mailOutline,
             onSubmitted: (_) => controller.sendCode(),
           ),
 
@@ -79,7 +79,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView>
           Center(
             child: AuthLinkButton(
               label: 'Back to Login',
-              leadingIcon: Icons.arrow_back,
+              leadingIcon: AppIcons.arrowBack,
               onTap: controller.backToLogin,
             ),
           ),

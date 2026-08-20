@@ -49,7 +49,7 @@ class ConsentTile extends StatelessWidget {
                 ),
               ),
               child: value
-                  ? const Icon(Icons.check_rounded, color: AppColors.onPrimary, size: 14)
+                  ? const Icon(AppIcons.checkRounded, color: AppColors.onPrimary, size: 14)
                   : null,
             ),
             const SizedBox(width: 12),

@@ -394,16 +394,16 @@ class _AttendanceGrid extends StatelessWidget {
     return Row(
       children: [
         _cell('Present', summary.presentDays, AppColors.tertiary,
-            Icons.check_circle_outline),
+            AppIcons.checkCircleOutline),
         const SizedBox(width: 6),
         _cell('Absent', summary.absentDays, AppColors.error,
-            Icons.person_off_outlined),
+            AppIcons.personOffOutlined),
         const SizedBox(width: 6),
         _cell('Late', summary.lateDays, const Color(0xFFF59E0B),
-            Icons.schedule_rounded),
+            AppIcons.scheduleRounded),
         const SizedBox(width: 6),
         _cell('Leave', summary.leaveDays, AppColors.primary,
-            Icons.event_busy_outlined),
+            AppIcons.eventBusyOutlined),
       ],
     );
   }

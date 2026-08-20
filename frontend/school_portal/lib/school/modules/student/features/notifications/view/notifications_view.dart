@@ -23,7 +23,7 @@ class NotificationsView extends GetView<NotificationsController> {
             actions: [
               IconButton(
                 onPressed: () => Get.back<void>(),
-                icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary),
+                icon: const Icon(AppIcons.arrowBackRounded, color: AppColors.primary),
               ),
             ],
           ),

@@ -78,7 +78,7 @@ class BookChaptersView extends GetView<BookChaptersController> {
             if (resume != null) ...[
               PrimaryButton(
                 label: 'Continue: ${resume.title}',
-                leadingIcon: Icons.play_arrow_rounded,
+                leadingIcon: AppIcons.playArrowRounded,
                 expanded: true,
                 onPressed: () => _openReader(resume),
               ),
@@ -132,7 +132,7 @@ class _ChapterRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.stackMd),
           Expanded(child: Text(title, style: AppTypography.bodyLg)),
-          const Icon(Icons.chevron_right_rounded,
+          const Icon(AppIcons.chevronRightRounded,
               color: AppColors.onSurfaceVariant),
         ],
       ),

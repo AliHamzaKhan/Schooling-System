@@ -27,7 +27,7 @@ class SchoolIdentityCard extends StatelessWidget {
                   color: AppColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
-                child: const Icon(Icons.school_outlined,
+                child: const Icon(AppIcons.schoolOutlined,
                     color: AppColors.onSurfaceVariant, size: 32),
               ),
               const SizedBox(width: AppSpacing.stackMd),
@@ -39,10 +39,10 @@ class SchoolIdentityCard extends StatelessWidget {
                         style: AppTypography.displayLg
                             .copyWith(fontSize: 28, color: AppColors.primary)),
                     const SizedBox(height: AppSpacing.stackSm),
-                    _MetaRow(icon: Icons.location_on_outlined, text: school.address),
+                    _MetaRow(icon: AppIcons.locationOnOutlined, text: school.address),
                     const SizedBox(height: 4),
                     _MetaRow(
-                        icon: Icons.person_outline,
+                        icon: AppIcons.personOutline,
                         text: 'Principal: ${school.principal}'),
                   ],
                 ),
@@ -52,7 +52,7 @@ class SchoolIdentityCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackLg),
           PrimaryButton(
             label: 'Edit Profile',
-            leadingIcon: Icons.edit_outlined,
+            leadingIcon: AppIcons.editOutlined,
             trailingIcon: null,
             onPressed: onEdit,
           ),

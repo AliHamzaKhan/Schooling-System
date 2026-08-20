@@ -13,11 +13,12 @@ import '../components/school_card.dart';
 import '../components/subscription_sheet.dart';
 import '../controller/schools_controller.dart';
 import '../models/school.dart';
+import 'package:shared/shared.dart';
 
 /// Confirms then reactivates a suspended school.
 Future<void> _activateSchool(School s) async {
   final confirmed = await showAdminConfirm(
-    icon: Icons.check_circle_outline_rounded,
+    icon: AppIcons.checkCircleOutlineRounded,
     title: 'Activate school?',
     message:
         '${s.name} will be reactivated and regain full access for its staff and students.',
@@ -40,7 +41,7 @@ Future<void> _activateSchool(School s) async {
 /// Confirms then "deletes" (suspends) a school — the backend has no hard delete.
 Future<void> _confirmDeleteSchool(School s) async {
   final confirmed = await showAdminConfirm(
-    icon: Icons.block_rounded,
+    icon: AppIcons.blockRounded,
     title: 'Deactivate school?',
     message:
         '${s.name} will be suspended and lose access. You can reactivate it later.',
@@ -134,7 +135,7 @@ class SchoolsView extends GetView<SchoolsController> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const AdminIconTile(icon: Icons.search_off_rounded, size: 52),
+              const AdminIconTile(icon: AppIcons.searchOffRounded, size: 52),
               const SizedBox(height: 14),
               Text('No schools match your search.', style: AdminType.body),
             ],
@@ -198,7 +199,7 @@ class _CreateFab extends StatelessWidget {
           child: const SizedBox(
             width: 60,
             height: 60,
-            child: Icon(Icons.add_rounded, color: Colors.white, size: 28),
+            child: Icon(AppIcons.addRounded, color: Colors.white, size: 28),
           ),
         ),
       ),

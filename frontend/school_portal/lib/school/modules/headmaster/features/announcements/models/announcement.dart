@@ -18,9 +18,9 @@ extension AnnouncementScopeX on AnnouncementScope {
       };
 
   IconData get icon => switch (this) {
-        AnnouncementScope.schoolWide => Icons.campaign_rounded,
-        AnnouncementScope.teachers => Icons.groups_rounded,
-        AnnouncementScope.event => Icons.celebration_rounded,
+        AnnouncementScope.schoolWide => AppIcons.campaignRounded,
+        AnnouncementScope.teachers => AppIcons.groupsRounded,
+        AnnouncementScope.event => AppIcons.celebrationRounded,
       };
 }
 

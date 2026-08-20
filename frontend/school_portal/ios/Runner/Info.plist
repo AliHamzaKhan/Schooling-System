@@ -32,6 +32,8 @@
 	<string>Meri Taleem uses Face ID to let you sign in quickly and securely.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Meri Taleem lets you choose a profile picture and attach files from your photo library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Meri Taleem uses your location to share the school bus live position and to set your transport pickup point.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

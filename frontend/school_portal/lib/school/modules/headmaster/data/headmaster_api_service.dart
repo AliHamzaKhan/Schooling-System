@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
@@ -19,6 +18,7 @@ import '../features/attendance/models/teacher_attendance_day.dart';
 import '../features/fees/models/fees_data.dart';
 import '../features/fees/models/student_fee_snapshot.dart';
 import '../features/timetable/models/timetable_slot.dart';
+import '../features/transport/models/transport_models.dart';
 import '../features/guardians/models/guardian.dart';
 import '../features/overview/models/overview_data.dart';
 import '../features/reports/models/reports_data.dart';
@@ -193,7 +193,7 @@ class HeadmasterApiService {
             grade: '',
             schedule: when,
             location: '',
-            icon: Icons.school_outlined,
+            icon: AppIcons.schoolOutlined,
             iconColor: AppColors.primary,
             status: status,
           );
@@ -379,6 +379,168 @@ class HeadmasterApiService {
     );
   }
 
+  // ------------------------------ transport ---------------------------- #
+
+  Future<ApiResponse<List<DriverRow>>> fetchDrivers() {
+    return _api.request<List<DriverRow>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.transportDrivers(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(DriverRow.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<DriverRow>> createDriver({
+    required String email,
+    required String password,
+    required String fullName,
+    String? phone,
+    String? licenseNo,
+    String? assignedVehicleId,
+  }) {
+    return _api.request<DriverRow>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.transportDrivers(_sid),
+      body: {
+        'email': email,
+        'password': password,
+        'full_name': fullName,
+        if (phone != null) 'phone': phone,
+        if (licenseNo != null) 'license_no': licenseNo,
+        if (assignedVehicleId != null) 'assigned_vehicle_id': assignedVehicleId,
+      },
+      parser: (json) => DriverRow.fromJson((json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  Future<ApiResponse<DriverRow>> updateDriver({
+    required String driverId,
+    String? licenseNo,
+    String? phone,
+    String? status,
+    String? assignedVehicleId,
+  }) {
+    return _api.request<DriverRow>(
+      method: HttpMethod.patch,
+      path: HeadmasterEndpoints.transportDriver(_sid, driverId),
+      body: {
+        if (licenseNo != null) 'license_no': licenseNo,
+        if (phone != null) 'phone': phone,
+        if (status != null) 'status': status,
+        if (assignedVehicleId != null) 'assigned_vehicle_id': assignedVehicleId,
+      },
+      parser: (json) => DriverRow.fromJson((json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  Future<ApiResponse<List<OnlineDriver>>> fetchOnlineDrivers() {
+    return _api.request<List<OnlineDriver>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.transportDriversOnline(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(OnlineDriver.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<List<TransportRequestRow>>> fetchTransportRequests({
+    String? status,
+  }) {
+    return _api.request<List<TransportRequestRow>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.transportRequests(_sid),
+      query: {if (status != null) 'status': status},
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(TransportRequestRow.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> approveTransportRequest(String requestId) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.transportRequestApprove(_sid, requestId),
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<dynamic>> rejectTransportRequest(
+    String requestId, {
+    String? reason,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.transportRequestReject(_sid, requestId),
+      body: {if (reason != null) 'reason': reason},
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<List<RouteOption>>> fetchTransportRoutes() {
+    return _api.request<List<RouteOption>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.transportRoutes(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(RouteOption.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<RouteOption>> createTransportRoute(String name) {
+    return _api.request<RouteOption>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.transportRoutes(_sid),
+      body: {'name': name},
+      parser: (json) =>
+          RouteOption.fromJson((json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  Future<ApiResponse<List<AssignmentRow>>> fetchTransportAssignments() {
+    return _api.request<List<AssignmentRow>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.transportAssignments(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(AssignmentRow.fromJson)
+          .toList(),
+    );
+  }
+
+  Future<ApiResponse<dynamic>> assignTransportStudent({
+    required String requestId,
+    required String routeId,
+    required String driverId,
+  }) {
+    return _api.request<dynamic>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.transportAssignments(_sid),
+      body: {
+        'request_id': requestId,
+        'route_id': routeId,
+        'driver_id': driverId,
+      },
+      parser: (json) => json,
+    );
+  }
+
+  Future<ApiResponse<List<TripRow>>> fetchTransportTrips({String? status}) {
+    return _api.request<List<TripRow>>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.transportTrips(_sid),
+      query: {if (status != null) 'status': status},
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .map(TripRow.fromJson)
+          .toList(),
+    );
+  }
+
   /// Teacher attendance for a given date (full roster + counts, filterable
   /// to a single status).
   Future<ApiResponse<TeacherAttendanceDay>> fetchTeacherAttendance({
@@ -481,13 +643,13 @@ class HeadmasterApiService {
         ClassStat(
           label: 'Total Classes',
           value: '${classes.length}',
-          icon: Icons.class_outlined,
+          icon: AppIcons.classOutlined,
           color: AppColors.primary,
         ),
         ClassStat(
           label: 'Total Sections',
           value: '$totalSections',
-          icon: Icons.grid_view_rounded,
+          icon: AppIcons.gridViewRounded,
           color: AppColors.tertiary,
         ),
       ],

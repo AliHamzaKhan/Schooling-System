@@ -33,7 +33,7 @@ class CourseDetailView extends StatelessWidget {
           ],
           const SizedBox(height: AppSpacing.stackXl),
           _TrackTile(
-            icon: Icons.auto_stories_rounded,
+            icon: AppIcons.autoStoriesRounded,
             title: 'Book',
             subtitle: course.bookCount == 0
                 ? 'No book added yet'
@@ -46,7 +46,7 @@ class CourseDetailView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.stackMd),
           _TrackTile(
-            icon: Icons.sticky_note_2_outlined,
+            icon: AppIcons.stickyNote2Outlined,
             title: 'Notes',
             subtitle: course.noteCount == 0
                 ? 'No notes added yet'
@@ -113,7 +113,7 @@ class _TrackTile extends StatelessWidget {
               ),
             ),
             if (enabled)
-              const Icon(Icons.chevron_right_rounded,
+              const Icon(AppIcons.chevronRightRounded,
                   color: AppColors.onSurfaceVariant),
           ],
         ),

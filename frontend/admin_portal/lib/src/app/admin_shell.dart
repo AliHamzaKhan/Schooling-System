@@ -13,6 +13,7 @@ import '../features/schools/view/schools_view.dart';
 import '../features/settings/view/settings_view.dart';
 import '../ui/admin_theme.dart';
 import 'admin_routes.dart';
+import 'package:shared/shared.dart';
 
 /// Root authenticated shell — hosts the five admin tabs behind a persistent
 /// style-7 bottom navigation bar (persistent_bottom_nav_bar).
@@ -83,10 +84,10 @@ class _AdminShellState extends State<AdminShell> with TickerProviderStateMixin {
           'Home',
           animController: _homeAnim,
         ),
-        _item(const Icon(Icons.apartment_rounded), 'Schools'),
-        _item(const Icon(Icons.credit_card_rounded), 'Billing'),
-        _item(const Icon(Icons.query_stats_rounded), 'Metrics'),
-        _item(const Icon(Icons.settings_rounded), 'Settings'),
+        _item(const Icon(AppIcons.apartmentRounded), 'Schools'),
+        _item(const Icon(AppIcons.creditCardRounded), 'Billing'),
+        _item(const Icon(AppIcons.queryStatsRounded), 'Metrics'),
+        _item(const Icon(AppIcons.settingsRounded), 'Settings'),
       ];
 
   /// Android back handling for the admin root. We take it over from the nav bar

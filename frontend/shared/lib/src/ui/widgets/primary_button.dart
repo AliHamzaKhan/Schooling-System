@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_radius.dart';
 import '../tokens/app_typography.dart';
+import 'package:shared/shared.dart';
 
 /// Primary action button — vertical gradient from `primary` to a darker shade.
 ///
@@ -19,7 +20,7 @@ class PrimaryButton extends StatelessWidget {
     super.key,
     required this.label,
     this.onPressed,
-    this.trailingIcon = Icons.arrow_forward,
+    this.trailingIcon = AppIcons.arrowForward,
     this.leadingIcon,
     this.isLoading = false,
     this.expanded = false,

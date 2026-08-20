@@ -15,6 +15,7 @@ import 'features/dashboard/controller/dashboard_controller.dart';
 import 'features/dashboard/view/dashboard_view.dart';
 import 'features/exams/binding/exams_binding.dart';
 import 'features/exams/view/exams_view.dart';
+import 'package:shared/shared.dart';
 
 /// Student module shell — 4-tab nav (Home / Schedule=Exam Schedule /
 /// Assignments / Profile=My Attendance). Drill-in routes: assignment detail
@@ -28,10 +29,10 @@ class StudentShell extends StatefulWidget {
 
 class _StudentShellState extends State<StudentShell> {
   static const _tabs = [
-    PortalTab(Icons.dashboard_rounded, 'Home'),
-    PortalTab(Icons.event_note_rounded, 'Schedule'),
-    PortalTab(Icons.assignment_outlined, 'Assignments'),
-    PortalTab(Icons.person_outline_rounded, 'Profile'),
+    PortalTab(AppIcons.dashboardRounded, 'Home'),
+    PortalTab(AppIcons.eventNoteRounded, 'Schedule'),
+    PortalTab(AppIcons.assignmentOutlined, 'Assignments'),
+    PortalTab(AppIcons.personOutlineRounded, 'Profile'),
   ];
 
   void _openNotifications() => Get.toNamed(StudentRoutes.notifications);

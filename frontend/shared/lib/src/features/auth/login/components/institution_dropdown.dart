@@ -4,6 +4,7 @@ import '../../../../ui/tokens/app_colors.dart';
 import '../../../../ui/tokens/app_radius.dart';
 import '../../../../ui/tokens/app_typography.dart';
 import '../../models/institution.dart';
+import 'package:shared/shared.dart';
 
 /// Pill-style institution picker matching the login mockup
 /// ("Select your institution" + chevron).
@@ -45,7 +46,7 @@ class InstitutionDropdown extends StatelessWidget {
                   ? const SizedBox(
                       width: 16, height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.keyboard_arrow_down, color: AppColors.onSurfaceVariant),
+                  : const Icon(AppIcons.keyboardArrowDown, color: AppColors.onSurfaceVariant),
               hint: Text('Select your institution',
                   style: AppTypography.bodyLg.copyWith(color: AppColors.outline)),
               style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface),

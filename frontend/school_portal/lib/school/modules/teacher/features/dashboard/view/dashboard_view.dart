@@ -84,7 +84,7 @@ class DashboardView extends GetView<TeacherDashboardController> {
                 DashboardStatGrid(
                   stats: [
                     DashboardStat(
-                      icon: Icons.schedule_rounded,
+                      icon: AppIcons.scheduleRounded,
                       accent: AppColors.tertiary,
                       value: '${data.schedule.length}',
                       label: 'Classes today',
@@ -92,7 +92,7 @@ class DashboardView extends GetView<TeacherDashboardController> {
                       onTap: onViewCalendar,
                     ),
                     DashboardStat(
-                      icon: Icons.grading_rounded,
+                      icon: AppIcons.gradingRounded,
                       accent: AppColors.aiAccent,
                       value: '${data.pendingGrades}',
                       label: 'Pending grades',
@@ -100,7 +100,7 @@ class DashboardView extends GetView<TeacherDashboardController> {
                       onTap: onViewAllTasks,
                     ),
                     DashboardStat(
-                      icon: Icons.inbox_rounded,
+                      icon: AppIcons.inboxRounded,
                       accent: AppColors.primary,
                       value: '${data.newSubmissions}',
                       label: 'New submissions',
@@ -108,7 +108,7 @@ class DashboardView extends GetView<TeacherDashboardController> {
                       onTap: onViewAllTasks,
                     ),
                     DashboardStat(
-                      icon: Icons.groups_rounded,
+                      icon: AppIcons.groupsRounded,
                       accent: const Color(0xFFE8A317),
                       value: '${data.sectionsTaught}',
                       label: 'Sections',
@@ -119,7 +119,7 @@ class DashboardView extends GetView<TeacherDashboardController> {
                 const SizedBox(height: AppSpacing.stackLg),
 
                 DashboardPrimaryAction(
-                  icon: Icons.event_available_outlined,
+                  icon: AppIcons.eventAvailableOutlined,
                   label: 'Leave Requests',
                   subtitle: 'Review your students\u2019 applications',
                   onTap: () => Get.toNamed(TeacherRoutes.leaveReview),
@@ -248,19 +248,19 @@ const _quickActions = <QuickAction>[
   QuickAction(
     label: 'Mark Attendance',
     subtitle: 'Take today\u2019s register',
-    icon: Icons.fact_check_outlined,
+    icon: AppIcons.factCheckOutlined,
     color: AppColors.tertiary,
   ),
   QuickAction(
     label: 'Add Assignment',
     subtitle: 'Homework, exam or quiz',
-    icon: Icons.assignment_outlined,
+    icon: AppIcons.assignmentOutlined,
     color: AppColors.primary,
   ),
   QuickAction(
     label: 'Announce',
     subtitle: 'Send a class update',
-    icon: Icons.campaign_outlined,
+    icon: AppIcons.campaignOutlined,
     color: AppColors.aiAccent,
   ),
 ];
@@ -272,67 +272,50 @@ class _ScheduleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassSurface(
-      padding: EdgeInsets.zero,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: item.isClassTeacher ? AppColors.primary : AppColors.tertiary,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppRadius.card),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.stackMd),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.timeRange.split(' – ').first,
-                      style: AppTypography.titleLg
-                          .copyWith(fontWeight: FontWeight.w800)),
-                  Text('${item.className} ${item.sectionName}',
-                      style: AppTypography.labelCaps
-                          .copyWith(color: AppColors.onSurfaceVariant)),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: AppSpacing.stackMd, horizontal: AppSpacing.stackSm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.timeRange.split(' – ').first,
+                  style: AppTypography.titleLg
+                      .copyWith(fontWeight: FontWeight.w800)),
+              Text('${item.className} ${item.sectionName}',
+                  style: AppTypography.labelCaps
+                      .copyWith(color: AppColors.onSurfaceVariant)),
+            ],
+          ),
+          const SizedBox(width: AppSpacing.stackMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title,
+                    style: AppTypography.titleMd
+                        .copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Row(
                   children: [
-                    Text(item.title,
-                        style: AppTypography.titleMd
-                            .copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined,
-                            size: 13, color: AppColors.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                        Text(item.room ?? '—', style: AppTypography.bodySm),
-                        if (item.studentCount > 0) ...[
-                          const SizedBox(width: AppSpacing.stackMd),
-                          const Icon(Icons.people_alt_outlined,
-                              size: 13, color: AppColors.onSurfaceVariant),
-                          const SizedBox(width: 4),
-                          Text('${item.studentCount} Students',
-                              style: AppTypography.bodySm),
-                        ],
-                      ],
-                    ),
+                    const Icon(AppIcons.locationOnOutlined,
+                        size: 13, color: AppColors.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(item.room ?? '—', style: AppTypography.bodySm),
+                    if (item.studentCount > 0) ...[
+                      const SizedBox(width: AppSpacing.stackMd),
+                      const Icon(AppIcons.peopleAltOutlined,
+                          size: 13, color: AppColors.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Text('${item.studentCount} Students',
+                          style: AppTypography.bodySm),
+                    ],
                   ],
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -367,8 +350,8 @@ class _TodoRow extends StatelessWidget {
     // Derived work can't be "ticked off" — the icon reflects what kind of work
     // it is, and tapping takes you where it gets resolved.
     final icon = todo.kind == 'exam'
-        ? Icons.event_note_rounded
-        : Icons.grading_rounded;
+        ? AppIcons.eventNoteRounded
+        : AppIcons.gradingRounded;
     final tint = todo.urgent ? AppColors.error : AppColors.primary;
     return InkWell(
       onTap: onTap,
@@ -398,7 +381,7 @@ class _TodoRow extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded,
+          const Icon(AppIcons.chevronRightRounded,
               size: 18, color: AppColors.onSurfaceVariant),
         ],
       ),
@@ -439,8 +422,8 @@ class _ActivityRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = activity.kind == 'announcement'
-        ? Icons.campaign_outlined
-        : Icons.assignment_outlined;
+        ? AppIcons.campaignOutlined
+        : AppIcons.assignmentOutlined;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(

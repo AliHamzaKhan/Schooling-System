@@ -8,6 +8,7 @@ import '../../../ui/tokens/app_typography.dart';
 import '../controller/new_message_controller.dart';
 import '../models/messaging_contact.dart';
 import 'messaging_format.dart';
+import 'package:shared/shared.dart';
 
 /// Opens the contact picker as a bottom sheet and resolves to the chosen
 /// [MessagingContact], or null if dismissed.
@@ -79,7 +80,7 @@ class _NewMessageSheetState extends State<_NewMessageSheet> {
                       AppTypography.bodyMd.copyWith(color: AppColors.onSurface),
                   decoration: InputDecoration(
                     hintText: 'Search people…',
-                    prefixIcon: const Icon(Icons.search_rounded),
+                    prefixIcon: const Icon(AppIcons.searchRounded),
                     filled: true,
                     fillColor: AppColors.surfaceContainer,
                     contentPadding:

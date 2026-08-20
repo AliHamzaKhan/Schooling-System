@@ -158,7 +158,7 @@ class _CreateQuizViewState extends State<CreateQuizView>
                   label: controller.generating.value
                       ? 'Generating from PDF…'
                       : 'Generate from PDF (AI)',
-                  leadingIcon: Icons.auto_awesome_rounded,
+                  leadingIcon: AppIcons.autoAwesomeRounded,
                   trailingIcon: null,
                   expanded: true,
                   onPressed: controller.generating.value
@@ -168,7 +168,7 @@ class _CreateQuizViewState extends State<CreateQuizView>
             const SizedBox(height: AppSpacing.stackSm),
             GhostButton(
               label: 'Add Question',
-              leadingIcon: Icons.add,
+              leadingIcon: AppIcons.add,
               trailingIcon: null,
               expanded: true,
               onPressed: () async {
@@ -189,7 +189,7 @@ class _CreateQuizViewState extends State<CreateQuizView>
             }),
             Obx(() => PrimaryButton(
                   label: 'Save & Publish',
-                  leadingIcon: Icons.publish_rounded,
+                  leadingIcon: AppIcons.publishRounded,
                   trailingIcon: null,
                   expanded: true,
                   isLoading: controller.submitting.value,
@@ -245,7 +245,7 @@ class _QuestionTile extends StatelessWidget {
           ),
           IconButton(
             onPressed: onDelete,
-            icon: const Icon(Icons.close_rounded, size: 18),
+            icon: const Icon(AppIcons.closeRounded, size: 18),
             color: AppColors.error,
             visualDensity: VisualDensity.compact,
           ),
@@ -370,8 +370,8 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
                       visualDensity: VisualDensity.compact,
                       icon: Icon(
                         i == _correct
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
+                            ? AppIcons.radioButtonChecked
+                            : AppIcons.radioButtonUnchecked,
                         color: i == _correct
                             ? AppColors.primary
                             : AppColors.onSurfaceVariant,

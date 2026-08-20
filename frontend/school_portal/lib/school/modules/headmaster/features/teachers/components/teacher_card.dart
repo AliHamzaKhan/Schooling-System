@@ -64,11 +64,11 @@ class TeacherCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.stackMd),
             Row(
               children: [
-                _IconDot(icon: Icons.mail_outline_rounded, onTap: onMail),
+                _IconDot(icon: AppIcons.mailOutlineRounded, onTap: onMail),
                 const SizedBox(width: AppSpacing.stackSm),
                 if (canChat)
                   _IconDot(
-                      icon: Icons.chat_bubble_outline_rounded, onTap: onChat),
+                      icon: AppIcons.chatBubbleOutlineRounded, onTap: onChat),
                 const Spacer(),
                 InkWell(
                   onTap: onView,
@@ -84,7 +84,7 @@ class TeacherCard extends StatelessWidget {
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w700)),
                         const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_rounded,
+                        const Icon(AppIcons.arrowForwardRounded,
                             size: 16, color: AppColors.primary),
                       ],
                     ),
@@ -168,7 +168,7 @@ class _DeptChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.apartment_outlined,
+          const Icon(AppIcons.apartmentOutlined,
               size: 14, color: AppColors.onSurfaceVariant),
           const SizedBox(width: 6),
           Text(text,

@@ -19,7 +19,7 @@ class LeaveView extends GetView<LeaveController> {
       appBar: AppBar(title: const Text('Leave Application')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openSubmitSheet(context),
-        icon: const Icon(Icons.add_rounded),
+        icon: const Icon(AppIcons.addRounded),
         label: const Text('Apply'),
       ),
       body: Obx(() {
@@ -84,7 +84,7 @@ class _RoutingHint extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded,
+          const Icon(AppIcons.infoOutlineRounded,
               size: 18, color: AppColors.primary),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
@@ -132,7 +132,7 @@ class _LeaveCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackMd),
           Row(
             children: [
-              const Icon(Icons.event_rounded,
+              const Icon(AppIcons.eventRounded,
                   size: 16, color: AppColors.onSurfaceVariant),
               const SizedBox(width: 6),
               Text(range, style: AppTypography.bodyLg),
@@ -303,7 +303,7 @@ class _SubmitSheetState extends State<_SubmitSheet> with ScreenTextControllers {
 
             Obx(() => PrimaryButton(
                   label: 'Submit Application',
-                  leadingIcon: Icons.send_rounded,
+                  leadingIcon: AppIcons.sendRounded,
                   expanded: true,
                   isLoading: controller.submitting.value,
                   onPressed: () async {
@@ -358,7 +358,7 @@ class _DateField extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded,
+                  const Icon(AppIcons.calendarTodayRounded,
                       size: 16, color: AppColors.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Text(

@@ -116,7 +116,7 @@ class StudentReportView extends GetView<StudentReportController> {
               padding: const EdgeInsets.all(AppSpacing.stackMd),
               child: Row(
                 children: [
-                  const Icon(Icons.assignment_outlined,
+                  const Icon(AppIcons.assignmentOutlined,
                       color: AppColors.primary),
                   const SizedBox(width: AppSpacing.stackMd),
                   Expanded(
@@ -152,7 +152,7 @@ class StudentReportView extends GetView<StudentReportController> {
                   padding: const EdgeInsets.all(AppSpacing.stackMd),
                   child: Row(
                     children: [
-                      const Icon(Icons.quiz_outlined, color: AppColors.primary),
+                      const Icon(AppIcons.quizOutlined, color: AppColors.primary),
                       const SizedBox(width: AppSpacing.stackMd),
                       Expanded(
                           child: Text(q.title, style: AppTypography.titleMd)),
@@ -287,7 +287,7 @@ class _GuardianInfo extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Row(
         children: [
-          const Icon(Icons.escalator_warning_rounded, color: AppColors.primary),
+          const Icon(AppIcons.escalatorWarningRounded, color: AppColors.primary),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
             child: Text(
@@ -342,7 +342,7 @@ class _ActionBar extends StatelessWidget {
             children: [
               Expanded(
                 child: Obx(() => _ActionButton(
-                      icon: Icons.event_available_rounded,
+                      icon: AppIcons.eventAvailableRounded,
                       label: 'Meeting',
                       busy: controller.actionBusy.value,
                       onTap: () => _requestMeeting(context),
@@ -351,7 +351,7 @@ class _ActionBar extends StatelessWidget {
               const SizedBox(width: AppSpacing.stackSm),
               Expanded(
                 child: _ActionButton(
-                  icon: Icons.chat_bubble_outline_rounded,
+                  icon: AppIcons.chatBubbleOutlineRounded,
                   label: 'Message',
                   onTap: controller.hasGuardian
                       ? controller.messageGuardian
@@ -361,7 +361,7 @@ class _ActionBar extends StatelessWidget {
               const SizedBox(width: AppSpacing.stackSm),
               Expanded(
                 child: _ActionButton(
-                  icon: Icons.report_gmailerrorred_rounded,
+                  icon: AppIcons.reportGmailerrorredRounded,
                   label: 'Concern',
                   onTap: controller.sendComplaint,
                 ),
@@ -369,7 +369,7 @@ class _ActionBar extends StatelessWidget {
               const SizedBox(width: AppSpacing.stackSm),
               Expanded(
                 child: _ActionButton(
-                  icon: Icons.history_rounded,
+                  icon: AppIcons.historyRounded,
                   label: 'History',
                   onTap: () => Get.toNamed(
                     HeadmasterRoutes.messageHistory,

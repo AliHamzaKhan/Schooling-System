@@ -163,25 +163,51 @@ class ReportingService:
             .scalars()
             .all()
         )
+        # Two grouped aggregates for the whole school instead of a pair of COUNT
+        # queries per class (was 2N+1; now 3). Counts are keyed by class_id.
+        section_counts = {
+            class_id: n
+            for class_id, n in (
+                await self.db.execute(
+                    select(Section.class_id, func.count())
+                    .select_from(Section)
+                    .join(SchoolClass, SchoolClass.id == Section.class_id)
+                    .where(SchoolClass.school_id == school_id)
+                    .group_by(Section.class_id)
+                )
+            ).all()
+        }
+        student_counts = {
+            class_id: n
+            for class_id, n in (
+                await self.db.execute(
+                    select(
+                        Section.class_id,
+                        func.count(func.distinct(StudentEnrollment.student_id)),
+                    )
+                    .select_from(StudentEnrollment)
+                    .join(Section, Section.id == StudentEnrollment.section_id)
+                    .join(SchoolClass, SchoolClass.id == Section.class_id)
+                    .where(
+                        SchoolClass.school_id == school_id,
+                        StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                    )
+                    .group_by(Section.class_id)
+                )
+            ).all()
+        }
+
         out: list[schemas.ClassEnrollment] = []
         total_students = 0
         for cls in classes:
-            sections = await self.db.scalar(
-                select(func.count()).select_from(Section).where(Section.class_id == cls.id)
-            ) or 0
-            students = await self.db.scalar(
-                select(func.count(func.distinct(StudentEnrollment.student_id)))
-                .select_from(StudentEnrollment)
-                .join(Section, Section.id == StudentEnrollment.section_id)
-                .where(
-                    Section.class_id == cls.id,
-                    StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
-                )
-            ) or 0
+            students = student_counts.get(cls.id, 0)
             total_students += students
             out.append(
                 schemas.ClassEnrollment(
-                    class_id=cls.id, class_name=cls.name, sections=sections, students=students
+                    class_id=cls.id,
+                    class_name=cls.name,
+                    sections=section_counts.get(cls.id, 0),
+                    students=students,
                 )
             )
         return schemas.EnrollmentReport(

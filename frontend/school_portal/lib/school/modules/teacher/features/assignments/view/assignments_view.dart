@@ -43,28 +43,43 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
       children: [
         const PortalTopBar(title: 'Teacher Portal'),
         Expanded(
-          child: Obx(() {
-            // Only the very first load takes over the screen. Filter/search
-            // re-fetches keep the list mounted so the scroll position — and
-            // the filter row the user just tapped — stay where they were.
-            if (controller.loading.value) {
-              return const SkeletonPage(body: Column(children: [SkeletonStatRow(), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4, height: 120)]));
-            }
-            final data = controller.data.value;
-            if (data == null) {
-              return Center(
-                  child: Text(controller.error.value ?? 'No data',
-                      style: AppTypography.bodyLg));
-            }
-            return _AssignmentsList(
-              controller: controller,
-              onCreate: () => _showCreatePicker(context),
-              onOpenGradebook: onOpenGradebook,
-              onOpenQuizzes: onOpenQuizzes,
-              onOpenPerformance: onOpenPerformance,
-              onOpenAssignment: onOpenAssignment,
-            );
-          }),
+          child: Stack(
+            children: [
+              Obx(() {
+                // Only the very first load takes over the screen. Filter/search
+                // re-fetches keep the list mounted so the scroll position — and
+                // the filter row the user just tapped — stay where they were.
+                if (controller.loading.value) {
+                  return const SkeletonPage(body: Column(children: [SkeletonStatRow(), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4, height: 120)]));
+                }
+                final data = controller.data.value;
+                if (data == null) {
+                  return Center(
+                      child: Text(controller.error.value ?? 'No data',
+                          style: AppTypography.bodyLg));
+                }
+                return _AssignmentsList(
+                  controller: controller,
+                  onOpenGradebook: onOpenGradebook,
+                  onOpenQuizzes: onOpenQuizzes,
+                  onOpenPerformance: onOpenPerformance,
+                  onOpenAssignment: onOpenAssignment,
+                );
+              }),
+              Positioned(
+                right: AppSpacing.containerPaddingMobile,
+                bottom: AppSpacing.stackLg,
+                child: FloatingActionButton.extended(
+                  heroTag: 'newAssignment',
+                  onPressed: () => _showCreatePicker(context),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
+                  icon: const Icon(AppIcons.add),
+                  label: const Text('New'),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -90,7 +105,7 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
                     borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: AppSpacing.stackMd),
             ListTile(
-              leading: const Icon(Icons.assignment_add, color: AppColors.primary),
+              leading: const Icon(AppIcons.assignmentAdd, color: AppColors.primary),
               title: const Text('Homework'),
               subtitle: const Text('A quick task for students'),
               onTap: () {
@@ -99,7 +114,7 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.fact_check_outlined, color: AppColors.primary),
+              leading: const Icon(AppIcons.factCheckOutlined, color: AppColors.primary),
               title: const Text('Exam'),
               subtitle: const Text('A graded assessment with logistics'),
               onTap: () {
@@ -108,7 +123,7 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.quiz_outlined, color: AppColors.primary),
+              leading: const Icon(AppIcons.quizOutlined, color: AppColors.primary),
               title: const Text('Quiz'),
               subtitle: const Text('Auto-graded multiple-choice questions'),
               onTap: () {
@@ -128,7 +143,6 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
 /// more rows as the user approaches the bottom — no "Load More" button.
 class _AssignmentsList extends StatefulWidget {
   final TeacherAssignmentsController controller;
-  final VoidCallback onCreate;
   final VoidCallback? onOpenGradebook;
   final VoidCallback? onOpenQuizzes;
   final VoidCallback? onOpenPerformance;
@@ -136,7 +150,6 @@ class _AssignmentsList extends StatefulWidget {
 
   const _AssignmentsList({
     required this.controller,
-    required this.onCreate,
     this.onOpenGradebook,
     this.onOpenQuizzes,
     this.onOpenPerformance,
@@ -226,21 +239,11 @@ class _AssignmentsListState extends State<_AssignmentsList> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Assignments', style: AppTypography.headlineLg),
-        const SizedBox(height: AppSpacing.stackSm),
-        Text('Manage and track student coursework across all your classes.',
-            style: AppTypography.bodyLg),
         const SizedBox(height: AppSpacing.stackMd),
-        PrimaryButton(
-          label: 'New Assignment',
-          leadingIcon: Icons.add,
-          trailingIcon: null,
-          onPressed: widget.onCreate,
-        ),
-        const SizedBox(height: AppSpacing.stackSm),
         GhostButton(
           label: 'Quizzes',
-          leadingIcon: Icons.quiz_outlined,
-          trailingIcon: Icons.chevron_right_rounded,
+          leadingIcon: AppIcons.quizOutlined,
+          trailingIcon: AppIcons.chevronRightRounded,
           expanded: true,
           onPressed: widget.onOpenQuizzes,
         ),
@@ -255,7 +258,7 @@ class _AssignmentsListState extends State<_AssignmentsList> {
                   label: 'To Grade',
                   value: '${stats.toGrade}',
                   trend: '+${stats.toGradeDelta} today',
-                  icon: Icons.menu_book_outlined,
+                  icon: AppIcons.menuBookOutlined,
                   accent: const Color(0xFFE8A317),
                   trendColor: AppColors.error,
                   onTap: widget.onOpenGradebook,
@@ -267,7 +270,7 @@ class _AssignmentsListState extends State<_AssignmentsList> {
                   label: 'Active',
                   value: '${stats.activeCount}',
                   trend: '${stats.activeAcrossClasses} classes',
-                  icon: Icons.assignment_outlined,
+                  icon: AppIcons.assignmentOutlined,
                   accent: AppColors.primary,
                   trendColor: AppColors.onSurfaceVariant,
                   onTap: _scrollToList,
@@ -281,7 +284,7 @@ class _AssignmentsListState extends State<_AssignmentsList> {
                       '${(stats.averageTurnInRate * 100).toStringAsFixed(0)}%',
                   trend:
                       '+${(stats.averageTurnInDelta * 100).toStringAsFixed(0)}% wk',
-                  icon: Icons.group_outlined,
+                  icon: AppIcons.groupOutlined,
                   accent: AppColors.aiAccent,
                   trendColor: AppColors.tertiary,
                   onTap: widget.onOpenPerformance,
