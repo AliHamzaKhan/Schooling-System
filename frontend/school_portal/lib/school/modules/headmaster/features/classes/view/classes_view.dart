@@ -4,7 +4,6 @@ import 'package:shared/shared.dart';
 
 import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
-import '../../student_report/view/section_students_view.dart';
 import '../components/class_stat_tile.dart';
 import '../components/grade_card.dart';
 import '../controller/classes_controller.dart';
@@ -23,23 +22,37 @@ class ClassesView extends GetView<HeadmasterClassesController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3, height: 130)]));
+              return const SkeletonPage(
+                body: Column(
+                  children: [
+                    SkeletonStatGrid(count: 4),
+                    SizedBox(height: AppSpacing.stackLg),
+                    SkeletonCardList(count: 3, height: 130),
+                  ],
+                ),
+              );
             }
             final data = controller.data.value;
             if (data == null) {
               return Center(
-                  child: Text(controller.error.value ?? 'No data',
-                      style: AppTypography.bodyLg));
+                child: Text(
+                  controller.error.value ?? 'No data',
+                  style: AppTypography.bodyLg,
+                ),
+              );
             }
             return ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  0,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                0,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
-                Text('Class Directory',
-                    style: AppTypography.displayLg.copyWith(fontSize: 32)),
+                Text(
+                  'Class Directory',
+                  style: AppTypography.displayLg.copyWith(fontSize: 32),
+                ),
                 const SizedBox(height: AppSpacing.stackMd),
                 PrimaryButton(
                   label: 'New Class',
@@ -59,10 +72,10 @@ class ClassesView extends GetView<HeadmasterClassesController> {
                         controller.classMenuFlow(g.classId, g.className),
                     onSectionTap: (s) => Get.toNamed(
                       HeadmasterRoutes.sectionStudents,
-                      arguments: SectionStudentsArgs(
-                        sectionId: s.id,
-                        title: '${g.className} · ${s.name}',
-                      ),
+                      parameters: {
+                        'section_id': s.id,
+                        'title': '${g.className} · ${s.name}',
+                      },
                     ),
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
@@ -96,4 +109,3 @@ class ClassesView extends GetView<HeadmasterClassesController> {
     );
   }
 }
-

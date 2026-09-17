@@ -17,8 +17,8 @@ Future<bool> showAdminConfirm({
   bool destructive = false,
   List<Widget> details = const [],
 }) async {
-  final result = await Get.dialog<bool>(
-    _AdminConfirmDialog(
+  final result = await showAppDialog<bool>(
+    child: _AdminConfirmDialog(
       icon: icon,
       title: title,
       message: message,

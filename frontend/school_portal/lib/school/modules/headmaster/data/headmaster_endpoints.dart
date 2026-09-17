@@ -17,6 +17,7 @@ class HeadmasterEndpoints {
   static const teachers = '$_base/teachers';
   static const students = '$_base/students';
   static const guardians = '$_base/guardians';
+  static const effectivePermissions = '/permissions/me';
 
   // ── Live, school-scoped backend paths (`/schools/{school_id}/...`) ──
   // Used by the wired features (people directories, classes, exams). The
@@ -95,15 +96,13 @@ class HeadmasterEndpoints {
       '/schools/$schoolId/exams/$examId/papers';
   static String promotionsPreview(String schoolId) =>
       '/schools/$schoolId/promotions/preview';
-  static String promotions(String schoolId) =>
-      '/schools/$schoolId/promotions';
+  static String promotions(String schoolId) => '/schools/$schoolId/promotions';
   static String studentReport(String schoolId, String studentId) =>
       '/schools/$schoolId/reports/students/$studentId';
   static String meetings(String schoolId) => '/schools/$schoolId/meetings';
   static String guardianChildren(String schoolId, String guardianId) =>
       '/schools/$schoolId/guardians/$guardianId/children';
-  static String schoolProfile(String schoolId) =>
-      '/schools/$schoolId/profile';
+  static String schoolProfile(String schoolId) => '/schools/$schoolId/profile';
 
   // ── HR / payroll (salary management) ──
   static String hrStaff(String schoolId) => '/schools/$schoolId/hr/staff';

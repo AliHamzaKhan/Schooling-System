@@ -221,6 +221,9 @@ class HomeworkService:
                 Submission.student_id == student_id,
             )
         )
+        from app.modules.uploads.access import validate_new_reference
+        validate_new_reference(data.attachment_url, school_id, student_id, "submissions",
+                               existing=existing.attachment_url if existing else None)
         if existing is not None:
             if existing.status == SubmissionStatus.GRADED.value:
                 raise bad_request("This submission has already been graded and cannot be changed")

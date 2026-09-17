@@ -44,6 +44,7 @@ class Announcement {
   final String timestamp;
   final String title;
   final String body;
+  final String? deliveryStatus;
   final String? author;
   final String? authorAvatarUrl;
   final String? ctaLabel;
@@ -55,6 +56,7 @@ class Announcement {
     required this.timestamp,
     required this.title,
     required this.body,
+    this.deliveryStatus,
     this.author,
     this.authorAvatarUrl,
     this.ctaLabel,
@@ -70,6 +72,7 @@ class Announcement {
         timestamp: json['timestamp'] as String? ?? '',
         title: json['title'] as String? ?? '',
         body: json['body'] as String? ?? '',
+        deliveryStatus: json['status'] as String?,
         author: json['author'] as String?,
         authorAvatarUrl: json['author_avatar_url'] as String?,
         ctaLabel: json['cta_label'] as String?,

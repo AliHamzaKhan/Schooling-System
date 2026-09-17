@@ -6,7 +6,6 @@ import 'package:shared/shared.dart';
 
 import '../../../data/headmaster_repository.dart';
 import '../controller/settings_controller.dart';
-import '../../../../../widgets/skeletons.dart';
 
 /// Headmaster School Settings — edit name, logo, uniform colour and the monthly
 /// fee due day. Branding values persist in the school `settings` blob.
@@ -36,62 +35,95 @@ class _SettingsViewState extends State<SettingsView>
       ),
       body: Obx(() {
         if (controller.loading.value) {
-          return const SkeletonPage(body: SkeletonForm(fields: 4));
+          return const AppStateView.loading(
+            title: 'Loading school settings',
+            message:
+                'Getting the latest identity, branding, and billing preferences.',
+          );
         }
         if (controller.error.value != null) {
-          return Center(
-              child: Text(controller.error.value!, style: AppTypography.bodyLg));
+          return AppStateView.error(
+            title: 'Could not load school settings',
+            message: controller.error.value!,
+            actionLabel: 'Try again',
+            onAction: controller.load,
+          );
         }
         return ListView(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackLg,
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackXl),
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackLg,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackXl,
+          ),
           children: [
-            Text('Identity', style: AppTypography.labelCaps),
-            const SizedBox(height: AppSpacing.stackSm),
-            GlassInput(
-                label: 'School name',
-                hint: 'e.g. Test High School',
-                controller: _nameCtrl),
-            const SizedBox(height: AppSpacing.stackMd),
-            _LogoPickerField(controller: controller),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Identity', style: AppTypography.labelCaps),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  AppTextField(
+                    label: 'School name',
+                    hintText: 'e.g. Test High School',
+                    controller: _nameCtrl,
+                    required: true,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  _LogoPickerField(controller: controller),
+                ],
+              ),
+            ),
             const SizedBox(height: AppSpacing.stackXl),
-            Text('Branding', style: AppTypography.labelCaps),
-            const SizedBox(height: AppSpacing.stackSm),
-            _UniformColorPicker(controller: controller),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Branding', style: AppTypography.labelCaps),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  _UniformColorPicker(controller: controller),
+                ],
+              ),
+            ),
             const SizedBox(height: AppSpacing.stackXl),
-            Text('Fees', style: AppTypography.labelCaps),
-            const SizedBox(height: AppSpacing.stackSm),
-            GlassInput(
-                label: 'Monthly fee due day (1–31)',
-                hint: 'e.g. 5',
-                controller: _feeDueDayCtrl,
-                keyboardType: TextInputType.number),
-            const SizedBox(height: AppSpacing.stackSm),
-            Text('Invoices generated each month will be due on this day.',
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onSurfaceVariant)),
-            const SizedBox(height: AppSpacing.stackMd),
-            GlassInput(
-                label: 'Salary payout day (1–31)',
-                hint: 'e.g. 1',
-                controller: _salaryDayCtrl,
-                keyboardType: TextInputType.number),
-            const SizedBox(height: AppSpacing.stackSm),
-            Text(
-                'Guardians with outstanding fees are reminded automatically '
-                '5 days before this salary day.',
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onSurfaceVariant)),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Fees', style: AppTypography.labelCaps),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  AppTextField(
+                    label: 'Monthly fee due day',
+                    hintText: 'e.g. 5',
+                    helperText:
+                        'Enter a day from 1 to 31. Invoices generated each month will be due on this day.',
+                    controller: _feeDueDayCtrl,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  AppTextField(
+                    label: 'Salary payout day',
+                    hintText: 'e.g. 1',
+                    helperText:
+                        'Enter a day from 1 to 31. Outstanding-fee reminders are sent 5 days before this day.',
+                    controller: _salaryDayCtrl,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: AppSpacing.stackXl),
-            Obx(() => PrimaryButton(
-                  label: 'Save Settings',
-                  isLoading: controller.saving.value,
-                  expanded: true,
-                  onPressed: controller.saving.value ? null : controller.save,
-                )),
+            Obx(
+              () => PrimaryButton(
+                label: 'Save Settings',
+                isLoading: controller.saving.value,
+                expanded: true,
+                onPressed: controller.saving.value ? null : controller.save,
+              ),
+            ),
           ],
         );
       }),
@@ -108,7 +140,8 @@ Color? _parseHex(String raw) {
 }
 
 String _hexOf(Color c) {
-  final v = ((c.a * 255).round() << 24) |
+  final v =
+      ((c.a * 255).round() << 24) |
       ((c.r * 255).round() << 16) |
       ((c.g * 255).round() << 8) |
       (c.b * 255).round();
@@ -117,12 +150,30 @@ String _hexOf(Color c) {
 }
 
 const List<Color> _kPalette = [
-  Color(0xFFF44336), Color(0xFFE91E63), Color(0xFF9C27B0), Color(0xFF673AB7),
-  Color(0xFF3F51B5), Color(0xFF2196F3), Color(0xFF03A9F4), Color(0xFF00BCD4),
-  Color(0xFF009688), Color(0xFF4CAF50), Color(0xFF8BC34A), Color(0xFFCDDC39),
-  Color(0xFFFFEB3B), Color(0xFFFFC107), Color(0xFFFF9800), Color(0xFFFF5722),
-  Color(0xFF795548), Color(0xFF9E9E9E), Color(0xFF607D8B), Color(0xFF1565C0),
-  Color(0xFF0D47A1), Color(0xFF212121), Color(0xFFFFFFFF), Color(0xFF000000),
+  Color(0xFFF44336),
+  Color(0xFFE91E63),
+  Color(0xFF9C27B0),
+  Color(0xFF673AB7),
+  Color(0xFF3F51B5),
+  Color(0xFF2196F3),
+  Color(0xFF03A9F4),
+  Color(0xFF00BCD4),
+  Color(0xFF009688),
+  Color(0xFF4CAF50),
+  Color(0xFF8BC34A),
+  Color(0xFFCDDC39),
+  Color(0xFFFFEB3B),
+  Color(0xFFFFC107),
+  Color(0xFFFF9800),
+  Color(0xFFFF5722),
+  Color(0xFF795548),
+  Color(0xFF9E9E9E),
+  Color(0xFF607D8B),
+  Color(0xFF1565C0),
+  Color(0xFF0D47A1),
+  Color(0xFF212121),
+  Color(0xFFFFFFFF),
+  Color(0xFF000000),
 ];
 
 /// An inline uniform-colour picker: an HSV wheel-free picker built from hue /
@@ -142,7 +193,8 @@ class _UniformColorPickerState extends State<_UniformColorPicker> {
   @override
   void initState() {
     super.initState();
-    final c = _parseHex(widget.controller.uniformColor.value) ??
+    final c =
+        _parseHex(widget.controller.uniformColor.value) ??
         const Color(0xFF2196F3);
     _hsv = HSVColor.fromColor(c);
   }
@@ -155,19 +207,17 @@ class _UniformColorPickerState extends State<_UniformColorPicker> {
   @override
   Widget build(BuildContext context) {
     final color = _hsv.toColor();
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.stackMd),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.button),
-        border: Border.all(color: AppColors.outlineVariant),
-        color: AppColors.surfaceContainerLowest,
-      ),
+    return Semantics(
+      container: true,
+      label: 'Uniform colour ${_hexOf(color)}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final largeText =
+                  MediaQuery.textScalerOf(context).scale(14) >= 20;
+              final swatch = Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
@@ -175,22 +225,42 @@ class _UniformColorPickerState extends State<_UniformColorPicker> {
                   borderRadius: BorderRadius.circular(AppRadius.button),
                   border: Border.all(color: AppColors.outlineVariant),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.stackMd),
-              Expanded(
-                child: Column(
+              );
+              final description = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Uniform colour', style: AppTypography.bodyLg),
+                  const SizedBox(height: 2),
+                  Text(
+                    _hexOf(color),
+                    style: AppTypography.bodyMd.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              );
+              if (largeText || constraints.maxWidth < 360) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Uniform colour', style: AppTypography.bodyLg),
-                    const SizedBox(height: 2),
-                    Text(_hexOf(color),
-                        style: AppTypography.bodyMd.copyWith(
-                            color: AppColors.onSurfaceVariant)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [swatch, const Icon(AppIcons.paletteOutlined)],
+                    ),
+                    const SizedBox(height: AppSpacing.stackSm),
+                    description,
                   ],
-                ),
-              ),
-              const Icon(AppIcons.paletteOutlined),
-            ],
+                );
+              }
+              return Row(
+                children: [
+                  swatch,
+                  const SizedBox(width: AppSpacing.stackMd),
+                  Expanded(child: description),
+                  const Icon(AppIcons.paletteOutlined),
+                ],
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.stackMd),
           _ColorSlider(
@@ -220,19 +290,39 @@ class _UniformColorPickerState extends State<_UniformColorPicker> {
             runSpacing: AppSpacing.stackSm,
             children: [
               for (final c in _kPalette)
-                GestureDetector(
-                  onTap: () => _set(HSVColor.fromColor(c)),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: c,
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                      border: Border.all(
-                          color: _sameColor(c, color)
-                              ? AppColors.primary
-                              : AppColors.outlineVariant,
-                          width: _sameColor(c, color) ? 3 : 1),
+                Semantics(
+                  button: true,
+                  selected: _sameColor(c, color),
+                  label: 'Use uniform colour ${_hexOf(c)}',
+                  child: Tooltip(
+                    message: _hexOf(c),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                        onTap: () => _set(HSVColor.fromColor(c)),
+                        child: SizedBox.square(
+                          dimension: 44,
+                          child: Center(
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: c,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.button,
+                                ),
+                                border: Border.all(
+                                  color: _sameColor(c, color)
+                                      ? AppColors.primary
+                                      : AppColors.outlineVariant,
+                                  width: _sameColor(c, color) ? 3 : 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -263,23 +353,37 @@ class _ColorSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 78,
-          child: Text(label,
-              style: AppTypography.bodySm
-                  .copyWith(color: AppColors.onSurfaceVariant)),
-        ),
-        Expanded(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final largeText = MediaQuery.textScalerOf(context).scale(14) >= 20;
+        final slider = Semantics(
+          label: label,
           child: Slider(
             value: value.clamp(0, max),
             max: max,
             activeColor: activeColor,
             onChanged: onChanged,
           ),
-        ),
-      ],
+        );
+        final labelWidget = Text(
+          label,
+          style: AppTypography.bodySm.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
+        );
+        if (largeText || constraints.maxWidth < 360) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [labelWidget, slider],
+          );
+        }
+        return Row(
+          children: [
+            SizedBox(width: 78, child: labelWidget),
+            Expanded(child: slider),
+          ],
+        );
+      },
     );
   }
 }
@@ -346,65 +450,61 @@ class _LogoPickerFieldState extends State<_LogoPickerField> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () {
-        final url = widget.controller.logoUrl.value.trim();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.button),
-              onTap: _uploading ? null : _pick,
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.stackMd),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  border: Border.all(color: AppColors.outlineVariant),
-                  color: AppColors.surfaceContainerLowest,
-                ),
-                child: Row(
-                  children: [
-                    _LogoThumb(preview: _preview, url: url),
-                    const SizedBox(width: AppSpacing.stackMd),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('School logo', style: AppTypography.bodyLg),
-                          const SizedBox(height: 2),
-                          Text(
-                            _uploading
-                                ? 'Uploading…'
-                                : (url.isEmpty
-                                    ? 'Tap to choose an image'
-                                    : 'Tap to change'),
-                            style: AppTypography.bodyMd.copyWith(
-                                color: AppColors.onSurfaceVariant),
-                          ),
-                        ],
+    return Obx(() {
+      final url = widget.controller.logoUrl.value.trim();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppCard(
+            semanticLabel: _uploading
+                ? 'School logo uploading'
+                : (url.isEmpty ? 'Choose school logo' : 'Change school logo'),
+            onTap: _uploading ? null : _pick,
+            padding: const EdgeInsets.all(AppSpacing.stackMd),
+            child: Row(
+              children: [
+                _LogoThumb(preview: _preview, url: url),
+                const SizedBox(width: AppSpacing.stackMd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('School logo', style: AppTypography.bodyLg),
+                      const SizedBox(height: 2),
+                      Text(
+                        _uploading
+                            ? 'Uploading…'
+                            : (url.isEmpty
+                                  ? 'Tap to choose an image'
+                                  : 'Tap to change'),
+                        style: AppTypography.bodyMd.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    if (_uploading)
-                      const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                    else
-                      const Icon(AppIcons.uploadRounded),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                if (_uploading)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  const Icon(AppIcons.uploadRounded),
+              ],
             ),
-            if (_error != null) ...[
-              const SizedBox(height: AppSpacing.stackSm),
-              Text(_error!,
-                  style:
-                      AppTypography.bodySm.copyWith(color: AppColors.error)),
-            ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: AppSpacing.stackSm),
+            Text(
+              _error!,
+              style: AppTypography.bodySm.copyWith(color: AppColors.error),
+            ),
           ],
-        );
-      },
-    );
+        ],
+      );
+    });
   }
 }
 
@@ -419,10 +519,12 @@ class _LogoThumb extends StatelessWidget {
     if (preview != null) {
       child = Image.memory(preview!, fit: BoxFit.contain);
     } else if (url.isNotEmpty) {
-      child = Image.network(url,
-          fit: BoxFit.contain,
-          errorBuilder: (_, _, _) =>
-              const Icon(AppIcons.imageNotSupportedOutlined));
+      child = Image.network(
+        url,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) =>
+            const Icon(AppIcons.imageNotSupportedOutlined),
+      );
     } else {
       child = const Icon(AppIcons.apartmentRounded);
     }
@@ -430,7 +532,7 @@ class _LogoThumb extends StatelessWidget {
       width: 56,
       height: 56,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.button),
         border: Border.all(color: AppColors.outlineVariant),
       ),

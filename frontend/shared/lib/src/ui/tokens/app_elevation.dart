@@ -15,14 +15,14 @@ class AppElevation {
   /// Standard glass blur sigma (in Flutter units — ~20px CSS).
   static const double blurSigma = 20;
 
-  /// L1 fill — translucent white for glass surfaces.
-  static const Color l1Fill = AppColors.glassFillLight;
+  /// L1 fill — the app's solid card tint (visible on the flat white app).
+  static const Color l1Fill = AppColors.card;
 
-  /// L2 fill — slightly more translucent for modals/popovers.
-  static const Color l2Fill = Color(0x99FFFFFF); // 60% white
+  /// L2 fill — same card tint for modals/popovers.
+  static const Color l2Fill = AppColors.card;
 
-  /// Inner stroke — 1px @ 20% white, the "light catching the edge".
-  static const Color edgeStroke = AppColors.glassBorder;
+  /// Inner stroke — a hairline card border so the panel edge stays crisp.
+  static const Color edgeStroke = AppColors.cardBorder;
 
   // ── Solar glow — soft 40px spread, 5% primary teal ──────────
   static final List<BoxShadow> solarGlow = [

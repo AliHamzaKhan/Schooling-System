@@ -24,10 +24,11 @@ from app.models.academic import (
 from app.models.attendance import AttendanceRecord
 from app.models.communication import Message
 from app.models.homework import Assignment, Submission
-from app.models.examination import Exam, ExamSubject, Mark
+from app.models.examination import Exam, ExamResult, ExamSubject, Mark
 from app.models.school import AcademicSession, School
 from app.models.user import User
 from app.modules.academic import schemas
+from app.modules.academic.access import enrolled_students, role_ids, taught_sections, valid_sections
 
 
 class AcademicService:
@@ -49,9 +50,9 @@ class AcademicService:
     async def _validate_teacher(self, school_id: uuid.UUID, teacher_id: uuid.UUID | None) -> None:
         if teacher_id is None:
             return
-        teacher = await self.db.get(User, teacher_id)
-        if teacher is None or teacher.school_id != school_id:
-            raise bad_request("Teacher does not belong to this school")
+        teacher = await self.db.scalar(role_ids(school_id, SystemRole.TEACHER.value, active=True).where(User.id == teacher_id))
+        if teacher is None:
+            raise bad_request("Teacher must be an active teacher in this school")
 
     # ------------------------------ classes ------------------------------ #
 
@@ -82,7 +83,7 @@ class AcademicService:
         )
         return list(result.scalars().all())
 
-    async def student_roster(self, school_id: uuid.UUID) -> list[schemas.StudentRosterOut]:
+    async def student_roster(self, school_id: uuid.UUID, *, teacher_id: uuid.UUID | None = None) -> list[schemas.StudentRosterOut]:
         """Every student in the school with their current active enrollment
         (roll number, class, section) resolved. Students with no active
         enrollment still appear, with those fields left blank.
@@ -97,10 +98,14 @@ class AcademicService:
             )
             .join(User.roles)
             .where(User.school_id == school_id, Role.code == SystemRole.STUDENT.value)
+            .where(User.id.in_(enrolled_students(school_id, taught_sections(school_id, teacher_id))) if teacher_id else True)
             .outerjoin(
                 StudentEnrollment,
                 and_(
                     StudentEnrollment.student_id == User.id,
+                    StudentEnrollment.school_id == school_id,
+                    StudentEnrollment.section_id.in_(valid_sections(school_id)),
+                    StudentEnrollment.section_id.in_(taught_sections(school_id, teacher_id)) if teacher_id else True,
                     StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
                 ),
             )
@@ -322,7 +327,7 @@ class AcademicService:
         await self.db.flush()
 
     async def student_performance(
-        self, school_id: uuid.UUID, student_id: uuid.UUID
+        self, school_id: uuid.UUID, student_id: uuid.UUID, *, published_only: bool = True
     ) -> schemas.StudentPerformanceDetail:
         """One student's performance dashboard, entirely database-derived.
 
@@ -330,8 +335,8 @@ class AcademicService:
         the marks the student has actually been given. Empty sections mean the
         student has no data yet, not that data is missing.
         """
-        user = await self.db.get(User, student_id)
-        if user is None or user.school_id != school_id:
+        user = await self.db.scalar(select(User).where(User.id == student_id, User.id.in_(role_ids(school_id, SystemRole.STUDENT.value))))
+        if user is None:
             raise not_found("Student not found in this school")
 
         # ---- enrolment: which section / class the student is in ---- #
@@ -341,8 +346,11 @@ class AcademicService:
             .join(StudentEnrollment, StudentEnrollment.section_id == Section.id)
             .where(
                 StudentEnrollment.student_id == student_id,
+                StudentEnrollment.school_id == school_id,
+                Section.id.in_(valid_sections(school_id)),
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
             )
+            .order_by(StudentEnrollment.created_at.desc(), StudentEnrollment.id)
             .limit(1)
         )).scalars().first()
         section = enrolment
@@ -359,6 +367,7 @@ class AcademicService:
             .where(
                 AttendanceRecord.school_id == school_id,
                 AttendanceRecord.student_id == student_id,
+                AttendanceRecord.section_id.in_(valid_sections(school_id)),
                 AttendanceRecord.subject_id.is_(None),
             )
             .order_by(AttendanceRecord.attendance_date)
@@ -399,6 +408,15 @@ class AcademicService:
             .where(
                 Mark.school_id == school_id,
                 Mark.student_id == student_id,
+                ExamSubject.school_id == school_id,
+                Exam.school_id == school_id,
+                Exam.class_id.in_(select(SchoolClass.id).where(SchoolClass.school_id == school_id)),
+                Subject.school_id == school_id,
+                Exam.id.in_(select(ExamResult.exam_id).where(
+                    ExamResult.school_id == school_id,
+                    ExamResult.student_id == student_id,
+                    ExamResult.published.is_(True),
+                )) if published_only else True,
                 Mark.marks_obtained.is_not(None),
                 Mark.is_absent.is_(False),
                 ExamSubject.max_marks > 0,
@@ -479,13 +497,10 @@ class AcademicService:
         and published at the end of an exam cycle.
         """
         section = await self._get_scoped(Section, school_id, section_id, "Section")
-        school_class = await self.db.get(SchoolClass, section.class_id)
+        school_class = await self._get_scoped(SchoolClass, school_id, section.class_id, "Class")
 
         student_ids = list((await self.db.execute(
-            select(StudentEnrollment.student_id).where(
-                StudentEnrollment.section_id == section_id,
-                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
-            )
+            enrolled_students(school_id, [section_id]).distinct()
         )).scalars().all())
         if not student_ids:
             return schemas.SectionPerformanceOut(
@@ -508,6 +523,7 @@ class AcademicService:
             )
             .where(
                 AttendanceRecord.section_id == section_id,
+                AttendanceRecord.school_id == school_id,
                 AttendanceRecord.student_id.in_(student_ids),
                 AttendanceRecord.subject_id.is_(None),
             )
@@ -535,9 +551,15 @@ class AcademicService:
                 func.count(),
             )
             .join(ExamSubject, ExamSubject.id == Mark.exam_subject_id)
+            .join(Exam, Exam.id == ExamSubject.exam_id)
+            .join(Subject, Subject.id == ExamSubject.subject_id)
             .where(
                 Mark.school_id == school_id,
                 Mark.student_id.in_(student_ids),
+                ExamSubject.school_id == school_id,
+                Exam.school_id == school_id,
+                Exam.class_id.in_(select(SchoolClass.id).where(SchoolClass.school_id == school_id)),
+                Subject.school_id == school_id,
                 Mark.marks_obtained.is_not(None),
                 Mark.is_absent.is_(False),
                 ExamSubject.max_marks > 0,
@@ -836,6 +858,7 @@ class AcademicService:
             select(StudentEnrollment.section_id).where(
                 StudentEnrollment.school_id == school_id,
                 StudentEnrollment.student_id == student_id,
+                StudentEnrollment.section_id.in_(valid_sections(school_id)),
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
             )
         )
@@ -848,6 +871,7 @@ class AcademicService:
             .where(
                 TimetableSlot.school_id == school_id,
                 TimetableSlot.section_id.in_(section_ids),
+                TimetableSlot.subject_id.in_(select(Subject.id).where(Subject.school_id == school_id)),
             )
             .order_by(TimetableSlot.day_of_week, TimetableSlot.start_time)
         )).scalars().all()
@@ -864,7 +888,7 @@ class AcademicService:
         teachers = (
             dict(
                 (await self.db.execute(
-                    select(User.id, User.full_name).where(User.id.in_(teacher_ids))
+                    select(User.id, User.full_name).where(User.id.in_(teacher_ids), User.id.in_(role_ids(school_id, SystemRole.TEACHER.value, active=True)))
                 )).all()
             )
             if teacher_ids

@@ -32,6 +32,7 @@ class ExamPaperDraft {
 /// Every method reads/writes live backend data through [TeacherApiService].
 class TeacherRepository {
   final TeacherApiService _api;
+  Map<String, dynamic>? get pendingBroadcast => _api.pendingBroadcast;
 
   TeacherRepository({TeacherApiService? api})
       : _api = api ?? TeacherApiService();

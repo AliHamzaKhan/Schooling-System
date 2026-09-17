@@ -13,20 +13,35 @@ class CourseContentView extends GetView<CourseContentController> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: Text(controller.course.title)),
+      appBar: AppBar(
+        title: Obx(
+          () => Text(controller.course.value?.title ?? 'Course Content'),
+        ),
+      ),
       body: Obx(() {
         if (controller.loading.value) {
-          return const SkeletonPage(body: SkeletonCardList(count: 4, height: 72));
+          return const SkeletonPage(
+            body: SkeletonCardList(count: 4, height: 72),
+          );
+        }
+        if (controller.error.value != null) {
+          return AppStateView.error(
+            title: 'Could not load course content',
+            message: controller.error.value!,
+            actionLabel: controller.courseId.isEmpty ? null : 'Try again',
+            onAction: controller.courseId.isEmpty ? null : controller.load,
+          );
         }
         return RefreshIndicator(
           onRefresh: controller.load,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackLg,
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackXxl),
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackLg,
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackXxl,
+            ),
             children: [
               // Books.
               _SectionHeader(
@@ -41,12 +56,20 @@ class CourseContentView extends GetView<CourseContentController> {
               else
                 for (final b in controller.books) ...[
                   GlassSurface(
-                    onTap: () =>
-                        Get.toNamed(HeadmasterRoutes.bookAdmin, arguments: b),
+                    onTap: () => Get.toNamed(
+                      HeadmasterRoutes.bookAdmin,
+                      parameters: {
+                        'course_id': controller.courseId,
+                        'book_id': b.id,
+                      },
+                    ),
                     padding: const EdgeInsets.all(AppSpacing.stackMd),
                     child: Row(
                       children: [
-                        const Icon(AppIcons.bookOutlined, color: AppColors.primary),
+                        const Icon(
+                          AppIcons.bookOutlined,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: AppSpacing.stackMd),
                         Expanded(
                           child: Column(
@@ -54,15 +77,19 @@ class CourseContentView extends GetView<CourseContentController> {
                             children: [
                               Text(b.title, style: AppTypography.bodyLg),
                               Text(
-                                  '${b.chapterCount} '
-                                  '${b.chapterCount == 1 ? 'chapter' : 'chapters'}',
-                                  style: AppTypography.bodySm.copyWith(
-                                      color: AppColors.onSurfaceVariant)),
+                                '${b.chapterCount} '
+                                '${b.chapterCount == 1 ? 'chapter' : 'chapters'}',
+                                style: AppTypography.bodySm.copyWith(
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        const Icon(AppIcons.chevronRightRounded,
-                            color: AppColors.onSurfaceVariant),
+                        const Icon(
+                          AppIcons.chevronRightRounded,
+                          color: AppColors.onSurfaceVariant,
+                        ),
                       ],
                     ),
                   ),
@@ -86,10 +113,14 @@ class CourseContentView extends GetView<CourseContentController> {
                     padding: const EdgeInsets.all(AppSpacing.stackMd),
                     child: Row(
                       children: [
-                        const Icon(AppIcons.descriptionOutlined,
-                            color: AppColors.tertiary),
+                        const Icon(
+                          AppIcons.descriptionOutlined,
+                          color: AppColors.tertiary,
+                        ),
                         const SizedBox(width: AppSpacing.stackMd),
-                        Expanded(child: Text(n.title, style: AppTypography.bodyLg)),
+                        Expanded(
+                          child: Text(n.title, style: AppTypography.bodyLg),
+                        ),
                       ],
                     ),
                   ),
@@ -121,8 +152,10 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 6),
-        Text(title,
-            style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          title,
+          style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700),
+        ),
         const Spacer(),
         TextButton.icon(
           onPressed: onAction,
@@ -140,7 +173,9 @@ class _EmptyLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text,
-        style: AppTypography.bodyMd.copyWith(color: AppColors.onSurfaceVariant));
+    return Text(
+      text,
+      style: AppTypography.bodyMd.copyWith(color: AppColors.onSurfaceVariant),
+    );
   }
 }

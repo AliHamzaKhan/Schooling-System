@@ -1,9 +1,8 @@
 """Direct message endpoints (1-to-1, e.g. teacher/headmaster ↔ guardian).
 
 All endpoints are self-scoped to the acting user (your inbox, your sent
-messages), so they only require school membership — the service enforces that
-the recipient belongs to the same school and that only the recipient can mark
-a message read.
+messages), so they require school membership. The service enforces current
+recipient eligibility, student-context access and participant-only history.
 """
 import uuid
 
@@ -31,7 +30,7 @@ async def send_message(
     current_user: CurrentUser,
 ) -> schemas.DirectMessageOut:
     """Send a direct message or complaint to another member of the school."""
-    return await DirectMessageService(db).send(school_id, current_user.id, data)
+    return await DirectMessageService(db).send(school_id, current_user, data)
 
 
 @router.get(
@@ -54,9 +53,10 @@ async def list_messages(
     db: DbDep,
     current_user: CurrentUser,
     box: str = Query(default="inbox", pattern="^(inbox|sent|all)$"),
+    counterpart_id: uuid.UUID | None = Query(default=None),
 ) -> list[schemas.DirectMessageOut]:
     """The acting user's direct messages (inbox / sent / all), newest first."""
-    return await DirectMessageService(db).list_for_user(school_id, current_user.id, box)
+    return await DirectMessageService(db).list_for_user(school_id, current_user.id, box, counterpart_id)
 
 
 @router.patch(

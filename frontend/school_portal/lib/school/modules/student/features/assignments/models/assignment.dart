@@ -5,22 +5,24 @@ enum StudentAssignmentStatus { inProgress, notStarted, submitted }
 
 extension StudentAssignmentStatusX on StudentAssignmentStatus {
   String get label => switch (this) {
-        StudentAssignmentStatus.inProgress => 'In Progress',
-        StudentAssignmentStatus.notStarted => 'Not Started',
-        StudentAssignmentStatus.submitted => 'Submitted',
-      };
+    StudentAssignmentStatus.inProgress => 'In Progress',
+    StudentAssignmentStatus.notStarted => 'Not Started',
+    StudentAssignmentStatus.submitted => 'Submitted',
+  };
 
   Color get color => switch (this) {
-        StudentAssignmentStatus.inProgress => AppColors.primary,
-        StudentAssignmentStatus.notStarted => AppColors.onSurfaceVariant,
-        StudentAssignmentStatus.submitted => AppColors.tertiary,
-      };
+    StudentAssignmentStatus.inProgress => AppColors.primary,
+    StudentAssignmentStatus.notStarted => AppColors.onSurfaceVariant,
+    StudentAssignmentStatus.submitted => AppColors.tertiary,
+  };
 }
 
 /// The student's own submission for an assignment, when one exists. Mirrors the
 /// backend `my_submission` (SubmissionBrief) so the detail screen can render the
 /// real turned-in state instead of reopening the submit form.
 class StudentSubmission {
+  final String id;
+
   /// Raw backend status: submitted | late | graded | approved | rejected.
   final String status;
   final String submittedOn;
@@ -32,6 +34,7 @@ class StudentSubmission {
   final String? seenAt;
 
   const StudentSubmission({
+    this.id = '',
     required this.status,
     required this.submittedOn,
     this.attachmentUrl,
@@ -51,6 +54,7 @@ class StudentSubmission {
 
   factory StudentSubmission.fromJson(Map<String, dynamic> json) =>
       StudentSubmission(
+        id: json['id'] as String? ?? '',
         status: (json['status'] as String? ?? '').toLowerCase(),
         submittedOn: json['submitted_on'] as String? ?? '',
         attachmentUrl: json['attachment_url'] as String?,
@@ -142,9 +146,11 @@ class AssignmentsData {
   final List<StudentAssignment> assignments;
   const AssignmentsData({required this.summary, required this.assignments});
 
-  factory AssignmentsData.fromJson(Map<String, dynamic> json) => AssignmentsData(
+  factory AssignmentsData.fromJson(Map<String, dynamic> json) =>
+      AssignmentsData(
         summary: AssignmentsSummary.fromJson(
-            (json['summary'] as Map<String, dynamic>?) ?? const {}),
+          (json['summary'] as Map<String, dynamic>?) ?? const {},
+        ),
         assignments: ((json['assignments'] as List?) ?? [])
             .map((e) => StudentAssignment.fromJson(e as Map<String, dynamic>))
             .toList(),

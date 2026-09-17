@@ -1,29 +1,9 @@
-"""Background task queue — the API's side of the worker offload.
+"""Legacy optional broker helper, not used for notification persistence.
 
-Slow work that used to run *inside* the HTTP request (notification fan-out to
-external providers, etc.) is instead enqueued here and consumed by a separate
-worker process (``app/worker.py``) over Redis, using `arq`.
-
-Design notes:
-
-* **Graceful degradation.** [enqueue] returns ``True`` only when the job was
-  actually handed to Redis. When ``REDIS_URL`` is unset (local dev / tests) — or
-  if Redis is momentarily unreachable — it returns ``False`` and the caller runs
-  the work inline on its own request session, so behavior is never lost, only
-  offloaded. Callers use the pattern::
-
-      if not await enqueue("deliver_message", str(obj.id), defer=1):
-          await self._do_it_inline(obj)
-
-* **The enqueue→commit race.** The API's request session commits at the *end* of
-  the request (see ``get_db``), so a freshly-created row isn't visible to the
-  worker's separate connection the instant we enqueue. Jobs are enqueued with a
-  small ``defer`` and the worker retries if the row isn't visible yet — see
-  ``app/worker.py``.
-
-* **No import of ``app.worker`` here.** The inline fallback is the caller's job,
-  which keeps this module free of the worker's (arq-importing) code so the API
-  and test processes never need `arq` installed.
+Notifications use the transactional database outbox. Never replace an enqueue
+failure with inline provider calls: the business transaction may still roll back.
+An optional broker hint is not durable notification intent; the DB poller recovers
+committed pending work without it.
 """
 from __future__ import annotations
 
@@ -54,9 +34,8 @@ async def enqueue(task: str, *args: Any, defer: float = 0) -> bool:
     """Hand ``task`` (an ``app/worker.py`` function name) to the Redis queue.
 
     Returns ``True`` when the job was queued, ``False`` when there is no broker
-    configured or enqueueing failed — in which case the caller must do the work
-    inline so it isn't dropped. ``defer`` delays execution by N seconds, giving
-    the enqueuing request time to commit before the worker picks the job up.
+    configured or enqueueing failed. Callers must preserve durable intent before
+    calling; ``defer`` is a scheduling hint, not a transaction-commit guarantee.
     """
     if not settings.REDIS_URL:
         return False
@@ -66,8 +45,7 @@ async def enqueue(task: str, *args: Any, defer: float = 0) -> bool:
         await pool.enqueue_job(task, *args, **kwargs)
         return True
     except Exception:
-        # A broker hiccup must not fail (or block) the request — fall back inline.
-        logger.exception("Failed to enqueue task %s; caller will run it inline", task)
+        logger.warning("Broker enqueue unavailable; durable work remains with its owner")
         return False
 
 

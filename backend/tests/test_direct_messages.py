@@ -1,7 +1,7 @@
 """Direct messages: staff ↔ guardian send, inbox scoping, read receipts."""
 from app.core.config import settings
 
-from tests.utils import create_user, login
+from tests.utils import create_user, enroll, login
 
 API = settings.API_V1_PREFIX
 
@@ -10,6 +10,15 @@ async def test_send_inbox_and_read(client, school):
     sid, hm = school["id"], school["hm"]
     teacher = await create_user(client, sid, hm, "teacher")
     guardian = await create_user(client, sid, hm, "guardian")
+    student = await create_user(client, sid, hm, "student")
+    grade = (await client.post(f"{API}/schools/{sid}/academic/classes", headers=hm,
+                               json={"name": "Family class"})).json()
+    section = (await client.post(f"{API}/schools/{sid}/academic/classes/{grade['id']}/sections",
+        headers=hm, json={"name": "A", "class_teacher_id": teacher['id']})).json()
+    await enroll(client, sid, hm, section['id'], student['id'])
+    linked = await client.post(f"{API}/schools/{sid}/guardians/{guardian['id']}/children",
+                              headers=hm, json={"student_id": student['id']})
+    assert linked.status_code == 201, linked.text
     th = await login(client, teacher["email"], teacher["password"])
     gh = await login(client, guardian["email"], guardian["password"])
 
@@ -63,8 +72,6 @@ async def _contacts(client, sid, headers):
 async def test_contacts_are_scoped_by_role(client, school):
     """student → own teachers only; guardian → child's teachers + headmaster;
     teacher → own students + headmaster; headmaster → everyone."""
-    from tests.utils import enroll, make_academics
-
     sid, hm = school["id"], school["hm"]
 
     teacher = await create_user(client, sid, hm, "teacher")  # class teacher
@@ -134,6 +141,7 @@ async def test_contacts_are_scoped_by_role(client, school):
     # Teacher: their student + the headmaster (not the unrelated teacher).
     teacher_contacts = await _contacts(client, sid, th)
     assert teacher_contacts.get(student["id"]) == "student"
+    assert teacher_contacts.get(guardian["id"]) == "guardian"
     assert "headmaster" in teacher_contacts.values()
     assert other_teacher["id"] not in teacher_contacts
 

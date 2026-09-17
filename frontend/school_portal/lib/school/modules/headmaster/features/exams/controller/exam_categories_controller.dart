@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
@@ -12,7 +11,7 @@ import '../view/exam_category_form_sheet.dart';
 class ExamCategoriesController extends GetxController {
   final HeadmasterRepository _repo;
   ExamCategoriesController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+    : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;
   final error = RxnString();
@@ -74,80 +73,68 @@ class ExamCategoriesController extends GetxController {
 
   Future<void> announceFlow(ExamCategory category) async {
     if (!category.canAnnounce) {
-      Get.snackbar('Not yet',
-          'You can announce "${category.name}" once its start date arrives.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Not yet',
+        'You can announce "${category.name}" once its start date arrives.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
-    final confirm = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('Announce ${category.name}?'),
-        content: Text(
-            category.announced
-                ? 'This will send the announcement to the whole school again.'
-                : 'This notifies every student, guardian and teacher that '
-                    '${category.name} examinations are scheduled.'),
-        actions: [
-          TextButton(
-              onPressed: () => Get.back<bool>(result: false),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Get.back<bool>(result: true),
-              child: const Text('Announce')),
-        ],
-      ),
+    final confirm = await showAppConfirm(
+      icon: AppIcons.campaignRounded,
+      title: 'Announce ${category.name}?',
+      message: category.announced
+          ? 'This will send the announcement to the whole school again.'
+          : 'This notifies every student, guardian and teacher that '
+                '${category.name} examinations are scheduled.',
+      confirmLabel: 'Announce',
     );
-    if (confirm != true) return;
+    if (!confirm) return;
     final res = await _repo.announceExamCategory(category.id);
     if (res.success) {
-      Get.snackbar('Announced', '${category.name} sent to the school.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Announced',
+        '${category.name} sent to the school.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     } else {
-      Get.snackbar('Could not announce', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not announce',
+        res.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
   Future<void> openTimetable(ExamCategory category) async {
     await Get.toNamed(
       HeadmasterRoutes.examTimetable,
-      arguments: {
-        'categoryId': category.id,
-        'categoryName': category.name,
-        'startDate': category.startDate,
-        'endDate': category.endDate,
-      },
+      parameters: {'category_id': category.id},
     );
     await load();
   }
 
   Future<void> deleteFlow(ExamCategory category) async {
-    final confirm = await Get.dialog<bool>(
-      AlertDialog(
-        title: const Text('Delete category?'),
-        content: Text(
-            'Delete "${category.name}"? Exams already under it keep their name '
-            'but lose the category link.'),
-        actions: [
-          TextButton(
-              onPressed: () => Get.back<bool>(result: false),
-              child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Get.back<bool>(result: true),
-            child:
-                const Text('Delete', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
+    final confirm = await showAppConfirm(
+      icon: AppIcons.deleteOutlineRounded,
+      title: 'Delete category?',
+      message:
+          'Delete "${category.name}"? Exams already under it keep their name '
+          'but lose the category link.',
+      confirmLabel: 'Delete',
+      destructive: true,
     );
-    if (confirm != true) return;
+    if (!confirm) return;
     final res = await _repo.deleteExamCategory(category.id);
     if (res.success) {
       await load();
     } else {
-      Get.snackbar('Could not delete', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not delete',
+        res.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 }

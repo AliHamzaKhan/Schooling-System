@@ -23,14 +23,8 @@ class Conversation {
 
   bool hasUnreadFor(String me) => messages.any((m) => m.isUnreadFor(me));
 
-  /// The student this thread concerns, if any (carried into replies so the
-  /// teacher↔guardian thread stays tied to the same student).
-  String? get studentId {
-    for (final m in messages.reversed) {
-      if (m.studentId != null) return m.studentId;
-    }
-    return null;
-  }
+  /// A general latest message must not inherit an older child's context.
+  String? get studentId => messages.isEmpty ? null : last.studentId;
 
   /// Groups a flat message list into conversations keyed by the other party,
   /// newest-active thread first. [me] is the signed-in user's id.
@@ -38,6 +32,7 @@ class Conversation {
     final byParty = <String, List<DirectMessage>>{};
     final names = <String, String>{};
     for (final m in all) {
+      if (m.senderId != me && m.recipientId != me) continue;
       final other = m.otherPartyId(me);
       byParty.putIfAbsent(other, () => []).add(m);
       names[other] = m.otherPartyName(me);

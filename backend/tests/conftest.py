@@ -8,15 +8,14 @@ import asyncio
 import os
 from uuid import uuid4
 
-# Point the app at the dedicated test database BEFORE importing app modules.
-os.environ.setdefault(
-    "DATABASE_URL",
-    "postgresql+asyncpg://aliawan@localhost:5432/schooling_system_test",
-)
-os.environ["ENVIRONMENT"] = "test"
+# Select only an explicitly provisioned, disposable target BEFORE app imports.
+from app.core.test_database import assert_database_identity, configure_test_environment
+
+_configured_test_url = configure_test_environment(os.environ)
 
 import pytest_asyncio  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
@@ -27,14 +26,26 @@ from app.seed import _seed_plans, _seed_super_admin, _seed_system_roles  # noqa:
 
 API = settings.API_V1_PREFIX
 TEST_URL = settings.DATABASE_URL
+if TEST_URL != _configured_test_url:
+    raise RuntimeError("Resolved test database differs from the explicitly selected target")
 
 
 def _prepare_database() -> None:
-    """Create a fresh schema and seed plans/roles/super-admin once."""
+    """Create in a validated empty database; NEVER drop existing tables."""
     async def go() -> None:
         engine = create_async_engine(TEST_URL)
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
+            row = (await conn.execute(text("""
+                SELECT current_database() AS database, current_user AS username,
+                       r.rolsuper AS superuser, r.rolcreatedb AS create_db,
+                       r.rolcreaterole AS create_role,
+                       pg_get_userbyid(d.datdba) AS owner,
+                       EXISTS (SELECT 1 FROM pg_tables
+                               WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) AS has_tables
+                FROM pg_roles r JOIN pg_database d ON d.datname=current_database()
+                WHERE r.rolname=current_user
+            """))).mappings().one()
+            assert_database_identity(**row, expected_url=TEST_URL)
             await conn.run_sync(Base.metadata.create_all)
         sm = async_sessionmaker(engine, expire_on_commit=False)
         async with sm() as db:

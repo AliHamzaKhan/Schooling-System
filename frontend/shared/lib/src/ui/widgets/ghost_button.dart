@@ -25,6 +25,14 @@ class GhostButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = onPressed == null;
+    final labelWidget = Text(
+      label,
+      textAlign: TextAlign.center,
+      style: AppTypography.bodyLg.copyWith(
+        color: AppColors.onSurface,
+        fontWeight: FontWeight.w600,
+      ),
+    );
     final btn = AnimatedOpacity(
       duration: const Duration(milliseconds: 120),
       opacity: disabled ? 0.55 : 1,
@@ -48,10 +56,7 @@ class GhostButton extends StatelessWidget {
                   Icon(leadingIcon, color: AppColors.onSurface, size: 18),
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  label,
-                  style: AppTypography.bodyLg.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.w600),
-                ),
+                if (expanded) Flexible(child: labelWidget) else labelWidget,
                 if (trailingIcon != null) ...[
                   const SizedBox(width: 8),
                   Icon(trailingIcon, color: AppColors.onSurface, size: 18),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
-import '../../../../../config/headmaster_routes.dart';
 import '../../../../../config/teacher_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../components/student_standing_card.dart';
@@ -233,7 +232,7 @@ class _Roster extends StatelessWidget {
               title: const Text('Full student report'),
               onTap: () {
                 Navigator.of(sheet).pop();
-                Get.toNamed(HeadmasterRoutes.studentReport,
+                Get.toNamed('${TeacherRoutes.studentReport}?student_id=${Uri.encodeComponent(s.studentId)}',
                     arguments: s.studentId);
               },
             ),

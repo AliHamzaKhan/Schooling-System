@@ -45,4 +45,4 @@ async def list_documents(
 async def delete_document(
     school_id: uuid.UUID, student_id: uuid.UUID, document_id: uuid.UUID, db: DbDep
 ) -> None:
-    await DocumentService(db).delete(school_id, document_id)
+    await DocumentService(db).delete(school_id, student_id, document_id)

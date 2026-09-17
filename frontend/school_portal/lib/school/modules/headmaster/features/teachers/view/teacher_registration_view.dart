@@ -51,6 +51,10 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
   final _submitting = false.obs;
   final _error = RxnString();
 
+  String? _createdTeacherId;
+  double? _pendingSalary;
+  String? _pendingDesignation;
+
   static const _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
   static const _maritalStatuses = [
     'Single',
@@ -67,8 +71,8 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
     if (_password.text.trim().length < 8) {
       return _fail('Password must be at least 8 characters');
     }
-    double? salaryValue;
-    if (_salary.text.trim().isNotEmpty) {
+    var salaryValue = _pendingSalary;
+    if (_createdTeacherId == null && _salary.text.trim().isNotEmpty) {
       salaryValue = double.tryParse(_salary.text.trim());
       if (salaryValue == null || salaryValue < 0) {
         return _fail('Enter a valid salary or leave blank');
@@ -98,31 +102,46 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
         if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
       };
 
-      final created = await _repo.createUser(
-        email: _email.text.trim(),
-        password: _password.text.trim(),
-        fullName: _fullName.text.trim(),
-        role: 'teacher',
-        phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-        profileMetadata: metadata,
-      );
-      if (!created.success) return _fail(created.error ?? 'Could not create teacher');
-      final userId = '${(created.data as Map)['id']}';
+      var userId = _createdTeacherId;
+      if (userId == null) {
+        final created = await _repo.createUser(
+          email: _email.text.trim(),
+          password: _password.text.trim(),
+          fullName: _fullName.text.trim(),
+          role: 'teacher',
+          phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          profileMetadata: metadata,
+        );
+        if (!created.success) {
+          return _fail(created.error ?? 'Could not create teacher');
+        }
+        userId = '${(created.data as Map)['id']}';
+        _createdTeacherId = userId;
+        _pendingSalary = salaryValue;
+        _pendingDesignation = _designation.value;
+      }
 
       if (salaryValue != null) {
         final prof = await _repo.createStaffProfile(
           userId: userId,
-          designation: _designation.value,
+          designation: _pendingDesignation ?? _designation.value,
           baseSalary: salaryValue,
         );
         if (!prof.success) {
-          return _fail(prof.error ?? 'Teacher created, salary setup failed');
+          return _fail(
+            'Teacher account created, but salary setup is still pending. '
+            'Retry to continue without creating another account. '
+            '${prof.error ?? 'Please try again.'}',
+          );
         }
       }
 
       Get.back<bool>(result: true);
-      Get.snackbar('Teacher registered', 'The teacher account was created.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Teacher registered',
+        'The teacher account was created.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       _submitting.value = false;
     }
@@ -136,8 +155,11 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
   String _iso(DateTime d) =>
       '${d.year.toString().padLeft(4, "0")}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}';
 
-  Future<void> _pickDate(Rx<DateTime> target,
-      {DateTime? first, DateTime? last}) async {
+  Future<void> _pickDate(
+    Rx<DateTime> target, {
+    DateTime? first,
+    DateTime? last,
+  }) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -162,10 +184,19 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
   @override
   void dispose() {
     for (final c in [
-      _fullName, _email, _password, _avatarUrl,
-      _phone, _address, _education, _experience,
-      _specialization, _salary, _nationalId,
-      _emergencyContact, _notes,
+      _fullName,
+      _email,
+      _password,
+      _avatarUrl,
+      _phone,
+      _address,
+      _education,
+      _experience,
+      _specialization,
+      _salary,
+      _nationalId,
+      _emergencyContact,
+      _notes,
     ]) {
       c.dispose();
     }
@@ -189,7 +220,10 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
         children: [
           _section('Account'),
           GlassInput(
-              label: 'Full name', hint: 'Teacher name', controller: _fullName),
+            label: 'Full name',
+            hint: 'Teacher name',
+            controller: _fullName,
+          ),
           _gap(),
           GlassInput(
             label: 'Email',
@@ -208,34 +242,40 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
           AvatarPickerField(urlController: _avatarUrl),
           _gapLg(),
           _section('Personal'),
-          Obx(() => ActionDropdownField<String>(
-                label: 'Gender',
-                hint: 'Select gender',
-                value: _gender.value,
-                items: [
-                  for (final g in _genders)
-                    DropdownMenuItem(value: g, child: Text(g)),
-                ],
-                onChanged: (v) => _gender.value = v ?? 'Male',
-              )),
+          Obx(
+            () => ActionDropdownField<String>(
+              label: 'Gender',
+              hint: 'Select gender',
+              value: _gender.value,
+              items: [
+                for (final g in _genders)
+                  DropdownMenuItem(value: g, child: Text(g)),
+              ],
+              onChanged: (v) => _gender.value = v ?? 'Male',
+            ),
+          ),
           _gap(),
-          Obx(() => _DateField(
-                label: 'Date of birth',
-                value: _dob.value,
-                placeholder: 'Tap to pick',
-                onTap: () => _pickDateNullable(_dob),
-              )),
+          Obx(
+            () => _DateField(
+              label: 'Date of birth',
+              value: _dob.value,
+              placeholder: 'Tap to pick',
+              onTap: () => _pickDateNullable(_dob),
+            ),
+          ),
           _gap(),
-          Obx(() => ActionDropdownField<String>(
-                label: 'Marital status',
-                hint: 'Select status',
-                value: _maritalStatus.value,
-                items: [
-                  for (final m in _maritalStatuses)
-                    DropdownMenuItem(value: m, child: Text(m)),
-                ],
-                onChanged: (v) => _maritalStatus.value = v ?? 'Single',
-              )),
+          Obx(
+            () => ActionDropdownField<String>(
+              label: 'Marital status',
+              hint: 'Select status',
+              value: _maritalStatus.value,
+              items: [
+                for (final m in _maritalStatuses)
+                  DropdownMenuItem(value: m, child: Text(m)),
+              ],
+              onChanged: (v) => _maritalStatus.value = v ?? 'Single',
+            ),
+          ),
           _gap(),
           GlassInput(
             label: 'Contact number',
@@ -270,16 +310,18 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
             controller: _specialization,
           ),
           _gap(),
-          Obx(() => ActionDropdownField<String>(
-                label: 'Designation',
-                hint: 'Select designation',
-                value: _designation.value,
-                items: [
-                  for (final d in SalaryController.designationOptions)
-                    DropdownMenuItem(value: d, child: Text(d)),
-                ],
-                onChanged: (v) => _designation.value = v ?? 'Teacher',
-              )),
+          Obx(
+            () => ActionDropdownField<String>(
+              label: 'Designation',
+              hint: 'Select designation',
+              value: _designation.value,
+              items: [
+                for (final d in SalaryController.designationOptions)
+                  DropdownMenuItem(value: d, child: Text(d)),
+              ],
+              onChanged: (v) => _designation.value = v ?? 'Teacher',
+            ),
+          ),
           _gap(),
           GlassInput(
             label: 'Base salary (monthly, optional)',
@@ -288,11 +330,13 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
             keyboardType: TextInputType.number,
           ),
           _gap(),
-          Obx(() => _DateField(
-                label: 'Joining date',
-                value: _joiningDate.value,
-                onTap: () => _pickDate(_joiningDate),
-              )),
+          Obx(
+            () => _DateField(
+              label: 'Joining date',
+              value: _joiningDate.value,
+              onTap: () => _pickDate(_joiningDate),
+            ),
+          ),
           _gap(),
           GlassInput(
             label: 'National / Employee ID (optional)',
@@ -317,26 +361,29 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
             if (err == null) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
-              child: Text(err,
-                  style:
-                      AppTypography.bodyMd.copyWith(color: AppColors.error)),
+              child: Text(
+                err,
+                style: AppTypography.bodyMd.copyWith(color: AppColors.error),
+              ),
             );
           }),
-          Obx(() => PrimaryButton(
-                label: 'Create Teacher',
-                isLoading: _submitting.value,
-                expanded: true,
-                onPressed: _submitting.value ? null : _submit,
-              )),
+          Obx(
+            () => PrimaryButton(
+              label: 'Create Teacher',
+              isLoading: _submitting.value,
+              expanded: true,
+              onPressed: _submitting.value ? null : _submit,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _section(String title) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.stackSm),
-        child: Text(title, style: AppTypography.labelCaps),
-      );
+    padding: const EdgeInsets.only(bottom: AppSpacing.stackSm),
+    child: Text(title, style: AppTypography.labelCaps),
+  );
 
   Widget _gap() => const SizedBox(height: AppSpacing.stackMd);
   Widget _gapLg() => const SizedBox(height: AppSpacing.stackLg);
@@ -358,8 +405,18 @@ class _DateField extends StatelessWidget {
       '${d.day.toString().padLeft(2, "0")} ${_months[d.month - 1]} ${d.year}';
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   @override
@@ -367,16 +424,21 @@ class _DateField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(),
-            style: AppTypography.labelCaps
-                .copyWith(color: AppColors.onSurfaceVariant)),
+        Text(
+          label.toUpperCase(),
+          style: AppTypography.labelCaps.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 6),
         InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.button),
           child: Container(
             padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.stackMd, vertical: 14),
+              horizontal: AppSpacing.stackMd,
+              vertical: 14,
+            ),
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(AppRadius.button),
@@ -388,13 +450,17 @@ class _DateField extends StatelessWidget {
                   child: Text(
                     value == null ? placeholder : _fmt(value!),
                     style: AppTypography.bodyLg.copyWith(
-                        color: value == null
-                            ? AppColors.onSurfaceVariant
-                            : AppColors.onSurface),
+                      color: value == null
+                          ? AppColors.onSurfaceVariant
+                          : AppColors.onSurface,
+                    ),
                   ),
                 ),
-                const Icon(AppIcons.calendarTodayOutlined,
-                    size: 18, color: AppColors.onSurfaceVariant),
+                const Icon(
+                  AppIcons.calendarTodayOutlined,
+                  size: 18,
+                  color: AppColors.onSurfaceVariant,
+                ),
               ],
             ),
           ),

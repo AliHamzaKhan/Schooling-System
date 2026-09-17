@@ -7,13 +7,13 @@ import '../../../../../widgets/profile_avatar.dart';
 import '../../../../../widgets/section_header.dart';
 import '../controller/student_report_controller.dart';
 import '../models/student_report.dart';
-import 'message_history_view.dart' show MessageHistoryArgs;
 import '../../../../../widgets/skeletons.dart';
 
 /// Student Report — a 360-degree view of one student (attendance, exams,
 /// assignments, quizzes, total points) plus guardian actions.
 class StudentReportView extends GetView<StudentReportController> {
-  const StudentReportView({super.key});
+  final bool readOnly;
+  const StudentReportView({super.key, this.readOnly = false});
 
   static String _fmt(double v) =>
       v == v.roundToDouble() ? v.toInt().toString() : v.toString();
@@ -22,29 +22,41 @@ class StudentReportView extends GetView<StudentReportController> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(title: const Text('Student Report')),
-      bottomNavigationBar: Obx(() {
-        final r = controller.report.value;
-        if (controller.loading.value || r == null) {
-          return const SizedBox.shrink();
-        }
-        return _ActionBar(controller: controller, report: r);
-      }),
+      bottomNavigationBar: readOnly
+          ? null
+          : Obx(() {
+              final r = controller.report.value;
+              if (controller.loading.value || r == null) {
+                return const SizedBox.shrink();
+              }
+              return _ActionBar(controller: controller, report: r);
+            }),
       body: Obx(() {
         if (controller.loading.value) {
-          return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
+          return const SkeletonPage(
+            body: Column(
+              children: [
+                SkeletonStatGrid(count: 4),
+                SizedBox(height: AppSpacing.stackLg),
+                SkeletonCardList(count: 3),
+              ],
+            ),
+          );
         }
         if (controller.error.value != null) {
           return Center(
-              child: Text(controller.error.value!, style: AppTypography.bodyLg));
+            child: Text(controller.error.value!, style: AppTypography.bodyLg),
+          );
         }
         final r = controller.report.value;
         if (r == null) return const SizedBox.shrink();
         return ListView(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackMd,
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackXl),
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackMd,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackXl,
+          ),
           children: [
             // Identity: profile image + the student's name, in the body.
             _ProfileHeader(name: r.studentName, avatarUrl: r.avatarUrl),
@@ -98,7 +110,9 @@ class StudentReportView extends GetView<StudentReportController> {
             const SizedBox(height: AppSpacing.stackLg),
 
             // Exams.
-            SectionHeader(title: 'Exams (avg ${r.examAverage.toStringAsFixed(0)}%)'),
+            SectionHeader(
+              title: 'Exams (avg ${r.examAverage.toStringAsFixed(0)}%)',
+            ),
             const SizedBox(height: AppSpacing.stackSm),
             if (r.exams.isEmpty)
               _empty('No published exam results.')
@@ -116,8 +130,10 @@ class StudentReportView extends GetView<StudentReportController> {
               padding: const EdgeInsets.all(AppSpacing.stackMd),
               child: Row(
                 children: [
-                  const Icon(AppIcons.assignmentOutlined,
-                      color: AppColors.primary),
+                  const Icon(
+                    AppIcons.assignmentOutlined,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: AppSpacing.stackMd),
                   Expanded(
                     child: Text(
@@ -130,7 +146,9 @@ class StudentReportView extends GetView<StudentReportController> {
                         ? '—'
                         : '${(r.assignmentsSubmitted * 100 / r.assignmentsTotal).round()}%',
                     style: AppTypography.titleMd.copyWith(
-                        fontWeight: FontWeight.w800, color: AppColors.primary),
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
@@ -152,14 +170,21 @@ class StudentReportView extends GetView<StudentReportController> {
                   padding: const EdgeInsets.all(AppSpacing.stackMd),
                   child: Row(
                     children: [
-                      const Icon(AppIcons.quizOutlined, color: AppColors.primary),
+                      const Icon(
+                        AppIcons.quizOutlined,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: AppSpacing.stackMd),
                       Expanded(
-                          child: Text(q.title, style: AppTypography.titleMd)),
-                      Text(q.score == null ? '—' : _fmt(q.score!),
-                          style: AppTypography.titleMd.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.tertiary)),
+                        child: Text(q.title, style: AppTypography.titleMd),
+                      ),
+                      Text(
+                        q.score == null ? '—' : _fmt(q.score!),
+                        style: AppTypography.titleMd.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.tertiary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -176,9 +201,9 @@ class StudentReportView extends GetView<StudentReportController> {
   }
 
   Widget _empty(String text) => GlassSurface(
-        padding: const EdgeInsets.all(AppSpacing.stackMd),
-        child: Text(text, style: AppTypography.bodyMd),
-      );
+    padding: const EdgeInsets.all(AppSpacing.stackMd),
+    child: Text(text, style: AppTypography.bodyMd),
+  );
 }
 
 class _Stat extends StatelessWidget {
@@ -194,12 +219,19 @@ class _Stat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value,
-              style: AppTypography.headlineLg
-                  .copyWith(fontSize: 24, color: accent)),
-          Text(label,
-              style: AppTypography.bodySm
-                  .copyWith(color: AppColors.onSurfaceVariant)),
+          Text(
+            value,
+            style: AppTypography.headlineLg.copyWith(
+              fontSize: 24,
+              color: accent,
+            ),
+          ),
+          Text(
+            label,
+            style: AppTypography.bodySm.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -215,12 +247,16 @@ class _Mini extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value,
-            style:
-                AppTypography.titleLg.copyWith(fontWeight: FontWeight.w800)),
-        Text(label,
-            style: AppTypography.bodySm
-                .copyWith(color: AppColors.onSurfaceVariant)),
+        Text(
+          value,
+          style: AppTypography.titleLg.copyWith(fontWeight: FontWeight.w800),
+        ),
+        Text(
+          label,
+          style: AppTypography.bodySm.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -239,12 +275,18 @@ class _ExamRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(exam.examName, style: AppTypography.titleMd)),
-          Text('${exam.percentage.toStringAsFixed(0)}%',
-              style: AppTypography.titleMd
-                  .copyWith(fontWeight: FontWeight.w800, color: color)),
+          Text(
+            '${exam.percentage.toStringAsFixed(0)}%',
+            style: AppTypography.titleMd.copyWith(
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
           const SizedBox(width: AppSpacing.stackSm),
-          Text(exam.grade.isEmpty ? (passed ? 'P' : 'F') : exam.grade,
-              style: AppTypography.labelMd.copyWith(color: color)),
+          Text(
+            exam.grade.isEmpty ? (passed ? 'P' : 'F') : exam.grade,
+            style: AppTypography.labelMd.copyWith(color: color),
+          ),
         ],
       ),
     );
@@ -281,13 +323,17 @@ class _GuardianInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final guardian =
-        report.guardians.isEmpty ? null : report.guardians.first.name;
+    final guardian = report.guardians.isEmpty
+        ? null
+        : report.guardians.first.name;
     return GlassSurface(
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Row(
         children: [
-          const Icon(AppIcons.escalatorWarningRounded, color: AppColors.primary),
+          const Icon(
+            AppIcons.escalatorWarningRounded,
+            color: AppColors.primary,
+          ),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
             child: Text(
@@ -323,7 +369,8 @@ class _ActionBar extends StatelessWidget {
     );
     if (time == null) return;
     await controller.createMeeting(
-        DateTime(date.year, date.month, date.day, time.hour, time.minute));
+      DateTime(date.year, date.month, date.day, time.hour, time.minute),
+    );
   }
 
   @override
@@ -337,16 +384,20 @@ class _ActionBar extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.stackMd, vertical: AppSpacing.stackSm),
+            horizontal: AppSpacing.stackMd,
+            vertical: AppSpacing.stackSm,
+          ),
           child: Row(
             children: [
               Expanded(
-                child: Obx(() => _ActionButton(
-                      icon: AppIcons.eventAvailableRounded,
-                      label: 'Meeting',
-                      busy: controller.actionBusy.value,
-                      onTap: () => _requestMeeting(context),
-                    )),
+                child: Obx(
+                  () => _ActionButton(
+                    icon: AppIcons.eventAvailableRounded,
+                    label: 'Meeting',
+                    busy: controller.actionBusy.value,
+                    onTap: () => _requestMeeting(context),
+                  ),
+                ),
               ),
               const SizedBox(width: AppSpacing.stackSm),
               Expanded(
@@ -373,10 +424,7 @@ class _ActionBar extends StatelessWidget {
                   label: 'History',
                   onTap: () => Get.toNamed(
                     HeadmasterRoutes.messageHistory,
-                    arguments: MessageHistoryArgs(
-                      studentId: report.studentId,
-                      studentName: report.studentName,
-                    ),
+                    parameters: {'student_id': report.studentId},
                   ),
                 ),
               ),
@@ -426,14 +474,18 @@ class _ActionButton extends StatelessWidget {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: color),
+                          strokeWidth: 2,
+                          color: color,
+                        ),
                       )
                     : Icon(icon, size: 20, color: color),
                 const SizedBox(height: 4),
-                Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.labelMd.copyWith(color: color)),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.labelMd.copyWith(color: color),
+                ),
               ],
             ),
           ),

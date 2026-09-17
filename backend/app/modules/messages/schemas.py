@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class DirectMessageCreate(BaseModel):
@@ -11,6 +11,13 @@ class DirectMessageCreate(BaseModel):
     student_id: uuid.UUID | None = None  # the student the message concerns
     kind: Literal["message", "complaint"] = "message"
     body: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("body")
+    @classmethod
+    def meaningful_body(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Write a message before sending")
+        return value.strip()
 
 
 class ContactOut(BaseModel):

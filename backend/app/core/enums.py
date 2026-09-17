@@ -238,14 +238,22 @@ class AudienceType(str, Enum):
 
 
 class MessageStatus(str, Enum):
+    UNCERTAIN = "uncertain"
     SCHEDULED = "scheduled"
     PENDING = "pending"
+    ACCEPTED = "accepted"
+    SIMULATED = "simulated"
     SENT = "sent"
     PARTIAL = "partial"
     FAILED = "failed"
 
 
 class DeliveryStatus(str, Enum):
+    PENDING = "pending"
+    SENDING = "sending"
+    UNCERTAIN = "uncertain"
+    ACCEPTED = "accepted"
+    SIMULATED = "simulated"
     SENT = "sent"
     DELIVERED = "delivered"
     READ = "read"

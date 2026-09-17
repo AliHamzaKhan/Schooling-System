@@ -2,10 +2,9 @@
 
 Real adapters for Twilio (WhatsApp/SMS) and Firebase Cloud Messaging (push),
 plus a plain email placeholder. When the relevant credentials are not configured
-in settings, each channel degrades to "stub" mode: it logs the intended message
-and reports success without making a network call. This keeps the whole
-Communication module runnable and testable without secrets, and live the moment
-credentials are added to .env.
+in settings, each channel reports "simulated": no delivery was attempted.
+Successful provider requests report "accepted", never confirmed delivery.
+Email remains a placeholder until a real adapter is configured and verified.
 """
 import json
 import logging
@@ -78,16 +77,18 @@ class Notifier:
             if channel == Channel.EMAIL.value:
                 return await self._email(address, subject, body)
         except Exception as exc:  # network/provider error -> failed, never crash the send
-            logger.warning("Delivery error on %s to %s: %s", channel, address, exc)
-            return DeliveryResult(status=DeliveryStatus.FAILED.value, provider="error", error=str(exc))
+            logger.warning("Delivery error on %s (%s)", channel, type(exc).__name__)
+            return DeliveryResult(status=DeliveryStatus.UNCERTAIN.value, provider="error",
+                                  error=f"Provider outcome unknown ({type(exc).__name__}); review before retry")
         return DeliveryResult(status=DeliveryStatus.FAILED.value, provider="none", error="Unknown channel")
 
     # ------------------------------ Twilio ------------------------------- #
 
     async def _twilio(self, to: str, body: str, *, whatsapp: bool) -> DeliveryResult:
         if not self._twilio_ready():
-            logger.info("[STUB twilio %s] to=%s body=%r", "whatsapp" if whatsapp else "sms", to, body)
-            return DeliveryResult(status=DeliveryStatus.SENT.value, provider="stub", stub=True)
+            logger.info("[STUB twilio %s] no delivery attempted", "whatsapp" if whatsapp else "sms")
+            return DeliveryResult(status=DeliveryStatus.SIMULATED.value, provider="stub",
+                                  error="Provider not configured; no delivery attempted", stub=True)
 
         sender = settings.TWILIO_WHATSAPP_FROM if whatsapp else settings.TWILIO_SMS_FROM
         to_addr = f"whatsapp:{to}" if whatsapp and not to.startswith("whatsapp:") else to
@@ -101,12 +102,12 @@ class Notifier:
                 url, data=data,
                 auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN),
             )
-        if resp.status_code >= 400:
+        if resp.status_code >= 300:
             return DeliveryResult(
-                status=DeliveryStatus.FAILED.value, provider="twilio",
-                error=f"HTTP {resp.status_code}: {resp.text[:200]}",
+                status=DeliveryStatus.UNCERTAIN.value if resp.status_code >= 500 else DeliveryStatus.FAILED.value, provider="twilio",
+                error=f"HTTP {resp.status_code}",
             )
-        return DeliveryResult(status=DeliveryStatus.SENT.value, provider="twilio")
+        return DeliveryResult(status=DeliveryStatus.ACCEPTED.value, provider="twilio")
 
     # ------------------------------- FCM --------------------------------- #
 
@@ -177,8 +178,9 @@ class Notifier:
         minted from the service account rather than a static server key.
         """
         if not self._fcm_ready():
-            logger.info("[STUB fcm] token=%s title=%r body=%r", token[:12], title, body)
-            return DeliveryResult(status=DeliveryStatus.SENT.value, provider="stub", stub=True)
+            logger.info("[STUB fcm] no delivery attempted")
+            return DeliveryResult(status=DeliveryStatus.SIMULATED.value, provider="stub",
+                                  error="Provider not configured; no delivery attempted", stub=True)
 
         import httpx
 
@@ -198,22 +200,34 @@ class Notifier:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             resp = await client.post(url, json=payload, headers=headers)
 
-        if resp.status_code >= 400:
-            # UNREGISTERED / INVALID_ARGUMENT mean the device token is dead —
-            # surfaced verbatim so the caller can prune it from device_tokens.
-            detail = resp.text[:200]
+        if resp.status_code >= 300:
+            # Preserve known machine codes, never echoed payloads or tokens.
+            # INVALID_ARGUMENT may also indicate a malformed message, not a dead token.
+            known_codes = {"UNREGISTERED", "INVALID_ARGUMENT", "SENDER_ID_MISMATCH",
+                           "QUOTA_EXCEEDED", "UNAVAILABLE", "INTERNAL", "THIRD_PARTY_AUTH_ERROR"}
+            codes = []
+            try:
+                error = resp.json().get("error", {})
+                candidates = [error.get("status")] + [
+                    detail.get("errorCode") for detail in error.get("details", [])
+                    if isinstance(detail, dict)
+                ]
+                codes = sorted({code for code in candidates if isinstance(code, str) and code in known_codes})
+            except (ValueError, AttributeError, TypeError):
+                pass
             return DeliveryResult(
-                status=DeliveryStatus.FAILED.value, provider="fcm",
-                error=f"HTTP {resp.status_code}: {detail}",
+                status=DeliveryStatus.UNCERTAIN.value if resp.status_code >= 500 else DeliveryStatus.FAILED.value, provider="fcm",
+                error=f"HTTP {resp.status_code}" + (f": {', '.join(codes)}" if codes else ""),
             )
-        return DeliveryResult(status=DeliveryStatus.SENT.value, provider="fcm")
+        return DeliveryResult(status=DeliveryStatus.ACCEPTED.value, provider="fcm")
 
     # ------------------------------ email -------------------------------- #
 
     async def _email(self, to: str, subject: str | None, body: str) -> DeliveryResult:
         # Real SMTP not configured here; log in stub mode.
-        logger.info("[STUB email] to=%s subject=%r body=%r", to, subject, body)
-        return DeliveryResult(status=DeliveryStatus.SENT.value, provider="stub", stub=True)
+        logger.info("[STUB email] no delivery attempted")
+        return DeliveryResult(status=DeliveryStatus.SIMULATED.value, provider="stub",
+                              error="Email delivery is not configured; no delivery attempted", stub=True)
 
 
 notifier = Notifier()

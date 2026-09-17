@@ -360,7 +360,7 @@ class StudentApiService {
     );
   }
 
-  /// Live notifications from school broadcasts
+  /// Live notifications from server-authorized broadcasts for this student.
   /// (`/schools/{id}/communication/broadcasts`, `MessageOut` list). The backend
   /// has no per-student read state or category, so every item maps to
   /// [NotificationKind.announcement] and `unread` defaults false; `timeAgo`

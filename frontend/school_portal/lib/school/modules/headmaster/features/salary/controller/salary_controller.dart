@@ -8,7 +8,6 @@ import '../../../data/headmaster_repository.dart';
 import '../models/salary_models.dart';
 import '../utils/money.dart';
 import '../utils/payslip_pdf.dart';
-import '../view/generate_payslip_view.dart';
 
 class _LabeledDropdown<T> extends StatelessWidget {
   final String label;
@@ -30,9 +29,12 @@ class _LabeledDropdown<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: AppTypography.labelMd
-                .copyWith(color: AppColors.onSurfaceVariant)),
+        Text(
+          label,
+          style: AppTypography.labelMd.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
@@ -63,7 +65,7 @@ class _LabeledDropdown<T> extends StatelessWidget {
 class SalaryController extends GetxController {
   final HeadmasterRepository _repo;
   SalaryController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+    : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;
   final error = RxnString();
@@ -105,35 +107,50 @@ class SalaryController extends GetxController {
   ];
 
   static const List<String> monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   /// Set or edit a teacher's salary (creates or updates their staff profile).
   Future<void> setSalaryFlow(SalaryStaff s) async {
-    final initial =
-        designationOptions.contains(s.designation) ? s.designation! : 'Teacher';
+    final initial = designationOptions.contains(s.designation)
+        ? s.designation!
+        : 'Teacher';
     final designation = initial.obs;
-    final salary =
-        TextEditingController(text: s.baseSalary?.toStringAsFixed(0) ?? '');
+    final salary = TextEditingController(
+      text: s.baseSalary?.toStringAsFixed(0) ?? '',
+    );
     final ok = await showActionFormSheet(
       title: s.hasSalary ? 'Edit Salary — ${s.name}' : 'Set Salary — ${s.name}',
       submitLabel: 'Save',
       // The sheet owns this field and disposes it when it closes.
       ownedControllers: [salary],
       fields: [
-        Obx(() => _LabeledDropdown<String>(
-              label: 'Designation',
-              value: designation.value,
-              items: designationOptions,
-              onChanged: (v) => designation.value = v ?? 'Teacher',
-              itemLabel: (v) => v,
-            )),
+        Obx(
+          () => _LabeledDropdown<String>(
+            label: 'Designation',
+            value: designation.value,
+            items: designationOptions,
+            onChanged: (v) => designation.value = v ?? 'Teacher',
+            itemLabel: (v) => v,
+          ),
+        ),
         GlassInput(
-            label: 'Base salary (monthly)',
-            hint: 'e.g. 60000',
-            controller: salary,
-            keyboardType: TextInputType.number),
+          label: 'Base salary (monthly)',
+          hint: 'e.g. 60000',
+          controller: salary,
+          keyboardType: TextInputType.number,
+        ),
       ],
       onSubmit: () async {
         final value = double.tryParse(salary.text.trim());
@@ -142,17 +159,22 @@ class SalaryController extends GetxController {
             ? await _repo.updateStaffProfile(
                 profileId: s.profileId!,
                 designation: designation.value,
-                baseSalary: value)
+                baseSalary: value,
+              )
             : await _repo.createStaffProfile(
                 userId: s.userId,
                 designation: designation.value,
-                baseSalary: value);
+                baseSalary: value,
+              );
         return res.success ? null : (res.error ?? 'Could not save salary');
       },
     );
     if (ok == true) {
-      Get.snackbar('Salary saved', 'The salary was updated.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Salary saved',
+        'The salary was updated.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     }
   }
@@ -160,13 +182,16 @@ class SalaryController extends GetxController {
   /// Open the full-page Generate Payslip flow; reload on success.
   Future<void> generatePayslipFlow(SalaryStaff s) async {
     if (!s.hasSalary) {
-      Get.snackbar('Set salary first', 'Add a base salary before generating a payslip.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Set salary first',
+        'Add a base salary before generating a payslip.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
     final ok = await Get.toNamed(
       HeadmasterRoutes.generatePayslip,
-      arguments: GeneratePayslipArgs(s),
+      parameters: {'staff_id': s.userId},
     );
     if (ok == true) await load();
   }
@@ -197,12 +222,16 @@ class SalaryController extends GetxController {
               _kv('Status', p.status),
               _kv('Gross', money(p.gross)),
               if (p.absenceDeduction > 0)
-                _kv('Absence deduction',
-                    '- ${money(p.absenceDeduction)} (${p.absentDays}d)'),
+                _kv(
+                  'Absence deduction',
+                  '- ${money(p.absenceDeduction)} (${p.absentDays}d)',
+                ),
               _kv('Deductions', '- ${money(p.deductions)}'),
               _kv('Net', money(p.net)),
-              _kv('Attendance',
-                  'P ${p.presentDays} · A ${p.absentDays} · L ${p.lateDays} · Lv ${p.leaveDays}'),
+              _kv(
+                'Attendance',
+                'P ${p.presentDays} · A ${p.absentDays} · L ${p.lateDays} · Lv ${p.leaveDays}',
+              ),
               if (p.paidOn != null) _kv('Paid on', p.paidOn!),
               const SizedBox(height: AppSpacing.stackLg),
               Row(
@@ -244,8 +273,11 @@ class SalaryController extends GetxController {
   Future<void> sharePayslipPdf(PayslipRow p) async {
     final s = staff.firstWhereOrNull((st) => st.profileId == p.staffProfileId);
     if (s == null) {
-      Get.snackbar('Could not build PDF', 'Staff record not found.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not build PDF',
+        'Staff record not found.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
     // School branding for the PDF header; a failure here is non-fatal.
@@ -257,34 +289,47 @@ class SalaryController extends GetxController {
         school: profileRes.success ? profileRes.data : null,
       );
     } catch (e) {
-      Get.snackbar('Could not share PDF', '$e',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not share PDF',
+        '$e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
   static Widget _kv(String k, String v) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            SizedBox(
-                width: 90,
-                child: Text(k,
-                    style: AppTypography.labelMd
-                        .copyWith(color: AppColors.onSurfaceVariant))),
-            Expanded(child: Text(v, style: AppTypography.bodyMd)),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 90,
+          child: Text(
+            k,
+            style: AppTypography.labelMd.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
         ),
-      );
+        Expanded(child: Text(v, style: AppTypography.bodyMd)),
+      ],
+    ),
+  );
 
   Future<void> markPaid(PayslipRow p) async {
     final res = await _repo.markPayslipPaid(p.id);
     if (res.success) {
-      Get.snackbar('Marked paid', 'The payslip was marked as paid.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Marked paid',
+        'The payslip was marked as paid.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     } else {
-      Get.snackbar('Could not update', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not update',
+        res.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 }

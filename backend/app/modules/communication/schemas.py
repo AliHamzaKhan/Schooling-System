@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_serializer
 
 from app.core.enums import AudienceType, Channel, NotificationEvent
 
@@ -80,7 +80,7 @@ class BroadcastCreate(BaseModel):
     audience_ref: uuid.UUID | None = None  # class_id or section_id when applicable
     title: str | None = Field(default=None, max_length=200)
     body: str = Field(min_length=1)
-    scheduled_at: datetime | None = None
+    scheduled_at: AwareDatetime | None = None
 
 
 class MessageOut(BaseModel):
@@ -110,8 +110,34 @@ class DeliveryOut(BaseModel):
     provider: str | None = None
     error: str | None = None
 
+    @field_serializer("address")
+    def redact_push_token(self, value):
+        return None if self.channel == "push" else value
+
 
 class DeliverySummary(BaseModel):
     message_id: uuid.UUID
     total: int
     counts: dict[str, int]
+
+
+class DeliveryReviewItem(BaseModel):
+    id: uuid.UUID
+    recipient: str
+    address_label: str
+    status: str
+    provider: str | None
+    updated_at: datetime
+
+
+class BroadcastReview(BaseModel):
+    message: MessageOut
+    outbox_state: str
+    worker_attempts: int
+    available_at: datetime | None
+    lease_expired: bool
+    counts: dict[str, int]
+    total: int
+    offset: int
+    has_more: bool
+    items: list[DeliveryReviewItem]

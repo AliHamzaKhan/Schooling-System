@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import 'view/access_denied_view.dart';
+
 import 'forgot_password/binding/forgot_password_binding.dart';
 import 'forgot_password/view/forgot_password_view.dart';
 import 'login/binding/login_binding.dart';
@@ -20,12 +22,18 @@ class AuthRoutes {
   AuthRoutes._();
 
   static const login = '/login';
+  static const accessDenied = '/access-denied';
   static const forgotPassword = '/forgot-password';
   static const verifyOtp = '/verify-otp';
   static const resetPassword = '/reset-password';
 
   static final pages = <GetPage>[
-    GetPage(name: login, page: () => const LoginView(), binding: LoginBinding()),
+    GetPage(name: accessDenied, page: () => const AccessDeniedView()),
+    GetPage(
+      name: login,
+      page: () => const LoginView(),
+      binding: LoginBinding(),
+    ),
     GetPage(
       name: forgotPassword,
       page: () => const ForgotPasswordView(),

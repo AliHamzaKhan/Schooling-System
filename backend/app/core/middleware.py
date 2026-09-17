@@ -47,6 +47,18 @@ class SecurityHeadersMiddleware:
             if message["type"] == "http.response.start":
                 headers = message.setdefault("headers", [])
                 existing = {k.lower() for k, _ in headers}
+                private_communication = (
+                    path.startswith(f"{settings.API_V1_PREFIX}/schools/")
+                    and ("/communication/" in path or "/messages/" in path or path.endswith("/messages")
+                         or "/academic/" in path or "/reports/" in path
+                         or ("/sections/" in path and path.endswith("/students")))
+                )
+                if (private_communication or path == f"{settings.API_V1_PREFIX}/file-download" or
+                        ("/files/" in path and path.endswith("/ticket"))):
+                    # Targeted communication, denials and expired tickets must
+                    # not survive authorization changes in an HTTP cache.
+                    if b"cache-control" not in existing:
+                        headers.append((b"cache-control", b"private, no-store"))
                 for key, value in _BASE_HEADERS:
                     if key == b"content-security-policy" and csp_exempt:
                         continue

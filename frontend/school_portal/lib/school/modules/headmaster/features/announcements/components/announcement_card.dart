@@ -9,12 +9,14 @@ class AnnouncementCard extends StatelessWidget {
   final Announcement announcement;
   final VoidCallback? onCta;
   final VoidCallback? onAttachment;
+  final VoidCallback? onReview;
 
   const AnnouncementCard({
     super.key,
     required this.announcement,
     this.onCta,
     this.onAttachment,
+    this.onReview,
   });
 
   @override
@@ -41,10 +43,11 @@ class AnnouncementCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: AppSpacing.stackSm,
+                      runSpacing: AppSpacing.stackSm,
                       children: [
                         _ScopePill(scope: a.scope),
-                        const SizedBox(width: AppSpacing.stackSm),
                         Text(a.timestamp, style: AppTypography.bodySm),
                       ],
                     ),
@@ -52,6 +55,21 @@ class AnnouncementCard extends StatelessWidget {
                     Text(a.title, style: AppTypography.headlineLg.copyWith(fontSize: 22)),
                     const SizedBox(height: AppSpacing.stackSm),
                     Text(a.body, style: AppTypography.bodyLg),
+                    const SizedBox(height: AppSpacing.stackMd),
+                    Text(
+                      BroadcastOutcome(a.deliveryStatus).label,
+                      style: AppTypography.labelMd.copyWith(
+                        color: a.deliveryStatus == 'failed' || a.deliveryStatus == 'simulated'
+                            ? AppColors.error : AppColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(BroadcastOutcome(a.deliveryStatus).description,
+                        style: AppTypography.bodySm),
+                    if (onReview != null)
+                      TextButton.icon(onPressed: onReview,
+                        icon: const Icon(Icons.fact_check_outlined),
+                        label: const Text('Review delivery')),
                     if (a.author != null) ...[
                       const Divider(height: AppSpacing.stackLg, color: AppColors.outlineVariant),
                       Row(

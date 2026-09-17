@@ -52,7 +52,8 @@ class _InboxViewState extends State<InboxView> {
     await Get.to<void>(() => ConversationView(
           counterpartId: c.counterpartId,
           counterpartName: c.counterpartName,
-          studentId: c.studentId,
+          // Derive reply context from the freshly loaded thread, not the
+          // potentially stale inbox preview.
         ));
     // Coming back, refresh so read state / new replies show.
     await controller.load();

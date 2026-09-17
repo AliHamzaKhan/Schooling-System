@@ -51,3 +51,15 @@ async def enroll(client: AsyncClient, sid: str, hm: dict, section_id: str, stude
     )
     assert r.status_code == 201, r.text
     return r.json()["id"]
+async def run_notification(message_id):
+    """Drive only this committed message through a real isolated DB worker."""
+    from uuid import UUID
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    from app.modules.communication.outbox import OutboxWorker
+    from tests.conftest import TEST_URL
+
+    engine = create_async_engine(TEST_URL)
+    try:
+        await OutboxWorker(async_sessionmaker(engine, expire_on_commit=False)).process(UUID(message_id))
+    finally:
+        await engine.dispose()

@@ -1,7 +1,7 @@
 """Fee Management endpoints, gated by the FEE_MANAGEMENT module."""
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Header, Query, status
 
 from app.core.deps import CurrentUser, DbDep, require_school_permission
 from app.core.enums import Module, PermissionAction as PA
@@ -96,8 +96,11 @@ async def record_payment(
     data: schemas.PaymentCreate,
     db: DbDep,
     current_user: CurrentUser,
+    idempotency_key: uuid.UUID | None = Header(default=None, alias="Idempotency-Key"),
 ) -> schemas.PaymentOut:
-    return await FeeService(db).record_payment(school_id, invoice_id, data, current_user.id)
+    return await FeeService(db).record_payment(
+        school_id, invoice_id, data, current_user.id, idempotency_key=idempotency_key,
+    )
 
 
 # -------------------------------- reports ------------------------------- #

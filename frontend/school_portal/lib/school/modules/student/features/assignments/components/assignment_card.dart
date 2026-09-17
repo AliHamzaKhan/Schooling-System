@@ -13,7 +13,11 @@ class AssignmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = assignment;
+    const accents = [AppColors.primary, AppColors.tertiary, AppColors.secondary,
+      Color(0xFF986016), Color(0xFF2673B8)];
+    final accent = accents[a.subject.runes.fold<int>(0, (sum, char) => sum + char) % accents.length];
     return GlassSurface(
+      fill: Color.alphaBlend(accent.withValues(alpha: .055), Colors.white),
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       onTap: onTap,
       child: Column(
@@ -25,17 +29,23 @@ class AssignmentCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: a.accent.withValues(alpha: 0.14),
+                  color: accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
-                child: Icon(AppIcons.menuBookRounded, size: 20, color: a.accent),
+                child: Icon(
+                  AppIcons.menuBookRounded,
+                  size: 20,
+                  color: accent,
+                ),
               ),
               const SizedBox(width: AppSpacing.stackSm),
               Expanded(
                 child: Text(
                   a.subject.isEmpty ? 'Assignment' : a.subject,
                   style: AppTypography.titleMd.copyWith(
-                      color: a.accent, fontWeight: FontWeight.w700),
+                    color: accent,
+                    fontWeight: FontWeight.w700,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -47,11 +57,14 @@ class AssignmentCard extends StatelessWidget {
           Text(a.title, style: AppTypography.headlineLg.copyWith(fontSize: 21)),
           if (a.description.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(a.description,
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onSurfaceVariant),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis),
+            Text(
+              a.description,
+              style: AppTypography.bodyMd.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
           const SizedBox(height: AppSpacing.stackMd),
           const Divider(height: 1, color: AppColors.outlineVariant),
@@ -63,29 +76,40 @@ class AssignmentCard extends StatelessWidget {
                     ? AppIcons.accessTimeRounded
                     : AppIcons.calendarTodayOutlined,
                 size: 14,
-                color:
-                    a.dueIsUrgent ? AppColors.error : AppColors.onSurfaceVariant,
+                color: a.dueIsUrgent
+                    ? AppColors.error
+                    : AppColors.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
-              Text(
-                a.dueLine,
-                style: AppTypography.bodyMd.copyWith(
-                  color: a.dueIsUrgent
-                      ? AppColors.error
-                      : AppColors.onSurfaceVariant,
-                  fontWeight: a.dueIsUrgent ? FontWeight.w700 : FontWeight.w400,
+              Flexible(
+                child: Text(
+                  a.dueLine,
+                  style: AppTypography.bodyMd.copyWith(
+                    color: a.dueIsUrgent
+                        ? AppColors.error
+                        : AppColors.onSurfaceVariant,
+                    fontWeight: a.dueIsUrgent
+                        ? FontWeight.w700
+                        : FontWeight.w400,
+                  ),
                 ),
               ),
               const Spacer(),
               if (a.points > 0) ...[
-                Text('${a.points} pts',
-                    style: AppTypography.labelMd.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                        fontWeight: FontWeight.w700)),
+                Text(
+                  '${a.points} pts',
+                  style: AppTypography.labelMd.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(width: 6),
               ],
-              const Icon(AppIcons.chevronRightRounded,
-                  size: 20, color: AppColors.onSurfaceVariant),
+              const Icon(
+                AppIcons.chevronRightRounded,
+                size: 20,
+                color: AppColors.onSurfaceVariant,
+              ),
             ],
           ),
         ],
@@ -104,14 +128,19 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: muted ? Colors.transparent : status.color.withValues(alpha: 0.14),
+        color: muted
+            ? Colors.transparent
+            : status.color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadius.full),
         border: muted ? Border.all(color: AppColors.outlineVariant) : null,
       ),
-      child: Text(status.label,
-          style: AppTypography.labelMd.copyWith(
-              color: muted ? AppColors.onSurfaceVariant : status.color,
-              fontWeight: FontWeight.w700)),
+      child: Text(
+        status.label,
+        style: AppTypography.labelMd.copyWith(
+          color: muted ? AppColors.onSurfaceVariant : status.color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

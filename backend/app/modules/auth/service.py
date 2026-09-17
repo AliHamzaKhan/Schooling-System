@@ -1,8 +1,8 @@
 """Authentication service: credentials, token issuance, and refresh sessions.
 
 Refresh tokens are backed by `RefreshSession` rows so they can be rotated,
-revoked, and checked for reuse. Access tokens remain stateless; see
-`app/models/session.py` for the rationale.
+revoked, and checked for reuse. Access tokens bind to the same session, whose
+committed revocation/expiry is checked on every authenticated request.
 """
 import secrets
 import uuid
@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.core.exceptions import bad_request, credentials_exception
 from app.core.security import (
-    ACCESS_TOKEN,
+    REFRESH_TOKEN,
     RESET_TOKEN,
     JWTError,
     create_access_token,
@@ -44,6 +44,7 @@ class AuthService:
         result = await self.db.execute(
             select(User)
             .where(User.email == email.lower())
+            .with_for_update()
             .options(selectinload(User.roles).selectinload(Role.permissions))
         )
         user = result.scalar_one_or_none()
@@ -77,7 +78,7 @@ class AuthService:
                 ip_address=ip,
             )
         )
-        return create_access_token(str(user.id)), refresh
+        return create_access_token(str(user.id), str(session_id)), refresh
 
     async def rotate_session(self, refresh_token: str) -> tuple[str, str]:
         """Validate + rotate a refresh token, returning a fresh (access, refresh).
@@ -87,7 +88,9 @@ class AuthService:
         standard response to a leaked refresh token.
         """
         payload = self._decode_refresh(refresh_token)
-        session = await self.db.get(RefreshSession, payload["sid"])
+        session = await self.db.scalar(select(RefreshSession).where(
+            RefreshSession.id == payload["sid"]
+        ).with_for_update().execution_options(populate_existing=True))
         now = datetime.now(timezone.utc)
 
         if (
@@ -112,7 +115,7 @@ class AuthService:
         session.token_hash = hash_token(new_refresh)
         session.expires_at = _refresh_expiry()
         session.last_used_at = now
-        return create_access_token(str(user.id)), new_refresh
+        return create_access_token(str(user.id), str(session.id)), new_refresh
 
     async def revoke_session(self, refresh_token: str) -> None:
         """Logout: revoke the session this refresh token belongs to (idempotent)."""
@@ -120,7 +123,9 @@ class AuthService:
             payload = self._decode_refresh(refresh_token)
         except Exception:
             return  # A bad/expired token has nothing to revoke; stay quiet.
-        session = await self.db.get(RefreshSession, payload["sid"])
+        session = await self.db.scalar(select(RefreshSession).where(
+            RefreshSession.id == payload["sid"], RefreshSession.user_id == payload["sub"],
+        ).with_for_update().execution_options(populate_existing=True))
         if session is not None and session.revoked_at is None:
             session.revoked_at = datetime.now(timezone.utc)
 
@@ -141,6 +146,8 @@ class AuthService:
     ) -> None:
         """Change the signed-in user's password after re-checking the current one,
         then revoke every refresh session (all devices must re-authenticate)."""
+        user = await self.db.scalar(select(User).where(User.id == user.id)
+                                   .with_for_update().execution_options(populate_existing=True))
         if not verify_password(current_password, user.hashed_password):
             raise bad_request("Current password is incorrect")
         user.hashed_password = hash_password(new_password)
@@ -196,6 +203,7 @@ class AuthService:
             .where(User.email == email.lower(), PasswordReset.consumed_at.is_(None))
             .order_by(PasswordReset.created_at.desc())
             .limit(1)
+            .with_for_update(of=PasswordReset)
         )
         reset = result.scalar_one_or_none()
         invalid = bad_request("Invalid or expired code")
@@ -230,7 +238,9 @@ class AuthService:
         except (JWTError, KeyError, ValueError, TypeError):
             raise credentials_exception()
 
-        reset = await self.db.get(PasswordReset, reset_id)
+        reset = await self.db.scalar(select(PasswordReset).where(
+            PasswordReset.id == reset_id
+        ).with_for_update().execution_options(populate_existing=True))
         now = datetime.now(timezone.utc)
         if (
             reset is None
@@ -255,7 +265,7 @@ class AuthService:
         """Decode a refresh token into {'sub': UUID, 'sid': UUID}."""
         try:
             payload = decode_token(token)
-            if payload.get("type") == ACCESS_TOKEN:
+            if payload.get("type") != REFRESH_TOKEN:
                 raise credentials_exception()
             return {
                 "sub": uuid.UUID(payload["sub"]),

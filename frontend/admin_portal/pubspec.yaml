@@ -35,6 +35,12 @@ dependencies:
   shared:
     path: ../shared
 
+  # Reuse the production headmaster feature module instead of maintaining a
+  # second set of forms/controllers in the web portal. The school app is a
+  # valid local Dart package even though it also has its own executable.
+  school_portal:
+    path: ../school_portal
+
   # Routing + DI (GetMaterialApp / GetPage used in main.dart).
   get: ^4.6.6
 

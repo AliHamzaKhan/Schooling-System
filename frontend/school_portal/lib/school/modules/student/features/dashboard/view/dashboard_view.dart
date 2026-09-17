@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../../../config/student_routes.dart';
 import '../../../../../widgets/dashboard_kit.dart';
 import '../../../../../widgets/portal_top_bar.dart';
+import '../../../widgets/student_gradient_header.dart';
 import '../../../../../widgets/section_header.dart';
 import '../../assignments/components/assignment_card.dart';
 import '../../assignments/models/assignment.dart';
@@ -40,11 +41,22 @@ class DashboardView extends GetView<StudentDashboardController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
+              return const SkeletonPage(
+                body: Column(
+                  children: [
+                    SkeletonStatGrid(count: 4),
+                    SizedBox(height: AppSpacing.stackLg),
+                    SkeletonCardList(count: 3),
+                  ],
+                ),
+              );
             }
             if (controller.error.value != null) {
               return Center(
-                child: Text(controller.error.value!, style: AppTypography.bodyLg),
+                child: Text(
+                  controller.error.value!,
+                  style: AppTypography.bodyLg,
+                ),
               );
             }
             final nextExam = controller.nextExam;
@@ -55,71 +67,74 @@ class DashboardView extends GetView<StudentDashboardController> {
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.containerPaddingMobile,
-                    0,
-                    AppSpacing.containerPaddingMobile,
-                    AppSpacing.stackXl),
+                  AppSpacing.containerPaddingMobile,
+                  0,
+                  AppSpacing.containerPaddingMobile,
+                  AppSpacing.stackXl,
+                ),
                 children: [
                   const SizedBox(height: AppSpacing.stackSm),
-                  DashboardIdentityCard(
-                    title: controller.fullName.isEmpty
-                        ? 'Student'
-                        : controller.fullName,
+                  StudentGradientHeader(
+                    name: controller.fullName,
                     subtitle: controller.roleLine,
                     avatarUrl: controller.avatarUrl,
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
 
-                  DashboardStatGrid(
-                    stats: [
-                      DashboardStat(
-                        icon: AppIcons.eventAvailableRounded,
-                        accent: AppColors.tertiary,
-                        value: '${controller.attendancePercent}%',
-                        label: 'Attendance',
-                        sub: 'This month',
-                      ),
-                      DashboardStat(
-                        icon: AppIcons.assignmentOutlined,
-                        accent: const Color(0xFFE8A317),
-                        value: '${controller.toDoCount}',
-                        label: 'Pending homework',
-                        sub: controller.toDoCount == 0 ? 'All clear' : 'Due soon',
-                      ),
-                      DashboardStat(
-                        icon: AppIcons.factCheckOutlined,
-                        accent: AppColors.primary,
-                        value: '${controller.examsThisMonth}',
-                        label: 'Exams',
-                        sub: 'This month',
-                      ),
-                      DashboardStat(
-                        icon: AppIcons.timerOutlined,
-                        accent: AppColors.secondary,
-                        // An em dash rather than "0d": no exam scheduled and an
-                        // exam today are not the same thing, and "0" reads as
-                        // the second one.
-                        value: controller.daysToNextExam == null
-                            ? '—'
-                            : '${controller.daysToNextExam}d',
-                        label: 'Next exam',
-                        sub: nextExam?.title ?? 'None scheduled',
-                        onTap: controller.nextExamEntry == null
-                            ? null
-                            : () => Get.toNamed(StudentRoutes.examDetail,
-                                arguments: controller.nextExamEntry),
-                      ),
-                    ],
+                  const SectionHeader(title: 'Your progress'),
+                  const SizedBox(height: AppSpacing.stackMd),
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 120),
+                    child: DashboardStatGrid(
+                      stats: [
+                        DashboardStat(
+                          icon: AppIcons.eventAvailableRounded,
+                          accent: AppColors.tertiary,
+                          value: '${controller.attendancePercent}%',
+                          label: 'Attendance',
+                          sub: 'This month',
+                        ),
+                        DashboardStat(
+                          icon: AppIcons.assignmentOutlined,
+                          accent: const Color(0xFFE8A317),
+                          value: '${controller.toDoCount}',
+                          label: 'Pending homework',
+                          sub: controller.toDoCount == 0
+                              ? 'All clear'
+                              : 'Due soon',
+                        ),
+                        DashboardStat(
+                          icon: AppIcons.factCheckOutlined,
+                          accent: AppColors.primary,
+                          value: '${controller.examsThisMonth}',
+                          label: 'Exams',
+                          sub: 'This month',
+                        ),
+                        DashboardStat(
+                          icon: AppIcons.timerOutlined,
+                          accent: AppColors.secondary,
+                          // An em dash rather than "0d": no exam scheduled and an
+                          // exam today are not the same thing, and "0" reads as
+                          // the second one.
+                          value: controller.daysToNextExam == null
+                              ? '—'
+                              : '${controller.daysToNextExam}d',
+                          label: 'Next exam',
+                          sub: nextExam?.title ?? 'None scheduled',
+                          onTap: controller.nextExamEntry == null
+                              ? null
+                              : () => Get.toNamed(
+                                  StudentRoutes.examDetail,
+                                  arguments: controller.nextExamEntry,
+                                ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
 
-                  DashboardPrimaryAction(
-                    icon: AppIcons.eventBusyRounded,
-                    label: 'Leave Application',
-                    onTap: () => Get.toNamed(StudentRoutes.leave),
-                  ),
-                  const SizedBox(height: AppSpacing.stackLg),
-
+                  const SectionHeader(title: 'Explore & learn'),
+                  const SizedBox(height: AppSpacing.stackMd),
                   DashboardQuickLinks(
                     links: [
                       DashboardLink(
@@ -157,6 +172,11 @@ class DashboardView extends GetView<StudentDashboardController> {
                         label: 'Transport',
                         onTap: () => Get.toNamed(StudentRoutes.transport),
                       ),
+                      DashboardLink(
+                        icon: AppIcons.eventBusyRounded,
+                        label: 'Apply for leave',
+                        onTap: () => Get.toNamed(StudentRoutes.leave),
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
@@ -168,9 +188,11 @@ class DashboardView extends GetView<StudentDashboardController> {
                     _EmptyHint(text: "You're all caught up — nothing due.")
                   else
                     for (final a in dueSoon) ...[
-                      AssignmentCard(
-                        assignment: a,
-                        onTap: () => onOpenAssignment?.call(a),
+                      FadeSlideIn(
+                        child: AssignmentCard(
+                          assignment: a,
+                          onTap: () => onOpenAssignment?.call(a),
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.stackMd),
                     ],
@@ -202,8 +224,11 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Row(
         children: [
-          const Icon(AppIcons.checkCircleOutlineRounded,
-              color: AppColors.tertiary, size: 20),
+          const Icon(
+            AppIcons.checkCircleOutlineRounded,
+            color: AppColors.tertiary,
+            size: 20,
+          ),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(child: Text(text, style: AppTypography.bodyMd)),
         ],

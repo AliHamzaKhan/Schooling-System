@@ -4,13 +4,19 @@ The OTP is delivered by email (stubbed in tests), so each test intercepts the
 notifier to read the code out of the message body, then drives
 forgot-password → verify-otp → reset-password and checks the new password works.
 """
+import asyncio
 import re
+from uuid import UUID
 
 import pytest
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.core.security import decode_token
+from app.models.password_reset import PasswordReset
 from app.modules.auth import router as auth_router
 
-from .conftest import API
+from .conftest import API, TEST_URL
 
 
 @pytest.fixture
@@ -91,6 +97,7 @@ async def test_reset_token_cannot_be_reused(client, school, captured_otp):
         f"{API}/auth/reset-password", json={"token": token, "new_password": "FirstReset1"}
     )
     assert first.status_code == 200, first.text
+    assert (await client.get(f"{API}/auth/me", headers=school["hm"])).status_code == 401
     # The challenge is consumed — the same token must not reset again.
     second = await client.post(
         f"{API}/auth/reset-password", json={"token": token, "new_password": "SecondReset2"}
@@ -122,3 +129,55 @@ async def test_change_password_requires_current(client, school):
         f"{API}/auth/login", data={"username": email, "password": "ChangedPass1"}
     )
     assert relog.status_code == 200, relog.text
+
+
+@pytest.mark.parametrize("stage", ["verify-otp", "reset-password"])
+async def test_reset_challenge_is_single_use_under_concurrent_requests(
+    client, school, captured_otp, stage
+):
+    email = school["hm_email"]
+    await client.post(f"{API}/auth/forgot-password", json={"email": email})
+    body = {"email": email, "code": captured_otp["code"]}
+    if stage == "reset-password":
+        verified = await client.post(f"{API}/auth/verify-otp", json=body)
+        assert verified.status_code == 200, verified.text
+        body = {"token": verified.json()["reset_token"], "new_password": "ConcurrentReset9"}
+
+    engine = create_async_engine(TEST_URL)
+    tasks = []
+    try:
+        async with async_sessionmaker(engine)() as blocker:
+            if stage == "reset-password":
+                condition = PasswordReset.id == UUID(decode_token(body["token"])["rid"])
+            else:
+                access = school["hm"]["Authorization"].removeprefix("Bearer ")
+                condition = PasswordReset.user_id == UUID(decode_token(access)["sub"])
+            await blocker.execute(select(PasswordReset).where(condition).with_for_update())
+            tasks = [asyncio.create_task(client.post(f"{API}/auth/{stage}", json=body)) for _ in range(2)]
+
+            async def wait_for_locks():
+                async with engine.connect() as observer:
+                    while True:
+                        count = await observer.scalar(text("""SELECT count(*) FROM pg_stat_activity
+                            WHERE datname=current_database() AND usename=current_user AND wait_event_type='Lock'"""))
+                        await observer.commit()
+                        if count >= 2:
+                            return
+                        await asyncio.sleep(0.02)
+
+            await asyncio.wait_for(wait_for_locks(), 10)
+            await blocker.commit()
+        responses = await asyncio.gather(*tasks)
+        assert sorted(r.status_code for r in responses) == [200, 400 if stage == "verify-otp" else 401]
+        if stage == "reset-password":
+            assert (await client.get(f"{API}/auth/me", headers=school["hm"])).status_code == 401
+            login = await client.post(f"{API}/auth/login", data={
+                "username": email, "password": body["new_password"],
+            })
+            assert login.status_code == 200, login.text
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await engine.dispose()

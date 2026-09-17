@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../../../../widgets/attachment_download_dialog.dart';
 
 import '../../../../../widgets/skeletons.dart';
 import '../controller/grading_controller.dart';
@@ -17,11 +17,14 @@ class GradingView extends GetView<GradingController> {
       appBar: AppBar(title: const Text('Submissions')),
       body: Obx(() {
         if (controller.loading.value) {
-          return const SkeletonPage(body: SkeletonCardList(count: 4, height: 120));
+          return const SkeletonPage(
+            body: SkeletonCardList(count: 4, height: 120),
+          );
         }
         if (controller.error.value != null) {
           return Center(
-              child: Text(controller.error.value!, style: AppTypography.bodyLg));
+            child: Text(controller.error.value!, style: AppTypography.bodyLg),
+          );
         }
         final subs = controller.submissions;
         return RefreshIndicator(
@@ -29,28 +32,36 @@ class GradingView extends GetView<GradingController> {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackLg,
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackXxl),
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackLg,
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackXxl,
+            ),
             children: [
-              Text(controller.assignment.title, style: AppTypography.headlineLg),
+              Text(
+                controller.assignment.title,
+                style: AppTypography.headlineLg,
+              ),
               const SizedBox(height: AppSpacing.stackSm),
               Text(
                 subs.isEmpty
                     ? 'No submissions yet'
                     : '${subs.length} submitted · ${controller.gradedCount} graded'
-                        '${controller.assignment.maxMarks != null ? ' · max ${_fmt(controller.assignment.maxMarks!)}' : ''}',
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onSurfaceVariant),
+                          '${controller.assignment.maxMarks != null ? ' · max ${_fmt(controller.assignment.maxMarks!)}' : ''}',
+                style: AppTypography.bodyMd.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: AppSpacing.stackLg),
               if (subs.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.stackXl),
                   child: Center(
-                      child: Text('No students have turned this in yet.',
-                          style: AppTypography.bodyLg)),
+                    child: Text(
+                      'No students have turned this in yet.',
+                      style: AppTypography.bodyLg,
+                    ),
+                  ),
                 )
               else
                 for (final s in subs) ...[
@@ -76,8 +87,11 @@ class _SubmissionCard extends StatelessWidget {
   final SubmissionRow row;
   final double? maxMarks;
   final VoidCallback onGrade;
-  const _SubmissionCard(
-      {required this.row, required this.maxMarks, required this.onGrade});
+  const _SubmissionCard({
+    required this.row,
+    required this.maxMarks,
+    required this.onGrade,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -90,14 +104,19 @@ class _SubmissionCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(row.studentName ?? 'Student',
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                child: Text(
+                  row.studentName ?? 'Student',
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
               if (row.isGraded)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.tertiary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppRadius.full),
@@ -107,29 +126,38 @@ class _SubmissionCard extends StatelessWidget {
                         ? '${_fmt(row.marksObtained)} / ${_fmt(maxMarks!)}'
                         : _fmt(row.marksObtained),
                     style: AppTypography.labelMd.copyWith(
-                        color: AppColors.tertiary,
-                        fontWeight: FontWeight.w700),
+                      color: AppColors.tertiary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 )
               else
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8A317).withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
-                  child: Text(row.isLate ? 'Late' : 'To grade',
-                      style: AppTypography.labelMd.copyWith(
-                          color: const Color(0xFFB0790F),
-                          fontWeight: FontWeight.w700)),
+                  child: Text(
+                    row.isLate ? 'Late' : 'To grade',
+                    style: AppTypography.labelMd.copyWith(
+                      color: const Color(0xFFB0790F),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 2),
-          Text('Submitted ${row.submittedOn}',
-              style: AppTypography.bodySm
-                  .copyWith(color: AppColors.onSurfaceVariant)),
+          Text(
+            'Submitted ${row.submittedOn}',
+            style: AppTypography.bodySm.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
           if ((row.content ?? '').isNotEmpty) ...[
             const SizedBox(height: AppSpacing.stackSm),
             Text(row.content!, style: AppTypography.bodyMd),
@@ -147,22 +175,34 @@ class _SubmissionCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(AppIcons.pictureAsPdfRounded,
-                        size: 18, color: AppColors.primary),
+                    const Icon(
+                      AppIcons.pictureAsPdfRounded,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(row.attachmentUrl!.split('/').last,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodySm
-                              .copyWith(color: AppColors.primary)),
+                      child: Text(
+                        row.attachmentUrl!.split('/').last,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodySm.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
-                    Text('View',
-                        style: AppTypography.labelMd.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700)),
-                    const Icon(AppIcons.openInNewRounded,
-                        size: 14, color: AppColors.primary),
+                    Text(
+                      'View',
+                      style: AppTypography.labelMd.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Icon(
+                      AppIcons.openInNewRounded,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
                   ],
                 ),
               ),
@@ -170,17 +210,22 @@ class _SubmissionCard extends StatelessWidget {
           ],
           if (row.isGraded && (row.feedback ?? '').isNotEmpty) ...[
             const SizedBox(height: AppSpacing.stackSm),
-            Text('Feedback: ${row.feedback!}',
-                style: AppTypography.bodySm
-                    .copyWith(color: AppColors.onSurfaceVariant)),
+            Text(
+              'Feedback: ${row.feedback!}',
+              style: AppTypography.bodySm.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
           ],
           const SizedBox(height: AppSpacing.stackMd),
           Align(
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
               onPressed: onGrade,
-              icon: Icon(row.isGraded ? AppIcons.editRounded : AppIcons.gradeRounded,
-                  size: 18),
+              icon: Icon(
+                row.isGraded ? AppIcons.editRounded : AppIcons.gradeRounded,
+                size: 18,
+              ),
               label: Text(row.isGraded ? 'Update grade' : 'Grade'),
             ),
           ),
@@ -189,19 +234,8 @@ class _SubmissionCard extends StatelessWidget {
     );
   }
 
-  /// Opens the attached PDF in the device's external viewer/browser. The file
-  /// is served publicly under `/media`, so no auth is needed.
-  Future<void> _openAttachment(BuildContext context) async {
-    final raw = row.attachmentUrl ?? '';
-    if (raw.isEmpty) return;
-    final uri = Uri.parse(EnvConfig.mediaUrl(raw));
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the attachment.')),
-      );
-    }
-  }
+  Future<void> _openAttachment(BuildContext context) =>
+      showAttachmentDownload(context, row.id);
 
   /// Full submission detail: the student's written response and attachment,
   /// with quick actions to view the file and grade.
@@ -213,15 +247,18 @@ class _SubmissionCard extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
       ),
       builder: (sheet) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackMd,
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackLg),
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackMd,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackLg,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,26 +274,36 @@ class _SubmissionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(row.studentName ?? 'Student',
-                  style: AppTypography.titleLg
-                      .copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                row.studentName ?? 'Student',
+                style: AppTypography.titleLg.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text('Submitted ${row.submittedOn}',
-                  style: AppTypography.bodySm
-                      .copyWith(color: AppColors.onSurfaceVariant)),
+              Text(
+                'Submitted ${row.submittedOn}',
+                style: AppTypography.bodySm.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
               const SizedBox(height: AppSpacing.stackLg),
-              Text('Response',
-                  style: AppTypography.labelMd
-                      .copyWith(color: AppColors.onSurfaceVariant)),
+              Text(
+                'Response',
+                style: AppTypography.labelMd.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
               const SizedBox(height: 4),
               Flexible(
                 child: SingleChildScrollView(
                   child: Text(
                     hasContent ? row.content! : 'No written response.',
                     style: AppTypography.bodyMd.copyWith(
-                        color: hasContent
-                            ? AppColors.onSurface
-                            : AppColors.onSurfaceVariant),
+                      color: hasContent
+                          ? AppColors.onSurface
+                          : AppColors.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
@@ -274,9 +321,12 @@ class _SubmissionCard extends StatelessWidget {
                   ),
                 )
               else
-                Text('No file attached.',
-                    style: AppTypography.bodySm
-                        .copyWith(color: AppColors.onSurfaceVariant)),
+                Text(
+                  'No file attached.',
+                  style: AppTypography.bodySm.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
               const SizedBox(height: AppSpacing.stackSm),
               SizedBox(
                 width: double.infinity,
@@ -286,8 +336,9 @@ class _SubmissionCard extends StatelessWidget {
                     onGrade();
                   },
                   icon: Icon(
-                      row.isGraded ? AppIcons.editRounded : AppIcons.gradeRounded,
-                      size: 18),
+                    row.isGraded ? AppIcons.editRounded : AppIcons.gradeRounded,
+                    size: 18,
+                  ),
                   label: Text(row.isGraded ? 'Update grade' : 'Grade'),
                 ),
               ),

@@ -250,6 +250,9 @@ class UserService:
         for field, value in data.items():
             setattr(user, field, value)
         await self.db.flush()
+        if data.get("is_active") is False:
+            from app.modules.auth.service import AuthService
+            await AuthService(self.db).revoke_all_for_user(user.id)
         return await self._get_user_in_school(school_id, user_id)
 
     async def deactivate_user(

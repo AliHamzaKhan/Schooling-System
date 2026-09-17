@@ -168,7 +168,7 @@ Widget _dropdown<T>({
       Container(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(AppRadius.button),
           border: Border.all(color: AppColors.outlineVariant),
         ),

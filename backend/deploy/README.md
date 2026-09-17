@@ -16,6 +16,12 @@ the repo root (`.gitlab-ci.yml`).
 
 ## One-time server setup
 
+Notification rollout now requires the database outbox migration and a running
+worker; there is no API inline fallback. Follow the
+[migration and recovery gates](../../docs/NOTIFICATION_OUTBOX_ROLLOUT.md) before
+deploying. The compose worker waits for API health/migration completion. Stop old
+worker versions first; do not let old workers consume new broadcasts.
+
 On the VPS as `ahkstudios`:
 
 ```bash

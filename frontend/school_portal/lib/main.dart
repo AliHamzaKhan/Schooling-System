@@ -10,7 +10,7 @@ import 'school/constants/app_strings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  EnvConfig.bootstrap(Environment.debug);
+  EnvConfig.bootstrap();
   // restoreSession: false — the splash owns the `/auth/me` restore so the first
   // frame is branding rather than a blank window held open by a network call.
   await initSharedServices(restoreSession: false);

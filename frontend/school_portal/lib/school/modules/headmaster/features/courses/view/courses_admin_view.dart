@@ -22,16 +22,23 @@ class CoursesAdminView extends GetView<CoursesAdminController> {
       ),
       body: Obx(() {
         if (controller.loading.value) {
-          return const SkeletonPage(body: SkeletonCardList(count: 4, height: 96));
+          return const SkeletonPage(
+            body: SkeletonCardList(count: 4, height: 96),
+          );
         }
         if (controller.error.value != null) {
           return Center(
-              child: Text(controller.error.value!, style: AppTypography.bodyLg));
+            child: Text(controller.error.value!, style: AppTypography.bodyLg),
+          );
         }
         if (controller.courses.isEmpty) {
           return Center(
-              child: Text('No courses yet.\nTap “New Course” to add one.',
-                  textAlign: TextAlign.center, style: AppTypography.bodyLg));
+            child: Text(
+              'No courses yet.\nTap “New Course” to add one.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyLg,
+            ),
+          );
         }
         final groups = controller.grouped;
         return RefreshIndicator(
@@ -39,18 +46,24 @@ class CoursesAdminView extends GetView<CoursesAdminController> {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackMd,
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackXxl),
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackMd,
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackXxl,
+            ),
             children: [
               for (final entry in groups.entries) ...[
                 Padding(
                   padding: const EdgeInsets.only(
-                      top: AppSpacing.stackSm, bottom: AppSpacing.stackSm),
-                  child: Text(entry.key,
-                      style: AppTypography.labelCaps
-                          .copyWith(color: AppColors.onSurfaceVariant)),
+                    top: AppSpacing.stackSm,
+                    bottom: AppSpacing.stackSm,
+                  ),
+                  child: Text(
+                    entry.key,
+                    style: AppTypography.labelCaps.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
                 ),
                 for (final c in entry.value) ...[
                   _CourseCard(course: c),
@@ -80,8 +93,10 @@ class _CourseCard extends StatelessWidget {
       '${course.noteCount} ${course.noteCount == 1 ? 'note' : 'notes'}',
     ].join(' · ');
     return GlassSurface(
-      onTap: () =>
-          Get.toNamed(HeadmasterRoutes.courseContent, arguments: course),
+      onTap: () => Get.toNamed(
+        HeadmasterRoutes.courseContent,
+        parameters: {'course_id': course.id},
+      ),
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Row(
         children: [
@@ -91,18 +106,26 @@ class _CourseCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(course.title,
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  course.title,
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle,
-                    style: AppTypography.bodySm
-                        .copyWith(color: AppColors.onSurfaceVariant)),
+                Text(
+                  subtitle,
+                  style: AppTypography.bodySm.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
-          const Icon(AppIcons.chevronRightRounded,
-              color: AppColors.onSurfaceVariant),
+          const Icon(
+            AppIcons.chevronRightRounded,
+            color: AppColors.onSurfaceVariant,
+          ),
         ],
       ),
     );

@@ -71,9 +71,12 @@ class AppTheme {
       ),
       // Cards default to medium radius
       cardTheme: CardThemeData(
-        color: AppColors.surfaceContainerLowest,
+        color: AppColors.card,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          side: const BorderSide(color: AppColors.cardBorder),
+        ),
       ),
       // Input fields — no underline anywhere; clean filled, rounded fields with
       // a primary focus ring. (GlassInput keeps its own borderless styling.)

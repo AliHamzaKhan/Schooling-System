@@ -17,6 +17,7 @@ from app.core.deps import (
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.attendance import schemas
 from app.modules.attendance.service import AttendanceService
+from app.modules.academic.access import AcademicAccess
 
 router = APIRouter(prefix="/schools/{school_id}", tags=["Attendance"])
 
@@ -50,8 +51,9 @@ async def enroll_student(
     dependencies=[_enroll_view],
 )
 async def list_enrollments(
-    school_id: uuid.UUID, section_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, section_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> list[schemas.EnrollmentOut]:
+    await AcademicAccess(db, school_id, current_user).section(section_id)
     return await AttendanceService(db).list_enrollments(school_id, section_id)
 
 

@@ -7,7 +7,6 @@ import '../../../../../widgets/portal_top_bar.dart';
 import '../../../../../widgets/ring_chart.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher_attendance_day.dart';
-import 'teacher_attendance_roster_view.dart';
 import '../../../../../widgets/skeletons.dart';
 
 /// Attendance — teacher attendance for a chosen date, backed entirely by
@@ -63,14 +62,13 @@ class _AttendanceViewState extends State<AttendanceView> {
     }
   }
 
-  void _openRoster(TeacherAttendanceStatus status, String title) {
+  void _openRoster(TeacherAttendanceStatus status, String _) {
     Get.toNamed(
       HeadmasterRoutes.teacherAttendanceRoster,
-      arguments: TeacherAttendanceRosterArgs(
-        date: _date.value,
-        status: status,
-        title: title,
-      ),
+      parameters: {
+        'date': _date.value.toIso8601String().split('T').first,
+        'status': status.wire,
+      },
     );
   }
 
@@ -81,8 +79,18 @@ class _AttendanceViewState extends State<AttendanceView> {
 
   String _fmtDate(DateTime d) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final today = DateTime.now();
     final isToday =
@@ -108,10 +116,12 @@ class _AttendanceViewState extends State<AttendanceView> {
                 AppSpacing.stackXl,
               ),
               children: [
-                Obx(() => _DateSelector(
-                      label: _fmtDate(_date.value),
-                      onTap: _pickDate,
-                    )),
+                Obx(
+                  () => _DateSelector(
+                    label: _fmtDate(_date.value),
+                    onTap: _pickDate,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.stackMd),
                 Text('Teacher\nAttendance', style: AppTypography.headlineLg),
                 const SizedBox(height: AppSpacing.stackLg),
@@ -130,8 +140,10 @@ class _AttendanceViewState extends State<AttendanceView> {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 48),
                       child: Center(
-                        child: Text(_error.value ?? 'No data',
-                            style: AppTypography.bodyLg),
+                        child: Text(
+                          _error.value ?? 'No data',
+                          style: AppTypography.bodyLg,
+                        ),
                       ),
                     );
                   }
@@ -139,8 +151,10 @@ class _AttendanceViewState extends State<AttendanceView> {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 48),
                       child: Center(
-                        child: Text('No teachers on the roster yet.',
-                            style: AppTypography.bodyLg),
+                        child: Text(
+                          'No teachers on the roster yet.',
+                          style: AppTypography.bodyLg,
+                        ),
                       ),
                     );
                   }
@@ -154,8 +168,7 @@ class _AttendanceViewState extends State<AttendanceView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Present Rate',
-                                style: AppTypography.titleLg),
+                            Text('Present Rate', style: AppTypography.titleLg),
                             const SizedBox(height: 2),
                             Text(
                               '${day.present} of ${day.totalTeachers} teachers present',
@@ -166,8 +179,7 @@ class _AttendanceViewState extends State<AttendanceView> {
                               child: RingChart(
                                 progress: day.presentRate,
                                 color: AppColors.tertiary,
-                                value:
-                                    '${(day.presentRate * 100).round()}%',
+                                value: '${(day.presentRate * 100).round()}%',
                                 caption: 'Teachers',
                               ),
                             ),
@@ -224,25 +236,31 @@ class _DateSelector extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.button),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.card,
             borderRadius: BorderRadius.circular(AppRadius.button),
             border: Border.all(color: AppColors.outlineVariant),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(AppIcons.calendarTodayOutlined,
-                  size: 14, color: AppColors.primary),
+              const Icon(
+                AppIcons.calendarTodayOutlined,
+                size: 14,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 6),
-              Text(label,
-                  style: AppTypography.labelMd
-                      .copyWith(color: AppColors.primary)),
+              Text(
+                label,
+                style: AppTypography.labelMd.copyWith(color: AppColors.primary),
+              ),
               const SizedBox(width: 4),
-              const Icon(AppIcons.expandMoreRounded,
-                  size: 16, color: AppColors.primary),
+              const Icon(
+                AppIcons.expandMoreRounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
             ],
           ),
         ),
@@ -272,8 +290,10 @@ class _StatusTiles extends StatelessWidget {
                 icon: AppIcons.checkCircleOutline,
                 onTap: day.present == 0
                     ? null
-                    : () => onOpen(TeacherAttendanceStatus.present,
-                        'Present Teachers'),
+                    : () => onOpen(
+                        TeacherAttendanceStatus.present,
+                        'Present Teachers',
+                      ),
               ),
             ),
             const SizedBox(width: AppSpacing.stackSm),
@@ -286,7 +306,9 @@ class _StatusTiles extends StatelessWidget {
                 onTap: day.absent == 0
                     ? null
                     : () => onOpen(
-                        TeacherAttendanceStatus.absent, 'Absent Teachers'),
+                        TeacherAttendanceStatus.absent,
+                        'Absent Teachers',
+                      ),
               ),
             ),
           ],
@@ -302,8 +324,7 @@ class _StatusTiles extends StatelessWidget {
                 icon: AppIcons.scheduleRounded,
                 onTap: day.late == 0
                     ? null
-                    : () =>
-                        onOpen(TeacherAttendanceStatus.late, 'Late Comers'),
+                    : () => onOpen(TeacherAttendanceStatus.late, 'Late Comers'),
               ),
             ),
             const SizedBox(width: AppSpacing.stackSm),
@@ -315,8 +336,7 @@ class _StatusTiles extends StatelessWidget {
                 icon: AppIcons.eventBusyOutlined,
                 onTap: day.onLeave == 0
                     ? null
-                    : () => onOpen(
-                        TeacherAttendanceStatus.onLeave, 'On Leave'),
+                    : () => onOpen(TeacherAttendanceStatus.onLeave, 'On Leave'),
               ),
             ),
           ],
@@ -359,19 +379,25 @@ class _Tile extends StatelessWidget {
                 Icon(icon, size: 16, color: color),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(label,
-                      style: AppTypography.labelMd.copyWith(color: color),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    label,
+                    style: AppTypography.labelMd.copyWith(color: color),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (onTap != null)
                   Icon(AppIcons.chevronRightRounded, size: 16, color: color),
               ],
             ),
             const SizedBox(height: 4),
-            Text('$value',
-                style: AppTypography.headlineLg
-                    .copyWith(color: color, fontWeight: FontWeight.w700)),
+            Text(
+              '$value',
+              style: AppTypography.headlineLg.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),
@@ -398,18 +424,25 @@ class _UnmarkedBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(AppIcons.helpOutlineRounded,
-                size: 18, color: AppColors.onSurfaceVariant),
+            const Icon(
+              AppIcons.helpOutlineRounded,
+              size: 18,
+              color: AppColors.onSurfaceVariant,
+            ),
             const SizedBox(width: AppSpacing.stackSm),
             Expanded(
               child: Text(
                 '$count teacher${count == 1 ? "" : "s"} not yet marked',
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onSurfaceVariant),
+                style: AppTypography.bodyMd.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
               ),
             ),
-            const Icon(AppIcons.chevronRightRounded,
-                size: 18, color: AppColors.onSurfaceVariant),
+            const Icon(
+              AppIcons.chevronRightRounded,
+              size: 18,
+              color: AppColors.onSurfaceVariant,
+            ),
           ],
         ),
       ),

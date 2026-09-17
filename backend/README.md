@@ -74,6 +74,18 @@ you see that, check this line first. (A real environment variable overrides the
 
 Once the schema exists, apply later migrations with `.venv/bin/alembic upgrade head`.
 
+### Notification worker (required)
+
+Broadcast creation now commits pending outbox work; the API never sends inline,
+even with `TASK_QUEUE_ENABLED=false`. After the approved schema migration, run a
+separate terminal/process with `.venv/bin/python -m app.delivery_worker` (no Redis
+needed). `--once` processes one bounded batch. The existing ARQ deployment worker
+also polls the outbox. Do not run old and new worker versions together.
+
+Read the [outbox rollout and recovery contract](../docs/NOTIFICATION_OUTBOX_ROLLOUT.md)
+before applying the migration to existing data. Legacy pending/scheduled records
+are not automatically requeued; uncertain delivery requires review, not blind retry.
+
 > **Host note:** the Flutter apps read their API base from
 > `frontend/shared/lib/src/env/env_config.dart`, whose debug default is a LAN IP
 > so phones on the same network can reach the machine — hence
@@ -84,13 +96,12 @@ Once the schema exists, apply later migrations with `.venv/bin/alembic upgrade h
 
 ```bash
 .venv/bin/pip install -r requirements-dev.txt
-createdb schooling_system_test     # one-time
-DATABASE_URL="postgresql+asyncpg://postgres:<password>@localhost:5432/schooling_system_test" \
-  .venv/bin/pytest                 # 133 tests, ~1 min
+.venv/bin/python scripts/run_isolated_tests.py --from-local-config -- -o addopts= -q
 ```
 
-Tests run against a dedicated `schooling_system_test` database (schema created
-and seeded fresh on each run). Each test gets an isolated premium school via the
+The runner provisions and removes a unique disposable database/role and excludes
+real provider credentials. Never run pytest against the normal application database.
+Each test gets an isolated premium school via the
 `school` fixture, so tests don't collide. Coverage spans auth, the permission
 cascade, and a happy-path + key guard for every feature module.
 

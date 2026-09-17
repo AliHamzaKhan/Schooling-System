@@ -27,6 +27,7 @@ import logging
 import uuid
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -35,6 +36,14 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app.core.exceptions import AppHTTPException, ErrorCode
 
 logger = logging.getLogger("app.errors")
+
+
+async def _validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    # Do not echo raw input/context: it can contain secrets, exception objects or
+    # non-finite floats (e.g. JSON 1e999) that cannot themselves be JSON encoded.
+    details = [{"loc": error["loc"], "msg": error["msg"], "type": error["type"]}
+               for error in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": details})
 
 # Fallback code per status for plain HTTPExceptions raised without an explicit
 # `ErrorCode` (e.g. `raise HTTPException(404)` deep in a module). None of these
@@ -192,5 +201,6 @@ def install_error_handling(app: FastAPI) -> None:
     """
     configure_logging()
     app.add_exception_handler(StarletteHTTPException, _http_exception_handler)
+    app.add_exception_handler(RequestValidationError, _validation_exception_handler)
     app.add_exception_handler(SQLAlchemyError, _sqlalchemy_error_handler)
     app.add_middleware(CatchAllErrorMiddleware)

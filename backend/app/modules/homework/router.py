@@ -5,7 +5,7 @@ self-submission require view (the student-self check is enforced in the service)
 """
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.deps import (
     CurrentUser,
@@ -16,6 +16,8 @@ from app.core.deps import (
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.homework import schemas
 from app.modules.homework.service import HomeworkService
+from app.models.homework import Assignment, Submission
+from app.modules.uploads.access import has_personal_student_access, require_assignment_staff
 
 router = APIRouter(prefix="/schools/{school_id}/homework", tags=["Homework"])
 
@@ -66,14 +68,22 @@ async def get_assignment(
 
 @router.patch("/assignments/{assignment_id}", response_model=schemas.AssignmentOut, dependencies=[_edit])
 async def update_assignment(
-    school_id: uuid.UUID, assignment_id: uuid.UUID, data: schemas.AssignmentUpdate, db: DbDep
+    school_id: uuid.UUID, assignment_id: uuid.UUID, data: schemas.AssignmentUpdate, db: DbDep,
+    current_user: CurrentUser,
 ) -> schemas.AssignmentOut:
-    return await HomeworkService(db).update_assignment(school_id, assignment_id, data)
+    service = HomeworkService(db)
+    assignment = await service._get_scoped(Assignment, school_id, assignment_id, "Assignment")
+    await require_assignment_staff(school_id, assignment, current_user, db)
+    return await service.update_assignment(school_id, assignment_id, data)
 
 
 @router.delete("/assignments/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[_delete])
-async def delete_assignment(school_id: uuid.UUID, assignment_id: uuid.UUID, db: DbDep) -> None:
-    await HomeworkService(db).delete_assignment(school_id, assignment_id)
+async def delete_assignment(school_id: uuid.UUID, assignment_id: uuid.UUID, db: DbDep,
+                            current_user: CurrentUser) -> None:
+    service = HomeworkService(db)
+    assignment = await service._get_scoped(Assignment, school_id, assignment_id, "Assignment")
+    await require_assignment_staff(school_id, assignment, current_user, db)
+    await service.delete_assignment(school_id, assignment_id)
 
 
 # ---------------------------- submissions ------------------------------- #
@@ -92,10 +102,14 @@ async def submit_assignment(
 
 
 @router.get("/assignments/{assignment_id}/submissions", response_model=list[schemas.SubmissionOut], dependencies=[_view])
-async def list_submissions(school_id: uuid.UUID, assignment_id: uuid.UUID, db: DbDep) -> list[schemas.SubmissionOut]:
+async def list_submissions(school_id: uuid.UUID, assignment_id: uuid.UUID, db: DbDep,
+                           current_user: CurrentUser) -> list[schemas.SubmissionOut]:
     """A teacher viewing an assignment's submissions marks each as seen (the
     student's read receipt)."""
-    return await HomeworkService(db).list_submissions(school_id, assignment_id, mark_seen=True)
+    service = HomeworkService(db)
+    assignment = await service._get_scoped(Assignment, school_id, assignment_id, "Assignment")
+    await require_assignment_staff(school_id, assignment, current_user, db)
+    return await service.list_submissions(school_id, assignment_id, mark_seen=True)
 
 
 @router.patch("/submissions/{submission_id}/grade", response_model=schemas.SubmissionOut, dependencies=[_edit])
@@ -106,7 +120,11 @@ async def grade_submission(
     db: DbDep,
     current_user: CurrentUser,
 ) -> schemas.SubmissionOut:
-    return await HomeworkService(db).grade(school_id, submission_id, data, current_user.id)
+    service = HomeworkService(db)
+    submission = await service._get_scoped(Submission, school_id, submission_id, "Submission")
+    assignment = await service._get_scoped(Assignment, school_id, submission.assignment_id, "Assignment")
+    await require_assignment_staff(school_id, assignment, current_user, db)
+    return await service.grade(school_id, submission_id, data, current_user.id)
 
 
 @router.patch("/submissions/{submission_id}/review", response_model=schemas.SubmissionOut, dependencies=[_edit])
@@ -118,11 +136,29 @@ async def review_submission(
     current_user: CurrentUser,
 ) -> schemas.SubmissionOut:
     """Approve or reject a submission (moderation, separate from grading)."""
-    return await HomeworkService(db).review(school_id, submission_id, data, current_user.id)
+    service = HomeworkService(db)
+    submission = await service._get_scoped(Submission, school_id, submission_id, "Submission")
+    assignment = await service._get_scoped(Assignment, school_id, submission.assignment_id, "Assignment")
+    await require_assignment_staff(school_id, assignment, current_user, db)
+    return await service.review(school_id, submission_id, data, current_user.id)
 
 
 @router.get("/students/{student_id}/submissions", response_model=list[schemas.SubmissionOut], dependencies=[_view, Depends(verify_student_access)])
 async def student_submissions(
-    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep, current_user: CurrentUser,
 ) -> list[schemas.SubmissionOut]:
-    return await HomeworkService(db).student_submissions(school_id, student_id)
+    service = HomeworkService(db)
+    submissions = await service.student_submissions(school_id, student_id)
+    if await has_personal_student_access(school_id, student_id, current_user, db):
+        return submissions
+    visible = []
+    for submission in submissions:
+        assignment = await service._get_scoped(Assignment, school_id, submission.assignment_id, "Assignment")
+        try:
+            await require_assignment_staff(school_id, assignment, current_user, db)
+        except HTTPException as exc:
+            if exc.status_code != 403:
+                raise
+            continue
+        visible.append(submission)
+    return visible

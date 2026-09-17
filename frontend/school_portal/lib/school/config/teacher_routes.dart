@@ -20,6 +20,8 @@ class TeacherRoutes {
   static const studentPerformance = '$_base/performance/student';
   static const calendar = '$_base/calendar';               // schedule calendar
   static const classDetail = '$_base/classes/detail';      // single class detail
+  static const sectionStudents = '$_base/classes/students';
+  static const studentReport = '$_base/students/report';
   static const leaveReview = '$_base/leave';                // class-teacher review
   static const grading = '$_base/assignments/grade';        // submissions + grading
 }

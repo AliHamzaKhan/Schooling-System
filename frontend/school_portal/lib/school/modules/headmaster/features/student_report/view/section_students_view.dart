@@ -11,12 +11,34 @@ class SectionStudentsArgs {
   final String sectionId;
   final String title; // e.g. "Grade 5 · A"
   const SectionStudentsArgs({required this.sectionId, required this.title});
+
+  static SectionStudentsArgs fromRoute({
+    required Map<String, String?> parameters,
+    Object? arguments,
+  }) {
+    final sectionId = parameters['section_id']?.trim() ?? '';
+    if (sectionId.isNotEmpty) {
+      return SectionStudentsArgs(
+        sectionId: sectionId,
+        title: parameters['title']?.trim().isNotEmpty == true
+            ? parameters['title']!.trim()
+            : 'Students',
+      );
+    }
+    return arguments is SectionStudentsArgs
+        ? arguments
+        : const SectionStudentsArgs(sectionId: '', title: 'Students');
+  }
 }
 
 /// Students enrolled in one section; tapping a student opens their 360° report.
 /// Shared by the Headmaster (classes → section → students) and Teacher drill-ins.
 class SectionStudentsView extends StatefulWidget {
-  const SectionStudentsView({super.key});
+  final String studentReportRoute;
+  const SectionStudentsView({
+    super.key,
+    this.studentReportRoute = HeadmasterRoutes.studentReport,
+  });
 
   @override
   State<SectionStudentsView> createState() => _SectionStudentsViewState();
@@ -31,10 +53,10 @@ class _SectionStudentsViewState extends State<SectionStudentsView> {
   @override
   void initState() {
     super.initState();
-    final arg = Get.arguments;
-    _args = arg is SectionStudentsArgs
-        ? arg
-        : const SectionStudentsArgs(sectionId: '', title: 'Students');
+    _args = SectionStudentsArgs.fromRoute(
+      parameters: Get.parameters,
+      arguments: Get.arguments,
+    );
     _load();
   }
 
@@ -46,8 +68,9 @@ class _SectionStudentsViewState extends State<SectionStudentsView> {
       });
       return;
     }
-    final res =
-        await StudentReportService().fetchSectionStudents(_args.sectionId);
+    final res = await StudentReportService().fetchSectionStudents(
+      _args.sectionId,
+    );
     if (!mounted) return;
     setState(() {
       if (res.success) {
@@ -66,23 +89,29 @@ class _SectionStudentsViewState extends State<SectionStudentsView> {
       body: _loading
           ? const SkeletonPage(withHeader: false, body: SkeletonRosterList())
           : _error != null
-              ? Center(child: Text(_error!, style: AppTypography.bodyLg))
-              : _students.isEmpty
-                  ? Center(
-                      child: Text('No students enrolled in this section.',
-                          style: AppTypography.bodyLg))
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.containerPaddingMobile,
-                          AppSpacing.stackMd,
-                          AppSpacing.containerPaddingMobile,
-                          AppSpacing.stackXl),
-                      itemCount: _students.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: AppSpacing.stackSm),
-                      itemBuilder: (context, i) =>
-                          StudentRosterTile(student: _students[i]),
-                    ),
+          ? Center(child: Text(_error!, style: AppTypography.bodyLg))
+          : _students.isEmpty
+          ? Center(
+              child: Text(
+                'No students enrolled in this section.',
+                style: AppTypography.bodyLg,
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackMd,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
+              itemCount: _students.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: AppSpacing.stackSm),
+              itemBuilder: (context, i) => StudentRosterTile(
+                student: _students[i],
+                reportRoute: widget.studentReportRoute,
+              ),
+            ),
     );
   }
 }
@@ -90,13 +119,20 @@ class _SectionStudentsViewState extends State<SectionStudentsView> {
 /// One tappable student row → opens the student's report.
 class StudentRosterTile extends StatelessWidget {
   final RosterEntry student;
-  const StudentRosterTile({super.key, required this.student});
+  final String reportRoute;
+  const StudentRosterTile({
+    super.key,
+    required this.student,
+    this.reportRoute = HeadmasterRoutes.studentReport,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Get.toNamed(HeadmasterRoutes.studentReport,
-          arguments: student.id),
+      onTap: () => Get.toNamed(
+        '$reportRoute?student_id=${Uri.encodeComponent(student.id)}',
+        arguments: student.id,
+      ),
       child: GlassSurface(
         padding: const EdgeInsets.all(AppSpacing.stackMd),
         child: Row(
@@ -108,20 +144,22 @@ class StudentRosterTile extends StatelessWidget {
                 student.name.isEmpty
                     ? '?'
                     : student.name.characters.first.toUpperCase(),
-                style:
-                    AppTypography.titleMd.copyWith(color: AppColors.primary),
+                style: AppTypography.titleMd.copyWith(color: AppColors.primary),
               ),
             ),
             const SizedBox(width: AppSpacing.stackMd),
             Expanded(
               child: Text(
                 student.name.isEmpty ? 'Student' : student.name,
-                style: AppTypography.titleMd
-                    .copyWith(fontWeight: FontWeight.w700),
+                style: AppTypography.titleMd.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-            const Icon(AppIcons.chevronRightRounded,
-                color: AppColors.onSurfaceVariant),
+            const Icon(
+              AppIcons.chevronRightRounded,
+              color: AppColors.onSurfaceVariant,
+            ),
           ],
         ),
       ),

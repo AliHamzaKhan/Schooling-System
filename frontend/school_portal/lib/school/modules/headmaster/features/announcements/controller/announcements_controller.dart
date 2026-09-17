@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../../../widgets/action_form_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/announcement.dart';
+import '../components/delivery_review_dialog.dart';
 
 /// Drives the Announcements Hub: filter + list state, with a "compose" hook.
 class AnnouncementsController extends GetxController {
@@ -54,13 +55,15 @@ class AnnouncementsController extends GetxController {
   /// Opens the compose form and posts a new broadcast; reloads the feed on
   /// success.
   Future<void> composeFlow() async {
-    final title = TextEditingController();
-    final body = TextEditingController();
-    final audience = 'entire_school'.obs;
+    final pending = _repo.pendingBroadcast;
+    final title = TextEditingController(text: pending?['title'] as String?);
+    final body = TextEditingController(text: pending?['body'] as String?);
+    final audience = (pending?['audience_type'] as String? ?? 'entire_school').obs;
+    String? deliveryStatus;
 
     final ok = await showActionFormSheet(
-      title: 'New Announcement',
-      submitLabel: 'Publish',
+      title: pending == null ? 'New Announcement' : 'Resume announcement save',
+      submitLabel: pending == null ? 'Publish' : 'Retry unchanged',
       ownedControllers: [title, body],
       fields: [
         GlassInput(
@@ -89,15 +92,22 @@ class AnnouncementsController extends GetxController {
           title: title.text.trim().isEmpty ? null : title.text.trim(),
           audienceType: audience.value,
         );
+        deliveryStatus = res.rawJson?['status'] as String?;
         return res.success
             ? null
             : (res.error ?? 'Could not publish the announcement');
       },
     );
     if (ok == true) {
-      Get.snackbar('Announcement published', 'Your announcement was sent.',
+      final outcome = BroadcastOutcome(deliveryStatus);
+      Get.snackbar(outcome.label, outcome.description,
           snackPosition: SnackPosition.BOTTOM);
       await fetch();
     }
   }
+
+  Future<void> review(BuildContext context, String id) => showDialog<void>(
+    context: context,
+    builder: (_) => DeliveryReviewDialog(load: (offset) => _repo.loadBroadcastReview(id, offset: offset)),
+  );
 }

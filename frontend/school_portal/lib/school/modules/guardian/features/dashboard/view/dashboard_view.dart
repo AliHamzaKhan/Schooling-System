@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../../../../../config/guardian_routes.dart';
 import '../../../../../widgets/portal_top_bar.dart';
+import '../../../../../widgets/campus_hero_banner.dart';
 import '../../../../../widgets/section_header.dart';
 import '../../../shared/models/child.dart';
 import '../../../shared/widgets/child_avatar.dart';
@@ -59,6 +60,14 @@ class GuardianDashboardView extends GetView<GuardianDashboardController> {
               padding: const EdgeInsets.only(bottom: AppSpacing.stackXl),
               children: [
                 const SizedBox(height: AppSpacing.stackSm),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.containerPaddingMobile),
+                  child: CampusHeroBanner(
+                    name: Get.find<AuthService>().schoolName ?? 'Your Campus',
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.stackLg),
                 ChildSwitcher(onManage: onManageChildren),
                 Padding(
                   padding: const EdgeInsets.symmetric(

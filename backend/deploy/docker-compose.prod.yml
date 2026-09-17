@@ -30,15 +30,17 @@ services:
       retries: 3
       start_period: 60s
 
-  # Background worker — consumes the notification/offload queue (arq over the
-  # shared Redis). Only does work when TASK_QUEUE_ENABLED=true in .env; with it
-  # off the API delivers inline and this service can be left stopped. Scale it
-  # independently of the API: `--scale worker=N`.
+  # Required notification outbox consumer, independent of TASK_QUEUE_ENABLED.
+  # API health follows migration completion; never start workers on the old schema.
+  # Scale independently: `--scale worker=N`. No inline-delivery fallback exists.
   worker:
     image: ${IMAGE}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: [.env]
     command: ["arq", "app.worker.WorkerSettings"]
+    depends_on:
+      backend:
+        condition: service_healthy
     volumes:
       - /opt/storage/projects/school:/app/uploads
     networks: [app-network]

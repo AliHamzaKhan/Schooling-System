@@ -56,8 +56,13 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
   final _selectedSection = Rxn<String>();
 
   final _sectionsLoading = true.obs;
+  final _sectionsError = RxnString();
   final _submitting = false.obs;
   final _error = RxnString();
+
+  String? _createdStudentId;
+  bool _studentEnrolled = false;
+  String? _createdGuardianId;
 
   static const _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -68,9 +73,17 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
   }
 
   Future<void> _loadSections() async {
+    _sectionsLoading.value = true;
+    _sectionsError.value = null;
+    _sections.clear();
+    _selectedSection.value = null;
     final res = await _repo.loadSectionOptions();
-    _sections.assignAll(res.data ?? const []);
-    if (_sections.isNotEmpty) _selectedSection.value = _sections.first.id;
+    if (res.success && res.data != null) {
+      _sections.assignAll(res.data!);
+      if (_sections.isNotEmpty) _selectedSection.value = _sections.first.id;
+    } else {
+      _sectionsError.value = res.error ?? 'Could not load sections.';
+    }
     _sectionsLoading.value = false;
   }
 
@@ -82,7 +95,7 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
       return _fail('Password must be at least 8 characters');
     }
     if (_selectedSection.value == null) return _fail('Select a section');
-    if (_createGuardian.value) {
+    if (_createGuardian.value && _createdGuardianId == null) {
       if (_guardianName.text.trim().isEmpty) {
         return _fail('Guardian full name is required');
       }
@@ -112,49 +125,78 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
         if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
       };
 
-      final created = await _repo.createUser(
-        email: _email.text.trim(),
-        password: _password.text.trim(),
-        fullName: _fullName.text.trim(),
-        role: 'student',
-        phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-        profileMetadata: metadata,
-      );
-      if (!created.success) return _fail(created.error ?? 'Could not create student');
-      final studentId = '${(created.data as Map)['id']}';
-
-      final enrolled = await _repo.enrollStudent(
-          sectionId: _selectedSection.value!, studentId: studentId);
-      if (!enrolled.success) {
-        return _fail(enrolled.error ?? 'Student created, but enrollment failed');
+      var studentId = _createdStudentId;
+      if (studentId == null) {
+        final created = await _repo.createUser(
+          email: _email.text.trim(),
+          password: _password.text.trim(),
+          fullName: _fullName.text.trim(),
+          role: 'student',
+          phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          profileMetadata: metadata,
+        );
+        if (!created.success) {
+          return _fail(created.error ?? 'Could not create student');
+        }
+        studentId = '${(created.data as Map)['id']}';
+        _createdStudentId = studentId;
       }
 
-      if (_createGuardian.value) {
-        final guardianCreated = await _repo.createUser(
-          email: _guardianEmail.text.trim(),
-          password: _guardianPassword.text.trim(),
-          fullName: _guardianName.text.trim(),
-          role: 'guardian',
-          phone: _guardianPhone.text.trim().isEmpty
-              ? null
-              : _guardianPhone.text.trim(),
+      if (!_studentEnrolled) {
+        final enrolled = await _repo.enrollStudent(
+          sectionId: _selectedSection.value!,
+          studentId: studentId,
         );
-        if (!guardianCreated.success) {
-          return _fail(guardianCreated.error ??
-              'Student enrolled, but guardian creation failed');
+        if (!enrolled.success) {
+          return _fail(
+            'Student account created, but enrollment is still pending. '
+            'Retry to continue without creating another account. '
+            '${enrolled.error ?? 'Please try again.'}',
+          );
         }
-        final guardianId = '${(guardianCreated.data as Map)['id']}';
+        _studentEnrolled = true;
+      }
+
+      if (_createGuardian.value || _createdGuardianId != null) {
+        var guardianId = _createdGuardianId;
+        if (guardianId == null) {
+          final guardianCreated = await _repo.createUser(
+            email: _guardianEmail.text.trim(),
+            password: _guardianPassword.text.trim(),
+            fullName: _guardianName.text.trim(),
+            role: 'guardian',
+            phone: _guardianPhone.text.trim().isEmpty
+                ? null
+                : _guardianPhone.text.trim(),
+          );
+          if (!guardianCreated.success) {
+            return _fail(
+              guardianCreated.error ??
+                  'Student enrolled, but guardian creation failed',
+            );
+          }
+          guardianId = '${(guardianCreated.data as Map)['id']}';
+          _createdGuardianId = guardianId;
+        }
         final linked = await _repo.linkChild(
-            guardianId: guardianId, studentId: studentId);
+          guardianId: guardianId,
+          studentId: studentId,
+        );
         if (!linked.success) {
-          return _fail(linked.error ??
-              'Student and guardian created, but linking failed');
+          return _fail(
+            'Student and guardian accounts were created, but linking is still '
+            'pending. Retry to continue without creating duplicate accounts. '
+            '${linked.error ?? 'Please try again.'}',
+          );
         }
       }
 
       Get.back<bool>(result: true);
-      Get.snackbar('Student registered', 'The student was admitted successfully.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Student registered',
+        'The student was admitted successfully.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       _submitting.value = false;
     }
@@ -168,8 +210,11 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
   String _iso(DateTime d) =>
       '${d.year.toString().padLeft(4, "0")}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}';
 
-  Future<void> _pickDate(Rx<DateTime> target,
-      {DateTime? first, DateTime? last}) async {
+  Future<void> _pickDate(
+    Rx<DateTime> target, {
+    DateTime? first,
+    DateTime? last,
+  }) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -180,8 +225,11 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
     if (picked != null) target.value = picked;
   }
 
-  Future<void> _pickDateNullable(Rxn<DateTime> target,
-      {DateTime? first, DateTime? last}) async {
+  Future<void> _pickDateNullable(
+    Rxn<DateTime> target, {
+    DateTime? first,
+    DateTime? last,
+  }) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -195,9 +243,20 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
   @override
   void dispose() {
     for (final c in [
-      _fullName, _email, _password, _avatarUrl, _phone, _address,
-      _fatherName, _motherName, _emergencyContact, _notes,
-      _guardianName, _guardianEmail, _guardianPhone, _guardianPassword,
+      _fullName,
+      _email,
+      _password,
+      _avatarUrl,
+      _phone,
+      _address,
+      _fatherName,
+      _motherName,
+      _emergencyContact,
+      _notes,
+      _guardianName,
+      _guardianEmail,
+      _guardianPhone,
+      _guardianPassword,
     ]) {
       c.dispose();
     }
@@ -213,18 +272,23 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
       ),
       body: Obx(() {
         if (_sectionsLoading.value) {
-          return const SkeletonPage(withHeader: false, body: SkeletonForm(fields: 6));
+          return const SkeletonPage(
+            withHeader: false,
+            body: SkeletonForm(fields: 6),
+          );
+        }
+        if (_sectionsError.value != null) {
+          return AppStateView.error(
+            title: 'Could not load enrollment sections',
+            message: _sectionsError.value!,
+            actionLabel: 'Try again',
+            onAction: _loadSections,
+          );
         }
         if (_sections.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(AppSpacing.stackXl),
-            child: Center(
-              child: Text(
-                'Create a class and section before enrolling students.',
-                style: AppTypography.bodyLg,
-                textAlign: TextAlign.center,
-              ),
-            ),
+          return const AppStateView.empty(
+            title: 'No enrollment sections',
+            message: 'Create a class and section before enrolling students.',
           );
         }
         return ListView(
@@ -237,7 +301,10 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
           children: [
             _section('Account'),
             GlassInput(
-                label: 'Full name', hint: 'Student name', controller: _fullName),
+              label: 'Full name',
+              hint: 'Student name',
+              controller: _fullName,
+            ),
             _gap(),
             GlassInput(
               label: 'Email',
@@ -256,23 +323,27 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
             AvatarPickerField(urlController: _avatarUrl),
             _gapLg(),
             _section('Personal'),
-            Obx(() => ActionDropdownField<String>(
-                  label: 'Gender',
-                  hint: 'Select gender',
-                  value: _gender.value,
-                  items: [
-                    for (final g in _genders)
-                      DropdownMenuItem(value: g, child: Text(g)),
-                  ],
-                  onChanged: (v) => _gender.value = v ?? 'Male',
-                )),
+            Obx(
+              () => ActionDropdownField<String>(
+                label: 'Gender',
+                hint: 'Select gender',
+                value: _gender.value,
+                items: [
+                  for (final g in _genders)
+                    DropdownMenuItem(value: g, child: Text(g)),
+                ],
+                onChanged: (v) => _gender.value = v ?? 'Male',
+              ),
+            ),
             _gap(),
-            Obx(() => _DateField(
-                  label: 'Date of birth',
-                  value: _dob.value,
-                  placeholder: 'Tap to pick',
-                  onTap: () => _pickDateNullable(_dob),
-                )),
+            Obx(
+              () => _DateField(
+                label: 'Date of birth',
+                value: _dob.value,
+                placeholder: 'Tap to pick',
+                onTap: () => _pickDateNullable(_dob),
+              ),
+            ),
             _gap(),
             GlassInput(
               label: 'Contact number',
@@ -287,22 +358,26 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
               controller: _address,
             ),
             _gap(),
-            Obx(() => _DateField(
-                  label: 'Admission date',
-                  value: _admissionDate.value,
-                  onTap: () => _pickDate(_admissionDate),
-                )),
+            Obx(
+              () => _DateField(
+                label: 'Admission date',
+                value: _admissionDate.value,
+                onTap: () => _pickDate(_admissionDate),
+              ),
+            ),
             _gapLg(),
             _section('Family'),
             GlassInput(
-                label: "Father's name",
-                hint: 'Full name',
-                controller: _fatherName),
+              label: "Father's name",
+              hint: 'Full name',
+              controller: _fatherName,
+            ),
             _gap(),
             GlassInput(
-                label: "Mother's name (optional)",
-                hint: 'Full name',
-                controller: _motherName),
+              label: "Mother's name (optional)",
+              hint: 'Full name',
+              controller: _motherName,
+            ),
             _gap(),
             GlassInput(
               label: 'Emergency contact',
@@ -317,23 +392,28 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
             ),
             _gapLg(),
             _section('Guardian account'),
-            Obx(() => SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('Create guardian profile and link to student',
-                      style: AppTypography.bodyLg),
-                  value: _createGuardian.value,
-                  activeThumbColor: AppColors.primary,
-                  onChanged: (v) => _createGuardian.value = v,
-                )),
+            Obx(
+              () => SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  'Create guardian profile and link to student',
+                  style: AppTypography.bodyLg,
+                ),
+                value: _createGuardian.value,
+                activeThumbColor: AppColors.primary,
+                onChanged: (v) => _createGuardian.value = v,
+              ),
+            ),
             Obx(() {
               if (!_createGuardian.value) return const SizedBox.shrink();
               return Column(
                 children: [
                   _gap(),
                   GlassInput(
-                      label: 'Guardian full name',
-                      hint: 'Full name',
-                      controller: _guardianName),
+                    label: 'Guardian full name',
+                    hint: 'Full name',
+                    controller: _guardianName,
+                  ),
                   _gap(),
                   GlassInput(
                     label: 'Guardian email',
@@ -360,33 +440,38 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
             }),
             _gapLg(),
             _section('Enrollment'),
-            Obx(() => ActionDropdownField<String>(
-                  label: 'Section',
-                  hint: 'Select a section',
-                  value: _selectedSection.value,
-                  items: [
-                    for (final s in _sections)
-                      DropdownMenuItem(value: s.id, child: Text(s.label)),
-                  ],
-                  onChanged: (v) => _selectedSection.value = v,
-                )),
+            Obx(
+              () => ActionDropdownField<String>(
+                label: 'Section',
+                hint: 'Select a section',
+                value: _selectedSection.value,
+                items: [
+                  for (final s in _sections)
+                    DropdownMenuItem(value: s.id, child: Text(s.label)),
+                ],
+                onChanged: (v) => _selectedSection.value = v,
+              ),
+            ),
             _gapLg(),
             Obx(() {
               final err = _error.value;
               if (err == null) return const SizedBox.shrink();
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
-                child: Text(err,
-                    style:
-                        AppTypography.bodyMd.copyWith(color: AppColors.error)),
+                child: Text(
+                  err,
+                  style: AppTypography.bodyMd.copyWith(color: AppColors.error),
+                ),
               );
             }),
-            Obx(() => PrimaryButton(
-                  label: 'Admit & Enroll',
-                  isLoading: _submitting.value,
-                  expanded: true,
-                  onPressed: _submitting.value ? null : _submit,
-                )),
+            Obx(
+              () => PrimaryButton(
+                label: 'Admit & Enroll',
+                isLoading: _submitting.value,
+                expanded: true,
+                onPressed: _submitting.value ? null : _submit,
+              ),
+            ),
           ],
         );
       }),
@@ -394,9 +479,9 @@ class _StudentRegistrationViewState extends State<StudentRegistrationView> {
   }
 
   Widget _section(String title) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.stackSm),
-        child: Text(title, style: AppTypography.labelCaps),
-      );
+    padding: const EdgeInsets.only(bottom: AppSpacing.stackSm),
+    child: Text(title, style: AppTypography.labelCaps),
+  );
 
   Widget _gap() => const SizedBox(height: AppSpacing.stackMd);
   Widget _gapLg() => const SizedBox(height: AppSpacing.stackLg);
@@ -418,8 +503,18 @@ class _DateField extends StatelessWidget {
       '${d.day.toString().padLeft(2, "0")} ${_months[d.month - 1]} ${d.year}';
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   @override
@@ -427,16 +522,21 @@ class _DateField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(),
-            style: AppTypography.labelCaps
-                .copyWith(color: AppColors.onSurfaceVariant)),
+        Text(
+          label.toUpperCase(),
+          style: AppTypography.labelCaps.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 6),
         InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.button),
           child: Container(
             padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.stackMd, vertical: 14),
+              horizontal: AppSpacing.stackMd,
+              vertical: 14,
+            ),
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(AppRadius.button),
@@ -448,13 +548,17 @@ class _DateField extends StatelessWidget {
                   child: Text(
                     value == null ? placeholder : _fmt(value!),
                     style: AppTypography.bodyLg.copyWith(
-                        color: value == null
-                            ? AppColors.onSurfaceVariant
-                            : AppColors.onSurface),
+                      color: value == null
+                          ? AppColors.onSurfaceVariant
+                          : AppColors.onSurface,
+                    ),
                   ),
                 ),
-                const Icon(AppIcons.calendarTodayOutlined,
-                    size: 18, color: AppColors.onSurfaceVariant),
+                const Icon(
+                  AppIcons.calendarTodayOutlined,
+                  size: 18,
+                  color: AppColors.onSurfaceVariant,
+                ),
               ],
             ),
           ),

@@ -126,23 +126,16 @@ class TransportController extends GetxController {
 
   Future<void> toggleDriverStatus(DriverRow d) async {
     final deactivating = d.status == 'active';
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text(deactivating ? 'Deactivate driver?' : 'Activate driver?'),
-        content: Text(deactivating
-            ? '${d.fullName} will no longer be able to run trips until reactivated.'
-            : '${d.fullName} will be able to run trips again.'),
-        actions: [
-          TextButton(
-              onPressed: () => Get.back<bool>(result: false),
-              child: const Text('No')),
-          TextButton(
-              onPressed: () => Get.back<bool>(result: true),
-              child: const Text('Yes')),
-        ],
-      ),
+    final confirmed = await showAppConfirm(
+      icon: deactivating ? AppIcons.blockRounded : AppIcons.checkCircleRounded,
+      title: deactivating ? 'Deactivate driver?' : 'Activate driver?',
+      message: deactivating
+          ? '${d.fullName} will no longer be able to run trips until reactivated.'
+          : '${d.fullName} will be able to run trips again.',
+      confirmLabel: deactivating ? 'Deactivate' : 'Activate',
+      destructive: deactivating,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     final next = deactivating ? 'inactive' : 'active';
     final res = await _repo.updateDriver(driverId: d.id, status: next);
     if (res.success) {

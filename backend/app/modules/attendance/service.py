@@ -16,6 +16,7 @@ from app.core.exceptions import bad_request, forbidden, not_found
 from app.models.academic import Section, StudentEnrollment, Subject, TimetableSlot
 from app.models.attendance import AttendanceRecord
 from app.models.role import Role
+from app.modules.academic.access import enrolled_students
 from app.models.user import User
 from app.modules.attendance import schemas
 
@@ -116,6 +117,8 @@ class AttendanceService:
             .where(
                 StudentEnrollment.section_id == section_id,
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                StudentEnrollment.school_id == school_id,
+                User.id.in_(enrolled_students(school_id, [section_id])),
             )
             .order_by(StudentEnrollment.roll_number.nulls_last(), User.full_name)
         )).all()

@@ -3,8 +3,8 @@ import 'package:shared/shared.dart';
 
 import '../models/dashboard_data.dart';
 
-/// One announcement preview on the dashboard: accent-rail card with title,
-/// time stamp, and a clipped body excerpt.
+/// One announcement preview on the dashboard: a clean card with title, time
+/// stamp, and a clipped body excerpt.
 class RecentAnnouncementRow extends StatelessWidget {
   final RecentAnnouncementSummary item;
   final VoidCallback? onTap;
@@ -20,7 +20,6 @@ class RecentAnnouncementRow extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(AppRadius.button),
-          border: Border(left: BorderSide(color: item.accent, width: 3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

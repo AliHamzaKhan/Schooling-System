@@ -7,8 +7,9 @@ import '../models/teacher_attendance_day.dart';
 import '../../../../../widgets/skeletons.dart';
 
 /// Read-only roster for a given date + status filter (Absent / Late / …).
-/// Reached from the Reports drill-in cards. Args:
-/// `Get.arguments = TeacherAttendanceRosterArgs(date: DateTime, status: 'absent'|'late'|…, title: String)`.
+/// The date and status live in the URL query so a browser refresh reconstructs
+/// the same canonical backend read. Typed arguments remain a compatibility
+/// fallback for older in-memory callers.
 class TeacherAttendanceRosterArgs {
   final DateTime date;
   final TeacherAttendanceStatus status;
@@ -18,6 +19,36 @@ class TeacherAttendanceRosterArgs {
     required this.status,
     required this.title,
   });
+
+  static TeacherAttendanceRosterArgs? fromRoute({
+    required Map<String, String?> parameters,
+    Object? arguments,
+  }) {
+    final date = DateTime.tryParse(parameters['date'] ?? '');
+    final statusRaw = parameters['status'];
+    final validStatus = const {
+      'present',
+      'absent',
+      'late',
+      'on_leave',
+      'unmarked',
+    }.contains(statusRaw);
+    if (date != null && validStatus) {
+      final status = TeacherAttendanceStatusX.fromWire(statusRaw);
+      return TeacherAttendanceRosterArgs(
+        date: date,
+        status: status,
+        title: switch (status) {
+          TeacherAttendanceStatus.present => 'Present Teachers',
+          TeacherAttendanceStatus.absent => 'Absent Teachers',
+          TeacherAttendanceStatus.late => 'Late Comers',
+          TeacherAttendanceStatus.onLeave => 'On Leave',
+          TeacherAttendanceStatus.unmarked => 'Attendance Not Marked',
+        },
+      );
+    }
+    return arguments is TeacherAttendanceRosterArgs ? arguments : null;
+  }
 }
 
 class TeacherAttendanceRosterView extends StatefulWidget {
@@ -35,12 +66,20 @@ class _TeacherAttendanceRosterViewState
   final _loading = true.obs;
   final _error = RxnString();
 
-  late final TeacherAttendanceRosterArgs args;
+  TeacherAttendanceRosterArgs? args;
 
   @override
   void initState() {
     super.initState();
-    args = Get.arguments as TeacherAttendanceRosterArgs;
+    args = TeacherAttendanceRosterArgs.fromRoute(
+      parameters: Get.parameters,
+      arguments: Get.arguments,
+    );
+    if (args == null) {
+      _error.value = 'A valid attendance date and status are required.';
+      _loading.value = false;
+      return;
+    }
     _fetch();
   }
 
@@ -48,8 +87,8 @@ class _TeacherAttendanceRosterViewState
     _loading.value = true;
     _error.value = null;
     final res = await _repo.loadTeacherAttendance(
-      date: args.date,
-      status: args.status.wire,
+      date: args!.date,
+      status: args!.status.wire,
     );
     if (res.success && res.data != null) {
       _rows.assignAll(res.data!.entries);
@@ -59,19 +98,19 @@ class _TeacherAttendanceRosterViewState
     _loading.value = false;
   }
 
-  Color get _accent => switch (args.status) {
-        TeacherAttendanceStatus.present => AppColors.tertiary,
-        TeacherAttendanceStatus.late => const Color(0xFFF59E0B),
-        TeacherAttendanceStatus.absent => AppColors.error,
-        TeacherAttendanceStatus.onLeave => AppColors.primary,
-        TeacherAttendanceStatus.unmarked => AppColors.onSurfaceVariant,
-      };
+  Color get _accent => switch (args!.status) {
+    TeacherAttendanceStatus.present => AppColors.tertiary,
+    TeacherAttendanceStatus.late => const Color(0xFFF59E0B),
+    TeacherAttendanceStatus.absent => AppColors.error,
+    TeacherAttendanceStatus.onLeave => AppColors.primary,
+    TeacherAttendanceStatus.unmarked => AppColors.onSurfaceVariant,
+  };
 
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        title: Text(args.title),
+        title: Text(args?.title ?? 'Teacher Attendance'),
         backgroundColor: AppColors.surface,
       ),
       body: Obx(() {
@@ -79,13 +118,18 @@ class _TeacherAttendanceRosterViewState
           return const SkeletonPage(body: SkeletonRosterList());
         }
         if (_error.value != null) {
-          return Center(
-              child: Text(_error.value!, style: AppTypography.bodyLg));
+          return AppStateView.error(
+            title: 'Could not load attendance roster',
+            message: _error.value!,
+            actionLabel: args == null ? null : 'Try again',
+            onAction: args == null ? null : _fetch,
+          );
         }
         if (_rows.isEmpty) {
-          return Center(
-            child: Text('No teachers in this group.',
-                style: AppTypography.bodyLg),
+          return const AppStateView.empty(
+            title: 'No teachers in this group',
+            message:
+                'Attendance entries matching this filter will appear here.',
           );
         }
         return ListView.separated(
@@ -103,7 +147,7 @@ class _TeacherAttendanceRosterViewState
             return Container(
               padding: const EdgeInsets.all(AppSpacing.stackMd),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(AppRadius.card),
                 border: Border.all(color: AppColors.outlineVariant),
               ),
@@ -129,18 +173,26 @@ class _TeacherAttendanceRosterViewState
                           Text(
                             'Arrived ${r.arrivalTime!.substring(0, r.arrivalTime!.length.clamp(0, 5))}',
                             style: AppTypography.bodyMd.copyWith(
-                                color: AppColors.onSurfaceVariant),
+                              color: AppColors.onSurfaceVariant,
+                            ),
                           ),
                         if (r.remarks != null && r.remarks!.isNotEmpty)
-                          Text(r.remarks!,
-                              style: AppTypography.bodyMd.copyWith(
-                                  color: AppColors.onSurfaceVariant)),
+                          Text(
+                            r.remarks!,
+                            style: AppTypography.bodyMd.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                  Text(r.status.label,
-                      style: AppTypography.labelMd
-                          .copyWith(color: _accent, fontWeight: FontWeight.w700)),
+                  Text(
+                    r.status.label,
+                    style: AppTypography.labelMd.copyWith(
+                      color: _accent,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             );

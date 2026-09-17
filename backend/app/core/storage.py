@@ -58,8 +58,10 @@ class StorageBackend(ABC):
 
 
 class LocalStorageBackend(StorageBackend):
-    """Development/debug backend that writes under ``STORAGE_LOCAL_DIR`` and is
-    served by the ``/media`` static mount (see ``app/main.py``)."""
+    """Local blobs under ``STORAGE_LOCAL_DIR``. Returned URLs are references:
+    private files are served only through the record-authorized download API.
+    Never expose this directory through a static mount, proxy alias or CDN.
+    """
 
     def __init__(self, root: str | None = None) -> None:
         self._root = Path(root or settings.STORAGE_LOCAL_DIR).resolve()

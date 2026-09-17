@@ -37,7 +37,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # same whether or not the email is registered, so the flow can't be used to
 # enumerate accounts.
 _RESET_ACK = MessageOut(
-    message="If an account exists for that email, a reset code has been sent."
+    message="If an account exists and email delivery is available, check your inbox for a reset code."
 )
 
 
@@ -45,6 +45,7 @@ _RESET_ACK = MessageOut(
 @limiter.limit(AUTH_LIMIT)
 async def login(
     request: Request,
+    response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: DbDep,
 ) -> TokenPair:
@@ -67,7 +68,7 @@ async def login(
 
 @router.post("/refresh", response_model=TokenPair)
 @limiter.limit("20/minute")
-async def refresh_token(request: Request, payload: RefreshRequest, db: DbDep) -> TokenPair:
+async def refresh_token(request: Request, response: Response, payload: RefreshRequest, db: DbDep) -> TokenPair:
     """Rotate a refresh token. The presented token is invalidated and a new
     access/refresh pair is issued; replaying a rotated token revokes the session.
     """
@@ -78,7 +79,7 @@ async def refresh_token(request: Request, payload: RefreshRequest, db: DbDep) ->
 @router.post("/forgot-password", response_model=MessageOut)
 @limiter.limit(SENSITIVE_LIMIT)
 async def forgot_password(
-    request: Request, payload: ForgotPasswordRequest, db: DbDep
+    request: Request, response: Response, payload: ForgotPasswordRequest, db: DbDep
 ) -> MessageOut:
     """Send a one-time reset code to the account's email, if it exists.
 
@@ -89,7 +90,7 @@ async def forgot_password(
     code = await AuthService(db).request_password_reset(payload.email)
     if code is not None:
         # One transactional email — not a fan-out — so it's sent inline. In dev
-        # (no SMTP configured) the notifier logs it in stub mode.
+        # (no SMTP configured) the notifier records only a content-free stub log.
         try:
             await notifier.dispatch(
                 Channel.EMAIL.value,
@@ -107,7 +108,7 @@ async def forgot_password(
 @router.post("/verify-otp", response_model=ResetTokenOut)
 @limiter.limit(SENSITIVE_LIMIT)
 async def verify_otp(
-    request: Request, payload: VerifyOtpRequest, db: DbDep
+    request: Request, response: Response, payload: VerifyOtpRequest, db: DbDep
 ) -> ResetTokenOut:
     """Exchange a valid OTP for a short-lived token authorizing the password
     change. Wrong/expired codes all return the same generic 400."""
@@ -118,7 +119,7 @@ async def verify_otp(
 @router.post("/reset-password", response_model=MessageOut)
 @limiter.limit(SENSITIVE_LIMIT)
 async def reset_password(
-    request: Request, payload: ResetPasswordRequest, db: DbDep
+    request: Request, response: Response, payload: ResetPasswordRequest, db: DbDep
 ) -> MessageOut:
     """Set a new password using the token from /verify-otp. Signs the user out of
     all existing sessions."""
@@ -144,12 +145,13 @@ async def logout_all(current_user: CurrentUser, db: DbDep) -> Response:
 @limiter.limit(SENSITIVE_LIMIT)
 async def change_password(
     request: Request,
+    response: Response,
     payload: ChangePasswordRequest,
     current_user: CurrentUser,
     db: DbDep,
 ) -> MessageOut:
     """Change the signed-in user's own password (requires the current one).
-    Signs the user out of all other sessions."""
+    Signs the user out of all sessions, including the current one."""
     await AuthService(db).change_password(
         current_user, payload.current_password, payload.new_password
     )

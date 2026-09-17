@@ -167,23 +167,15 @@ class HeadmasterClassesController extends GetxController {
   }
 
   Future<void> _deleteClassFlow(String classId, String className) async {
-    final confirm = await Get.dialog<bool>(
-      AlertDialog(
-        title: const Text('Delete class?'),
-        content: Text(
-            'This removes "$className" and its sections. This cannot be undone.'),
-        actions: [
-          TextButton(
-              onPressed: () => Get.back<bool>(result: false),
-              child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Get.back<bool>(result: true),
-            child: const Text('Delete', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
+    final confirm = await showAppConfirm(
+      icon: AppIcons.deleteOutlineRounded,
+      title: 'Delete class?',
+      message:
+          'This removes "$className" and its sections. This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
     );
-    if (confirm != true) return;
+    if (!confirm) return;
     final res = await _repo.deleteClass(classId);
     if (res.success) {
       Get.snackbar('Class deleted', '"$className" was removed.',

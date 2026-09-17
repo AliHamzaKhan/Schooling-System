@@ -1,12 +1,13 @@
 """Fee Management Service: fee structures, invoices, payments, reports."""
+import hashlib
 import uuid
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import EnrollmentStatus, InvoiceStatus, SystemRole
-from app.core.exceptions import bad_request, not_found
+from app.core.exceptions import AppHTTPException, ErrorCode, bad_request, not_found
 from app.models.academic import Section, SchoolClass, StudentEnrollment
 from app.models.fees import FeeStructure, Invoice, Payment
 from app.models.role import Role
@@ -345,15 +346,51 @@ class FeeService:
     async def record_payment(
         self, school_id: uuid.UUID, invoice_id: uuid.UUID, data: schemas.PaymentCreate,
         recorded_by: uuid.UUID,
+        *, idempotency_key: uuid.UUID | None = None,
     ) -> Payment:
-        invoice = await self._get_scoped(Invoice, school_id, invoice_id, "Invoice")
-        remaining = round(invoice.amount - invoice.amount_paid, 2)
+        if idempotency_key is not None:
+            # Authorize the target before consulting the globally unique key.
+            await self._get_scoped(Invoice, school_id, invoice_id, "Invoice")
+            # Every keyed request takes key → invoice locks in that order.
+            # The existing payment UUID is the durable deduplication identity;
+            # no separate cache, expiring key table or schema migration needed.
+            lock_key = int.from_bytes(hashlib.sha256(
+                b"fee-payment:" + idempotency_key.bytes
+            ).digest()[:8], "big", signed=True)
+            await self.db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+            existing = await self.db.get(Payment, idempotency_key)
+            if existing is not None:
+                same_request = (
+                    existing.school_id == school_id and existing.invoice_id == invoice_id
+                    and existing.recorded_by == recorded_by and existing.amount == data.amount
+                    and existing.method == data.method.value and existing.paid_on == data.paid_on
+                    and existing.reference == data.reference and existing.note == data.note
+                )
+                if not same_request:
+                    raise AppHTTPException(409, "Payment request key was already used for different details", ErrorCode.CONFLICT)
+                return existing  # Before the now-paid invoice's balance check.
+        # Serialize balance validation and payment recording on this invoice.
+        # The request transaction holds this lock through commit/rollback.
+        invoice = await self.db.scalar(
+            select(Invoice).where(Invoice.id == invoice_id, Invoice.school_id == school_id)
+            .with_for_update().execution_options(populate_existing=True)
+        )
+        if invoice is None:
+            raise not_found("Invoice not found in this school")
+        total_before = await self.db.scalar(
+            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+                Payment.invoice_id == invoice_id, Payment.school_id == school_id,
+            )
+        )
+        # The ledger, not a possibly stale cached total, determines availability.
+        remaining = round(invoice.amount - float(total_before), 2)
         if remaining <= 0:
             raise bad_request("Invoice is already fully paid")
         if data.amount > remaining:
             raise bad_request(f"Payment ({data.amount}) exceeds the remaining balance ({remaining})")
 
         payment = Payment(
+            id=idempotency_key or uuid.uuid4(),
             school_id=school_id,
             invoice_id=invoice_id,
             amount=data.amount,
@@ -369,7 +406,7 @@ class FeeService:
         await self.db.flush()
         total_paid = await self.db.scalar(
             select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
-                Payment.invoice_id == invoice_id
+                Payment.invoice_id == invoice_id, Payment.school_id == school_id,
             )
         )
         invoice.amount_paid = round(float(total_paid), 2)
@@ -384,10 +421,18 @@ class FeeService:
             .scalars()
             .all()
         )
+        # A receipt must reconcile with its listed payments even if a historical
+        # cached invoice total drifted. This is a read-only projection, not a
+        # silent database repair; historical reconciliation remains explicit.
+        total_paid = round(sum(payment.amount for payment in payments), 2)
+        snapshot = schemas.InvoiceOut.model_validate(invoice).model_copy(update={
+            "amount_paid": total_paid,
+            "status": self._status_for(invoice.amount, total_paid),
+        })
         return schemas.Receipt(
-            invoice=schemas.InvoiceOut.model_validate(invoice),
+            invoice=snapshot,
             payments=[schemas.PaymentOut.model_validate(p) for p in payments],
-            total_paid=invoice.amount_paid,
+            total_paid=total_paid,
         )
 
     # ------------------------------ reports ------------------------------ #

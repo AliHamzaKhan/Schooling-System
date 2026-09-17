@@ -49,6 +49,12 @@ class AnnouncementsView extends GetView<AnnouncementsController> {
                           child: SkeletonCardList(count: 4, height: 110),
                         );
                       }
+                      if (controller.error.value != null) {
+                        return Column(children: [
+                          Text(controller.error.value!),
+                          TextButton(onPressed: controller.fetch, child: const Text('Try again')),
+                        ]);
+                      }
                       if (controller.items.isEmpty) {
                         return Padding(
                           padding: const EdgeInsets.all(AppSpacing.stackXl),
@@ -61,7 +67,7 @@ class AnnouncementsView extends GetView<AnnouncementsController> {
                       return Column(
                         children: [
                           for (final a in controller.items) ...[
-                            AnnouncementCard(announcement: a),
+                            AnnouncementCard(announcement: a, onReview: () => controller.review(context, a.id)),
                             const SizedBox(height: AppSpacing.stackLg),
                           ],
                         ],

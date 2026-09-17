@@ -5,7 +5,6 @@ import 'package:shared/shared.dart';
 import '../../../../../config/headmaster_routes.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher_attendance_day.dart';
-import '../view/teacher_attendance_roster_view.dart';
 import '../../../../../widgets/skeletons.dart';
 
 /// Reports-section card: today's teacher attendance summary with drill-in
@@ -19,7 +18,8 @@ class TeacherAttendanceReportCard extends StatefulWidget {
 }
 
 class _TeacherAttendanceReportCardState
-    extends State<TeacherAttendanceReportCard> with WidgetsBindingObserver {
+    extends State<TeacherAttendanceReportCard>
+    with WidgetsBindingObserver {
   final _repo = Get.find<HeadmasterRepository>();
   final _day = Rxn<TeacherAttendanceDay>();
   final _loading = true.obs;
@@ -55,14 +55,13 @@ class _TeacherAttendanceReportCardState
     _loading.value = false;
   }
 
-  void _openRoster(TeacherAttendanceStatus status, String title) {
+  void _openRoster(TeacherAttendanceStatus status, String _) {
     Get.toNamed(
       HeadmasterRoutes.teacherAttendanceRoster,
-      arguments: TeacherAttendanceRosterArgs(
-        date: DateTime.now(),
-        status: status,
-        title: title,
-      ),
+      parameters: {
+        'date': DateTime.now().toIso8601String().split('T').first,
+        'status': status.wire,
+      },
     );
   }
 
@@ -81,8 +80,11 @@ class _TeacherAttendanceReportCardState
           children: [
             Row(
               children: [
-                const Icon(AppIcons.coPresentOutlined,
-                    size: 18, color: AppColors.primary),
+                const Icon(
+                  AppIcons.coPresentOutlined,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 6),
                 Text('Teacher Attendance', style: AppTypography.titleLg),
                 const Spacer(),
@@ -91,17 +93,25 @@ class _TeacherAttendanceReportCardState
                   borderRadius: BorderRadius.circular(AppRadius.full),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(AppIcons.editCalendarOutlined,
-                            size: 14, color: AppColors.primary),
+                        const Icon(
+                          AppIcons.editCalendarOutlined,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 4),
-                        Text('Record',
-                            style: AppTypography.labelMd.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700)),
+                        Text(
+                          'Record',
+                          style: AppTypography.labelMd.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -178,7 +188,9 @@ class _MetricsRow extends StatelessWidget {
                 onTap: day.absent == 0
                     ? null
                     : () => onOpen(
-                        TeacherAttendanceStatus.absent, 'Absent Teachers'),
+                        TeacherAttendanceStatus.absent,
+                        'Absent Teachers',
+                      ),
               ),
             ),
             const SizedBox(width: AppSpacing.stackSm),
@@ -190,8 +202,7 @@ class _MetricsRow extends StatelessWidget {
                 icon: AppIcons.scheduleRounded,
                 onTap: day.late == 0
                     ? null
-                    : () => onOpen(
-                        TeacherAttendanceStatus.late, 'Late Comers'),
+                    : () => onOpen(TeacherAttendanceStatus.late, 'Late Comers'),
               ),
             ),
           ],
@@ -200,8 +211,9 @@ class _MetricsRow extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackSm),
           Text(
             '${day.unmarked} teachers not yet marked for today.',
-            style: AppTypography.bodyMd
-                .copyWith(color: AppColors.onSurfaceVariant),
+            style: AppTypography.bodyMd.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
         ],
       ],
@@ -242,17 +254,23 @@ class _Tile extends StatelessWidget {
                 Icon(icon, size: 16, color: color),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(label,
-                      style: AppTypography.labelMd.copyWith(color: color)),
+                  child: Text(
+                    label,
+                    style: AppTypography.labelMd.copyWith(color: color),
+                  ),
                 ),
                 if (onTap != null)
                   Icon(AppIcons.chevronRightRounded, size: 16, color: color),
               ],
             ),
             const SizedBox(height: 4),
-            Text(value,
-                style: AppTypography.headlineLg
-                    .copyWith(color: color, fontWeight: FontWeight.w700)),
+            Text(
+              value,
+              style: AppTypography.headlineLg.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),

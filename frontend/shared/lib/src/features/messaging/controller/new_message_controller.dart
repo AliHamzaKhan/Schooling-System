@@ -47,6 +47,7 @@ class NewMessageController extends GetxController {
     if (res.success && res.data != null) {
       contacts.assignAll(res.data!);
     } else {
+      contacts.clear();
       error.value = res.error ?? 'Could not load contacts.';
     }
     loading.value = false;

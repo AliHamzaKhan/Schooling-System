@@ -21,6 +21,9 @@ import 'teacher_endpoints.dart';
 /// into typed models. Reached only via `TeacherRepository`.
 class TeacherApiService {
   final ApiService _api;
+  final _broadcastRetries = BroadcastRetryGuard();
+  String get _broadcastScope => '${Get.find<AuthService>().currentUser.value?['id'] ?? ''}/$_sid';
+  Map<String, dynamic>? get pendingBroadcast => _broadcastRetries.pending(_broadcastScope);
   TeacherApiService({ApiService? api}) : _api = api ?? Get.find<ApiService>();
 
   /// The signed-in teacher's school id — every live endpoint is scoped to it.
@@ -232,17 +235,26 @@ class TeacherApiService {
     String? title,
     required String body,
   }) {
-    return _api.request<dynamic>(
-      method: HttpMethod.post,
-      path: TeacherEndpoints.broadcasts(_sid),
-      body: {
+    final sid = _sid;
+    if (sid.isEmpty || Get.find<AuthService>().currentUser.value?['id'] == null) {
+      return Future.value(ApiResponse.fail('Sign in to your school before publishing.', statusCode: 401));
+    }
+    return _broadcastRetries.run(
+      scope: _broadcastScope,
+      payload: {
         'channel': channel,
         'audience_type': audienceType,
         'audience_ref': ?audienceRef,
         'title': ?title,
         'body': body,
       },
-      parser: (json) => json,
+      send: (key, payload) => _api.request<dynamic>(
+        method: HttpMethod.post,
+        path: TeacherEndpoints.broadcasts(sid),
+        headers: {'Idempotency-Key': key},
+        body: payload,
+        parser: (json) => json,
+      ),
     );
   }
 
@@ -250,7 +262,8 @@ class TeacherApiService {
   /// (`/schools/{id}/communication/broadcasts`, `MessageOut` list). The backend
   /// has no per-thread sender/party or read state, so every item maps to
   /// [ThreadParty.parent] with the broadcast title as the sender; `time` shows
-  /// the sent/scheduled timestamp. [query]/[party] filter client-side.
+  /// the sent/scheduled timestamp. Search only filters the server-authorized
+  /// feed (own broadcasts and current audiences); it cannot widen access.
   Future<ApiResponse<List<MessageThread>>> fetchMessages({
     String query = '',
     String? party,

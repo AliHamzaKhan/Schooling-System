@@ -30,9 +30,9 @@ class StudentShell extends StatefulWidget {
 class _StudentShellState extends State<StudentShell> {
   static const _tabs = [
     PortalTab(AppIcons.dashboardRounded, 'Home'),
-    PortalTab(AppIcons.eventNoteRounded, 'Schedule'),
+    PortalTab(AppIcons.eventNoteRounded, 'Exams'),
     PortalTab(AppIcons.assignmentOutlined, 'Assignments'),
-    PortalTab(AppIcons.personOutlineRounded, 'Profile'),
+    PortalTab(AppIcons.eventAvailableRounded, 'Attendance'),
   ];
 
   void _openNotifications() => Get.toNamed(StudentRoutes.notifications);

@@ -239,7 +239,7 @@ class _Header extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.stackMd),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: AppColors.outlineVariant),
         ),
@@ -348,7 +348,7 @@ class _TeacherAttendanceTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.stackMd),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.outlineVariant),
       ),

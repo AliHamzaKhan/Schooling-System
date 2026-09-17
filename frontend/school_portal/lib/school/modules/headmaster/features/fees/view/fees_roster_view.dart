@@ -230,7 +230,7 @@ class _ClassTabBar extends StatelessWidget {
     return Container(
       height: 48,
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         border: Border(
           bottom: BorderSide(color: AppColors.outlineVariant),
         ),
@@ -376,7 +376,7 @@ class _StudentFeeRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.stackLg),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: AppColors.outlineVariant),
         ),

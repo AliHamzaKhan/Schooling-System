@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_radius.dart';
 import '../tokens/app_typography.dart';
-import 'package:shared/shared.dart';
+import '../../assets/app_icons.dart';
 
 /// Primary action button — vertical gradient from `primary` to a darker shade.
 ///
@@ -29,6 +29,14 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = onPressed == null || isLoading;
+    final labelWidget = Text(
+      label,
+      textAlign: TextAlign.center,
+      style: AppTypography.bodyLg.copyWith(
+        color: AppColors.onPrimary,
+        fontWeight: FontWeight.w600,
+      ),
+    );
     final btn = AnimatedOpacity(
       duration: const Duration(milliseconds: 120),
       opacity: disabled ? 0.55 : 1,
@@ -58,14 +66,17 @@ class PrimaryButton extends StatelessWidget {
                 ],
                 if (isLoading)
                   const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary),
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.onPrimary,
+                    ),
                   )
+                else if (expanded)
+                  Flexible(child: labelWidget)
                 else
-                  Text(
-                    label,
-                    style: AppTypography.bodyLg.copyWith(color: AppColors.onPrimary, fontWeight: FontWeight.w600),
-                  ),
+                  labelWidget,
                 if (trailingIcon != null && !isLoading) ...[
                   const SizedBox(width: 8),
                   Icon(trailingIcon, color: AppColors.onPrimary, size: 18),

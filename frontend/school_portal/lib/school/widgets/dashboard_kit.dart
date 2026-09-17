@@ -14,7 +14,6 @@ import 'package:shared/shared.dart';
 
 import 'profile_avatar.dart';
 
-
 /// One metric in the 2×2 grid.
 class DashboardStat {
   final IconData icon;
@@ -103,22 +102,27 @@ class DashboardIdentityCard extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.titleLg.copyWith(fontWeight: FontWeight.w700),
+                  style: AppTypography.titleLg.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodyMd
-                      .copyWith(color: AppColors.onSurfaceVariant),
+                  style: AppTypography.bodyMd.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
           ),
           if (onTap != null)
-            const Icon(AppIcons.chevronRightRounded,
-                color: AppColors.onSurfaceVariant),
+            const Icon(
+              AppIcons.chevronRightRounded,
+              color: AppColors.onSurfaceVariant,
+            ),
         ],
       ),
     );
@@ -145,14 +149,20 @@ class DashboardStatGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return GridView.count(
-          crossAxisCount: columnsFor(constraints.maxWidth),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: AppSpacing.stackMd,
-          crossAxisSpacing: AppSpacing.stackMd,
-          childAspectRatio: 1,
-          children: [for (final stat in stats) DashboardStatCard(stat: stat)],
+        final columns = columnsFor(constraints.maxWidth);
+        final width =
+            (constraints.maxWidth - AppSpacing.stackMd * (columns - 1)) /
+            columns;
+        return Wrap(
+          spacing: AppSpacing.stackMd,
+          runSpacing: AppSpacing.stackMd,
+          children: [
+            for (final stat in stats)
+              SizedBox(
+                width: width,
+                child: DashboardStatCard(stat: stat),
+              ),
+          ],
         );
       },
     );
@@ -169,6 +179,7 @@ class DashboardStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassSurface(
       onTap: stat.onTap,
+      fill: Color.alphaBlend(stat.accent.withValues(alpha: .09), Colors.white),
       padding: const EdgeInsets.all(AppSpacing.stackMd),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,20 +255,28 @@ class DashboardPrimaryAction extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  label,
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(subtitle!,
-                      style: AppTypography.bodySm
-                          .copyWith(color: AppColors.onSurfaceVariant)),
+                  Text(
+                    subtitle!,
+                    style: AppTypography.bodySm.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ],
             ),
           ),
-          const Icon(AppIcons.chevronRightRounded,
-              color: AppColors.onSurfaceVariant),
+          const Icon(
+            AppIcons.chevronRightRounded,
+            color: AppColors.onSurfaceVariant,
+          ),
         ],
       ),
     );
@@ -280,20 +299,22 @@ class DashboardQuickLinks extends StatelessWidget {
     final rows = <Widget>[];
     for (var start = 0; start < links.length; start += _perRow) {
       final slice = links.skip(start).take(_perRow).toList();
-      rows.add(Row(
-        children: [
-          for (var i = 0; i < _perRow; i++) ...[
-            if (i > 0) const SizedBox(width: AppSpacing.stackSm),
-            // The last row is padded with empty slots so its tiles keep the
-            // width of the rows above rather than stretching to fill.
-            Expanded(
-              child: i < slice.length
-                  ? _LinkTile(link: slice[i])
-                  : const SizedBox.shrink(),
-            ),
+      rows.add(
+        Row(
+          children: [
+            for (var i = 0; i < _perRow; i++) ...[
+              if (i > 0) const SizedBox(width: AppSpacing.stackSm),
+              // The last row is padded with empty slots so its tiles keep the
+              // width of the rows above rather than stretching to fill.
+              Expanded(
+                child: i < slice.length
+                    ? _LinkTile(link: slice[i], index: start + i)
+                    : const SizedBox.shrink(),
+              ),
+            ],
           ],
-        ],
-      ));
+        ),
+      );
       if (start + _perRow < links.length) {
         rows.add(const SizedBox(height: AppSpacing.stackSm));
       }
@@ -304,30 +325,47 @@ class DashboardQuickLinks extends StatelessWidget {
 
 class _LinkTile extends StatelessWidget {
   final DashboardLink link;
-  const _LinkTile({required this.link});
+  final int index;
+  const _LinkTile({required this.link, required this.index});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: link.onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackMd),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(AppRadius.button),
-          border: Border.all(color: AppColors.outlineVariant),
-        ),
-        child: Column(
-          children: [
-            Icon(link.icon, size: 20, color: AppColors.primary),
-            const SizedBox(height: 4),
-            Text(
-              link.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.labelMd,
+    const accents = [
+      AppColors.primary,
+      AppColors.tertiary,
+      AppColors.secondary,
+      Color(0xFF986016),
+      Color(0xFF2673B8),
+      Color(0xFF9251B6),
+    ];
+    final accent = accents[index % accents.length];
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: link.onTap,
+        borderRadius: BorderRadius.circular(AppRadius.button),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackMd),
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              accent.withValues(alpha: .08),
+              Colors.white,
             ),
-          ],
+            borderRadius: BorderRadius.circular(AppRadius.button),
+            border: Border.all(color: AppColors.outlineVariant),
+          ),
+          child: Column(
+            children: [
+              Icon(link.icon, size: 24, color: accent),
+              const SizedBox(height: 4),
+              Text(
+                link.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.labelMd,
+              ),
+            ],
+          ),
         ),
       ),
     );

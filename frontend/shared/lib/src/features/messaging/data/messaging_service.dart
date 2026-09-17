@@ -21,11 +21,11 @@ class MessagingService {
   /// The signed-in user's messages. [box] is 'all' (both directions), 'inbox'
   /// (received) or 'sent'. Conversations are grouped client-side, so 'all' is
   /// what the inbox uses.
-  Future<ApiResponse<List<DirectMessage>>> list({String box = 'all'}) {
+  Future<ApiResponse<List<DirectMessage>>> list({String box = 'all', String? counterpartId}) {
     return _api.request<List<DirectMessage>>(
       method: HttpMethod.get,
       path: '/schools/$_sid/messages',
-      query: {'box': box},
+      query: {'box': box, 'counterpart_id': ?counterpartId},
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
           .map(DirectMessage.fromJson)

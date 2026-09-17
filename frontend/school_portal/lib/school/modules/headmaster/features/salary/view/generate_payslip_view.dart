@@ -12,6 +12,15 @@ import '../../../../../widgets/skeletons.dart';
 class GeneratePayslipArgs {
   final SalaryStaff staff;
   const GeneratePayslipArgs(this.staff);
+
+  static String staffIdFromRoute({
+    required Map<String, String?> parameters,
+    Object? arguments,
+  }) {
+    final fromUrl = parameters['staff_id']?.trim() ?? '';
+    if (fromUrl.isNotEmpty) return fromUrl;
+    return arguments is GeneratePayslipArgs ? arguments.staff.userId : '';
+  }
 }
 
 /// Full-page Generate Payslip flow. Picking a month pulls that month's
@@ -27,7 +36,9 @@ class GeneratePayslipView extends StatefulWidget {
 
 class _GeneratePayslipViewState extends State<GeneratePayslipView> {
   final _repo = Get.find<HeadmasterRepository>();
-  late final SalaryStaff _staff;
+  final _staff = Rxn<SalaryStaff>();
+  final _pageLoading = true.obs;
+  late final String _staffId;
 
   final _month = DateTime.now().month.obs;
   final _year = DateTime.now().year.obs;
@@ -44,8 +55,38 @@ class _GeneratePayslipViewState extends State<GeneratePayslipView> {
   @override
   void initState() {
     super.initState();
-    _staff = (Get.arguments as GeneratePayslipArgs).staff;
-    _loadSummary();
+    _staffId = GeneratePayslipArgs.staffIdFromRoute(
+      parameters: Get.parameters,
+      arguments: Get.arguments,
+    );
+    _loadStaff();
+  }
+
+  Future<void> _loadStaff() async {
+    _pageLoading.value = true;
+    _error.value = null;
+    _staff.value = null;
+    if (_staffId.isEmpty) {
+      _error.value = 'A valid staff member is required.';
+      _pageLoading.value = false;
+      return;
+    }
+    final result = await _repo.loadSalaryStaff();
+    final canonical = result.data?.firstWhereOrNull(
+      (item) => item.userId == _staffId,
+    );
+    if (!result.success || canonical == null || !canonical.hasSalary) {
+      _error.value = !result.success
+          ? (result.error ?? 'Could not load staff salary details.')
+          : canonical == null
+          ? 'Staff member not found.'
+          : 'Set a base salary before generating a payslip.';
+      _pageLoading.value = false;
+      return;
+    }
+    _staff.value = canonical;
+    _pageLoading.value = false;
+    await _loadSummary();
   }
 
   @override
@@ -58,7 +99,7 @@ class _GeneratePayslipViewState extends State<GeneratePayslipView> {
   Future<void> _loadSummary() async {
     _summaryLoading.value = true;
     final res = await _repo.loadTeacherMonthlyAttendance(
-      teacherId: _staff.userId,
+      teacherId: _staff.value!.userId,
       month: _month.value,
       year: _year.value,
     );
@@ -72,7 +113,7 @@ class _GeneratePayslipViewState extends State<GeneratePayslipView> {
 
   /// Live preview of the payslip totals as the form changes.
   ({double gross, double absence, double manual, double net}) get _preview {
-    final base = _staff.baseSalary ?? 0;
+    final base = _staff.value?.baseSalary ?? 0;
     final allow = double.tryParse(_allowances.text.trim()) ?? 0;
     final manual = double.tryParse(_deductions.text.trim()) ?? 0;
     final absence = _deductAbsences.value
@@ -105,7 +146,7 @@ class _GeneratePayslipViewState extends State<GeneratePayslipView> {
     }
     _submitting.value = true;
     final res = await _repo.generatePayslip(
-      profileId: _staff.profileId!,
+      profileId: _staff.value!.profileId!,
       month: _month.value,
       year: _year.value,
       allowances: allow,
@@ -115,9 +156,11 @@ class _GeneratePayslipViewState extends State<GeneratePayslipView> {
     _submitting.value = false;
     if (res.success) {
       Get.back<bool>(result: true);
-      Get.snackbar('Payslip generated',
-          '${SalaryController.monthNames[_month.value - 1]} ${_year.value} · ${_staff.name}',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Payslip generated',
+        '${SalaryController.monthNames[_month.value - 1]} ${_year.value} · ${_staff.value!.name}',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } else {
       _error.value = res.error ?? 'Could not generate payslip';
     }
@@ -130,23 +173,38 @@ class _GeneratePayslipViewState extends State<GeneratePayslipView> {
         title: const Text('Generate Payslip'),
         backgroundColor: AppColors.surface,
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.containerPaddingMobile,
-          AppSpacing.stackLg,
-          AppSpacing.containerPaddingMobile,
-          AppSpacing.stackXl,
-        ),
-        children: [
-          _StaffHeader(staff: _staff),
-          const SizedBox(height: AppSpacing.stackLg),
-          Text('Period', style: AppTypography.labelCaps),
-          const SizedBox(height: AppSpacing.stackSm),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Obx(() => _Dropdown<int>(
+      body: Obx(() {
+        if (_pageLoading.value) {
+          return const SkeletonPage(
+            body: SkeletonCardList(count: 4, height: 72),
+          );
+        }
+        if (_staff.value == null) {
+          return AppStateView.error(
+            title: 'Could not prepare payslip',
+            message: _error.value ?? 'Staff salary details are unavailable.',
+            actionLabel: _staffId.isEmpty ? null : 'Try again',
+            onAction: _staffId.isEmpty ? null : _loadStaff,
+          );
+        }
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackLg,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackXl,
+          ),
+          children: [
+            _StaffHeader(staff: _staff.value!),
+            const SizedBox(height: AppSpacing.stackLg),
+            Text('Period', style: AppTypography.labelCaps),
+            const SizedBox(height: AppSpacing.stackSm),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Obx(
+                    () => _Dropdown<int>(
                       label: 'Month',
                       value: _month.value,
                       items: [
@@ -160,179 +218,212 @@ class _GeneratePayslipViewState extends State<GeneratePayslipView> {
                         _month.value = v ?? _month.value;
                         _loadSummary();
                       },
-                    )),
-              ),
-              const SizedBox(width: AppSpacing.stackSm),
-              Expanded(
-                flex: 2,
-                child: Obx(() => _Dropdown<int>(
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.stackSm),
+                Expanded(
+                  flex: 2,
+                  child: Obx(
+                    () => _Dropdown<int>(
                       label: 'Year',
                       value: _year.value,
                       items: [
-                        for (var y = DateTime.now().year - 2;
-                            y <= DateTime.now().year + 1;
-                            y++)
+                        for (
+                          var y = DateTime.now().year - 2;
+                          y <= DateTime.now().year + 1;
+                          y++
+                        )
                           DropdownMenuItem(value: y, child: Text('$y')),
                       ],
                       onChanged: (v) {
                         _year.value = v ?? _year.value;
                         _loadSummary();
                       },
-                    )),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.stackLg),
-          Text('Attendance this period', style: AppTypography.labelCaps),
-          const SizedBox(height: AppSpacing.stackSm),
-          Obx(() {
-            if (_summaryLoading.value) {
-              return const Shimmer(
-                child: SkeletonStatRow(count: 3, height: 64),
-              );
-            }
-            final s = _summary.value;
-            if (s == null || s.markedDays == 0) {
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.stackLg),
+            Text('Attendance this period', style: AppTypography.labelCaps),
+            const SizedBox(height: AppSpacing.stackSm),
+            Obx(() {
+              if (_summaryLoading.value) {
+                return const Shimmer(
+                  child: SkeletonStatRow(count: 3, height: 64),
+                );
+              }
+              final s = _summary.value;
+              if (s == null || s.markedDays == 0) {
+                return Container(
+                  padding: const EdgeInsets.all(AppSpacing.stackMd),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                    border: Border.all(color: AppColors.outlineVariant),
+                  ),
+                  child: Text(
+                    'No attendance recorded for this month. The payslip will be '
+                    'generated without any absence deduction.',
+                    style: AppTypography.bodyMd.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                );
+              }
+              return _AttendanceGrid(summary: s);
+            }),
+            const SizedBox(height: AppSpacing.stackMd),
+            Obx(() {
+              final s = _summary.value;
+              final canDeduct = (s?.absentDays ?? 0) > 0;
               return Container(
-                padding: const EdgeInsets.all(AppSpacing.stackMd),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLowest,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(AppRadius.button),
-                  border: Border.all(color: AppColors.outlineVariant),
+                  border: Border.all(
+                    color: _deductAbsences.value
+                        ? AppColors.error
+                        : AppColors.outlineVariant,
+                  ),
                 ),
-                child: Text(
-                  'No attendance recorded for this month. The payslip will be '
-                  'generated without any absence deduction.',
-                  style: AppTypography.bodyMd
-                      .copyWith(color: AppColors.onSurfaceVariant),
+                child: SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.stackMd,
+                    vertical: 4,
+                  ),
+                  title: Text(
+                    'Deduct salary for absences',
+                    style: AppTypography.bodyLg,
+                  ),
+                  subtitle: Text(
+                    canDeduct
+                        ? '${s!.absentDays} absent × ${money((_staff.value!.baseSalary ?? 0) / 30)} = ${money(s.projectedAbsenceDeduction)}'
+                        : 'No absences recorded for this month',
+                    style: AppTypography.bodyMd.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                  value: _deductAbsences.value,
+                  activeThumbColor: AppColors.error,
+                  onChanged: canDeduct
+                      ? (v) => _deductAbsences.value = v
+                      : null,
                 ),
               );
-            }
-            return _AttendanceGrid(summary: s);
-          }),
-          const SizedBox(height: AppSpacing.stackMd),
-          Obx(() {
-            final s = _summary.value;
-            final canDeduct = (s?.absentDays ?? 0) > 0;
-            return Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.button),
-                border: Border.all(
-                  color: _deductAbsences.value
-                      ? AppColors.error
-                      : AppColors.outlineVariant,
+            }),
+            const SizedBox(height: AppSpacing.stackLg),
+            Text('Adjustments', style: AppTypography.labelCaps),
+            const SizedBox(height: AppSpacing.stackSm),
+            GlassInput(
+              label: 'Allowances',
+              hint: '0',
+              controller: _allowances,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => _deductAbsences.refresh(),
+            ),
+            const SizedBox(height: AppSpacing.stackMd),
+            GlassInput(
+              label: 'Other deductions',
+              hint: '0',
+              controller: _deductions,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => _deductAbsences.refresh(),
+            ),
+            const SizedBox(height: AppSpacing.stackLg),
+            Obx(() {
+              // Depend on the toggle so the preview recomputes with the form.
+              _deductAbsences.value;
+              final p = _preview;
+              return Container(
+                padding: const EdgeInsets.all(AppSpacing.stackLg),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
                 ),
-              ),
-              child: SwitchListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.stackMd, vertical: 4),
-                title: Text('Deduct salary for absences',
-                    style: AppTypography.bodyLg),
-                subtitle: Text(
-                  canDeduct
-                      ? '${s!.absentDays} absent × ${money(( _staff.baseSalary ?? 0) / 30)} = ${money(s.projectedAbsenceDeduction)}'
-                      : 'No absences recorded for this month',
-                  style: AppTypography.bodyMd
-                      .copyWith(color: AppColors.onSurfaceVariant),
+                child: Column(
+                  children: [
+                    _row('Base salary', money(_staff.value!.baseSalary ?? 0)),
+                    _row(
+                      'Allowances',
+                      '+ ${money(p.gross - (_staff.value!.baseSalary ?? 0))}',
+                    ),
+                    const Divider(height: 20),
+                    _row('Gross', money(p.gross), bold: true),
+                    if (p.absence > 0)
+                      _row(
+                        'Absence deduction',
+                        '- ${money(p.absence)}',
+                        color: AppColors.error,
+                      ),
+                    if (p.manual > 0)
+                      _row(
+                        'Other deductions',
+                        '- ${money(p.manual)}',
+                        color: AppColors.error,
+                      ),
+                    const Divider(height: 20),
+                    _row('Net pay', money(p.net), bold: true, big: true),
+                  ],
                 ),
-                value: _deductAbsences.value,
-                activeThumbColor: AppColors.error,
-                onChanged:
-                    canDeduct ? (v) => _deductAbsences.value = v : null,
-              ),
-            );
-          }),
-          const SizedBox(height: AppSpacing.stackLg),
-          Text('Adjustments', style: AppTypography.labelCaps),
-          const SizedBox(height: AppSpacing.stackSm),
-          GlassInput(
-            label: 'Allowances',
-            hint: '0',
-            controller: _allowances,
-            keyboardType: TextInputType.number,
-            onChanged: (_) => _deductAbsences.refresh(),
-          ),
-          const SizedBox(height: AppSpacing.stackMd),
-          GlassInput(
-            label: 'Other deductions',
-            hint: '0',
-            controller: _deductions,
-            keyboardType: TextInputType.number,
-            onChanged: (_) => _deductAbsences.refresh(),
-          ),
-          const SizedBox(height: AppSpacing.stackLg),
-          Obx(() {
-            // Depend on the toggle so the preview recomputes with the form.
-            _deductAbsences.value;
-            final p = _preview;
-            return Container(
-              padding: const EdgeInsets.all(AppSpacing.stackLg),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3)),
-              ),
-              child: Column(
-                children: [
-                  _row('Base salary', money(_staff.baseSalary ?? 0)),
-                  _row('Allowances',
-                      '+ ${money(p.gross - (_staff.baseSalary ?? 0))}'),
-                  const Divider(height: 20),
-                  _row('Gross', money(p.gross), bold: true),
-                  if (p.absence > 0)
-                    _row('Absence deduction', '- ${money(p.absence)}',
-                        color: AppColors.error),
-                  if (p.manual > 0)
-                    _row('Other deductions', '- ${money(p.manual)}',
-                        color: AppColors.error),
-                  const Divider(height: 20),
-                  _row('Net pay', money(p.net), bold: true, big: true),
-                ],
-              ),
-            );
-          }),
-          const SizedBox(height: AppSpacing.stackLg),
-          Obx(() {
-            final err = _error.value;
-            if (err == null) return const SizedBox.shrink();
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
-              child: Text(err,
-                  style:
-                      AppTypography.bodyMd.copyWith(color: AppColors.error)),
-            );
-          }),
-          Obx(() => PrimaryButton(
+              );
+            }),
+            const SizedBox(height: AppSpacing.stackLg),
+            Obx(() {
+              final err = _error.value;
+              if (err == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
+                child: Text(
+                  err,
+                  style: AppTypography.bodyMd.copyWith(color: AppColors.error),
+                ),
+              );
+            }),
+            Obx(
+              () => PrimaryButton(
                 label: 'Generate Payslip',
                 isLoading: _submitting.value,
                 expanded: true,
                 onPressed: _submitting.value ? null : _submit,
-              )),
-        ],
-      ),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 
-  Widget _row(String label, String value,
-      {bool bold = false, bool big = false, Color? color}) {
+  Widget _row(
+    String label,
+    String value, {
+    bool bold = false,
+    bool big = false,
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
           Expanded(
-            child: Text(label,
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onSurfaceVariant)),
+            child: Text(
+              label,
+              style: AppTypography.bodyMd.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
           ),
           Text(
             value,
             style: (big ? AppTypography.titleLg : AppTypography.bodyLg)
                 .copyWith(
-              color: color ?? AppColors.onSurface,
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-            ),
+                  color: color ?? AppColors.onSurface,
+                  fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+                ),
           ),
         ],
       ),
@@ -349,7 +440,7 @@ class _StaffHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.outlineVariant),
       ),
@@ -360,8 +451,7 @@ class _StaffHeader extends StatelessWidget {
             backgroundColor: AppColors.primary.withValues(alpha: 0.12),
             child: Text(
               staff.name.isNotEmpty ? staff.name[0].toUpperCase() : '?',
-              style:
-                  AppTypography.titleLg.copyWith(color: AppColors.primary),
+              style: AppTypography.titleLg.copyWith(color: AppColors.primary),
             ),
           ),
           const SizedBox(width: AppSpacing.stackMd),
@@ -373,8 +463,9 @@ class _StaffHeader extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${staff.designation ?? "Teacher"} · ${money(staff.baseSalary ?? 0)}/mo',
-                  style: AppTypography.bodyMd
-                      .copyWith(color: AppColors.onSurfaceVariant),
+                  style: AppTypography.bodyMd.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -393,17 +484,33 @@ class _AttendanceGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _cell('Present', summary.presentDays, AppColors.tertiary,
-            AppIcons.checkCircleOutline),
+        _cell(
+          'Present',
+          summary.presentDays,
+          AppColors.tertiary,
+          AppIcons.checkCircleOutline,
+        ),
         const SizedBox(width: 6),
-        _cell('Absent', summary.absentDays, AppColors.error,
-            AppIcons.personOffOutlined),
+        _cell(
+          'Absent',
+          summary.absentDays,
+          AppColors.error,
+          AppIcons.personOffOutlined,
+        ),
         const SizedBox(width: 6),
-        _cell('Late', summary.lateDays, const Color(0xFFF59E0B),
-            AppIcons.scheduleRounded),
+        _cell(
+          'Late',
+          summary.lateDays,
+          const Color(0xFFF59E0B),
+          AppIcons.scheduleRounded,
+        ),
         const SizedBox(width: 6),
-        _cell('Leave', summary.leaveDays, AppColors.primary,
-            AppIcons.eventBusyOutlined),
+        _cell(
+          'Leave',
+          summary.leaveDays,
+          AppColors.primary,
+          AppIcons.eventBusyOutlined,
+        ),
       ],
     );
   }
@@ -420,13 +527,19 @@ class _AttendanceGrid extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: color),
             const SizedBox(height: 2),
-            Text('$value',
-                style: AppTypography.titleLg
-                    .copyWith(color: color, fontWeight: FontWeight.w700)),
-            Text(label,
-                style: AppTypography.labelMd.copyWith(color: color),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
+            Text(
+              '$value',
+              style: AppTypography.titleLg.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              label,
+              style: AppTypography.labelMd.copyWith(color: color),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
@@ -451,14 +564,17 @@ class _Dropdown<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(),
-            style: AppTypography.labelCaps
-                .copyWith(color: AppColors.onSurfaceVariant)),
+        Text(
+          label.toUpperCase(),
+          style: AppTypography.labelCaps.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.card,
             borderRadius: BorderRadius.circular(AppRadius.button),
             border: Border.all(color: AppColors.outlineVariant),
           ),

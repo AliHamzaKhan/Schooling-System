@@ -40,20 +40,14 @@ class DriverShell extends GetView<DriverTripController> {
   }
 
   Future<void> _logout() async {
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: const Text('Log out?'),
-        actions: [
-          TextButton(
-              onPressed: () => Get.back<bool>(result: false),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Get.back<bool>(result: true),
-              child: const Text('Log out')),
-        ],
-      ),
+    final confirmed = await showAppConfirm(
+      icon: AppIcons.logoutRounded,
+      title: 'Log out?',
+      message: 'You will need to sign in again to continue.',
+      confirmLabel: 'Log out',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     await Get.find<AuthService>().logout();
     Get.offAllNamed(AuthRoutes.login);
   }

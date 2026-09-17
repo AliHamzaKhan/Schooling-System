@@ -27,12 +27,26 @@ import '../modules/teacher/features/quiz/view/quiz_performance_view.dart';
 import '../modules/teacher/features/quiz/view/quizzes_view.dart';
 import '../modules/teacher/teacher_shell.dart';
 import 'teacher_routes.dart';
+import '../modules/headmaster/features/student_report/binding/student_report_binding.dart';
+import '../modules/headmaster/features/student_report/view/section_students_view.dart';
+import '../modules/headmaster/features/student_report/view/student_report_view.dart';
 
 /// `GetPage` declarations for the Teacher module.
 class TeacherPages {
   TeacherPages._();
 
   static final pages = <GetPage>[
+    GetPage(
+      name: TeacherRoutes.sectionStudents,
+      page: () => const SectionStudentsView(studentReportRoute: TeacherRoutes.studentReport),
+      middlewares: [RoleRouteGuard({'teacher'})],
+    ),
+    GetPage(
+      name: TeacherRoutes.studentReport,
+      page: () => const StudentReportView(readOnly: true),
+      binding: StudentReportBinding(readOnly: true),
+      middlewares: [RoleRouteGuard({'teacher'})],
+    ),
     GetPage(name: TeacherRoutes.shell, page: () => const TeacherShell()),
     GetPage(
       name: TeacherRoutes.attendanceMark,

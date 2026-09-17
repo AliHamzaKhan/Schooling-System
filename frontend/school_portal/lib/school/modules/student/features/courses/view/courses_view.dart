@@ -18,30 +18,40 @@ class CoursesView extends GetView<CoursesController> {
       appBar: AppBar(title: const Text('Courses')),
       body: Obx(() {
         if (controller.loading.value) {
-          return const SkeletonPage(body: SkeletonCardList(count: 4, height: 108));
+          return const SkeletonPage(
+            body: SkeletonCardList(count: 4, height: 108),
+          );
         }
         if (controller.error.value != null) {
           return Center(
-              child: Text(controller.error.value!, style: AppTypography.bodyLg));
+            child: Text(controller.error.value!, style: AppTypography.bodyLg),
+          );
         }
         if (controller.courses.isEmpty) {
           return Center(
-              child: Text('No courses available yet.',
-                  style: AppTypography.bodyLg));
+            child: Text(
+              'No courses available yet.',
+              style: AppTypography.bodyLg,
+            ),
+          );
         }
         return RefreshIndicator(
           onRefresh: controller.load,
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackMd,
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackXl),
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackMd,
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackXl,
+            ),
             itemCount: controller.courses.length,
             separatorBuilder: (_, _) =>
                 const SizedBox(height: AppSpacing.stackMd),
-            itemBuilder: (_, i) => _CourseCard(course: controller.courses[i]),
+            itemBuilder: (_, i) => FadeSlideIn(
+              delay: Duration(milliseconds: (i < 5 ? i : 0) * 60),
+              child: _CourseCard(course: controller.courses[i]),
+            ),
           ),
         );
       }),
@@ -55,9 +65,20 @@ class _CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const accents = [
+      AppColors.primary,
+      AppColors.tertiary,
+      AppColors.secondary,
+      Color(0xFF986016),
+      Color(0xFF2673B8),
+    ];
+    final key = course.subject ?? course.title;
+    final accent =
+        accents[key.runes.fold<int>(0, (sum, char) => sum + char) %
+            accents.length];
     return GlassSurface(
-      onTap: () =>
-          Get.toNamed(StudentRoutes.courseDetail, arguments: course),
+      fill: Color.alphaBlend(accent.withValues(alpha: .07), Colors.white),
+      onTap: () => Get.toNamed(StudentRoutes.courseDetail, arguments: course),
       padding: const EdgeInsets.all(AppSpacing.stackLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,48 +89,64 @@ class _CourseCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
+                  color: accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
-                child: const Icon(AppIcons.menuBookRounded,
-                    color: AppColors.primary, size: 22),
+                child: Icon(AppIcons.menuBookRounded, color: accent, size: 22),
               ),
               const SizedBox(width: AppSpacing.stackMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(course.title,
-                        style: AppTypography.titleMd
-                            .copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      course.title,
+                      style: AppTypography.titleMd.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     if ((course.subject ?? '').isNotEmpty)
-                      Text(course.subject!,
-                          style: AppTypography.bodySm
-                              .copyWith(color: AppColors.onSurfaceVariant)),
+                      Text(
+                        course.subject!,
+                        style: AppTypography.bodySm.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
                   ],
                 ),
               ),
-              const Icon(AppIcons.chevronRightRounded,
-                  color: AppColors.onSurfaceVariant),
+              const Icon(
+                AppIcons.chevronRightRounded,
+                color: AppColors.onSurfaceVariant,
+              ),
             ],
           ),
           if ((course.description ?? '').isNotEmpty) ...[
             const SizedBox(height: AppSpacing.stackMd),
-            Text(course.description!,
-                style: AppTypography.bodyMd, maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(
+              course.description!,
+              style: AppTypography.bodyMd,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
           const SizedBox(height: AppSpacing.stackMd),
-          Row(
+          Wrap(
+            spacing: AppSpacing.stackSm,
+            runSpacing: AppSpacing.stackSm,
             children: [
               _MetaPill(
-                  icon: AppIcons.autoStoriesRounded,
-                  label: '${course.bookCount} '
-                      '${course.bookCount == 1 ? 'book' : 'books'}'),
-              const SizedBox(width: AppSpacing.stackSm),
+                icon: AppIcons.autoStoriesRounded,
+                label:
+                    '${course.bookCount} '
+                    '${course.bookCount == 1 ? 'book' : 'books'}',
+              ),
               _MetaPill(
-                  icon: AppIcons.stickyNote2Outlined,
-                  label: '${course.noteCount} '
-                      '${course.noteCount == 1 ? 'note' : 'notes'}'),
+                icon: AppIcons.stickyNote2Outlined,
+                label:
+                    '${course.noteCount} '
+                    '${course.noteCount == 1 ? 'note' : 'notes'}',
+              ),
             ],
           ),
         ],
@@ -136,9 +173,12 @@ class _MetaPill extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: AppColors.onSurfaceVariant),
           const SizedBox(width: 4),
-          Text(label,
-              style: AppTypography.labelMd
-                  .copyWith(color: AppColors.onSurfaceVariant)),
+          Text(
+            label,
+            style: AppTypography.labelMd.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );

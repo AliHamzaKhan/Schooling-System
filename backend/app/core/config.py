@@ -1,5 +1,6 @@
 """Application configuration loaded from environment variables."""
 from functools import lru_cache
+import os
 from typing import Annotated, List, Union
 from urllib.parse import quote
 
@@ -46,12 +47,9 @@ class Settings(BaseSettings):
     # limiting, which only works with a single worker process.
     REDIS_URL: str = ""
 
-    # Background task queue (arq over Redis). When True, slow work (notification
-    # fan-out to external providers) is handed to the worker (`app/worker.py`)
-    # instead of running inside the request. Requires REDIS_URL *and* a running
-    # worker — leave False (the default) and delivery runs inline, so enabling
-    # offload is a deliberate step paired with deploying the worker rather than a
-    # silent switch that would strand jobs with no consumer.
+    # Legacy optional broker flag, retained for configuration compatibility.
+    # Notifications ALWAYS persist outbox work and require an independent worker;
+    # False does not enable inline delivery. The standalone DB worker needs no Redis.
     TASK_QUEUE_ENABLED: bool = False
 
     # JWT
@@ -197,7 +195,9 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    # Isolated tests must not inherit local provider credentials or DB components
+    # from .env. Their explicit environment is prepared before importing settings.
+    return Settings(_env_file=None) if os.environ.get("ENVIRONMENT") == "test" else Settings()
 
 
 settings = get_settings()

@@ -25,8 +25,8 @@ class AuthShell extends StatelessWidget {
   /// Show the brand wordmark in the top bar.
   final bool showBrand;
 
-  /// Wrap [child] in the elevated white card. Login sets this false so its
-  /// fields sit directly on the background.
+  /// Retained for caller compatibility; every auth form now uses the same
+  /// white surface for contrast over the illustrated color wash.
   final bool showCard;
 
   const AuthShell({
@@ -43,12 +43,17 @@ class AuthShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF1F3FB), Color(0xFFFBF2EC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF0ECFF),
+              AppColors.background,
+              Color(0xFFEAF7F4),
+            ],
           ),
         ),
         child: SafeArea(
@@ -63,11 +68,13 @@ class AuthShell extends StatelessWidget {
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: _maxCardWidth),
+                      constraints: const BoxConstraints(
+                        maxWidth: _maxCardWidth,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (showCard) _Card(child: child) else child,
+                          FadeSlideIn(child: _Card(child: child)),
                           const SizedBox(height: AppSpacing.stackXl),
                           const AuthFooter(),
                           const SizedBox(height: AppSpacing.stackMd),
@@ -103,11 +110,13 @@ class _TopBar extends StatelessWidget {
             const SizedBox(width: 4),
           const SizedBox(width: 8),
           if (showBrand)
-            Text(AuthConfig.appName,
-                style: AppTypography.titleLg.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                )),
+            Text(
+              AuthConfig.appName,
+              style: AppTypography.titleLg.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           const Spacer(),
           ?action,
         ],

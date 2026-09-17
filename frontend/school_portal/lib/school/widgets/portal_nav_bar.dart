@@ -4,8 +4,7 @@ import 'package:shared/shared.dart';
 
 import 'portal_tab_scaffold.dart';
 
-/// The module bottom navigation bar: **icons only**, with the active tab drawn
-/// as a filled navy rounded square.
+/// Labeled mobile navigation with a softly tinted active indicator.
 ///
 /// Hand-drawn rather than one of `persistent_bottom_nav_bar`'s built-in styles,
 /// because none of them is this: style 7 (what this replaced) animates the
@@ -14,21 +13,16 @@ import 'portal_tab_scaffold.dart';
 /// screens, the state and the Android back button — only the bar itself is
 /// ours.
 ///
-/// Dropping the labels costs the one thing labels were doing, so it is paid
-/// back explicitly: every item carries a [Semantics] label and a tooltip, so
-/// the tab names are still there for a screen reader and for a long press.
+/// Each item exposes one semantic label and action, so its visible text and
+/// tooltip do not cause duplicate announcements for screen readers.
 class PortalNavBar extends StatelessWidget {
   final List<PortalTab> tabs;
   final PersistentTabController controller;
 
-  const PortalNavBar({
-    super.key,
-    required this.tabs,
-    required this.controller,
-  });
+  const PortalNavBar({super.key, required this.tabs, required this.controller});
 
   /// Height of the bar itself, excluding the bottom safe area.
-  static const double height = 64;
+  static const double height = 76;
 
   @override
   Widget build(BuildContext context) {
@@ -50,11 +44,11 @@ class PortalNavBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             for (var i = 0; i < tabs.length; i++)
-              _NavItem(
+              Expanded(child: _NavItem(
                 tab: tabs[i],
                 selected: controller.index == i,
                 onTap: () => controller.jumpToTab(i),
-              ),
+              )),
           ],
         ),
       ),
@@ -79,6 +73,8 @@ class _NavItem extends StatelessWidget {
       button: true,
       selected: selected,
       label: tab.label,
+      excludeSemantics: true,
+      onTap: onTap,
       child: Tooltip(
         message: tab.label,
         child: InkWell(
@@ -87,26 +83,46 @@ class _NavItem extends StatelessWidget {
           // A 48×48 target regardless of how small the pill is drawn: the
           // visual is 44×40, which on its own is under the minimum tap size.
           child: SizedBox(
-            width: 56,
-            height: 48,
-            child: Center(
-              child: AnimatedContainer(
-                duration: AppMotion.fast,
-                curve: Curves.easeOut,
-                width: 44,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.primary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(AppRadius.sm + 4),
+            width: 62,
+            height: 68,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : AppMotion.fast,
+                  curve: Curves.easeOut,
+                  width: 48,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primary.withValues(alpha: .12)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppRadius.sm + 4),
+                  ),
+                  child: Icon(
+                    tab.icon,
+                    size: 22,
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.onSurfaceVariant,
+                  ),
                 ),
-                child: Icon(
-                  tab.icon,
-                  size: 22,
-                  color: selected
-                      ? AppColors.surfaceContainerLowest
-                      : AppColors.onSurfaceVariant,
+                const SizedBox(height: 4),
+                Text(
+                  tab.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.labelCaps.copyWith(
+                    letterSpacing: 0,
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.onSurfaceVariant,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),

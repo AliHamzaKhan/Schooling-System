@@ -7,6 +7,12 @@
 /// the modules are actually used.
 library;
 
+export 'src/notifications/broadcast_outcome.dart';
+
+export 'src/services/payment_retry_guard.dart';
+
+export 'src/services/attachment_access_service.dart';
+
 // ── Design tokens ───────────────────────────────────────────────
 export 'src/ui/tokens/app_colors.dart';
 export 'src/ui/tokens/app_typography.dart';
@@ -33,6 +39,11 @@ export 'src/ui/forms/screen_text_controllers.dart';
 
 export 'src/ui/widgets/primary_button.dart';
 export 'src/ui/widgets/ghost_button.dart';
+export 'src/ui/widgets/app_dialog.dart';
+export 'src/ui/widgets/app_card.dart';
+export 'src/ui/widgets/app_data_table.dart';
+export 'src/ui/widgets/app_state_view.dart';
+export 'src/ui/widgets/app_text_field.dart';
 export 'src/ui/widgets/glass_surface.dart';
 export 'src/ui/widgets/glass_input.dart';
 export 'src/ui/widgets/glass_fab.dart';
@@ -73,5 +84,7 @@ export 'src/features/messaging/view/new_message_sheet.dart';
 // ── Auth feature (login / forgot / verify OTP / reset) ──────────
 export 'src/features/auth/auth_config.dart';
 export 'src/features/auth/auth_routes.dart';
+export 'src/features/auth/role_route_guard.dart';
 export 'src/features/auth/models/institution.dart';
 export 'src/features/auth/models/password_strength.dart';
+export 'src/services/broadcast_retry_guard.dart';

@@ -27,6 +27,7 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
   final _loading = false.obs;
   final _error = RxnString();
   final _selected = Rxn<StudentFeeSnapshot>();
+  final _saving = <String>{}.obs;
   Timer? _debounce;
 
   @override
@@ -61,22 +62,31 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
   }
 
   Future<void> _markPaid(StudentFeeSnapshot s, InvoiceSummary inv) async {
-    final res = await _repo.recordPayment(
-      invoiceId: inv.id,
-      amount: inv.balance,
-      method: 'cash',
-    );
-    if (!mounted) return;
-    if (res.success) {
-      Get.snackbar('Payment recorded', 'Marked "${inv.title}" as paid.',
-          snackPosition: SnackPosition.BOTTOM);
-      // Refresh the current student so balances update in place.
-      await _search(_query.value);
-      _selected.value = _results
-          .firstWhereOrNull((r) => r.studentId == s.studentId);
-    } else {
-      Get.snackbar('Could not record', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+    if (_saving.contains(inv.id)) return;
+    _saving.add(inv.id);
+    try {
+      final res = await _repo.recordPayment(
+        invoiceId: inv.id,
+        amount: inv.balance,
+        method: 'cash',
+      );
+      if (!mounted) return;
+      if (res.success) {
+        Get.snackbar('Payment recorded', 'Recorded for "${inv.title}". Refreshing balances…',
+            snackPosition: SnackPosition.BOTTOM);
+        // Refresh the current student so balances update in place.
+        await _search(_query.value);
+        _selected.value = _results
+            .firstWhereOrNull((r) => r.studentId == s.studentId);
+      } else {
+        Get.snackbar('Payment not confirmed',
+            res.isNetworkError || res.isServerError
+                ? 'The result is uncertain. Retry here to check the same payment; do not create another payment.'
+                : (res.error ?? 'Please try again.'),
+            snackPosition: SnackPosition.BOTTOM);
+      }
+    } finally {
+      _saving.remove(inv.id);
     }
   }
 
@@ -106,6 +116,7 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
               if (_selected.value != null) {
                 return _StudentDetail(
                   snapshot: _selected.value!,
+                  saving: _saving.toSet(),
                   onBack: () => _selected.value = null,
                   onMarkPaid: (inv) => _markPaid(_selected.value!, inv),
                 );
@@ -170,7 +181,7 @@ class _StudentResultTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.stackLg),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: AppColors.outlineVariant),
         ),
@@ -208,7 +219,10 @@ class _StudentResultTile extends StatelessWidget {
                         .copyWith(color: AppColors.onSurfaceVariant),
                   ),
                   const SizedBox(height: 4),
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -225,10 +239,7 @@ class _StudentResultTile extends StatelessWidget {
                               fontWeight: FontWeight.w700),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(_money(snapshot.outstandingTotal),
-                          style: AppTypography.labelMd),
-                      Text(' due',
+                      Text('${_money(snapshot.outstandingTotal)} due',
                           style: AppTypography.labelMd
                               .copyWith(color: AppColors.onSurfaceVariant)),
                     ],
@@ -246,10 +257,12 @@ class _StudentResultTile extends StatelessWidget {
 }
 
 class _StudentDetail extends StatelessWidget {
+  final Set<String> saving;
   final StudentFeeSnapshot snapshot;
   final VoidCallback onBack;
   final void Function(InvoiceSummary) onMarkPaid;
   const _StudentDetail({
+    required this.saving,
     required this.snapshot,
     required this.onBack,
     required this.onMarkPaid,
@@ -274,7 +287,7 @@ class _StudentDetail extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(AppSpacing.stackLg),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.card,
             borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(color: AppColors.outlineVariant),
           ),
@@ -325,7 +338,7 @@ class _StudentDetail extends StatelessWidget {
                   .copyWith(color: AppColors.onSurfaceVariant))
         else
           for (final inv in snapshot.invoices) ...[
-            _InvoiceTile(inv: inv, onMarkPaid: () => onMarkPaid(inv)),
+            _InvoiceTile(inv: inv, saving: saving.contains(inv.id), onMarkPaid: () => onMarkPaid(inv)),
             const SizedBox(height: AppSpacing.stackSm),
           ],
       ],
@@ -367,9 +380,10 @@ class _MoneyChip extends StatelessWidget {
 }
 
 class _InvoiceTile extends StatelessWidget {
+  final bool saving;
   final InvoiceSummary inv;
   final VoidCallback onMarkPaid;
-  const _InvoiceTile({required this.inv, required this.onMarkPaid});
+  const _InvoiceTile({required this.inv, required this.onMarkPaid, required this.saving});
 
   @override
   Widget build(BuildContext context) {
@@ -381,7 +395,7 @@ class _InvoiceTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.stackMd),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.button),
         border: Border.all(color: AppColors.outlineVariant),
       ),
@@ -417,22 +431,12 @@ class _InvoiceTile extends StatelessWidget {
                 .copyWith(color: AppColors.onSurfaceVariant),
           ),
           const SizedBox(height: AppSpacing.stackSm),
-          Row(
-            children: [
-              Expanded(
-                child: PrimaryButton(
-                  label: isPaid ? 'Paid' : 'Mark as paid',
-                  onPressed: isPaid ? null : onMarkPaid,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.stackSm),
-              Expanded(
-                child: GhostButton(
-                  label: 'Keep pending',
-                  onPressed: () {},
-                ),
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: isPaid || saving ? null : onMarkPaid,
+              child: Text(saving ? 'Recording…' : (isPaid ? 'Paid' : 'Mark as paid')),
+            ),
           ),
         ],
       ),

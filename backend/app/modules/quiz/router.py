@@ -90,9 +90,12 @@ async def list_assigned_quizzes(
     dependencies=[_view],
 )
 async def section_roster(
-    school_id: uuid.UUID, section_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, section_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> list[schemas.RosterStudent]:
     """Enrolled students of a section, for the assignee picker."""
+    from app.modules.academic.access import AcademicAccess
+
+    await AcademicAccess(db, school_id, current_user).section(section_id)
     return await QuizService(db).list_section_students(school_id, section_id)
 
 

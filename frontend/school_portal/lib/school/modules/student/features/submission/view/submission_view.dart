@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
 import '../../../../../widgets/portal_form_field.dart';
+import '../../../../../widgets/attachment_download_dialog.dart';
 import '../../../../../widgets/portal_top_bar.dart';
 import '../../assignments/models/assignment.dart';
 import '../components/dashed_upload_box.dart';
@@ -27,35 +28,45 @@ class SubmissionView extends GetView<SubmissionController> {
             actions: [
               IconButton(
                 onPressed: () => Get.back<void>(),
-                icon: const Icon(AppIcons.arrowBackRounded, color: AppColors.primary),
+                icon: const Icon(
+                  AppIcons.arrowBackRounded,
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const SkeletonPage(withHeader: false, body: SkeletonCardList(count: 3, height: 130));
+                return const SkeletonPage(
+                  withHeader: false,
+                  body: SkeletonCardList(count: 3, height: 130),
+                );
               }
               final a = controller.assignment.value;
               if (a == null) return const SizedBox.shrink();
               return ListView(
                 padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.containerPaddingMobile,
-                    0,
-                    AppSpacing.containerPaddingMobile,
-                    AppSpacing.stackXl),
+                  AppSpacing.containerPaddingMobile,
+                  0,
+                  AppSpacing.containerPaddingMobile,
+                  AppSpacing.stackXl,
+                ),
                 children: [
                   _HeaderCard(assignment: a),
                   const SizedBox(height: AppSpacing.stackLg),
                   // Already turned in → read-only status. Otherwise the submit
                   // form. `showForm` also covers an opt-in "replace submission".
-                  Obx(() => controller.showForm
-                      ? _SubmitForm(controller: controller)
-                      : _SubmittedState(
-                          submission: controller.assignment.value!.submission!,
-                          maxMarks: controller.assignment.value!.points,
-                          onResubmit: controller.startResubmit,
-                        )),
+                  Obx(
+                    () => controller.showForm
+                        ? _SubmitForm(controller: controller)
+                        : _SubmittedState(
+                            submission:
+                                controller.assignment.value!.submission!,
+                            maxMarks: controller.assignment.value!.points,
+                            onResubmit: controller.startResubmit,
+                          ),
+                  ),
                 ],
               );
             }),
@@ -83,7 +94,9 @@ class _HeaderCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Flexible(child: _SubjectPill(subject: a.subject, accent: a.accent)),
+              Flexible(
+                child: _SubjectPill(subject: a.subject, accent: a.accent),
+              ),
               const Spacer(),
               if (a.points > 0) _PointsBadge(points: a.points),
             ],
@@ -104,22 +117,27 @@ class _HeaderCard extends StatelessWidget {
                       : AppColors.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
-                Text(a.dueLine,
-                    style: AppTypography.bodyLg.copyWith(
-                      color: a.dueIsUrgent
-                          ? AppColors.error
-                          : AppColors.onSurfaceVariant,
-                      fontWeight:
-                          a.dueIsUrgent ? FontWeight.w700 : FontWeight.w400,
-                    )),
+                Text(
+                  a.dueLine,
+                  style: AppTypography.bodyLg.copyWith(
+                    color: a.dueIsUrgent
+                        ? AppColors.error
+                        : AppColors.onSurfaceVariant,
+                    fontWeight: a.dueIsUrgent
+                        ? FontWeight.w700
+                        : FontWeight.w400,
+                  ),
+                ),
               ],
             ),
           ],
           const SizedBox(height: AppSpacing.stackLg),
           const Divider(height: 1, color: AppColors.outlineVariant),
           const SizedBox(height: AppSpacing.stackMd),
-          Text('Instructions',
-              style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            'Instructions',
+            style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 4),
           Text(a.description, style: AppTypography.bodyLg),
           if (a.attachment != null) ...[
@@ -151,11 +169,15 @@ class _SubjectPill extends StatelessWidget {
           Icon(AppIcons.bookmarkRounded, size: 14, color: accent),
           const SizedBox(width: 5),
           Flexible(
-            child: Text(subject.isEmpty ? 'Assignment' : subject,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.labelMd
-                    .copyWith(color: accent, fontWeight: FontWeight.w700)),
+            child: Text(
+              subject.isEmpty ? 'Assignment' : subject,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.labelMd.copyWith(
+                color: accent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -189,18 +211,25 @@ class _SubmitFormState extends State<_SubmitForm> with ScreenTextControllers {
         children: [
           Row(
             children: [
-              const Icon(AppIcons.cloudUploadOutlined,
-                  size: 18, color: AppColors.primary),
+              const Icon(
+                AppIcons.cloudUploadOutlined,
+                size: 18,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 6),
-              Text(resubmitting ? 'Replace Submission' : 'Submit Assignment',
-                  style: AppTypography.titleLg),
+              Text(
+                resubmitting ? 'Replace Submission' : 'Submit Assignment',
+                style: AppTypography.titleLg,
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.stackMd),
-          Obx(() => DashedUploadBox(
-                filename: controller.filename.value,
-                onTap: controller.pickFile,
-              )),
+          Obx(
+            () => DashedUploadBox(
+              filename: controller.filename.value,
+              onTap: controller.pickFile,
+            ),
+          ),
           const SizedBox(height: AppSpacing.stackMd),
           PortalFormField(
             label: 'Additional Notes (Optional)',
@@ -213,20 +242,23 @@ class _SubmitFormState extends State<_SubmitForm> with ScreenTextControllers {
             if (err == null) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.only(top: AppSpacing.stackMd),
-              child: Text(err,
-                  style:
-                      AppTypography.bodyMd.copyWith(color: AppColors.error)),
+              child: Text(
+                err,
+                style: AppTypography.bodyMd.copyWith(color: AppColors.error),
+              ),
             );
           }),
           const SizedBox(height: AppSpacing.stackLg),
-          Obx(() => PrimaryButton(
-                label: resubmitting ? 'Resubmit' : 'Turn In Assignment',
-                leadingIcon: AppIcons.sendRounded,
-                trailingIcon: null,
-                expanded: true,
-                isLoading: controller.submitting.value,
-                onPressed: controller.submit,
-              )),
+          Obx(
+            () => PrimaryButton(
+              label: resubmitting ? 'Resubmit' : 'Turn In Assignment',
+              leadingIcon: AppIcons.sendRounded,
+              trailingIcon: null,
+              expanded: true,
+              isLoading: controller.submitting.value,
+              onPressed: controller.submit,
+            ),
+          ),
           if (resubmitting) ...[
             const SizedBox(height: AppSpacing.stackSm),
             Center(
@@ -304,13 +336,17 @@ class _YourSubmissionCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.stackMd),
           if (submission.attachmentUrl != null)
             _SubmittedFileRow(
+              recordId: submission.id,
               url: submission.attachmentUrl!,
               submittedOn: submission.submittedOn,
             )
           else
-            Text('No file attached to this submission.',
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onSurfaceVariant)),
+            Text(
+              'No file attached to this submission.',
+              style: AppTypography.bodyMd.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
           if (hasFeedback) ...[
             const SizedBox(height: AppSpacing.stackMd),
             Container(
@@ -323,10 +359,13 @@ class _YourSubmissionCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Teacher Comments',
-                      style: AppTypography.labelMd.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          fontWeight: FontWeight.w700)),
+                  Text(
+                    'Teacher Comments',
+                    style: AppTypography.labelMd.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(submission.feedback!, style: AppTypography.bodyLg),
                 ],
@@ -356,7 +395,11 @@ class _FinalGradeCard extends StatelessWidget {
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(AppRadius.card),
         boxShadow: const [
-          BoxShadow(color: Color(0x330F172A), blurRadius: 24, offset: Offset(0, 8)),
+          BoxShadow(
+            color: Color(0x330F172A),
+            blurRadius: 24,
+            offset: Offset(0, 8),
+          ),
         ],
       ),
       child: Stack(
@@ -366,28 +409,39 @@ class _FinalGradeCard extends StatelessWidget {
             top: 0,
             bottom: 0,
             child: Center(
-              child: Icon(AppIcons.starRounded,
-                  size: 72, color: Colors.white.withValues(alpha: 0.12)),
+              child: Icon(
+                AppIcons.starRounded,
+                size: 72,
+                color: Colors.white.withValues(alpha: 0.12),
+              ),
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text('FINAL GRADE',
-                  style: AppTypography.labelCaps.copyWith(
-                      color: AppColors.onPrimary.withValues(alpha: 0.75),
-                      fontWeight: FontWeight.w800)),
+              Text(
+                'FINAL GRADE',
+                style: AppTypography.labelCaps.copyWith(
+                  color: AppColors.onPrimary.withValues(alpha: 0.75),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(pct == null ? _fmt(marks) : _letter(pct.toDouble()),
-                  style: AppTypography.displayLg
-                      .copyWith(fontSize: 52, color: AppColors.onPrimary)),
+              Text(
+                pct == null ? _fmt(marks) : _letter(pct.toDouble()),
+                style: AppTypography.displayLg.copyWith(
+                  fontSize: 52,
+                  color: AppColors.onPrimary,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
                 maxMarks > 0
                     ? '${_fmt(marks)} / $maxMarks   ·   $pct%'
                     : _fmt(marks),
-                style: AppTypography.bodyMd
-                    .copyWith(color: AppColors.onPrimary.withValues(alpha: 0.85)),
+                style: AppTypography.bodyMd.copyWith(
+                  color: AppColors.onPrimary.withValues(alpha: 0.85),
+                ),
               ),
             ],
           ),
@@ -425,8 +479,11 @@ class _SubmissionTimelineCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(AppIcons.assignmentTurnedInOutlined,
-                  size: 18, color: AppColors.tertiary),
+              const Icon(
+                AppIcons.assignmentTurnedInOutlined,
+                size: 18,
+                color: AppColors.tertiary,
+              ),
               const SizedBox(width: 6),
               Text('Submission Status', style: AppTypography.titleLg),
             ],
@@ -439,25 +496,28 @@ class _SubmissionTimelineCard extends StatelessWidget {
                 ? 'Turned in'
                 : submission.submittedOn,
             done: true,
-            accent:
-                submission.isLate ? const Color(0xFFE8A317) : AppColors.tertiary,
+            accent: submission.isLate
+                ? const Color(0xFFE8A317)
+                : AppColors.tertiary,
           ),
           _StatusStep(
             icon: submission.isRejected
                 ? AppIcons.reportGmailerrorredRounded
                 : (submission.isSeen
-                    ? AppIcons.markEmailReadOutlined
-                    : AppIcons.reviewsOutlined),
+                      ? AppIcons.markEmailReadOutlined
+                      : AppIcons.reviewsOutlined),
             title: submission.isRejected
                 ? 'Needs resubmission'
                 : (submission.isReviewed
-                    ? 'Reviewed'
-                    : (submission.isSeen ? 'Read by teacher' : 'Under review')),
+                      ? 'Reviewed'
+                      : (submission.isSeen
+                            ? 'Read by teacher'
+                            : 'Under review')),
             subtitle: submission.isReviewed
                 ? 'Your teacher has reviewed this'
                 : (submission.isSeen
-                    ? 'Your teacher has opened your submission'
-                    : 'Waiting for your teacher'),
+                      ? 'Your teacher has opened your submission'
+                      : 'Waiting for your teacher'),
             done: submission.isSeen,
             accent: submission.isRejected ? AppColors.error : AppColors.primary,
           ),
@@ -504,9 +564,13 @@ class _StatusChip extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
-      child: Text(label,
-          style: AppTypography.labelMd
-              .copyWith(color: color, fontWeight: FontWeight.w700)),
+      child: Text(
+        label,
+        style: AppTypography.labelMd.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -560,12 +624,17 @@ class _StatusStep extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: AppTypography.bodyLg.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: done ? AppColors.onSurface : dim)),
-                  Text(subtitle,
-                      style: AppTypography.bodySm.copyWith(color: dim)),
+                  Text(
+                    title,
+                    style: AppTypography.bodyLg.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: done ? AppColors.onSurface : dim,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: AppTypography.bodySm.copyWith(color: dim),
+                  ),
                 ],
               ),
             ),
@@ -577,9 +646,14 @@ class _StatusStep extends StatelessWidget {
 }
 
 class _SubmittedFileRow extends StatelessWidget {
+  final String recordId;
   final String url;
   final String submittedOn;
-  const _SubmittedFileRow({required this.url, this.submittedOn = ''});
+  const _SubmittedFileRow({
+    required this.recordId,
+    required this.url,
+    this.submittedOn = '',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -600,28 +674,46 @@ class _SubmittedFileRow extends StatelessWidget {
               color: AppColors.error.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            child: const Icon(AppIcons.pictureAsPdfRounded,
-                size: 20, color: AppColors.error),
+            child: const Icon(
+              AppIcons.pictureAsPdfRounded,
+              size: 20,
+              color: AppColors.error,
+            ),
           ),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 if (submittedOn.isNotEmpty)
-                  Text('Submitted $submittedOn',
-                      style: AppTypography.bodySm
-                          .copyWith(color: AppColors.onSurfaceVariant)),
+                  Text(
+                    'Submitted $submittedOn',
+                    style: AppTypography.bodySm.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
               ],
             ),
           ),
-          const Icon(AppIcons.downloadRounded,
-              size: 20, color: AppColors.onSurfaceVariant),
+          IconButton(
+            tooltip: 'Download attachment',
+            onPressed: recordId.isEmpty
+                ? null
+                : () => showAttachmentDownload(context, recordId),
+            icon: const Icon(
+              AppIcons.downloadRounded,
+              size: 20,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -637,12 +729,19 @@ class _PointsBadge extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text('$points',
-            style: AppTypography.displayLg
-                .copyWith(fontSize: 24, color: AppColors.primary)),
-        Text('Points Possible',
-            style: AppTypography.labelMd
-                .copyWith(color: AppColors.onSurfaceVariant)),
+        Text(
+          '$points',
+          style: AppTypography.displayLg.copyWith(
+            fontSize: 24,
+            color: AppColors.primary,
+          ),
+        ),
+        Text(
+          'Points Possible',
+          style: AppTypography.labelMd.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -665,19 +764,29 @@ class _ReferenceBox extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(AppIcons.attachFileRounded,
-                  size: 16, color: AppColors.primary),
+              const Icon(
+                AppIcons.attachFileRounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 6),
-              Text('Reference Materials',
-                  style: AppTypography.labelMd
-                      .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
+              Text(
+                'Reference Materials',
+                style: AppTypography.labelMd.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(AppIcons.insertDriveFileOutlined,
-                  size: 16, color: AppColors.onSurfaceVariant),
+              const Icon(
+                AppIcons.insertDriveFileOutlined,
+                size: 16,
+                color: AppColors.onSurfaceVariant,
+              ),
               const SizedBox(width: 6),
               Expanded(child: Text(filename, style: AppTypography.bodyMd)),
             ],

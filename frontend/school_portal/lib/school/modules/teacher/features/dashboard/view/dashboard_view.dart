@@ -5,6 +5,7 @@ import 'package:shared/shared.dart';
 import '../../../../../config/teacher_routes.dart';
 import '../../../../../widgets/dashboard_kit.dart';
 import '../../../../../widgets/portal_top_bar.dart';
+import '../../../../../widgets/campus_hero_banner.dart';
 import '../../../../../widgets/section_header.dart';
 import '../controller/dashboard_controller.dart';
 import '../../calendar/models/timetable_slot.dart';
@@ -74,6 +75,10 @@ class DashboardView extends GetView<TeacherDashboardController> {
                   AppSpacing.stackXl),
               children: [
                 const SizedBox(height: AppSpacing.stackSm),
+                CampusHeroBanner(
+                  name: Get.find<AuthService>().schoolName ?? 'Your Campus',
+                ),
+                const SizedBox(height: AppSpacing.stackLg),
                 DashboardIdentityCard(
                   title: controller.teacherName,
                   subtitle: data.summary.isEmpty ? 'Teacher' : data.summary,

@@ -10,7 +10,10 @@ import '../../../../../widgets/skeletons.dart';
 class MessageHistoryArgs {
   final String studentId;
   final String studentName;
-  const MessageHistoryArgs({required this.studentId, required this.studentName});
+  const MessageHistoryArgs({
+    required this.studentId,
+    required this.studentName,
+  });
 }
 
 /// The staff member's sent messages/complaints about one student — the other
@@ -25,7 +28,8 @@ class MessageHistoryView extends StatefulWidget {
 class _MessageHistoryViewState extends State<MessageHistoryView> {
   static final _dt = DateTimeParserService();
 
-  late final MessageHistoryArgs _args;
+  late final String _studentId;
+  String _studentName = 'Student';
   bool _loading = true;
   String? _error;
   List<DirectMessageItem> _messages = const [];
@@ -34,9 +38,13 @@ class _MessageHistoryViewState extends State<MessageHistoryView> {
   void initState() {
     super.initState();
     final arg = Get.arguments;
-    _args = arg is MessageHistoryArgs
-        ? arg
-        : const MessageHistoryArgs(studentId: '', studentName: 'Student');
+    final fromUrl = Get.parameters['student_id']?.trim() ?? '';
+    _studentId = fromUrl.isNotEmpty
+        ? fromUrl
+        : (arg is MessageHistoryArgs ? arg.studentId : '');
+    if (fromUrl.isEmpty && arg is MessageHistoryArgs) {
+      _studentName = arg.studentName;
+    }
     _load();
   }
 
@@ -44,11 +52,29 @@ class _MessageHistoryViewState extends State<MessageHistoryView> {
     setState(() {
       _loading = true;
       _error = null;
+      _messages = const [];
     });
-    final res =
-        await StudentReportService().fetchSentMessages(studentId: _args.studentId);
+    if (_studentId.isEmpty) {
+      setState(() {
+        _loading = false;
+        _error = 'A valid student is required.';
+      });
+      return;
+    }
+    final service = StudentReportService();
+    final report = await service.fetchReport(_studentId);
+    if (!report.success || report.data == null) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = report.error ?? 'Student not found.';
+      });
+      return;
+    }
+    final res = await service.fetchSentMessages(studentId: _studentId);
     if (!mounted) return;
     setState(() {
+      _studentName = report.data!.studentName;
       if (res.success) {
         _messages = res.data ?? const [];
       } else {
@@ -61,27 +87,36 @@ class _MessageHistoryViewState extends State<MessageHistoryView> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: Text('Messages · ${_args.studentName}')),
+      appBar: AppBar(title: Text('Messages · $_studentName')),
       body: _loading
           ? const SkeletonPage(withHeader: false, body: SkeletonThreadList())
           : _error != null
-              ? Center(child: Text(_error!, style: AppTypography.bodyLg))
-              : _messages.isEmpty
-                  ? Center(
-                      child: Text('No messages sent about this student yet.',
-                          style: AppTypography.bodyLg))
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.containerPaddingMobile,
-                          AppSpacing.stackMd,
-                          AppSpacing.containerPaddingMobile,
-                          AppSpacing.stackXl),
-                      itemCount: _messages.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: AppSpacing.stackSm),
-                      itemBuilder: (context, i) =>
-                          _MessageCard(message: _messages[i], dt: _dt),
-                    ),
+          ? AppStateView.error(
+              title: 'Could not load message history',
+              message: _error!,
+              actionLabel: _studentId.isEmpty ? null : 'Try again',
+              onAction: _studentId.isEmpty ? null : _load,
+            )
+          : _messages.isEmpty
+          ? Center(
+              child: Text(
+                'No messages sent about this student yet.',
+                style: AppTypography.bodyLg,
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackMd,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
+              itemCount: _messages.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: AppSpacing.stackSm),
+              itemBuilder: (context, i) =>
+                  _MessageCard(message: _messages[i], dt: _dt),
+            ),
     );
   }
 }
@@ -108,21 +143,27 @@ class _MessageCard extends StatelessWidget {
                   color: accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
-                child: Text(complaint ? 'Concern' : 'Message',
-                    style: AppTypography.labelMd.copyWith(color: accent)),
+                child: Text(
+                  complaint ? 'Concern' : 'Message',
+                  style: AppTypography.labelMd.copyWith(color: accent),
+                ),
               ),
               const SizedBox(width: AppSpacing.stackSm),
               Expanded(
-                child: Text('To ${message.recipientName}',
-                    style: AppTypography.bodySm
-                        .copyWith(color: AppColors.onSurfaceVariant)),
+                child: Text(
+                  'To ${message.recipientName}',
+                  style: AppTypography.bodySm.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
               ),
               Text(
                 message.createdAt == null
                     ? ''
                     : dt.toRelative(message.createdAt!),
-                style: AppTypography.bodySm
-                    .copyWith(color: AppColors.onSurfaceVariant),
+                style: AppTypography.bodySm.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -131,17 +172,22 @@ class _MessageCard extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              Icon(message.read ? AppIcons.doneAllRounded : AppIcons.doneRounded,
-                  size: 14,
+              Icon(
+                message.read ? AppIcons.doneAllRounded : AppIcons.doneRounded,
+                size: 14,
+                color: message.read
+                    ? AppColors.tertiary
+                    : AppColors.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                message.read ? 'Read' : 'Delivered',
+                style: AppTypography.bodySm.copyWith(
                   color: message.read
                       ? AppColors.tertiary
-                      : AppColors.onSurfaceVariant),
-              const SizedBox(width: 4),
-              Text(message.read ? 'Read' : 'Delivered',
-                  style: AppTypography.bodySm.copyWith(
-                      color: message.read
-                          ? AppColors.tertiary
-                          : AppColors.onSurfaceVariant)),
+                      : AppColors.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ],

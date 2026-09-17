@@ -1,9 +1,9 @@
 """Shared FastAPI dependencies: current user and permission enforcement."""
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +28,7 @@ from app.core.exceptions import (
 )
 from app.core.security import ACCESS_TOKEN, JWTError, decode_token
 from app.models.role import Role
+from app.models.session import RefreshSession
 from app.models.school import School
 from app.models.subscription import SchoolSubscription
 from app.models.user import User
@@ -41,16 +42,19 @@ DbDep = Annotated[AsyncSession, Depends(get_db)]
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     db: DbDep,
+    request: Request,
 ) -> User:
     try:
         payload = decode_token(token)
         if payload.get("type") != ACCESS_TOKEN:
             raise credentials_exception()
-        user_id = payload.get("sub")
-        if not user_id:
-            raise credentials_exception()
-    except JWTError:
+        user_id = uuid.UUID(payload["sub"])
+        session_id = uuid.UUID(payload["sid"])
+    except (JWTError, KeyError, ValueError, TypeError):
         raise credentials_exception()
+
+    await verify_active_session(db, user_id, session_id)
+    request.state.auth_session_id = str(session_id)
 
     result = await db.execute(
         select(User)
@@ -64,6 +68,17 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def verify_active_session(db, user_id: uuid.UUID, session_id: uuid.UUID) -> None:
+    """Check committed revocation/expiry on each request; never cache this gate."""
+    active = await db.scalar(select(RefreshSession.id).where(
+        RefreshSession.id == session_id, RefreshSession.user_id == user_id,
+        RefreshSession.revoked_at.is_(None),
+        RefreshSession.expires_at > datetime.now(timezone.utc),
+    ))
+    if active is None:
+        raise credentials_exception()
 
 
 async def require_super_admin(user: CurrentUser) -> User:

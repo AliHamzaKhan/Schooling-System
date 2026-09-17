@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -65,9 +65,13 @@ class Message(Base, UUIDMixin, TimestampMixin):
 
 
 class MessageDelivery(Base, UUIDMixin, TimestampMixin):
-    """Per-recipient delivery record (Sent/Delivered/Read/Failed)."""
+    """Per-recipient acceptance, simulation, delivery/read receipt or failure.
+
+    Historical ``sent`` records do not prove recipient delivery.
+    """
 
     __tablename__ = "message_deliveries"
+    __table_args__ = (UniqueConstraint("message_id", "recipient_key", name="uq_delivery_recipient"),)
 
     school_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("schools.id", ondelete="CASCADE"), nullable=False, index=True
@@ -83,8 +87,28 @@ class MessageDelivery(Base, UUIDMixin, TimestampMixin):
     status: Mapped[str] = mapped_column(String(20), nullable=False)
     provider: Mapped[str | None] = mapped_column(String(20), nullable=True)
     error: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # NULL for untouched historical rows; new plans use a stable recipient hash.
+    recipient_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     message: Mapped["Message"] = relationship(back_populates="deliveries")
+
+
+class NotificationOutbox(Base, TimestampMixin):
+    """Committed work, independent of broker availability. One job per message."""
+
+    __tablename__ = "notification_outbox"
+    __table_args__ = (Index("ix_notification_outbox_due", "state", "available_at"),)
+
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("messages.id", ondelete="CASCADE"), primary_key=True
+    )
+    state: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    prepared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lease_token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    last_error: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
 
 class DeviceToken(Base, UUIDMixin, TimestampMixin):

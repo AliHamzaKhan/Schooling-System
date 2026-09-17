@@ -9,7 +9,8 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import CurrentUser, DbDep, require_school_permission, verify_student_access
+from app.core.deps import CurrentUser, DbDep, require_school_permission
+from app.modules.academic.access import AcademicAccess, verify_academic_student
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.academic import schemas
 from app.modules.academic.service import AcademicService
@@ -40,8 +41,10 @@ async def list_classes(school_id: uuid.UUID, db: DbDep) -> list[schemas.ClassOut
     response_model=list[schemas.StudentRosterOut],
     dependencies=[Depends(require_school_permission(Module.STUDENT_MANAGEMENT, PA.VIEW))],
 )
-async def student_roster(school_id: uuid.UUID, db: DbDep) -> list[schemas.StudentRosterOut]:
-    return await AcademicService(db).student_roster(school_id)
+async def student_roster(school_id: uuid.UUID, db: DbDep, current_user: CurrentUser) -> list[schemas.StudentRosterOut]:
+    access = AcademicAccess(db, school_id, current_user)
+    await access.staff()
+    return await AcademicService(db).student_roster(school_id, teacher_id=None if access.leadership else current_user.id)
 
 
 @router.patch("/classes/{class_id}", response_model=schemas.ClassOut, dependencies=[_edit])
@@ -131,12 +134,13 @@ async def list_slots(
     dependencies=[_view],
 )
 async def section_performance(
-    school_id: uuid.UUID, section_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, section_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> schemas.SectionPerformanceOut:
     """Every active student in a section ranked by attendance and marks.
 
     Powers the teacher Performance tab; also usable by school leadership.
     """
+    await AcademicAccess(db, school_id, current_user).section(section_id)
     return await AcademicService(db).section_performance(school_id, section_id)
 
 
@@ -182,21 +186,22 @@ async def my_timetable(
 @router.get(
     "/students/{student_id}/performance",
     response_model=schemas.StudentPerformanceDetail,
-    dependencies=[_view, Depends(verify_student_access)],
+    dependencies=[_view],
 )
 async def student_performance(
-    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep,
+    can_preview: bool = Depends(verify_academic_student),
 ) -> schemas.StudentPerformanceDetail:
     """One student's performance dashboard (attendance + marks), all real.
 
     Reachable by staff with timetable view, the student, or their guardian."""
-    return await AcademicService(db).student_performance(school_id, student_id)
+    return await AcademicService(db).student_performance(school_id, student_id, published_only=not can_preview)
 
 
 @router.get(
     "/students/{student_id}/timetable",
     response_model=list[schemas.StudentTimetableSlot],
-    dependencies=[_view, Depends(verify_student_access)],
+    dependencies=[_view, Depends(verify_academic_student)],
 )
 async def student_timetable(
     school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep

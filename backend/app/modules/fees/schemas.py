@@ -13,7 +13,7 @@ from app.core.enums import PaymentMethod
 
 class FeeStructureCreate(BaseModel):
     name: str = Field(min_length=2, max_length=150)
-    amount: float = Field(gt=0)
+    amount: float = Field(gt=0, allow_inf_nan=False)
     class_id: uuid.UUID | None = None
     session_id: uuid.UUID | None = None
     description: str | None = Field(default=None, max_length=255)
@@ -39,7 +39,7 @@ class FeeStructureOut(BaseModel):
 class InvoiceCreate(BaseModel):
     student_id: uuid.UUID
     title: str = Field(min_length=2, max_length=150)
-    amount: float = Field(gt=0)
+    amount: float = Field(gt=0, allow_inf_nan=False)
     due_date: date
     fee_structure_id: uuid.UUID | None = None
     session_id: uuid.UUID | None = None
@@ -48,7 +48,7 @@ class InvoiceCreate(BaseModel):
 class BulkInvoiceCreate(BaseModel):
     class_id: uuid.UUID
     title: str = Field(min_length=2, max_length=150)
-    amount: float = Field(gt=0)
+    amount: float = Field(gt=0, allow_inf_nan=False)
     due_date: date
     fee_structure_id: uuid.UUID | None = None
     session_id: uuid.UUID | None = None
@@ -85,7 +85,7 @@ class InvoiceOut(BaseModel):
 
 
 class PaymentCreate(BaseModel):
-    amount: float = Field(gt=0)
+    amount: float = Field(gt=0, allow_inf_nan=False)
     method: PaymentMethod
     paid_on: date
     reference: str | None = Field(default=None, max_length=100)

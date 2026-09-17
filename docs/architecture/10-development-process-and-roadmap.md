@@ -1,5 +1,11 @@
 # Development Process & Roadmap
 
+For the current product inventory, role flows, enhancement priorities, acceptance
+criteria and execution history, use the
+[Product Enhancement Plan & Progress Tracker](../PRODUCT_ENHANCEMENT_PLAN.md).
+This document remains the development methodology; that tracker records the
+active product roadmap and progress.
+
 This document defines the **structured development process** the AI must follow
 when generating code for this project. It is the governing methodology — no code
 is written outside this flow.

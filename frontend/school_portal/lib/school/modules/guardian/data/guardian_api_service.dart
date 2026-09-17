@@ -534,7 +534,7 @@ class GuardianApiService {
 
   // --------------------------- notifications ---------------------------- #
 
-  /// Notifications: school broadcasts merged with the direct messages and
+  /// Notifications: server-authorized broadcasts for this guardian, merged with direct messages and
   /// complaints addressed to this guardian (teacher/headmaster → guardian).
   /// Complaints surface as warnings; unread state comes from `read_at`.
   Future<ApiResponse<List<NotificationItem>>> fetchNotifications() async {

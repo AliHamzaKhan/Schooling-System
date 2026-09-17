@@ -52,9 +52,10 @@ def _create_token(
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str, session_id: str | None = None) -> str:
     return _create_token(
-        subject, ACCESS_TOKEN, timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        subject, ACCESS_TOKEN, timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        **({"sid": session_id} if session_id is not None else {}),
     )
 
 

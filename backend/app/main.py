@@ -39,6 +39,8 @@ from app.modules.meetings.router import router as meetings_router
 from app.modules.messages.router import router as messages_router
 from app.modules.transport.router import router as transport_router
 from app.modules.uploads.router import router as uploads_router
+from app.modules.uploads.downloads import router as downloads_router
+from app.modules.uploads.public_media import router as public_media_router
 from app.modules.permissions.router import router as permissions_router
 from app.modules.promotion.router import router as promotion_router
 from app.modules.quiz.router import router as quiz_router
@@ -108,6 +110,7 @@ for _router in (
     subscriptions_router,
     admin_router,
     jobs_router,
+    downloads_router,
 ):
     app.include_router(_router, prefix=settings.API_V1_PREFIX)
 
@@ -145,16 +148,9 @@ for _router in (
 ):
     app.include_router(_router, prefix=settings.API_V1_PREFIX, dependencies=_tenant_dep)
 
-# Serve locally-stored uploads (STORAGE_BACKEND=local, i.e. development). Cloud
-# backends return their own provider URLs, so this static mount is skipped.
-if settings.STORAGE_BACKEND.lower() == "local":
-    from pathlib import Path
-
-    from fastapi.staticfiles import StaticFiles
-
-    _media_dir = Path(settings.STORAGE_LOCAL_DIR)
-    _media_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/media", StaticFiles(directory=str(_media_dir)), name="media")
+# Never mount the storage root. Private and legacy document/submission paths
+# must go through record authorization, including when their old URL is known.
+app.include_router(public_media_router)
 
 
 @app.get("/health", tags=["Health"])

@@ -10,6 +10,9 @@ import 'api_response.dart';
 import 'data_store_service.dart';
 import 'http_method.dart';
 
+/// A refresh outage is recoverable, not evidence that credentials were revoked.
+class SessionRefreshUnavailable implements Exception {}
+
 /// Multipart file payload — wraps either a [File] from disk or in-memory bytes.
 class MultipartUpload {
   final String field;
@@ -47,6 +50,7 @@ class MultipartUpload {
 class ApiService {
   final http.Client _client;
   final DataStoreService _store;
+  final void Function(String)? _diagnosticWriter;
 
   /// Optional global hook fired whenever an **authenticated** request comes back
   /// with a session-fatal failure — a still-401 after a refresh attempt (token
@@ -66,10 +70,27 @@ class ApiService {
 
   /// Coalesces concurrent refreshes so several parallel 401s share one refresh.
   Future<bool>? _refreshInFlight;
+  int _sessionGeneration = 0;
 
-  ApiService({http.Client? client, required DataStoreService store})
-      : _client = client ?? http.Client(),
-        _store = store;
+  /// Stop requests from an earlier login/logout boundary from being replayed.
+  void invalidateSessionRequests() => _sessionGeneration++;
+
+  ApiService({
+    http.Client? client,
+    required DataStoreService store,
+    void Function(String)? diagnosticWriter,
+  }) : _client = client ?? http.Client(),
+       _store = store,
+       _diagnosticWriter = diagnosticWriter;
+
+  void _diagnostic(String message) {
+    if (!EnvConfig.verboseLogging) return;
+    if (_diagnosticWriter != null) {
+      _diagnosticWriter(message);
+    } else {
+      developer.log(message, name: 'ApiService');
+    }
+  }
 
   /// Single entry point for every HTTP call. Never throws: HTTP 4xx/5xx *and*
   /// network-level failures (server down, DNS, timeout, CORS-blocked response)
@@ -89,35 +110,80 @@ class ApiService {
     T Function(dynamic json)? parser,
     Duration? timeout,
   }) async {
+    final sessionGeneration = _sessionGeneration;
     final uri = _buildUri(path, query);
-    final mergedHeaders = await _buildHeaders(headers, requiresAuth,
-        isMultipart: method == HttpMethod.multipart, asForm: asForm);
+    final mergedHeaders = await _buildHeaders(
+      headers,
+      requiresAuth,
+      isMultipart: method == HttpMethod.multipart,
+      asForm: asForm,
+    );
     final effectiveTimeout = timeout ?? EnvConfig.apiTimeout;
 
-    if (EnvConfig.verboseLogging) {
-      developer.log('→ ${method.name.toUpperCase()} $uri', name: 'ApiService');
-      if (EnvConfig.logHttpBodies && body != null) {
-        developer.log('  body: $body', name: 'ApiService');
-      }
-    }
+    // Never log URLs, payloads or headers: any can contain credentials or PII.
+    _diagnostic('→ ${method.name.toUpperCase()}');
 
     try {
       var headersToUse = mergedHeaders;
       var response = await _dispatch(
-          method, uri, headersToUse, body, files, asForm, effectiveTimeout);
+        method,
+        uri,
+        headersToUse,
+        body,
+        files,
+        asForm,
+        effectiveTimeout,
+      );
       var parsed = _parseResponse<T>(response, parser);
+
+      if (requiresAuth && sessionGeneration != _sessionGeneration) {
+        return ApiResponse.fail(
+          'Session changed. Please retry.',
+          statusCode: 401,
+        );
+      }
 
       // Session-expiry: only authenticated calls can meaningfully 401. Try a
       // one-time token refresh + retry before giving up; login/refresh calls
       // (requiresAuth:false) are exempt so a bad-credentials 401 stays local.
       if (parsed.statusCode == 401 && requiresAuth) {
         if (tokenRefresher != null && await _refreshToken()) {
-          headersToUse = await _buildHeaders(headers, requiresAuth,
-              isMultipart: method == HttpMethod.multipart, asForm: asForm);
+          if (sessionGeneration != _sessionGeneration) {
+            return ApiResponse.fail(
+              'Session changed. Please retry.',
+              statusCode: 401,
+            );
+          }
+          headersToUse = await _buildHeaders(
+            headers,
+            requiresAuth,
+            isMultipart: method == HttpMethod.multipart,
+            asForm: asForm,
+          );
+          if (sessionGeneration != _sessionGeneration) {
+            return ApiResponse.fail(
+              'Session changed. Please retry.',
+              statusCode: 401,
+            );
+          }
           response = await _dispatch(
-              method, uri, headersToUse, body, files, asForm, effectiveTimeout);
+            method,
+            uri,
+            headersToUse,
+            body,
+            files,
+            asForm,
+            effectiveTimeout,
+          );
           parsed = _parseResponse<T>(response, parser);
         }
+      }
+
+      if (requiresAuth && sessionGeneration != _sessionGeneration) {
+        return ApiResponse.fail(
+          'Session changed. Please retry.',
+          statusCode: 401,
+        );
       }
 
       // Any session-fatal failure on an authenticated call clears the session
@@ -127,36 +193,66 @@ class ApiService {
       // account, cross-tenant access). A token refresh can't rescue those, so
       // they don't go through the retry path. Unauthenticated calls
       // (login/refresh) are exempt so a bad-credentials attempt stays local.
-      if (requiresAuth && parsed.isSessionFatal) onUnauthorized?.call();
+      if (requiresAuth && parsed.isSessionFatal) {
+        final activeToken = await _store.readToken();
+        // A late denial from a previous login must not log out a newer account.
+        if (sessionGeneration == _sessionGeneration &&
+            activeToken != null &&
+            headersToUse['Authorization'] == 'Bearer $activeToken') {
+          onUnauthorized?.call();
+        }
+      }
       return parsed;
+    } on SessionRefreshUnavailable {
+      return ApiResponse.fail(
+        'Could not renew the session. Check your connection and retry.',
+        statusCode: 0,
+      );
     } on TimeoutException {
       return _transportFailure(
         uri,
         'The server took too long to respond (${effectiveTimeout.inSeconds}s). Please try again.',
       );
     } on SocketException catch (e) {
-      return _transportFailure(uri, 'Cannot reach the server. Check your connection and try again.', e);
+      return _transportFailure(
+        uri,
+        'Cannot reach the server. Check your connection and try again.',
+        e,
+      );
     } on http.ClientException catch (e) {
       // Includes the browser's opaque "Failed to fetch" — server down, wrong
       // host, or a response the browser rejected (e.g. a 500 with no CORS
       // headers). All of them mean "the request never completed".
-      return _transportFailure(uri, 'Cannot reach the server. Check your connection and try again.', e);
+      return _transportFailure(
+        uri,
+        'Cannot reach the server. Check your connection and try again.',
+        e,
+      );
     } on FormatException catch (e) {
-      return _transportFailure(uri, 'The server sent a response the app could not read.', e);
+      return _transportFailure(
+        uri,
+        'The server sent a response the app could not read.',
+        e,
+      );
     } catch (e) {
       // Last-resort net: an unexpected transport error must not surface as an
       // unhandled exception in the widget tree.
-      return _transportFailure(uri, 'Something went wrong talking to the server.', e);
+      return _transportFailure(
+        uri,
+        'Something went wrong talking to the server.',
+        e,
+      );
     }
   }
 
   /// Builds the failed response for a request that never completed, and logs
-  /// the underlying cause so the real reason is still visible in the console.
-  ApiResponse<T> _transportFailure<T>(Uri uri, String message, [Object? cause]) {
-    if (EnvConfig.verboseLogging) {
-      developer.log('✗ $uri — $message${cause == null ? '' : ' ($cause)'}',
-          name: 'ApiService');
-    }
+  /// only the error category. Exception text can contain URLs and payloads.
+  ApiResponse<T> _transportFailure<T>(
+    Uri uri,
+    String message, [
+    Object? cause,
+  ]) {
+    _diagnostic('✗ ${cause?.runtimeType ?? 'Timeout'}');
     return ApiResponse<T>.fail(message, statusCode: 0);
   }
 
@@ -177,13 +273,21 @@ class ApiService {
       case HttpMethod.get:
         return _client.get(uri, headers: headers).timeout(timeout);
       case HttpMethod.post:
-        return _client.post(uri, headers: headers, body: _encodeBody(body, asForm)).timeout(timeout);
+        return _client
+            .post(uri, headers: headers, body: _encodeBody(body, asForm))
+            .timeout(timeout);
       case HttpMethod.put:
-        return _client.put(uri, headers: headers, body: _encodeBody(body, asForm)).timeout(timeout);
+        return _client
+            .put(uri, headers: headers, body: _encodeBody(body, asForm))
+            .timeout(timeout);
       case HttpMethod.patch:
-        return _client.patch(uri, headers: headers, body: _encodeBody(body, asForm)).timeout(timeout);
+        return _client
+            .patch(uri, headers: headers, body: _encodeBody(body, asForm))
+            .timeout(timeout);
       case HttpMethod.delete:
-        return _client.delete(uri, headers: headers, body: _encodeBody(body, asForm)).timeout(timeout);
+        return _client
+            .delete(uri, headers: headers, body: _encodeBody(body, asForm))
+            .timeout(timeout);
       case HttpMethod.multipart:
         return _sendMultipart(uri, headers, body, files, timeout);
     }
@@ -202,22 +306,34 @@ class ApiService {
   }
 
   Uri _buildUri(String path, Map<String, String>? query) {
-    final base = EnvConfig.apiBaseUrl.endsWith('/') ? EnvConfig.apiBaseUrl.substring(0, EnvConfig.apiBaseUrl.length - 1) : EnvConfig.apiBaseUrl;
-    final full = path.startsWith('http') ? path : '$base${path.startsWith('/') ? '' : '/'}$path';
+    final base = EnvConfig.apiBaseUrl.endsWith('/')
+        ? EnvConfig.apiBaseUrl.substring(0, EnvConfig.apiBaseUrl.length - 1)
+        : EnvConfig.apiBaseUrl;
+    final full = path.startsWith('http')
+        ? path
+        : '$base${path.startsWith('/') ? '' : '/'}$path';
     final uri = Uri.parse(full);
     if (query == null || query.isEmpty) return uri;
     return uri.replace(queryParameters: {...uri.queryParameters, ...query});
   }
 
-  Future<Map<String, String>> _buildHeaders(Map<String, String>? extra, bool requiresAuth, {bool isMultipart = false, bool asForm = false}) async {
+  Future<Map<String, String>> _buildHeaders(
+    Map<String, String>? extra,
+    bool requiresAuth, {
+    bool isMultipart = false,
+    bool asForm = false,
+  }) async {
     final h = <String, String>{'Accept': 'application/json'};
     if (!isMultipart) {
-      h['Content-Type'] =
-          asForm ? 'application/x-www-form-urlencoded' : 'application/json';
+      h['Content-Type'] = asForm
+          ? 'application/x-www-form-urlencoded'
+          : 'application/json';
     }
     if (requiresAuth) {
       final token = await _store.readToken();
-      if (token != null && token.isNotEmpty) h['Authorization'] = 'Bearer $token';
+      if (token != null && token.isNotEmpty) {
+        h['Authorization'] = 'Bearer $token';
+      }
     }
     if (extra != null) h.addAll(extra);
     return h;
@@ -230,8 +346,10 @@ class ApiService {
     if (body == null) return null;
     if (!asForm) return jsonEncode(body);
     return body.entries
-        .map((e) =>
-            '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value?.toString() ?? '')}')
+        .map(
+          (e) =>
+              '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value?.toString() ?? '')}',
+        )
         .join('&');
   }
 
@@ -250,9 +368,21 @@ class ApiService {
     if (files != null) {
       for (final f in files) {
         if (f.file != null) {
-          req.files.add(await http.MultipartFile.fromPath(f.field, f.file!.path, filename: f.filename));
+          req.files.add(
+            await http.MultipartFile.fromPath(
+              f.field,
+              f.file!.path,
+              filename: f.filename,
+            ),
+          );
         } else if (f.bytes != null) {
-          req.files.add(http.MultipartFile.fromBytes(f.field, f.bytes!, filename: f.filename));
+          req.files.add(
+            http.MultipartFile.fromBytes(
+              f.field,
+              f.bytes!,
+              filename: f.filename,
+            ),
+          );
         }
       }
     }
@@ -260,7 +390,10 @@ class ApiService {
     return http.Response.fromStream(streamed);
   }
 
-  ApiResponse<T> _parseResponse<T>(http.Response res, T Function(dynamic json)? parser) {
+  ApiResponse<T> _parseResponse<T>(
+    http.Response res,
+    T Function(dynamic json)? parser,
+  ) {
     final status = res.statusCode;
     dynamic decoded;
     try {
@@ -269,9 +402,7 @@ class ApiService {
       decoded = res.body;
     }
 
-    if (EnvConfig.verboseLogging) {
-      developer.log('← $status (${res.body.length} bytes)', name: 'ApiService');
-    }
+    _diagnostic('← $status (${res.body.length} bytes)');
 
     final isOk = status >= 200 && status < 300;
     if (!isOk) {
@@ -326,13 +457,17 @@ class ApiService {
     if (decoded is Map) {
       // Standard envelope: { "error": { "code", "message", "fields"? } }.
       final err = decoded['error'];
-      if (err is Map && err['message'] is String) return err['message'] as String;
+      if (err is Map && err['message'] is String) {
+        return err['message'] as String;
+      }
       if (err is String) return err;
       // Fallbacks for FastAPI default / other shapes.
       final detail = decoded['detail'] ?? decoded['message'];
       if (detail is String) return detail;
       if (detail is List && detail.isNotEmpty) {
-        return detail.map((e) => e is Map ? e['msg'] ?? e.toString() : e.toString()).join(' · ');
+        return detail
+            .map((e) => e is Map ? e['msg'] ?? e.toString() : e.toString())
+            .join(' · ');
       }
     }
     return null;

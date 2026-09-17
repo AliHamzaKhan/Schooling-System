@@ -19,6 +19,7 @@ from app.models.user import User
 from app.modules.ai.providers import ai_provider
 from app.modules.ai.service import _questions_schema
 from app.modules.quiz import schemas
+from app.modules.academic.access import enrolled_students
 
 
 def _now() -> datetime:
@@ -405,7 +406,7 @@ class QuizService:
     ) -> list[schemas.RosterStudent]:
         """Enrolled students of a section (for the assignee picker)."""
         await self._get_scoped(Section, school_id, section_id, "Section")
-        ids = await self._enrolled_student_ids(section_id)
+        ids = list((await self.db.scalars(enrolled_students(school_id, [section_id]).distinct())).all())
         if not ids:
             return []
         rows = await self.db.execute(select(User.id, User.full_name).where(User.id.in_(ids)))

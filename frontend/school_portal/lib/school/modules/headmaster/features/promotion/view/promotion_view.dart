@@ -59,7 +59,7 @@ class _ExamPicker extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.card,
             borderRadius: BorderRadius.circular(AppRadius.button),
             border: Border.all(color: AppColors.outlineVariant),
           ),
@@ -213,7 +213,7 @@ class _PromotionRowCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(AppRadius.button),
                   border: Border.all(color: AppColors.outlineVariant),
                 ),

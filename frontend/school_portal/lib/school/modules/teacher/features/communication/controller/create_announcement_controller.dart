@@ -48,10 +48,20 @@ class CreateAnnouncementController extends GetxController {
 
   final submitting = false.obs;
   final error = RxnString();
+  BroadcastOutcome outcome = const BroadcastOutcome(null);
 
   @override
   void onInit() {
     super.onInit();
+    final pending = _repo.pendingBroadcast;
+    if (pending != null) {
+      title.value = pending['title'] as String? ?? '';
+      body.value = pending['body'] as String? ?? '';
+      audience.value = AnnouncementAudience.values.firstWhere((a) => a.wire == pending['audience_type']);
+      channel.value = AnnouncementChannel.values.firstWhere((c) => c.wire == pending['channel']);
+      sectionId.value = pending['audience_ref'] as String?;
+      error.value = 'Previous save unresolved. Retry this restored announcement unchanged.';
+    }
     _loadSections();
   }
 
@@ -61,7 +71,7 @@ class CreateAnnouncementController extends GetxController {
     if (res.success) {
       final mine = MyClass.fromSlots(res.data ?? const []);
       sections.assignAll(mine);
-      if (mine.isNotEmpty) sectionId.value = mine.first.sectionId;
+      if (mine.isNotEmpty && sectionId.value == null) sectionId.value = mine.first.sectionId;
     }
     loadingSections.value = false;
   }
@@ -70,8 +80,9 @@ class CreateAnnouncementController extends GetxController {
   void selectChannel(AnnouncementChannel c) => channel.value = c;
   void selectSection(String? id) => sectionId.value = id;
 
-  /// Validates and publishes. Returns true when the announcement was sent.
+  /// Returns true when saved; [outcome] describes delivery separately.
   Future<bool> submit() async {
+    if (submitting.value) return false;
     error.value = null;
     final message = body.value.trim();
     if (message.isEmpty) {
@@ -98,6 +109,7 @@ class CreateAnnouncementController extends GetxController {
       error.value = res.error ?? 'Could not send the announcement.';
       return false;
     }
+    outcome = BroadcastOutcome(res.rawJson?['status'] as String?);
     return true;
   }
 }

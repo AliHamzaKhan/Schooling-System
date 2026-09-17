@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
-import '../../../../../config/headmaster_routes.dart';
 import '../../../../../config/teacher_routes.dart';
-import '../../../../headmaster/features/student_report/view/section_students_view.dart'
-    show SectionStudentsArgs;
 import '../models/my_class.dart';
 
 /// Single-section detail reached by tapping a class card. Shows the section
@@ -36,10 +33,11 @@ class ClassDetailView extends StatelessWidget {
       appBar: AppBar(title: const Text('Class Details')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
-            AppSpacing.containerPaddingMobile,
-            AppSpacing.stackMd,
-            AppSpacing.containerPaddingMobile,
-            AppSpacing.stackXl),
+          AppSpacing.containerPaddingMobile,
+          AppSpacing.stackMd,
+          AppSpacing.containerPaddingMobile,
+          AppSpacing.stackXl,
+        ),
         children: [
           Text(c.title, style: AppTypography.displayLg.copyWith(fontSize: 30)),
           if (c.isClassTeacher) ...[
@@ -48,9 +46,13 @@ class ClassDetailView extends StatelessWidget {
               children: [
                 Icon(AppIcons.starRounded, size: 16, color: accent),
                 const SizedBox(width: 4),
-                Text("You're the class teacher",
-                    style: AppTypography.bodyMd.copyWith(
-                        color: accent, fontWeight: FontWeight.w700)),
+                Text(
+                  "You're the class teacher",
+                  style: AppTypography.bodyMd.copyWith(
+                    color: accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ],
@@ -63,7 +65,9 @@ class ClassDetailView extends StatelessWidget {
                 for (final s in c.subjects)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.stackSm, vertical: 4),
+                      horizontal: AppSpacing.stackSm,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(AppRadius.full),
@@ -118,11 +122,7 @@ class ClassDetailView extends StatelessWidget {
                 label: 'View Students',
                 color: AppColors.primary,
                 onTap: () => Get.toNamed(
-                  HeadmasterRoutes.sectionStudents,
-                  arguments: SectionStudentsArgs(
-                    sectionId: c.sectionId,
-                    title: c.title,
-                  ),
+                  '${TeacherRoutes.sectionStudents}?section_id=${Uri.encodeComponent(c.sectionId)}&title=${Uri.encodeComponent(c.title)}',
                 ),
               ),
               _ActionTile(
@@ -169,11 +169,14 @@ class _Stat extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.titleLg
-                        .copyWith(fontWeight: FontWeight.w800)),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.titleLg.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 Text(label, style: AppTypography.bodySm),
               ],
             ),
@@ -213,11 +216,12 @@ class _ActionTile extends StatelessWidget {
             ),
             child: Icon(icon, color: color, size: 20),
           ),
-          Text(label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style:
-                  AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );

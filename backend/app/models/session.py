@@ -11,8 +11,9 @@ token. This buys three things a stateless JWT can't:
 * **Revocation** — logout / logout-everywhere / deactivation set `revoked_at`,
   killing the session before the token's natural expiry.
 
-Access tokens stay stateless and short-lived, so the authenticated request path
-never touches this table — only login, refresh, and logout do.
+Access tokens and private-download tickets also carry this session ID. Every
+authenticated request checks this table so committed logout/revocation applies
+before token expiry. Already-authorized in-flight requests are not cancelled.
 """
 from datetime import datetime
 

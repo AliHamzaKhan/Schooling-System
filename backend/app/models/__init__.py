@@ -24,6 +24,7 @@ from app.models.communication import (
     MessageDelivery,
     NotificationConfig,
     NotificationTemplate,
+    NotificationOutbox,
 )
 from app.models.course import (
     BookChapter,
@@ -69,6 +70,7 @@ from app.models.subscription import (
 from app.models.user import User
 
 __all__ = [
+    "NotificationOutbox",
     "Base",
     "user_roles",
     "Role",

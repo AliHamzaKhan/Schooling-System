@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../features/headmasters/binding/headmasters_binding.dart';
 import '../features/headmasters/view/create_headmaster_view.dart';
@@ -30,6 +31,10 @@ import 'admin_shell.dart';
 class AdminRoutes {
   AdminRoutes._();
 
+  static List<GetMiddleware> get _superAdminOnly => [
+    RoleRouteGuard({'super_admin'}),
+  ];
+
   static const home = '/home';
   static const createSchool = '/schools/create';
   static const schoolDetail = '/schools/detail';
@@ -44,22 +49,29 @@ class AdminRoutes {
   static const schoolModules = '/permissions/schools/modules';
 
   static final pages = <GetPage>[
-    GetPage(name: home, page: () => const AdminShell()),
+    GetPage(
+      name: home,
+      page: () => const AdminShell(),
+      middlewares: _superAdminOnly,
+    ),
     GetPage(
       name: createSchool,
       page: () => const CreateSchoolView(),
       binding: CreateSchoolBinding(),
       fullscreenDialog: true,
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       name: schoolDetail,
       page: () => const SchoolDetailView(),
       binding: SchoolDetailBinding(),
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       name: subscriptions,
       page: () => const SubscriptionsView(),
       binding: SubscriptionsBinding(),
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       // Reuses the SubscriptionsController already alive under the plans list;
@@ -67,26 +79,31 @@ class AdminRoutes {
       name: planForm,
       page: () => const PlanFormView(),
       fullscreenDialog: true,
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       name: subscriptionManagement,
       page: () => const SubscriptionManagementView(),
       binding: SubscriptionManagementBinding(),
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       name: revenue,
       page: () => const RevenueView(),
       binding: RevenueBinding(),
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       name: transactions,
       page: () => const TransactionsView(),
       binding: TransactionsBinding(),
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       name: headmasters,
       page: () => const HeadmastersView(),
       binding: HeadmastersBinding(),
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       // Reuses the HeadmastersController from the list (its binding stays alive),
@@ -94,16 +111,19 @@ class AdminRoutes {
       name: createHeadmaster,
       page: () => const CreateHeadmasterView(),
       fullscreenDialog: true,
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       name: schoolPermissions,
       page: () => const SchoolPermissionsView(),
       binding: SchoolPermissionsBinding(),
+      middlewares: _superAdminOnly,
     ),
     GetPage(
       name: schoolModules,
       page: () => const SchoolModulesEditorView(),
       binding: SchoolModulesBinding(),
+      middlewares: _superAdminOnly,
     ),
   ];
 }

@@ -10,7 +10,8 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
-from app.core.deps import DbDep, require_school_permission, verify_student_access
+from app.core.deps import DbDep, require_school_permission
+from app.modules.academic.access import verify_academic_student
 from app.core.enums import Module, PermissionAction as PA
 from app.modules.reports import schemas
 from app.modules.reports.service import ReportingService
@@ -24,7 +25,7 @@ _export = Depends(require_school_permission(Module.REPORTS, PA.EXPORT))
 @router.get(
     "/students/{student_id}",
     response_model=schemas.StudentReport,
-    dependencies=[Depends(verify_student_access)],
+    dependencies=[Depends(verify_academic_student)],
 )
 async def student_report(
     school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep

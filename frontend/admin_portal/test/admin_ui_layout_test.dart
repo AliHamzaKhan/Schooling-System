@@ -14,6 +14,7 @@ import 'package:admin_portal/src/ui/admin_widgets/revenue_trend_card.dart';
 import 'package:admin_portal/src/ui/admin_widgets/stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:school_portal/school/modules/headmaster/features/dashboard/components/module_directory.dart';
 
 /// Renders the redesigned admin surfaces at phone width and fails on any
 /// layout overflow — the hand-tuned cards (KPI grid, trend chart, school row)
@@ -24,17 +25,19 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(MaterialApp(
-      theme: adminTheme(),
-      home: Scaffold(
-        body: AdminScreen(
-          child: ListView(
-            padding: const EdgeInsets.all(kAdminGutter),
-            children: children,
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: adminTheme(),
+        home: Scaffold(
+          body: AdminScreen(
+            child: ListView(
+              padding: const EdgeInsets.all(kAdminGutter),
+              children: children,
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 
@@ -69,10 +72,16 @@ void main() {
         subtitle: "Here is an overview of your platform's performance today.",
       ),
       const StatCard(
-          metric: metric, icon: Icons.apartment_rounded, emphasized: true),
+        metric: metric,
+        icon: Icons.apartment_rounded,
+        emphasized: true,
+      ),
       const SizedBox(height: 14),
       const StatCard(
-          metric: metric, icon: Icons.bar_chart_rounded, showTrend: false),
+        metric: metric,
+        icon: Icons.bar_chart_rounded,
+        showTrend: false,
+      ),
       const SizedBox(height: 14),
       QuickActionCard(
         label: 'Create New School',
@@ -103,8 +112,9 @@ void main() {
     expect(find.byType(StatCard), findsNWidgets(2));
   });
 
-  testWidgets('schools directory surfaces lay out at phone width',
-      (tester) async {
+  testWidgets('schools directory surfaces lay out at phone width', (
+    tester,
+  ) async {
     await pumpPage(tester, [
       const AdminPageHeader(
         title: 'Schools Directory',
@@ -166,5 +176,52 @@ void main() {
 
     expect(find.text('Last 6 Months'), findsOneWidget);
     expect(find.text('+12% from last'), findsOneWidget);
+  });
+
+  testWidgets('headmaster module directory lays out at phone width', (
+    tester,
+  ) async {
+    await pumpPage(tester, const [HeadmasterModuleDirectory()]);
+
+    expect(find.text('Manage your school'), findsOneWidget);
+    expect(find.text('Students'), findsOneWidget);
+    expect(find.text('School profile'), findsOneWidget);
+    expect(find.text('Reports'), findsOneWidget);
+  });
+
+  testWidgets(
+    'headmaster module directory filters and recovers from no results',
+    (tester) async {
+      await pumpPage(tester, const [HeadmasterModuleDirectory()]);
+
+      await tester.enterText(find.byType(TextFormField), 'payroll');
+      await tester.pump();
+      expect(find.text('Payroll'), findsOneWidget);
+      expect(find.text('Students'), findsNothing);
+
+      await tester.enterText(find.byType(TextFormField), 'not a module');
+      await tester.pump();
+      expect(find.text('No modules found'), findsOneWidget);
+      await tester.tap(find.text('Clear search'));
+      await tester.pump();
+      expect(find.text('Students'), findsOneWidget);
+    },
+  );
+
+  testWidgets('headmaster module directory hides unavailable capabilities', (
+    tester,
+  ) async {
+    await pumpPage(tester, const [
+      HeadmasterModuleDirectory(
+        enabledModules: {'student_management', 'timetable'},
+      ),
+    ]);
+
+    expect(find.text('Students'), findsOneWidget);
+    expect(find.text('Classes & sections'), findsOneWidget);
+    expect(find.text('Timetable'), findsOneWidget);
+    expect(find.text('Payroll'), findsNothing);
+    expect(find.text('Transport'), findsNothing);
+    expect(find.text('Settings'), findsOneWidget);
   });
 }

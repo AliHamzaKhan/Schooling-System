@@ -16,10 +16,10 @@ import '../models/exam_paper.dart';
 class ExamTimetableController extends GetxController {
   final HeadmasterRepository _repo;
   ExamTimetableController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+    : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   late final String categoryId;
-  late final String categoryName;
+  final categoryName = 'Exam'.obs;
   DateTime? termStart;
   DateTime? termEnd;
 
@@ -43,11 +43,28 @@ class ExamTimetableController extends GetxController {
   void onInit() {
     super.onInit();
     final args = (Get.arguments as Map?) ?? const {};
-    categoryId = '${args['categoryId']}';
-    categoryName = args['categoryName'] as String? ?? 'Exam';
-    termStart = args['startDate'] as DateTime?;
-    termEnd = args['endDate'] as DateTime?;
+    categoryId = categoryIdFromRoute(
+      parameters: Get.parameters,
+      arguments: args,
+    );
+    if (categoryId.isEmpty) {
+      error.value = 'A valid exam category is required.';
+      loading.value = false;
+      return;
+    }
     load();
+  }
+
+  static String categoryIdFromRoute({
+    required Map<String, String?> parameters,
+    Object? arguments,
+  }) {
+    final fromUrl = parameters['category_id']?.trim() ?? '';
+    if (fromUrl.isNotEmpty) return fromUrl;
+    if (arguments is Map) {
+      return arguments['categoryId']?.toString().trim() ?? '';
+    }
+    return '';
   }
 
   String subjectName(String id) {
@@ -63,13 +80,30 @@ class ExamTimetableController extends GetxController {
     loading.value = true;
     error.value = null;
     final results = await Future.wait([
+      _repo.loadExamCategories(),
       _repo.loadClassOptions(),
       _repo.loadSubjectOptions(),
       _repo.loadExamList(),
     ]);
-    final clsRes = results[0] as ApiResponse<List<PickerOption>>;
-    final subRes = results[1] as ApiResponse<List<SubjectOption>>;
-    final examRes = results[2] as ApiResponse<List<ExamListItem>>;
+    final categoryRes = results[0] as ApiResponse<List<ExamCategory>>;
+    final clsRes = results[1] as ApiResponse<List<PickerOption>>;
+    final subRes = results[2] as ApiResponse<List<SubjectOption>>;
+    final examRes = results[3] as ApiResponse<List<ExamListItem>>;
+
+    final category = categoryRes.data?.firstWhereOrNull(
+      (item) => item.id == categoryId,
+    );
+    if (!categoryRes.success || category == null) {
+      error.value = categoryRes.success
+          ? 'Exam category not found.'
+          : (categoryRes.error ?? 'Could not load the exam category.');
+      classes.clear();
+      loading.value = false;
+      return;
+    }
+    categoryName.value = category.name;
+    termStart = category.startDate;
+    termEnd = category.endDate;
 
     if (clsRes.success && clsRes.data != null) {
       classes.assignAll(clsRes.data!);
@@ -119,7 +153,7 @@ class ExamTimetableController extends GetxController {
     final label = selectedClassLabel ?? 'Class';
     final res = await _repo.createExam(
       classId: classId,
-      name: '$categoryName — $label',
+      name: '${categoryName.value} — $label',
       categoryId: categoryId,
       startDate: termStart,
       endDate: termEnd,

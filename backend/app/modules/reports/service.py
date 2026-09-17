@@ -17,6 +17,8 @@ from app.models.school import AcademicSession
 from app.models.user import User
 from app.modules.fees.service import FeeService
 from app.modules.reports import schemas
+from app.modules.academic.access import role_ids, valid_sections
+from app.core.exceptions import not_found
 
 
 class ReportingService:
@@ -220,7 +222,11 @@ class ReportingService:
         self, school_id: uuid.UUID, student_id: uuid.UUID
     ) -> schemas.StudentReport:
         """Cross-module 360-degree report for one student."""
-        student = await self.db.get(User, student_id)
+        student = await self.db.scalar(select(User).where(
+            User.id == student_id, User.id.in_(role_ids(school_id, SystemRole.STUDENT.value)),
+        ))
+        if student is None:
+            raise not_found("Student not found in this school")
         name = student.full_name if student else ""
         avatar_url = (student.profile_metadata or {}).get("avatar_url") if student else None
 
@@ -231,6 +237,7 @@ class ReportingService:
                 select(StudentEnrollment.section_id).where(
                     StudentEnrollment.school_id == school_id,
                     StudentEnrollment.student_id == student_id,
+                    StudentEnrollment.section_id.in_(valid_sections(school_id)),
                     StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
                 )
             )).all()
@@ -244,6 +251,10 @@ class ReportingService:
                 .where(
                     AttendanceRecord.school_id == school_id,
                     AttendanceRecord.student_id == student_id,
+                    AttendanceRecord.section_id.in_(valid_sections(school_id)),
+                    (AttendanceRecord.subject_id.is_(None) | AttendanceRecord.subject_id.in_(
+                        select(Subject.id).where(Subject.school_id == school_id)
+                    )),
                 )
                 .group_by(AttendanceRecord.status)
             )).all()
@@ -270,6 +281,8 @@ class ReportingService:
                 ExamResult.school_id == school_id,
                 ExamResult.student_id == student_id,
                 ExamResult.published.is_(True),
+                Exam.school_id == school_id,
+                Exam.class_id.in_(select(SchoolClass.id).where(SchoolClass.school_id == school_id)),
             )
             .order_by(ExamResult.published_at.desc().nullslast())
         )).all():
@@ -288,12 +301,16 @@ class ReportingService:
                 select(func.count()).select_from(Assignment).where(
                     Assignment.school_id == school_id,
                     Assignment.section_id.in_(section_ids),
+                    Assignment.subject_id.in_(select(Subject.id).where(Subject.school_id == school_id)),
                 )
             )) or 0
         assignments_submitted = (await self.db.scalar(
-            select(func.count()).select_from(Submission).where(
+            select(func.count()).select_from(Submission).join(Assignment, Assignment.id == Submission.assignment_id).where(
                 Submission.school_id == school_id,
                 Submission.student_id == student_id,
+                Assignment.school_id == school_id,
+                Assignment.section_id.in_(section_ids),
+                Assignment.subject_id.in_(select(Subject.id).where(Subject.school_id == school_id)),
             )
         )) or 0
 
@@ -308,6 +325,9 @@ class ReportingService:
                 QuizAttempt.school_id == school_id,
                 QuizAttempt.student_id == student_id,
                 QuizAttempt.submitted_at.isnot(None),
+                Quiz.school_id == school_id,
+                Quiz.section_id.in_(valid_sections(school_id)),
+                Quiz.subject_id.in_(select(Subject.id).where(Subject.school_id == school_id)),
             )
         )).all():
             quizzes.append(schemas.ReportQuiz(title=title, score=attempt.score))
@@ -325,6 +345,7 @@ class ReportingService:
                 .where(
                     guardian_students.c.school_id == school_id,
                     guardian_students.c.student_id == student_id,
+                    User.id.in_(role_ids(school_id, SystemRole.GUARDIAN.value, active=True)),
                 )
             )).all()
         ]

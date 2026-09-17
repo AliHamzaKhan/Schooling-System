@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
 
+import '../modules/headmaster/binding/headmaster_route_binding.dart';
 import '../modules/headmaster/features/announcements/binding/announcements_binding.dart';
 import '../modules/headmaster/features/announcements/view/announcements_view.dart';
 import '../modules/headmaster/features/attendance/view/teacher_attendance_roster_view.dart';
@@ -9,11 +10,13 @@ import '../modules/headmaster/features/attendance/view/teacher_attendance_view.d
 import '../modules/headmaster/features/classes/binding/classes_binding.dart';
 import '../modules/headmaster/features/classes/view/classes_view.dart';
 import '../modules/headmaster/features/dashboard/view/approvals_view.dart';
+import '../modules/headmaster/features/dashboard/binding/approvals_binding.dart';
 import '../modules/headmaster/features/fees/view/fees_roster_view.dart';
 import '../modules/headmaster/features/fees/view/overdue_payments_view.dart';
 import '../modules/headmaster/features/fees/view/record_payment_view.dart';
 import '../modules/headmaster/features/guardians/binding/guardians_binding.dart';
 import '../modules/headmaster/features/guardians/view/guardians_view.dart';
+import '../modules/headmaster/features/overview/binding/upcoming_events_binding.dart';
 import '../modules/headmaster/features/overview/view/upcoming_events_view.dart';
 import '../modules/headmaster/features/reports/binding/reports_binding.dart';
 import '../modules/headmaster/features/reports/view/reports_view.dart';
@@ -51,6 +54,7 @@ import '../modules/headmaster/features/timetable/view/timetable_editor_view.dart
 import '../modules/headmaster/features/transport/binding/transport_binding.dart';
 import '../modules/headmaster/features/transport/view/transport_view.dart';
 import '../modules/headmaster/headmaster_shell.dart';
+import '../modules/headmaster/routing/headmaster_capability_middleware.dart';
 import 'headmaster_routes.dart';
 
 /// `GetPage` declarations for the Headmaster module.
@@ -61,13 +65,43 @@ import 'headmaster_routes.dart';
 class HeadmasterPages {
   HeadmasterPages._();
 
-  static final pages = <GetPage>[
+  static const _capabilitiesByRoute = <String, Set<String>>{
+    HeadmasterRoutes.approvals: {'leave_management'},
+    HeadmasterRoutes.overduePayments: {'fee_management'},
+    HeadmasterRoutes.recordPayment: {'fee_management'},
+    HeadmasterRoutes.feesRoster: {'fee_management'},
+    HeadmasterRoutes.teacherAttendance: {'attendance'},
+    HeadmasterRoutes.teacherAttendanceRoster: {'attendance'},
+    HeadmasterRoutes.students: {'student_management'},
+    HeadmasterRoutes.studentRegistration: {'student_management'},
+    HeadmasterRoutes.studentReport: {'student_management'},
+    HeadmasterRoutes.messageHistory: {'student_management'},
+    HeadmasterRoutes.sectionStudents: {'student_management'},
+    HeadmasterRoutes.classStudents: {'student_management'},
+    HeadmasterRoutes.classes: {'student_management'},
+    HeadmasterRoutes.teacherRegistration: {'teacher_management'},
+    HeadmasterRoutes.teachers: {'teacher_management'},
+    HeadmasterRoutes.guardians: {'guardian_management'},
+    HeadmasterRoutes.timetable: {'timetable'},
+    HeadmasterRoutes.announcements: {'messaging'},
+    HeadmasterRoutes.analytics: {'reports'},
+    HeadmasterRoutes.salary: {'hr_payroll'},
+    HeadmasterRoutes.generatePayslip: {'hr_payroll'},
+    HeadmasterRoutes.transport: {'transport'},
+    HeadmasterRoutes.leaveReview: {'leave_management'},
+    HeadmasterRoutes.examCategories: {'exams'},
+    HeadmasterRoutes.examTimetable: {'exams'},
+    HeadmasterRoutes.promotion: {'exams'},
+  };
+
+  static final _pages = <GetPage>[
     GetPage(name: HeadmasterRoutes.shell, page: () => const HeadmasterShell()),
-    // Drill-in list screens — stateless, fed the already-loaded list via
-    // Get.arguments (no binding of their own).
+    // Drill-in list screens reconstruct their state from route identifiers or
+    // route-local canonical reads so direct URLs do not require shell memory.
     GetPage(
       name: HeadmasterRoutes.approvals,
       page: () => const ApprovalsView(),
+      binding: ApprovalsBinding(),
     ),
     GetPage(
       name: HeadmasterRoutes.overduePayments,
@@ -92,6 +126,7 @@ class HeadmasterPages {
     GetPage(
       name: HeadmasterRoutes.upcomingEvents,
       page: () => const UpcomingEventsView(),
+      binding: UpcomingEventsBinding(),
     ),
     GetPage(
       name: HeadmasterRoutes.students,
@@ -221,6 +256,24 @@ class HeadmasterPages {
       binding: PromotionBinding(),
     ),
   ];
+
+  /// Every headmaster route carries the same client-side role boundary. This
+  /// matters on web where a user can paste a deep link directly into the URL.
+  /// API permissions remain the final authority for every operation.
+  static List<GetPage> get pages => _pages
+      .map((page) {
+        final capabilities = _capabilitiesByRoute[page.name];
+        return page.copy(
+          bindings: [HeadmasterRouteBinding(), ...page.bindings],
+          middlewares: [
+            ...?page.middlewares,
+            RoleRouteGuard({'headmaster'}),
+            if (capabilities != null)
+              HeadmasterCapabilityMiddleware(capabilities),
+          ],
+        );
+      })
+      .toList(growable: false);
 }
 
 /// Wraps [ClassesView] with an app-bar (title + back arrow) when it is opened

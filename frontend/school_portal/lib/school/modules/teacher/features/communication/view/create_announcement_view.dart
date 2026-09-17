@@ -53,22 +53,23 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
 
             Text('Send to', style: AppTypography.titleMd),
             const SizedBox(height: AppSpacing.stackSm),
-            Obx(() => Column(
+            Obx(() => RadioGroup<AnnouncementAudience>(
+              groupValue: controller.audience.value,
+              onChanged: (value) {
+                if (value != null) controller.selectAudience(value);
+              },
+              child: Column(
                   children: [
                     for (final a in AnnouncementAudience.values)
                       RadioListTile<AnnouncementAudience>(
                         value: a,
-                        // ignore: deprecated_member_use — groupValue/onChanged
-                        // remain the supported API on this Flutter channel.
-                        groupValue: controller.audience.value,
-                        onChanged: (v) =>
-                            v == null ? null : controller.selectAudience(v),
                         title: Text(a.label, style: AppTypography.bodyLg),
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                       ),
                   ],
-                )),
+                ),
+              )),
 
             // Section picker only matters when targeting one section.
             Obx(() {
@@ -92,6 +93,12 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
                   hint: 'Choose a section',
                   value: controller.sectionId.value,
                   items: [
+                    if (controller.sectionId.value != null &&
+                        !controller.sections.any((s) => s.sectionId == controller.sectionId.value))
+                      DropdownMenuItem(
+                        value: controller.sectionId.value,
+                        child: const Text('Original section (no longer listed)'),
+                      ),
                     for (final s in controller.sections)
                       DropdownMenuItem(
                           value: s.sectionId, child: Text(s.title)),
@@ -150,10 +157,11 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
                       : () async {
                           final ok = await controller.submit();
                           if (!ok) return;
+                          final outcome = controller.outcome;
                           Get.back<bool>(result: true);
                           Get.snackbar(
-                            'Announcement sent',
-                            'Your message is on its way.',
+                            outcome.label,
+                            outcome.description,
                             snackPosition: SnackPosition.BOTTOM,
                           );
                         },

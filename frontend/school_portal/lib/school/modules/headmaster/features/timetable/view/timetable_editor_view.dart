@@ -323,7 +323,7 @@ class _LabeledDropdown<T> extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.stackMd),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.card,
             borderRadius: BorderRadius.circular(AppRadius.button),
             border: Border.all(color: AppColors.outlineVariant),
           ),
@@ -390,7 +390,7 @@ class _DaySlots extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.stackMd),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(AppRadius.card),
               border: Border.all(color: AppColors.outlineVariant),
             ),
@@ -728,7 +728,7 @@ class _TimeField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.stackMd, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(AppRadius.button),
               border: Border.all(color: AppColors.outlineVariant),
             ),

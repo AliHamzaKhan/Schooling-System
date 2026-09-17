@@ -54,6 +54,7 @@ class InboxController extends GetxController {
     if (conversations.isEmpty) {
       loading.value = true;
     } else {
+      conversations.clear();
       refreshing.value = true;
     }
     error.value = null;

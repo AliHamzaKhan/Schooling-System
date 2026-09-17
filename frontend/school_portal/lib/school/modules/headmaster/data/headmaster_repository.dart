@@ -20,6 +20,7 @@ import '../features/overview/models/overview_data.dart';
 import '../features/reports/models/reports_data.dart';
 import '../features/salary/models/salary_models.dart';
 import '../features/settings/models/school_profile.dart';
+import '../models/headmaster_workspace_context.dart';
 import '../features/students/models/student.dart';
 import '../features/teachers/models/teacher.dart';
 import '../features/timetable/models/timetable_data.dart';
@@ -33,11 +34,19 @@ import 'headmaster_api_service.dart';
 /// Every method reads/writes live backend data through [HeadmasterApiService].
 class HeadmasterRepository {
   final HeadmasterApiService _api;
+  Map<String, dynamic>? get pendingBroadcast => _api.pendingBroadcast;
+  Future<ApiResponse<dynamic>> loadBroadcastReview(
+    String id, {
+    int offset = 0,
+  }) => _api.fetchBroadcastReview(id, offset: offset);
 
   HeadmasterRepository({HeadmasterApiService? api})
-      : _api = api ?? HeadmasterApiService();
+    : _api = api ?? HeadmasterApiService();
 
   Future<ApiResponse<DashboardData>> loadDashboard() => _api.fetchDashboard();
+
+  Future<ApiResponse<HeadmasterWorkspaceContext>> loadWorkspaceContext() =>
+      _api.fetchWorkspaceContext();
 
   // ------------------------------ transport ---------------------------- #
 
@@ -49,35 +58,40 @@ class HeadmasterRepository {
     required String fullName,
     String? phone,
     String? licenseNo,
-  }) =>
-      _api.createDriver(
-        email: email, password: password, fullName: fullName,
-        phone: phone, licenseNo: licenseNo,
-      );
+  }) => _api.createDriver(
+    email: email,
+    password: password,
+    fullName: fullName,
+    phone: phone,
+    licenseNo: licenseNo,
+  );
 
   Future<ApiResponse<DriverRow>> updateDriver({
     required String driverId,
     String? licenseNo,
     String? phone,
     String? status,
-  }) =>
-      _api.updateDriver(
-        driverId: driverId, licenseNo: licenseNo, phone: phone, status: status,
-      );
+  }) => _api.updateDriver(
+    driverId: driverId,
+    licenseNo: licenseNo,
+    phone: phone,
+    status: status,
+  );
 
   Future<ApiResponse<List<OnlineDriver>>> loadOnlineDrivers() =>
       _api.fetchOnlineDrivers();
 
   Future<ApiResponse<List<TransportRequestRow>>> loadTransportRequests({
     String? status,
-  }) =>
-      _api.fetchTransportRequests(status: status);
+  }) => _api.fetchTransportRequests(status: status);
 
   Future<ApiResponse<dynamic>> approveTransportRequest(String id) =>
       _api.approveTransportRequest(id);
 
-  Future<ApiResponse<dynamic>> rejectTransportRequest(String id, {String? reason}) =>
-      _api.rejectTransportRequest(id, reason: reason);
+  Future<ApiResponse<dynamic>> rejectTransportRequest(
+    String id, {
+    String? reason,
+  }) => _api.rejectTransportRequest(id, reason: reason);
 
   Future<ApiResponse<List<RouteOption>>> loadTransportRoutes() =>
       _api.fetchTransportRoutes();
@@ -92,10 +106,11 @@ class HeadmasterRepository {
     required String requestId,
     required String routeId,
     required String driverId,
-  }) =>
-      _api.assignTransportStudent(
-        requestId: requestId, routeId: routeId, driverId: driverId,
-      );
+  }) => _api.assignTransportStudent(
+    requestId: requestId,
+    routeId: routeId,
+    driverId: driverId,
+  );
 
   Future<ApiResponse<List<TripRow>>> loadTransportTrips({String? status}) =>
       _api.fetchTransportTrips(status: status);
@@ -120,8 +135,7 @@ class HeadmasterRepository {
 
   Future<ApiResponse<List<Announcement>>> loadAnnouncements({
     String filter = 'All Updates',
-  }) =>
-      _api.fetchAnnouncements(filter: filter);
+  }) => _api.fetchAnnouncements(filter: filter);
 
   Future<ApiResponse<List<Teacher>>> loadTeachers({String query = ''}) =>
       _api.fetchTeachers(query: query);
@@ -130,8 +144,7 @@ class HeadmasterRepository {
     String query = '',
     String? grade,
     String? section,
-  }) =>
-      _api.fetchStudents(query: query, grade: grade, section: section);
+  }) => _api.fetchStudents(query: query, grade: grade, section: section);
 
   Future<ApiResponse<List<Guardian>>> loadGuardians({String query = ''}) =>
       _api.fetchGuardians(query: query);
@@ -141,21 +154,18 @@ class HeadmasterRepository {
     required String name,
     int? level,
     String? roomNo,
-  }) =>
-      _api.createClass(name: name, level: level, roomNo: roomNo);
+  }) => _api.createClass(name: name, level: level, roomNo: roomNo);
 
   Future<ApiResponse<dynamic>> createSection({
     required String classId,
     required String name,
     String? roomNo,
-  }) =>
-      _api.createSection(classId: classId, name: name, roomNo: roomNo);
+  }) => _api.createSection(classId: classId, name: name, roomNo: roomNo);
 
   Future<ApiResponse<dynamic>> updateClass({
     required String classId,
     required String name,
-  }) =>
-      _api.updateClass(classId: classId, name: name);
+  }) => _api.updateClass(classId: classId, name: name);
 
   Future<ApiResponse<dynamic>> deleteClass(String classId) =>
       _api.deleteClass(classId);
@@ -163,8 +173,7 @@ class HeadmasterRepository {
   Future<ApiResponse<dynamic>> linkChild({
     required String guardianId,
     required String studentId,
-  }) =>
-      _api.linkChild(guardianId: guardianId, studentId: studentId);
+  }) => _api.linkChild(guardianId: guardianId, studentId: studentId);
 
   Future<ApiResponse<dynamic>> createUser({
     required String email,
@@ -173,34 +182,31 @@ class HeadmasterRepository {
     required String role,
     String? phone,
     Map<String, dynamic>? profileMetadata,
-  }) =>
-      _api.createUser(
-        email: email,
-        password: password,
-        fullName: fullName,
-        role: role,
-        phone: phone,
-        profileMetadata: profileMetadata,
-      );
+  }) => _api.createUser(
+    email: email,
+    password: password,
+    fullName: fullName,
+    role: role,
+    phone: phone,
+    profileMetadata: profileMetadata,
+  );
 
   Future<ApiResponse<String>> uploadAvatar({
     String? filePath,
     List<int>? bytes,
     String filename = 'avatar.jpg',
     String contentType = 'image/jpeg',
-  }) =>
-      _api.uploadAvatar(
-        filePath: filePath,
-        bytes: bytes,
-        filename: filename,
-        contentType: contentType,
-      );
+  }) => _api.uploadAvatar(
+    filePath: filePath,
+    bytes: bytes,
+    filename: filename,
+    contentType: contentType,
+  );
 
   Future<ApiResponse<dynamic>> enrollStudent({
     required String sectionId,
     required String studentId,
-  }) =>
-      _api.enrollStudent(sectionId: sectionId, studentId: studentId);
+  }) => _api.enrollStudent(sectionId: sectionId, studentId: studentId);
 
   Future<ApiResponse<StudentFeePage>> searchStudentFees({
     String query = '',
@@ -208,22 +214,20 @@ class HeadmasterRepository {
     int offset = 0,
     String? classId,
     String? feeStatus,
-  }) =>
-      _api.searchStudentFees(
-        query: query,
-        limit: limit,
-        offset: offset,
-        classId: classId,
-        feeStatus: feeStatus,
-      );
+  }) => _api.searchStudentFees(
+    query: query,
+    limit: limit,
+    offset: offset,
+    classId: classId,
+    feeStatus: feeStatus,
+  );
 
   Future<ApiResponse<List<SubjectOption>>> loadSubjectOptions() =>
       _api.fetchSubjectOptions();
 
   Future<ApiResponse<List<TimetableSlot>>> loadTimetableSlots({
     String? sectionId,
-  }) =>
-      _api.fetchTimetableSlots(sectionId: sectionId);
+  }) => _api.fetchTimetableSlots(sectionId: sectionId);
 
   Future<ApiResponse<TimetableSlot>> createTimetableSlot({
     required String sectionId,
@@ -233,16 +237,15 @@ class HeadmasterRepository {
     required String startTime,
     required String endTime,
     String? room,
-  }) =>
-      _api.createTimetableSlot(
-        sectionId: sectionId,
-        subjectId: subjectId,
-        teacherId: teacherId,
-        dayOfWeek: dayOfWeek,
-        startTime: startTime,
-        endTime: endTime,
-        room: room,
-      );
+  }) => _api.createTimetableSlot(
+    sectionId: sectionId,
+    subjectId: subjectId,
+    teacherId: teacherId,
+    dayOfWeek: dayOfWeek,
+    startTime: startTime,
+    endTime: endTime,
+    room: room,
+  );
 
   Future<ApiResponse<TimetableSlot>> updateTimetableSlot({
     required String slotId,
@@ -252,16 +255,15 @@ class HeadmasterRepository {
     String? startTime,
     String? endTime,
     String? room,
-  }) =>
-      _api.updateTimetableSlot(
-        slotId: slotId,
-        subjectId: subjectId,
-        teacherId: teacherId,
-        dayOfWeek: dayOfWeek,
-        startTime: startTime,
-        endTime: endTime,
-        room: room,
-      );
+  }) => _api.updateTimetableSlot(
+    slotId: slotId,
+    subjectId: subjectId,
+    teacherId: teacherId,
+    dayOfWeek: dayOfWeek,
+    startTime: startTime,
+    endTime: endTime,
+    room: room,
+  );
 
   Future<ApiResponse<dynamic>> deleteTimetableSlot(String slotId) =>
       _api.deleteTimetableSlot(slotId);
@@ -269,14 +271,12 @@ class HeadmasterRepository {
   Future<ApiResponse<TeacherAttendanceDay>> loadTeacherAttendance({
     required DateTime date,
     String? status,
-  }) =>
-      _api.fetchTeacherAttendance(date: date, status: status);
+  }) => _api.fetchTeacherAttendance(date: date, status: status);
 
   Future<ApiResponse<dynamic>> markTeacherAttendance({
     required DateTime date,
     required List<Map<String, dynamic>> entries,
-  }) =>
-      _api.markTeacherAttendance(date: date, entries: entries);
+  }) => _api.markTeacherAttendance(date: date, entries: entries);
 
   Future<ApiResponse<List<Map<String, dynamic>>>> loadOverdueInvoices({
     String? classId,
@@ -290,22 +290,23 @@ class HeadmasterRepository {
     required double amount,
     required String method,
     DateTime? paidOn,
-  }) =>
-      _api.recordPayment(
-        invoiceId: invoiceId,
-        amount: amount,
-        method: method,
-        paidOn: paidOn,
-      );
+  }) => _api.recordPayment(
+    invoiceId: invoiceId,
+    amount: amount,
+    method: method,
+    paidOn: paidOn,
+  );
 
   /// Compose a school-wide (or audience-scoped) announcement broadcast.
   Future<ApiResponse<dynamic>> createBroadcast({
     required String body,
     String? title,
     String audienceType = 'entire_school',
-  }) =>
-      _api.createBroadcast(
-          body: body, title: title, audienceType: audienceType);
+  }) => _api.createBroadcast(
+    body: body,
+    title: title,
+    audienceType: audienceType,
+  );
 
   /// Publish computed results for a single exam.
   Future<ApiResponse<dynamic>> publishExamResults(String examId) =>
@@ -327,14 +328,13 @@ class HeadmasterRepository {
     String? uniformColor,
     int? feeDueDay,
     int? salaryDay,
-  }) =>
-      _api.updateSchoolProfile(
-        name: name,
-        logoUrl: logoUrl,
-        uniformColor: uniformColor,
-        feeDueDay: feeDueDay,
-        salaryDay: salaryDay,
-      );
+  }) => _api.updateSchoolProfile(
+    name: name,
+    logoUrl: logoUrl,
+    uniformColor: uniformColor,
+    feeDueDay: feeDueDay,
+    salaryDay: salaryDay,
+  );
 
   // ── Salary / HR ──
   Future<ApiResponse<List<SalaryStaff>>> loadSalaryStaff() =>
@@ -346,17 +346,21 @@ class HeadmasterRepository {
     required String userId,
     required String designation,
     required double baseSalary,
-  }) =>
-      _api.createStaffProfile(
-          userId: userId, designation: designation, baseSalary: baseSalary);
+  }) => _api.createStaffProfile(
+    userId: userId,
+    designation: designation,
+    baseSalary: baseSalary,
+  );
 
   Future<ApiResponse<dynamic>> updateStaffProfile({
     required String profileId,
     required String designation,
     required double baseSalary,
-  }) =>
-      _api.updateStaffProfile(
-          profileId: profileId, designation: designation, baseSalary: baseSalary);
+  }) => _api.updateStaffProfile(
+    profileId: profileId,
+    designation: designation,
+    baseSalary: baseSalary,
+  );
 
   Future<ApiResponse<PayslipRow>> generatePayslip({
     required String profileId,
@@ -365,23 +369,24 @@ class HeadmasterRepository {
     double allowances = 0,
     double deductions = 0,
     bool deductAbsences = false,
-  }) =>
-      _api.generatePayslip(
-        profileId: profileId,
-        month: month,
-        year: year,
-        allowances: allowances,
-        deductions: deductions,
-        deductAbsences: deductAbsences,
-      );
+  }) => _api.generatePayslip(
+    profileId: profileId,
+    month: month,
+    year: year,
+    allowances: allowances,
+    deductions: deductions,
+    deductAbsences: deductAbsences,
+  );
 
   Future<ApiResponse<MonthlyAttendanceSummary>> loadTeacherMonthlyAttendance({
     required String teacherId,
     required int month,
     required int year,
-  }) =>
-      _api.fetchTeacherMonthlyAttendance(
-          teacherId: teacherId, month: month, year: year);
+  }) => _api.fetchTeacherMonthlyAttendance(
+    teacherId: teacherId,
+    month: month,
+    year: year,
+  );
 
   Future<ApiResponse<dynamic>> markPayslipPaid(String payslipId) =>
       _api.markPayslipPaid(payslipId);
@@ -393,16 +398,18 @@ class HeadmasterRepository {
     String name, {
     DateTime? startDate,
     DateTime? endDate,
-  }) =>
-      _api.createExamCategory(name, startDate: startDate, endDate: endDate);
+  }) => _api.createExamCategory(name, startDate: startDate, endDate: endDate);
   Future<ApiResponse<dynamic>> updateExamCategory(
     String id, {
     String? name,
     DateTime? startDate,
     DateTime? endDate,
-  }) =>
-      _api.updateExamCategory(id,
-          name: name, startDate: startDate, endDate: endDate);
+  }) => _api.updateExamCategory(
+    id,
+    name: name,
+    startDate: startDate,
+    endDate: endDate,
+  );
   Future<ApiResponse<dynamic>> announceExamCategory(String id) =>
       _api.announceExamCategory(id);
   Future<ApiResponse<dynamic>> deleteExamCategory(String id) =>
@@ -417,14 +424,13 @@ class HeadmasterRepository {
     String? categoryId,
     DateTime? startDate,
     DateTime? endDate,
-  }) =>
-      _api.createExam(
-        classId: classId,
-        name: name,
-        categoryId: categoryId,
-        startDate: startDate,
-        endDate: endDate,
-      );
+  }) => _api.createExam(
+    classId: classId,
+    name: name,
+    categoryId: categoryId,
+    startDate: startDate,
+    endDate: endDate,
+  );
   Future<ApiResponse<List<ExamPaper>>> loadExamPapers(String examId) =>
       _api.fetchExamPapers(examId);
   Future<ApiResponse<ExamPaper>> addExamPaper({
@@ -434,26 +440,24 @@ class HeadmasterRepository {
     required double passMarks,
     DateTime? examDate,
     String? examTime,
-  }) =>
-      _api.addExamPaper(
-        examId: examId,
-        subjectId: subjectId,
-        maxMarks: maxMarks,
-        passMarks: passMarks,
-        examDate: examDate,
-        examTime: examTime,
-      );
+  }) => _api.addExamPaper(
+    examId: examId,
+    subjectId: subjectId,
+    maxMarks: maxMarks,
+    passMarks: passMarks,
+    examDate: examDate,
+    examTime: examTime,
+  );
 
   Future<ApiResponse<List<ExamListItem>>> loadExamList() =>
       _api.fetchExamList();
   Future<ApiResponse<List<PromotionPreviewRow>>> loadPromotionPreview(
-          String examId) =>
-      _api.fetchPromotionPreview(examId);
+    String examId,
+  ) => _api.fetchPromotionPreview(examId);
   Future<ApiResponse<dynamic>> applyPromotions({
     required String examId,
     required List<Map<String, dynamic>> items,
-  }) =>
-      _api.applyPromotions(examId: examId, items: items);
+  }) => _api.applyPromotions(examId: examId, items: items);
 
   // ── Courses (authoring) ──
   Future<ApiResponse<List<AdminCourse>>> loadCourses() => _api.fetchCourses();
@@ -464,14 +468,13 @@ class HeadmasterRepository {
     String? description,
     String? sectionId,
     String? subjectId,
-  }) =>
-      _api.createCourse(
-        title: title,
-        subject: subject,
-        description: description,
-        sectionId: sectionId,
-        subjectId: subjectId,
-      );
+  }) => _api.createCourse(
+    title: title,
+    subject: subject,
+    description: description,
+    sectionId: sectionId,
+    subjectId: subjectId,
+  );
 
   Future<ApiResponse<List<AdminBook>>> loadBooks(String courseId) =>
       _api.fetchBooks(courseId);
@@ -480,8 +483,11 @@ class HeadmasterRepository {
     required String courseId,
     required String title,
     String? description,
-  }) =>
-      _api.createBook(courseId: courseId, title: title, description: description);
+  }) => _api.createBook(
+    courseId: courseId,
+    title: title,
+    description: description,
+  );
 
   Future<ApiResponse<List<AdminChapter>>> loadChapters(String bookId) =>
       _api.fetchChapters(bookId);
@@ -490,8 +496,7 @@ class HeadmasterRepository {
     required String bookId,
     required String title,
     required String content,
-  }) =>
-      _api.createChapter(bookId: bookId, title: title, content: content);
+  }) => _api.createChapter(bookId: bookId, title: title, content: content);
 
   Future<ApiResponse<List<AdminNote>>> loadNotes(String courseId) =>
       _api.fetchNotes(courseId);
@@ -500,8 +505,7 @@ class HeadmasterRepository {
     required String courseId,
     required String title,
     required String content,
-  }) =>
-      _api.createNote(courseId: courseId, title: title, content: content);
+  }) => _api.createNote(courseId: courseId, title: title, content: content);
 
   // ── School info (authoring) ──
   Future<ApiResponse<Map<String, dynamic>>> loadSchoolInfo() =>
@@ -513,25 +517,23 @@ class HeadmasterRepository {
     List<int>? bytes,
     String filename = 'image.jpg',
     String contentType = 'image/jpeg',
-  }) =>
-      _api.uploadImage(
-        folder: folder,
-        filePath: filePath,
-        bytes: bytes,
-        filename: filename,
-        contentType: contentType,
-      );
+  }) => _api.uploadImage(
+    folder: folder,
+    filePath: filePath,
+    bytes: bytes,
+    filename: filename,
+    contentType: contentType,
+  );
 
   Future<ApiResponse<dynamic>> saveSchoolInfo({
     String? about,
     List<Map<String, dynamic>>? achievements,
     String? uniformImageUrl,
-  }) =>
-      _api.saveSchoolInfo(
-        about: about,
-        achievements: achievements,
-        uniformImageUrl: uniformImageUrl,
-      );
+  }) => _api.saveSchoolInfo(
+    about: about,
+    achievements: achievements,
+    uniformImageUrl: uniformImageUrl,
+  );
 
   // ── Leave review ──
   Future<ApiResponse<List<LeaveReviewItem>>> loadLeaveReview() =>
@@ -541,6 +543,5 @@ class HeadmasterRepository {
     required String leaveId,
     required bool approve,
     String? note,
-  }) =>
-      _api.reviewLeave(leaveId: leaveId, approve: approve, note: note);
+  }) => _api.reviewLeave(leaveId: leaveId, approve: approve, note: note);
 }

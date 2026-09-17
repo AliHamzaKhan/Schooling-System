@@ -24,6 +24,7 @@ import '../features/overview/models/overview_data.dart';
 import '../features/reports/models/reports_data.dart';
 import '../features/salary/models/salary_models.dart';
 import '../features/settings/models/school_profile.dart';
+import '../models/headmaster_workspace_context.dart';
 import '../features/students/models/student.dart';
 import '../features/teachers/models/teacher.dart';
 import '../features/timetable/models/timetable_data.dart';
@@ -35,25 +36,79 @@ import 'headmaster_endpoints.dart';
 /// parsing payloads into typed models. Reached only via `HeadmasterRepository`.
 class HeadmasterApiService {
   final ApiService _api;
-  HeadmasterApiService({ApiService? api}) : _api = api ?? Get.find<ApiService>();
+  final _paymentRetries = PaymentRetryGuard();
+  final _broadcastRetries = BroadcastRetryGuard();
+  String get _broadcastScope =>
+      '${Get.find<AuthService>().currentUser.value?['id'] ?? ''}/$_sid';
+  Map<String, dynamic>? get pendingBroadcast =>
+      _broadcastRetries.pending(_broadcastScope);
+  HeadmasterApiService({ApiService? api})
+    : _api = api ?? Get.find<ApiService>();
 
   /// The signed-in headmaster's school id — every live endpoint is scoped to it.
   String get _sid => Get.find<AuthService>().schoolId ?? '';
 
   /// Raw GET returning the decoded JSON untouched (helper for aggregate
   /// methods that combine several backend endpoints into one view-model).
-  Future<ApiResponse<dynamic>> _get(String path, {Map<String, String>? query}) =>
-      _api.request<dynamic>(
-        method: HttpMethod.get,
-        path: path,
-        query: query,
-        parser: (json) => json,
-      );
+  Future<ApiResponse<dynamic>> _get(
+    String path, {
+    Map<String, String>? query,
+  }) => _api.request<dynamic>(
+    method: HttpMethod.get,
+    path: path,
+    query: query,
+    parser: (json) => json,
+  );
 
   String get _userName =>
       Get.find<AuthService>().currentUser.value?['full_name'] as String? ?? '';
 
   static final _dt = DateTimeParserService();
+
+  /// Capability and identity context used by the persistent desktop shell.
+  /// All three reads must succeed so navigation fails closed rather than
+  /// presenting modules whose effective access is unknown.
+  Future<ApiResponse<HeadmasterWorkspaceContext>>
+  fetchWorkspaceContext() async {
+    if (_sid.isEmpty) {
+      return ApiResponse.fail('School context is unavailable.');
+    }
+    final school = await fetchSchoolProfile();
+    if (!school.success || school.data == null) {
+      return ApiResponse.fail(school.error ?? 'Could not load school context.');
+    }
+    final overview = await _get(HeadmasterEndpoints.reportsOverview(_sid));
+    if (!overview.success || overview.data is! Map) {
+      return ApiResponse.fail(
+        overview.error ?? 'Could not load academic session context.',
+      );
+    }
+    final permissions = await _api.request<dynamic>(
+      method: HttpMethod.get,
+      path: HeadmasterEndpoints.effectivePermissions,
+      parser: (json) => json,
+    );
+    if (!permissions.success || permissions.data is! Map) {
+      return ApiResponse.fail(
+        permissions.error ?? 'Could not load workspace access.',
+      );
+    }
+
+    final overviewData = (overview.data as Map).cast<String, dynamic>();
+    final permissionData = (permissions.data as Map).cast<String, dynamic>();
+    final modules = ((permissionData['modules'] as List?) ?? const [])
+        .map((value) => value.toString())
+        .where((value) => value.isNotEmpty)
+        .toSet();
+    final session = overviewData['active_session']?.toString().trim();
+    return ApiResponse.ok(
+      HeadmasterWorkspaceContext(
+        schoolName: school.data!.name,
+        activeSession: session == null || session.isEmpty ? null : session,
+        enabledModules: Set.unmodifiable(modules),
+      ),
+    );
+  }
 
   /// Formats an ISO timestamp as a friendly "2 hours ago"; falls back to the
   /// raw string when it can't be parsed. Keeps announcement stamps consistent
@@ -75,33 +130,48 @@ class HeadmasterApiService {
     final ov = await _get(HeadmasterEndpoints.reportsOverview(_sid));
     if (!ov.success) return ApiResponse.fail(ov.error ?? 'Failed to load');
     final o = (ov.data as Map).cast<String, dynamic>();
-    final bc = await _get(HeadmasterEndpoints.broadcasts(_sid),
-        query: {'limit': '5'});
+    final bc = await _get(
+      HeadmasterEndpoints.broadcasts(_sid),
+      query: {'limit': '5'},
+    );
     final announcements = bc.success
         ? (bc.data as List).cast<Map<String, dynamic>>().map((m) {
             final body = m['body'] as String? ?? '';
             return RecentAnnouncementSummary.fromJson({
               'id': m['id'],
-              'title': m['title'] ??
+              'title':
+                  m['title'] ??
                   (body.length > 40 ? '${body.substring(0, 40)}…' : body),
               'preview': body,
               'time_ago': (m['sent_at'] ?? m['scheduled_at']) ?? '',
             });
           }).toList()
         : <RecentAnnouncementSummary>[];
-    return ApiResponse.ok(DashboardData(
-      greeting: _userName.isEmpty ? 'Welcome back' : 'Welcome back, $_userName',
-      date: '',
-      metrics: [
-        DashboardMetric.fromJson(
-            {'label': 'Total Students', 'value': o['students']}),
-        DashboardMetric.fromJson({'label': 'Teachers', 'value': o['teachers']}),
-        DashboardMetric.fromJson({'label': 'Classes', 'value': o['classes']}),
-        DashboardMetric.fromJson({'label': 'Subjects', 'value': o['subjects']}),
-      ],
-      approvals: const [],
-      announcements: announcements,
-    ));
+    return ApiResponse.ok(
+      DashboardData(
+        greeting: _userName.isEmpty
+            ? 'Welcome back'
+            : 'Welcome back, $_userName',
+        date: '',
+        metrics: [
+          DashboardMetric.fromJson({
+            'label': 'Total Students',
+            'value': o['students'],
+          }),
+          DashboardMetric.fromJson({
+            'label': 'Teachers',
+            'value': o['teachers'],
+          }),
+          DashboardMetric.fromJson({'label': 'Classes', 'value': o['classes']}),
+          DashboardMetric.fromJson({
+            'label': 'Subjects',
+            'value': o['subjects'],
+          }),
+        ],
+        approvals: const [],
+        announcements: announcements,
+      ),
+    );
   }
 
   /// Subscription status for the Headmaster's school — drives the expiry alert
@@ -126,51 +196,65 @@ class HeadmasterApiService {
     final s = sc.success
         ? (sc.data as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
-    return ApiResponse.ok(OverviewData(
-      school: SchoolIdentity.fromJson({
-        'name': s['name'] ?? '',
-        'address': s['address'] ?? '',
-        'principal': _userName,
-      }),
-      pulse: [
-        PulseMetric.fromJson({'label': 'Students', 'value': o['students']}),
-        PulseMetric.fromJson({'label': 'Teachers', 'value': o['teachers']}),
-        PulseMetric.fromJson({'label': 'Guardians', 'value': o['guardians']}),
-        PulseMetric.fromJson({'label': 'Classes', 'value': o['classes']}),
-        PulseMetric.fromJson({'label': 'Sections', 'value': o['sections']}),
-        PulseMetric.fromJson({'label': 'Subjects', 'value': o['subjects']}),
-      ],
-      events: const [],
-    ));
+    return ApiResponse.ok(
+      OverviewData(
+        school: SchoolIdentity.fromJson({
+          'name': s['name'] ?? '',
+          'address': s['address'] ?? '',
+          'principal': _userName,
+        }),
+        pulse: [
+          PulseMetric.fromJson({'label': 'Students', 'value': o['students']}),
+          PulseMetric.fromJson({'label': 'Teachers', 'value': o['teachers']}),
+          PulseMetric.fromJson({'label': 'Guardians', 'value': o['guardians']}),
+          PulseMetric.fromJson({'label': 'Classes', 'value': o['classes']}),
+          PulseMetric.fromJson({'label': 'Sections', 'value': o['sections']}),
+          PulseMetric.fromJson({'label': 'Subjects', 'value': o['subjects']}),
+        ],
+        events: const [],
+      ),
+    );
   }
 
   /// Attendance Overview — from `/reports/attendance` (present_rate + status
   /// counts). The backend aggregate has no per-grade breakdown, teacher
   /// attendance, or time-series trend, so those render empty.
   Future<ApiResponse<AttendanceData>> fetchAttendance(
-      AttendanceRange range) async {
+    AttendanceRange range,
+  ) async {
     final res = await _get(HeadmasterEndpoints.reportsAttendance(_sid));
     if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
     final a = (res.data as Map).cast<String, dynamic>();
     final counts = ((a['counts'] as Map?) ?? const {}).cast<String, dynamic>();
     final rate = ((a['present_rate'] as num?)?.toDouble() ?? 0).round();
-    return ApiResponse.ok(AttendanceData(
-      metrics: [
-        AttendanceMetric.fromJson({'label': 'Present Rate', 'value': '$rate%'}),
-        AttendanceMetric.fromJson(
-            {'label': 'Present', 'value': counts['present'] ?? 0}),
-        AttendanceMetric.fromJson(
-            {'label': 'Absent', 'value': counts['absent'] ?? 0}),
-        AttendanceMetric.fromJson(
-            {'label': 'Records', 'value': a['total_records'] ?? 0}),
-      ],
-      studentRatePercent: rate,
-      teacherRatePercent: 0,
-      trendLabels: const [],
-      studentTrend: const [],
-      teacherTrend: const [],
-      grades: const [],
-    ));
+    return ApiResponse.ok(
+      AttendanceData(
+        metrics: [
+          AttendanceMetric.fromJson({
+            'label': 'Present Rate',
+            'value': '$rate%',
+          }),
+          AttendanceMetric.fromJson({
+            'label': 'Present',
+            'value': counts['present'] ?? 0,
+          }),
+          AttendanceMetric.fromJson({
+            'label': 'Absent',
+            'value': counts['absent'] ?? 0,
+          }),
+          AttendanceMetric.fromJson({
+            'label': 'Records',
+            'value': a['total_records'] ?? 0,
+          }),
+        ],
+        studentRatePercent: rate,
+        teacherRatePercent: 0,
+        trendLabels: const [],
+        studentTrend: const [],
+        teacherTrend: const [],
+        grades: const [],
+      ),
+    );
   }
 
   /// Live exams from `/schools/{id}/exams` (list of `ExamOut`: name, status,
@@ -199,9 +283,12 @@ class HeadmasterApiService {
           );
         }).toList();
         return ExamsData(
-          activeExams: schedule.where((s) => s.status == ExamStatus.live).length,
-          upcomingExams:
-              schedule.where((s) => s.status == ExamStatus.upcoming).length,
+          activeExams: schedule
+              .where((s) => s.status == ExamStatus.live)
+              .length,
+          upcomingExams: schedule
+              .where((s) => s.status == ExamStatus.upcoming)
+              .length,
           pendingResults: 0,
           schedule: schedule,
           recent: const [],
@@ -212,10 +299,10 @@ class HeadmasterApiService {
   }
 
   ExamStatus _examStatus(String? s) => switch (s) {
-        'active' || 'ongoing' || 'live' => ExamStatus.live,
-        'completed' || 'published' || 'finished' => ExamStatus.completed,
-        _ => ExamStatus.upcoming,
-      };
+    'active' || 'ongoing' || 'live' => ExamStatus.live,
+    'completed' || 'published' || 'finished' => ExamStatus.completed,
+    _ => ExamStatus.upcoming,
+  };
 
   /// Fee Management — totals from `/reports/finance` and the overdue list from
   /// `/fees/invoices` (filtered to `is_overdue`). Invoices carry no student
@@ -225,35 +312,41 @@ class HeadmasterApiService {
     final fin = await _get(HeadmasterEndpoints.reportsFinance(_sid));
     if (!fin.success) return ApiResponse.fail(fin.error ?? 'Failed to load');
     final f = (fin.data as Map).cast<String, dynamic>();
-    final inv = await _get(HeadmasterEndpoints.feesInvoices(_sid),
-        query: {'limit': '200'});
+    final inv = await _get(
+      HeadmasterEndpoints.feesInvoices(_sid),
+      query: {'limit': '200'},
+    );
     final overdue = inv.success
         ? (inv.data as List)
-            .cast<Map<String, dynamic>>()
-            .where((i) => i['is_overdue'] as bool? ?? false)
-            .map((i) => OverduePayment.fromJson({
+              .cast<Map<String, dynamic>>()
+              .where((i) => i['is_overdue'] as bool? ?? false)
+              .map(
+                (i) => OverduePayment.fromJson({
                   'id': i['id'],
                   'student_name': i['title'] ?? 'Invoice',
                   'grade': '',
                   'overdue_days': 0,
                   'amount': i['balance'] ?? 0,
-                }))
-            .toList()
+                }),
+              )
+              .toList()
         : <OverduePayment>[];
     final collected = (f['total_collected'] as num?)?.toDouble() ?? 0;
     final billed = (f['total_billed'] as num?)?.toDouble() ?? 0;
     final outstanding = (f['total_outstanding'] as num?)?.toDouble() ?? 0;
     final rate = (f['collection_rate'] as num?)?.toDouble() ?? 0;
-    return ApiResponse.ok(FeesData(
-      term: '',
-      totalCollected: _money(collected),
-      trendPercent: 0,
-      progressPercent: rate,
-      targetLabel: 'of ${_money(billed)} billed',
-      outstandingAmount: _money(outstanding),
-      outstandingCount: (f['overdue_count'] as num?)?.toInt() ?? 0,
-      overdue: overdue,
-    ));
+    return ApiResponse.ok(
+      FeesData(
+        term: '',
+        totalCollected: _money(collected),
+        trendPercent: 0,
+        progressPercent: rate,
+        targetLabel: 'of ${_money(billed)} billed',
+        outstandingAmount: _money(outstanding),
+        outstandingCount: (f['overdue_count'] as num?)?.toInt() ?? 0,
+        overdue: overdue,
+      ),
+    );
   }
 
   /// Search students + their fee snapshot for the Record Payment / Overdue /
@@ -300,7 +393,12 @@ class HeadmasterApiService {
       path: HeadmasterEndpoints.academicClasses(_sid),
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
-          .map((c) => PickerOption(id: '${c['id']}', label: c['name'] as String? ?? ''))
+          .map(
+            (c) => PickerOption(
+              id: '${c['id']}',
+              label: c['name'] as String? ?? '',
+            ),
+          )
           .toList(),
     );
   }
@@ -411,7 +509,8 @@ class HeadmasterApiService {
         if (licenseNo != null) 'license_no': licenseNo,
         if (assignedVehicleId != null) 'assigned_vehicle_id': assignedVehicleId,
       },
-      parser: (json) => DriverRow.fromJson((json as Map).cast<String, dynamic>()),
+      parser: (json) =>
+          DriverRow.fromJson((json as Map).cast<String, dynamic>()),
     );
   }
 
@@ -431,7 +530,8 @@ class HeadmasterApiService {
         if (status != null) 'status': status,
         if (assignedVehicleId != null) 'assigned_vehicle_id': assignedVehicleId,
       },
-      parser: (json) => DriverRow.fromJson((json as Map).cast<String, dynamic>()),
+      parser: (json) =>
+          DriverRow.fromJson((json as Map).cast<String, dynamic>()),
     );
   }
 
@@ -553,8 +653,8 @@ class HeadmasterApiService {
       method: HttpMethod.get,
       path: HeadmasterEndpoints.hrTeacherAttendance(_sid),
       query: {'date': iso, if (status != null) 'status': status},
-      parser: (json) => TeacherAttendanceDay.fromJson(
-          (json as Map).cast<String, dynamic>()),
+      parser: (json) =>
+          TeacherAttendanceDay.fromJson((json as Map).cast<String, dynamic>()),
     );
   }
 
@@ -622,39 +722,45 @@ class HeadmasterApiService {
         parser: (json) => (json as List).cast<Map<String, dynamic>>(),
       );
       final sections = (secRes.data ?? const <Map<String, dynamic>>[])
-          .map((s) => ClassSection(
-                id: '${s['id']}',
-                name: s['name'] as String? ?? '',
-                students: 0,
-                accent: AppColors.primary,
-              ))
+          .map(
+            (s) => ClassSection(
+              id: '${s['id']}',
+              name: s['name'] as String? ?? '',
+              students: 0,
+              accent: AppColors.primary,
+            ),
+          )
           .toList();
       totalSections += sections.length;
-      grades.add(GradeGroup(
-        classId: classId,
-        className: className,
-        grade: level,
-        level: _gradeLevel(level),
-        sections: sections,
-      ));
+      grades.add(
+        GradeGroup(
+          classId: classId,
+          className: className,
+          grade: level,
+          level: _gradeLevel(level),
+          sections: sections,
+        ),
+      );
     }
-    return ApiResponse.ok(ClassDirectoryData(
-      stats: [
-        ClassStat(
-          label: 'Total Classes',
-          value: '${classes.length}',
-          icon: AppIcons.classOutlined,
-          color: AppColors.primary,
-        ),
-        ClassStat(
-          label: 'Total Sections',
-          value: '$totalSections',
-          icon: AppIcons.gridViewRounded,
-          color: AppColors.tertiary,
-        ),
-      ],
-      grades: grades,
-    ));
+    return ApiResponse.ok(
+      ClassDirectoryData(
+        stats: [
+          ClassStat(
+            label: 'Total Classes',
+            value: '${classes.length}',
+            icon: AppIcons.classOutlined,
+            color: AppColors.primary,
+          ),
+          ClassStat(
+            label: 'Total Sections',
+            value: '$totalSections',
+            icon: AppIcons.gridViewRounded,
+            color: AppColors.tertiary,
+          ),
+        ],
+        grades: grades,
+      ),
+    );
   }
 
   GradeLevel _gradeLevel(int level) {
@@ -683,8 +789,10 @@ class HeadmasterApiService {
         for (final s in (subjRes.data as List).cast<Map<String, dynamic>>())
           '${s['id']}': s['name'] as String? ?? '',
     };
-    final teacherRes = await _get(HeadmasterEndpoints.users(_sid),
-        query: {'role_code': 'teacher', 'limit': '200'});
+    final teacherRes = await _get(
+      HeadmasterEndpoints.users(_sid),
+      query: {'role_code': 'teacher', 'limit': '200'},
+    );
     final teachers = <String, String>{
       if (teacherRes.success)
         for (final u in (teacherRes.data as List).cast<Map<String, dynamic>>())
@@ -699,7 +807,8 @@ class HeadmasterApiService {
       days.add(day);
       final start = '${s['start_time'] ?? ''}';
       final end = '${s['end_time'] ?? ''}';
-      final label = '${start.padRight(5).substring(0, 5)}'
+      final label =
+          '${start.padRight(5).substring(0, 5)}'
           '–${end.padRight(5).substring(0, 5)}';
       final lesson = Lesson(
         subject: subjects['${s['subject_id']}'] ?? 'Subject',
@@ -717,7 +826,8 @@ class HeadmasterApiService {
     final orderedSlots = byTime.values.toList()
       ..sort((a, b) => a.label.compareTo(b.label));
     return ApiResponse.ok(
-        TimetableData(days: orderedDays, slots: orderedSlots));
+      TimetableData(days: orderedDays, slots: orderedSlots),
+    );
   }
 
   /// Reports & Analytics — combines `/reports/academic` (per-exam averages →
@@ -746,37 +856,48 @@ class HeadmasterApiService {
     final avgScore = exams.isEmpty
         ? 0.0
         : exams
-                .map((e) => (e['average_percentage'] as num?)?.toDouble() ?? 0)
-                .reduce((a, b) => a + b) /
-            exams.length;
+                  .map(
+                    (e) => (e['average_percentage'] as num?)?.toDouble() ?? 0,
+                  )
+                  .reduce((a, b) => a + b) /
+              exams.length;
 
-    return ApiResponse.ok(ReportsData(
-      metrics: [
-        ReportMetric.fromJson(
-            {'label': 'Avg Score', 'value': '${avgScore.round()}%'}),
-        ReportMetric.fromJson({
-          'label': 'Collection',
-          'value': '${((fin['collection_rate'] as num?)?.toDouble() ?? 0).round()}%'
-        }),
-        ReportMetric.fromJson({
-          'label': 'Attendance',
-          'value': '${((att['present_rate'] as num?)?.toDouble() ?? 0).round()}%'
-        }),
-        ReportMetric.fromJson(
-            {'label': 'Students', 'value': enr['total_students'] ?? 0}),
-      ],
-      currentYearScores: exams
-          .map((e) => (e['average_percentage'] as num?)?.toDouble() ?? 0)
-          .toList(),
-      previousYearScores: const [],
-      performanceLabels:
-          exams.map((e) => e['name'] as String? ?? '').toList(),
-      enrollmentByYear: {
-        for (final c in ((enr['classes'] as List?) ?? [])
-            .cast<Map<String, dynamic>>())
-          '${c['class_name']}': (c['students'] as num?)?.toInt() ?? 0,
-      },
-    ));
+    return ApiResponse.ok(
+      ReportsData(
+        metrics: [
+          ReportMetric.fromJson({
+            'label': 'Avg Score',
+            'value': '${avgScore.round()}%',
+          }),
+          ReportMetric.fromJson({
+            'label': 'Collection',
+            'value':
+                '${((fin['collection_rate'] as num?)?.toDouble() ?? 0).round()}%',
+          }),
+          ReportMetric.fromJson({
+            'label': 'Attendance',
+            'value':
+                '${((att['present_rate'] as num?)?.toDouble() ?? 0).round()}%',
+          }),
+          ReportMetric.fromJson({
+            'label': 'Students',
+            'value': enr['total_students'] ?? 0,
+          }),
+        ],
+        currentYearScores: exams
+            .map((e) => (e['average_percentage'] as num?)?.toDouble() ?? 0)
+            .toList(),
+        previousYearScores: const [],
+        performanceLabels: exams
+            .map((e) => e['name'] as String? ?? '')
+            .toList(),
+        enrollmentByYear: {
+          for (final c
+              in ((enr['classes'] as List?) ?? []).cast<Map<String, dynamic>>())
+            '${c['class_name']}': (c['students'] as num?)?.toInt() ?? 0,
+        },
+      ),
+    );
   }
 
   /// Announcements Hub — from school broadcasts
@@ -799,8 +920,12 @@ class HeadmasterApiService {
           return Announcement(
             id: '${m['id']}',
             scope: scope,
-            timestamp: _relative((m['sent_at'] ?? m['scheduled_at']) as String?),
-            title: m['title'] as String? ??
+            timestamp: _relative(
+              (m['sent_at'] ?? m['scheduled_at']) as String?,
+            ),
+            deliveryStatus: m['status'] as String?,
+            title:
+                m['title'] as String? ??
                 (body.length > 40 ? '${body.substring(0, 40)}…' : body),
             body: body,
           );
@@ -844,7 +969,8 @@ class HeadmasterApiService {
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
           .map((u) {
-            final meta = (u['profile_metadata'] as Map?)?.cast<String, dynamic>();
+            final meta = (u['profile_metadata'] as Map?)
+                ?.cast<String, dynamic>();
             final specialization =
                 (meta?['specialization'] as String?)?.trim() ?? '';
             return Teacher(
@@ -879,19 +1005,21 @@ class HeadmasterApiService {
       path: HeadmasterEndpoints.academicStudents(_sid),
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
-          .map((u) => Student(
-                id: '${u['id']}',
-                roll: u['roll_number'] == null ? '' : '${u['roll_number']}',
-                name: u['full_name'] as String? ?? '',
-                avatarUrl: (u['avatar_url'] as String?)?.trim().isEmpty ?? true
-                    ? null
-                    : (u['avatar_url'] as String?),
-                grade: u['class_name'] as String? ?? '',
-                section: u['section_name'] as String? ?? '',
-                status: (u['is_active'] as bool? ?? true)
-                    ? StudentStatus.active
-                    : StudentStatus.pending,
-              ))
+          .map(
+            (u) => Student(
+              id: '${u['id']}',
+              roll: u['roll_number'] == null ? '' : '${u['roll_number']}',
+              name: u['full_name'] as String? ?? '',
+              avatarUrl: (u['avatar_url'] as String?)?.trim().isEmpty ?? true
+                  ? null
+                  : (u['avatar_url'] as String?),
+              grade: u['class_name'] as String? ?? '',
+              section: u['section_name'] as String? ?? '',
+              status: (u['is_active'] as bool? ?? true)
+                  ? StudentStatus.active
+                  : StudentStatus.pending,
+            ),
+          )
           .where((s) => q.isEmpty || s.name.toLowerCase().contains(q))
           .toList(),
     );
@@ -908,17 +1036,19 @@ class HeadmasterApiService {
       query: {'role_code': 'guardian', 'limit': '200'},
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
-          .map((u) => Guardian(
-                id: '${u['id']}',
-                name: u['full_name'] as String? ?? '',
-                avatarUrl: _avatarOf(u),
-                email: u['email'] as String? ?? '',
-                phone: u['phone'] as String?,
-                status: (u['is_active'] as bool? ?? true)
-                    ? GuardianStatus.active
-                    : GuardianStatus.pending,
-                linkedStudents: const [],
-              ))
+          .map(
+            (u) => Guardian(
+              id: '${u['id']}',
+              name: u['full_name'] as String? ?? '',
+              avatarUrl: _avatarOf(u),
+              email: u['email'] as String? ?? '',
+              phone: u['phone'] as String?,
+              status: (u['is_active'] as bool? ?? true)
+                  ? GuardianStatus.active
+                  : GuardianStatus.pending,
+              linkedStudents: const [],
+            ),
+          )
           .where((g) => q.isEmpty || g.name.toLowerCase().contains(q))
           .toList(),
     );
@@ -1126,14 +1256,31 @@ class HeadmasterApiService {
     required String method,
     DateTime? paidOn,
   }) {
-    final d = paidOn ?? DateTime.now();
-    final iso =
-        '${d.year.toString().padLeft(4, "0")}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}';
-    return _api.request<dynamic>(
-      method: HttpMethod.post,
-      path: HeadmasterEndpoints.invoicePayments(_sid, invoiceId),
-      body: {'amount': amount, 'method': method, 'paid_on': iso},
-      parser: (json) => json,
+    final sid = _sid;
+    final userId = Get.find<AuthService>().currentUser.value?['id']?.toString();
+    if (sid.isEmpty || userId == null || userId.isEmpty) {
+      return Future.value(
+        ApiResponse.fail(
+          'Sign in before recording a payment.',
+          statusCode: 401,
+        ),
+      );
+    }
+    return _paymentRetries.run(
+      scope: '$userId/$sid/$invoiceId',
+      createPayload: () {
+        final d = paidOn ?? DateTime.now();
+        final iso =
+            '${d.year.toString().padLeft(4, "0")}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}';
+        return {'amount': amount, 'method': method, 'paid_on': iso};
+      },
+      send: (key, payload) => _api.request<dynamic>(
+        method: HttpMethod.post,
+        path: HeadmasterEndpoints.invoicePayments(sid, invoiceId),
+        headers: {'Idempotency-Key': key},
+        body: payload,
+        parser: (json) => json,
+      ),
     );
   }
 
@@ -1147,18 +1294,41 @@ class HeadmasterApiService {
     String audienceType = 'entire_school',
     String channel = 'push',
   }) {
-    return _api.request<dynamic>(
-      method: HttpMethod.post,
-      path: HeadmasterEndpoints.broadcasts(_sid),
-      body: {
+    final sid = _sid;
+    if (sid.isEmpty ||
+        Get.find<AuthService>().currentUser.value?['id'] == null) {
+      return Future.value(
+        ApiResponse.fail(
+          'Sign in to your school before publishing.',
+          statusCode: 401,
+        ),
+      );
+    }
+    return _broadcastRetries.run(
+      scope: _broadcastScope,
+      payload: {
         'channel': channel,
         'audience_type': audienceType,
         'title': ?title,
         'body': body,
       },
-      parser: (json) => json,
+      send: (key, payload) => _api.request<dynamic>(
+        method: HttpMethod.post,
+        path: HeadmasterEndpoints.broadcasts(sid),
+        headers: {'Idempotency-Key': key},
+        body: payload,
+        parser: (json) => json,
+      ),
     );
   }
+
+  Future<ApiResponse<dynamic>> fetchBroadcastReview(
+    String id, {
+    int offset = 0,
+  }) => _get(
+    '${HeadmasterEndpoints.broadcasts(_sid)}/${Uri.encodeComponent(id)}/review',
+    query: {'limit': '25', 'offset': '$offset'},
+  );
 
   /// Publish (compute) results for a single exam via
   /// `POST /schools/{id}/exams/{exam_id}/results/publish`.
@@ -1169,7 +1339,6 @@ class HeadmasterApiService {
       parser: (json) => json,
     );
   }
-
 
   /// Flattened section picker options ("Grade 1 - A") built from classes +
   /// their sections. N+1 requests, acceptable for a small dropdown.
@@ -1191,11 +1360,18 @@ class HeadmasterApiService {
         path: HeadmasterEndpoints.classSections(_sid, classId),
         parser: (json) => (json as List).cast<Map<String, dynamic>>(),
       );
-      for (final s in secRes.data ?? const <Map<String, dynamic>>[]) {
-        out.add(PickerOption(
-          id: '${s['id']}',
-          label: '$className - ${s['name'] ?? ''}',
-        ));
+      if (!secRes.success || secRes.data == null) {
+        return ApiResponse.fail(
+          secRes.error ?? 'Could not load sections for $className',
+        );
+      }
+      for (final s in secRes.data!) {
+        out.add(
+          PickerOption(
+            id: '${s['id']}',
+            label: '$className - ${s['name'] ?? ''}',
+          ),
+        );
       }
     }
     return ApiResponse.ok(out);
@@ -1209,10 +1385,12 @@ class HeadmasterApiService {
       query: {'role_code': 'student', 'limit': '200'},
       parser: (json) => (json as List)
           .cast<Map<String, dynamic>>()
-          .map((u) => PickerOption(
-                id: '${u['id']}',
-                label: u['full_name'] as String? ?? (u['email'] as String? ?? ''),
-              ))
+          .map(
+            (u) => PickerOption(
+              id: '${u['id']}',
+              label: u['full_name'] as String? ?? (u['email'] as String? ?? ''),
+            ),
+          )
           .toList(),
     );
   }
@@ -1322,7 +1500,8 @@ class HeadmasterApiService {
       path: HeadmasterEndpoints.hrTeacherAttendanceSummary(_sid, teacherId),
       query: {'month': '$month', 'year': '$year'},
       parser: (json) => MonthlyAttendanceSummary.fromJson(
-          (json as Map).cast<String, dynamic>()),
+        (json as Map).cast<String, dynamic>(),
+      ),
     );
   }
 
@@ -1486,7 +1665,8 @@ class HeadmasterApiService {
 
   // ── Promotion flow ──
   Future<ApiResponse<List<PromotionPreviewRow>>> fetchPromotionPreview(
-      String examId) {
+    String examId,
+  ) {
     return _api.request<List<PromotionPreviewRow>>(
       method: HttpMethod.get,
       path: HeadmasterEndpoints.promotionsPreview(_sid),

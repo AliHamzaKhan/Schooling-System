@@ -32,7 +32,7 @@ class AIProvider:
 
     async def generate(self, prompt: str, system: str | None = None) -> AIResult:
         if not self._ready():
-            logger.info("[STUB ai] feature prompt=%r", prompt[:80])
+            logger.info("[STUB ai] no generation attempted")
             return AIResult(
                 text=f"[AI stub response] {prompt.strip()[:200]}",
                 provider="stub",
@@ -80,7 +80,7 @@ class AIProvider:
         feature exercisable in dev and tests without secrets.
         """
         if not self._ready():
-            logger.info("[STUB ai] json prompt=%r", prompt[:80])
+            logger.info("[STUB ai] no structured generation attempted")
             return AIJsonResult(data=stub, provider="stub")
         import httpx
 

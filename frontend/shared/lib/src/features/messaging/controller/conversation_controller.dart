@@ -31,12 +31,10 @@ class ConversationController extends GetxController {
 
   String get me => Get.find<AuthService>().userId ?? '';
 
-  /// Latest student id seen in the thread, falling back to the one passed in.
+  /// Explicit context wins. A latest general message must not silently inherit
+  /// a different child's context from an older message in this conversation.
   String? get _threadStudentId {
-    for (final m in messages.reversed) {
-      if (m.studentId != null) return m.studentId;
-    }
-    return studentId;
+    return studentId ?? (messages.isEmpty ? null : messages.last.studentId);
   }
 
   @override
@@ -47,10 +45,11 @@ class ConversationController extends GetxController {
 
   Future<void> load() async {
     error.value = null;
-    final res = await _service.list();
+    final res = await _service.list(counterpartId: counterpartId);
     if (res.success && res.data != null) {
       final thread = res.data!
-          .where((m) => m.senderId == counterpartId || m.recipientId == counterpartId)
+          .where((m) => (m.senderId == me && m.recipientId == counterpartId) ||
+              (m.recipientId == me && m.senderId == counterpartId))
           .toList()
         ..sort((a, b) => (a.createdAt ?? DateTime(0))
             .compareTo(b.createdAt ?? DateTime(0)));
@@ -58,6 +57,7 @@ class ConversationController extends GetxController {
       loading.value = false;
       await _markIncomingRead();
     } else {
+      messages.clear();
       error.value = res.error ?? 'Could not load this conversation.';
       loading.value = false;
     }
@@ -66,7 +66,16 @@ class ConversationController extends GetxController {
   Future<void> _markIncomingRead() async {
     final unread = messages.where((m) => m.isUnreadFor(me)).toList();
     for (final m in unread) {
-      await _service.markRead(m.id);
+      final response = await _service.markRead(m.id);
+      if (response.success && response.data is Map<String, dynamic>) {
+        final updated = DirectMessage.fromJson(response.data as Map<String, dynamic>);
+        final index = messages.indexWhere((item) => item.id == updated.id);
+        if (index >= 0 && updated.recipientId == me && updated.senderId == counterpartId) {
+          messages[index] = updated;
+        }
+      } else {
+        error.value = 'Some read receipts could not be saved. Refresh to retry.';
+      }
     }
   }
 

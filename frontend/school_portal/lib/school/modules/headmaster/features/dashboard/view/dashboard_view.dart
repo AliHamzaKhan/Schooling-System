@@ -5,9 +5,11 @@ import 'package:shared/shared.dart';
 import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/dashboard_kit.dart';
 import '../../../../../widgets/portal_top_bar.dart';
+import '../../../../../widgets/campus_hero_banner.dart';
 import '../../../../../widgets/section_header.dart';
 import '../../attendance/components/teacher_attendance_card.dart';
 import '../components/dashboard_metric_card.dart';
+import '../components/module_directory.dart';
 import '../components/pending_approval_row.dart';
 import '../components/recent_announcement_row.dart';
 import '../controller/dashboard_controller.dart';
@@ -27,13 +29,18 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
   final VoidCallback? onAnnouncements;
   final VoidCallback? onSettings;
   final VoidCallback? onSalary;
+  final Set<String>? enabledModules;
 
   const DashboardView({
     super.key,
     this.onAnnouncements,
     this.onSettings,
     this.onSalary,
+    this.enabledModules,
   });
+
+  bool _enabled(String module) =>
+      enabledModules == null || enabledModules!.contains(module);
 
   @override
   Widget build(BuildContext context) {
@@ -44,35 +51,46 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 4), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 3)]));
+              return const SkeletonPage(
+                body: Column(
+                  children: [
+                    SkeletonStatGrid(count: 4),
+                    SizedBox(height: AppSpacing.stackLg),
+                    SkeletonCardList(count: 3),
+                  ],
+                ),
+              );
             }
             final data = controller.data.value;
             if (data == null) {
               return Center(
-                  child: Text(controller.error.value ?? 'No data',
-                      style: AppTypography.bodyLg));
+                child: Text(
+                  controller.error.value ?? 'No data',
+                  style: AppTypography.bodyLg,
+                ),
+              );
             }
             return ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  0,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                0,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
-                const SizedBox(height: AppSpacing.stackMd),
-                Text('Hi! ${controller.headmasterName}',
-                    style: AppTypography.headlineLg
-                        .copyWith(fontWeight: FontWeight.w800)),
-                Obx(() {
-                  final school = controller.schoolName.value;
-                  if (school.isEmpty) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(school,
-                        style: AppTypography.bodyLg
-                            .copyWith(color: AppColors.onSurfaceVariant)),
-                  );
-                }),
+                const SizedBox(height: AppSpacing.stackSm),
+                CampusHeroBanner(
+                  name: controller.schoolName.value.isEmpty
+                      ? 'Your Campus'
+                      : controller.schoolName.value,
+                ),
+                const SizedBox(height: AppSpacing.stackLg),
+                Text(
+                  'Hi! ${controller.headmasterName}',
+                  style: AppTypography.headlineLg.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.stackLg),
 
                 // Subscription expiry alert (only near/after expiry).
@@ -84,13 +102,15 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                 // Leave requests are the one item here that is somebody
                 // waiting on a decision, so they get the full-width row and the
                 // rest become shortcuts.
-                DashboardPrimaryAction(
-                  icon: AppIcons.eventAvailableOutlined,
-                  label: 'Leave Requests',
-                  subtitle: 'Staff and student applications to review',
-                  onTap: () => Get.toNamed(HeadmasterRoutes.leaveReview),
-                ),
-                const SizedBox(height: AppSpacing.stackLg),
+                if (_enabled('leave_management')) ...[
+                  DashboardPrimaryAction(
+                    icon: AppIcons.eventAvailableOutlined,
+                    label: 'Leave Requests',
+                    subtitle: 'Staff and student applications to review',
+                    onTap: () => Get.toNamed(HeadmasterRoutes.leaveReview),
+                  ),
+                  const SizedBox(height: AppSpacing.stackLg),
+                ],
 
                 DashboardQuickLinks(
                   links: [
@@ -99,32 +119,41 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                       label: 'Settings',
                       onTap: onSettings,
                     ),
-                    DashboardLink(
-                      icon: AppIcons.paymentsOutlined,
-                      label: 'Salaries',
-                      onTap: onSalary,
-                    ),
+                    if (_enabled('hr_payroll'))
+                      DashboardLink(
+                        icon: AppIcons.paymentsOutlined,
+                        label: 'Salaries',
+                        onTap: onSalary,
+                      ),
                     DashboardLink(
                       icon: AppIcons.apartmentRounded,
                       label: 'School Info',
                       onTap: () => Get.toNamed(HeadmasterRoutes.schoolInfoEdit),
                     ),
-                    DashboardLink(
-                      icon: AppIcons.directionsBusOutlined,
-                      label: 'Transport',
-                      onTap: () => Get.toNamed(HeadmasterRoutes.transport),
-                    ),
+                    if (_enabled('transport'))
+                      DashboardLink(
+                        icon: AppIcons.directionsBusOutlined,
+                        label: 'Transport',
+                        onTap: () => Get.toNamed(HeadmasterRoutes.transport),
+                      ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
+
+                // One discoverable directory for every management module.
+                // This is especially important on web, where headmasters expect
+                // a control panel rather than hidden mobile-only drill paths.
+                HeadmasterModuleDirectory(enabledModules: enabledModules),
 
                 // KPI grid (2 per row).
                 _MetricsGrid(metrics: data.metrics),
                 const SizedBox(height: AppSpacing.stackLg),
 
                 // Teacher attendance + analytics.
-                const TeacherAttendanceReportCard(),
-                const SizedBox(height: AppSpacing.stackLg),
+                if (_enabled('attendance')) ...[
+                  const TeacherAttendanceReportCard(),
+                  const SizedBox(height: AppSpacing.stackLg),
+                ],
 
                 // Pending approvals.
                 GlassSurface(
@@ -134,17 +163,18 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                     children: [
                       Row(
                         children: [
-                          const Icon(AppIcons.assignmentLateOutlined,
-                              size: 18, color: AppColors.primary),
+                          const Icon(
+                            AppIcons.assignmentLateOutlined,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: SectionHeader(
                               title: 'Pending\nApprovals',
                               actionLabel: 'View All',
-                              onAction: () => Get.toNamed(
-                                HeadmasterRoutes.approvals,
-                                arguments: data.approvals,
-                              ),
+                              onAction: () =>
+                                  Get.toNamed(HeadmasterRoutes.approvals),
                             ),
                           ),
                         ],
@@ -153,8 +183,10 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                       for (var i = 0; i < data.approvals.length; i++) ...[
                         PendingApprovalRow(
                           approval: data.approvals[i],
-                          onApprove: () => controller.approve(data.approvals[i].id),
-                          onReject: () => controller.reject(data.approvals[i].id),
+                          onApprove: () =>
+                              controller.approve(data.approvals[i].id),
+                          onReject: () =>
+                              controller.reject(data.approvals[i].id),
                         ),
                         if (i != data.approvals.length - 1)
                           const SizedBox(height: AppSpacing.stackSm),
@@ -172,12 +204,17 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                     children: [
                       Row(
                         children: [
-                          const Icon(AppIcons.campaignOutlined,
-                              size: 18, color: AppColors.primary),
+                          const Icon(
+                            AppIcons.campaignOutlined,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
-                            child: Text('Recent\nAnnouncements',
-                                style: AppTypography.titleLg),
+                            child: Text(
+                              'Recent\nAnnouncements',
+                              style: AppTypography.titleLg,
+                            ),
                           ),
                           _NewButton(onTap: onAnnouncements),
                         ],
@@ -185,7 +222,9 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
                       const SizedBox(height: AppSpacing.stackMd),
                       for (var i = 0; i < data.announcements.length; i++) ...[
                         RecentAnnouncementRow(
-                            item: data.announcements[i], onTap: onAnnouncements),
+                          item: data.announcements[i],
+                          onTap: onAnnouncements,
+                        ),
                         if (i != data.announcements.length - 1)
                           const SizedBox(height: AppSpacing.stackSm),
                       ],
@@ -261,42 +300,46 @@ class _MetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      const gap = AppSpacing.stackMd;
-      // 2 cards per row on a phone, 3 on a tablet, 4 on the web — otherwise the
-      // fixed 2-up layout stretches each card unpleasantly wide.
-      final cols = DashboardStatGrid.columnsFor(constraints.maxWidth);
-      final width = (constraints.maxWidth - gap * (cols - 1)) / cols;
-      return Wrap(
-        spacing: gap,
-        runSpacing: gap,
-        children: [
-          for (final m in metrics)
-            SizedBox(
-              width: width,
-              child: Builder(builder: (_) {
-                final meta = _metricMetaFor(m.label);
-                final decorated = DashboardMetric(
-                  label: m.label,
-                  value: m.value,
-                  trendPercent: m.trendPercent,
-                  icon: meta.icon,
-                  color: meta.color,
-                );
-                return DashboardMetricCard(
-                  metric: decorated,
-                  onTap: meta.route == null
-                      ? null
-                      : () => Get.toNamed(meta.route!),
-                  onAdd: (meta.createRoute ?? meta.route) == null
-                      ? null
-                      : () => Get.toNamed(meta.createRoute ?? meta.route!),
-                );
-              }),
-            ),
-        ],
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = AppSpacing.stackMd;
+        // 2 cards per row on a phone, 3 on a tablet, 4 on the web — otherwise the
+        // fixed 2-up layout stretches each card unpleasantly wide.
+        final cols = DashboardStatGrid.columnsFor(constraints.maxWidth);
+        final width = (constraints.maxWidth - gap * (cols - 1)) / cols;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final m in metrics)
+              SizedBox(
+                width: width,
+                child: Builder(
+                  builder: (_) {
+                    final meta = _metricMetaFor(m.label);
+                    final decorated = DashboardMetric(
+                      label: m.label,
+                      value: m.value,
+                      trendPercent: m.trendPercent,
+                      icon: meta.icon,
+                      color: meta.color,
+                    );
+                    return DashboardMetricCard(
+                      metric: decorated,
+                      onTap: meta.route == null
+                          ? null
+                          : () => Get.toNamed(meta.route!),
+                      onAdd: (meta.createRoute ?? meta.route) == null
+                          ? null
+                          : () => Get.toNamed(meta.createRoute ?? meta.route!),
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -319,8 +362,12 @@ class _NewButton extends StatelessWidget {
             children: [
               const Icon(AppIcons.add, size: 14, color: AppColors.onPrimary),
               const SizedBox(width: 4),
-              Text('New',
-                  style: AppTypography.labelMd.copyWith(color: AppColors.onPrimary)),
+              Text(
+                'New',
+                style: AppTypography.labelMd.copyWith(
+                  color: AppColors.onPrimary,
+                ),
+              ),
             ],
           ),
         ),
@@ -372,16 +419,21 @@ class _ExpiryAlert extends StatelessWidget {
                   status.isExpired
                       ? 'Subscription expired'
                       : 'Subscription expiring soon',
-                  style: AppTypography.titleMd
-                      .copyWith(color: AppColors.error, fontWeight: FontWeight.w700),
+                  style: AppTypography.titleMd.copyWith(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(_message, style: AppTypography.bodyMd),
                 if (status.planName != null) ...[
                   const SizedBox(height: 2),
-                  Text('Plan: ${status.planName}',
-                      style: AppTypography.bodySm
-                          .copyWith(color: AppColors.onSurfaceVariant)),
+                  Text(
+                    'Plan: ${status.planName}',
+                    style: AppTypography.bodySm.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ],
             ),

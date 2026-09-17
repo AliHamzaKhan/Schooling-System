@@ -32,6 +32,8 @@ async def test_communication_broadcast(client, school):
         "channel": "whatsapp", "audience_type": "guardians", "body": "Hello",
     })
     assert msg.status_code == 201
+    from tests.utils import run_notification
+    await run_notification(msg.json()["id"])
     summary = await client.get(f"{API}/schools/{sid}/communication/broadcasts/{msg.json()['id']}/summary", headers=hm)
     assert summary.json()["total"] >= 1
 
