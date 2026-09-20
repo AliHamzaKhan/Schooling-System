@@ -1,16 +1,21 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/filter_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/teacher.dart';
 
+typedef TeachersLoader =
+    Future<ApiResponse<List<Teacher>>> Function({String query});
+
 class TeachersController extends GetxController {
-  final HeadmasterRepository _repo;
-  TeachersController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+  final TeachersLoader _loader;
+  TeachersController({HeadmasterRepository? repo, TeachersLoader? loader})
+    : _loader =
+          loader ?? (repo ?? Get.find<HeadmasterRepository>()).loadTeachers;
 
   final loading = true.obs;
   final error = RxnString();
@@ -31,7 +36,8 @@ class TeachersController extends GetxController {
 
   /// Distinct specializations present in the loaded roster (sorted), for the
   /// filter.
-  List<String> get departmentOptions => (results
+  List<String> get departmentOptions =>
+      (results
           .map((t) => t.department)
           .where((d) => d.isNotEmpty)
           .toSet()
@@ -40,11 +46,11 @@ class TeachersController extends GetxController {
 
   /// Roster after applying specialization/status filters.
   List<Teacher> get visibleTeachers => results.where((t) {
-        final okDept = deptFilter.isEmpty || deptFilter.contains(t.department);
-        final okStatus =
-            statusFilter.isEmpty || statusFilter.contains(t.status.label);
-        return okDept && okStatus;
-      }).toList();
+    final okDept = deptFilter.isEmpty || deptFilter.contains(t.department);
+    final okStatus =
+        statusFilter.isEmpty || statusFilter.contains(t.status.label);
+    return okDept && okStatus;
+  }).toList();
 
   int get activeFilterCount => deptFilter.length + statusFilter.length;
 
@@ -83,7 +89,8 @@ class TeachersController extends GetxController {
   Future<void> fetch() async {
     loading.value = true;
     error.value = null;
-    final res = await _repo.loadTeachers(query: query.value);
+    results.clear();
+    final res = await _loader(query: query.value);
     if (res.success && res.data != null) {
       results.assignAll(res.data!);
     } else {

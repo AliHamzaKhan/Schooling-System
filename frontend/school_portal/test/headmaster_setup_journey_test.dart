@@ -135,7 +135,6 @@ void main() {
       await tester.ensureVisible(find.text('Admit & Enroll'));
       await tester.tap(find.text('Admit & Enroll'));
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 4));
 
       expect(
         find.textContaining('enrollment is still pending'),
@@ -146,9 +145,11 @@ void main() {
 
       await tester.tap(find.text('Admit & Enroll'));
       await tester.pumpAndSettle();
-      expect(find.text('Setup origin'), findsOneWidget);
       expect(studentCreates, 1);
       expect(enrollmentAttempts, 2);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(find.text('Setup origin'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -187,7 +188,6 @@ void main() {
       await tester.ensureVisible(find.text('Create Teacher'));
       await tester.tap(find.text('Create Teacher'));
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 4));
 
       expect(
         find.textContaining('salary setup is still pending'),
@@ -198,9 +198,11 @@ void main() {
 
       await tester.tap(find.text('Create Teacher'));
       await tester.pumpAndSettle();
-      expect(find.text('Setup origin'), findsOneWidget);
       expect(teacherCreates, 1);
       expect(salaryAttempts, 2);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(find.text('Setup origin'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

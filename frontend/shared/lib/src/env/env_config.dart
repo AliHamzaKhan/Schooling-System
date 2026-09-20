@@ -117,7 +117,7 @@ class EnvConfig {
     if (_apiBaseUrlOverride.isNotEmpty) return _apiBaseUrlOverride;
     switch (env) {
       case Environment.debug:
-        return 'http://192.168.0.37:8000/api/v1';
+        return 'http://192.168.100.73:8000/api/v1';
       case Environment.staging:
       case Environment.prod:
         throw StateError(

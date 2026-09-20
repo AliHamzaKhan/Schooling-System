@@ -6,14 +6,30 @@ import '../../../../../widgets/action_form_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/timetable_data.dart';
 
+typedef TimetableLoader = Future<ApiResponse<TimetableData>> Function();
+
 class HeadmasterTimetableController extends GetxController {
   final HeadmasterRepository _repo;
-  HeadmasterTimetableController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+  final TimetableLoader _loader;
+  HeadmasterTimetableController({
+    HeadmasterRepository? repo,
+    TimetableLoader? loader,
+  }) : _repo = repo ?? Get.find<HeadmasterRepository>(),
+       _loader =
+           loader ?? (repo ?? Get.find<HeadmasterRepository>()).loadTimetable;
 
-  static const classOptions = ['All Classes', 'Class 8A', 'Class 8B', 'Class 9A'];
+  static const classOptions = [
+    'All Classes',
+    'Class 8A',
+    'Class 8B',
+    'Class 9A',
+  ];
   static const teacherOptions = [
-    'All Teachers', 'Mr. Anderson', 'Ms. Davis', 'Dr. Smith', 'Mr. Jones',
+    'All Teachers',
+    'Mr. Anderson',
+    'Ms. Davis',
+    'Dr. Smith',
+    'Mr. Jones',
   ];
 
   final loading = true.obs;
@@ -41,7 +57,8 @@ class HeadmasterTimetableController extends GetxController {
   Future<void> load() async {
     loading.value = true;
     error.value = null;
-    final res = await _repo.loadTimetable();
+    data.value = null;
+    final res = await _loader();
     if (res.success && res.data != null) {
       data.value = res.data;
     } else {
@@ -78,8 +95,11 @@ class HeadmasterTimetableController extends GetxController {
       },
     );
     if (ok == true) {
-      Get.snackbar('Class created', 'The class was added.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Class created',
+        'The class was added.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     }
   }

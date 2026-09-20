@@ -6,11 +6,18 @@ import '../../../../../widgets/action_form_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/classes_data.dart';
 
+typedef ClassesLoader = Future<ApiResponse<ClassDirectoryData>> Function();
+
 /// Drives the Class Directory: filter dropdown placeholder + data load.
 class HeadmasterClassesController extends GetxController {
   final HeadmasterRepository _repo;
-  HeadmasterClassesController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+  final ClassesLoader _loader;
+  HeadmasterClassesController({
+    HeadmasterRepository? repo,
+    ClassesLoader? loader,
+  }) : _repo = repo ?? Get.find<HeadmasterRepository>(),
+       _loader =
+           loader ?? (repo ?? Get.find<HeadmasterRepository>()).loadClasses;
 
   final loading = true.obs;
   final error = RxnString();
@@ -25,7 +32,8 @@ class HeadmasterClassesController extends GetxController {
   Future<void> load() async {
     loading.value = true;
     error.value = null;
-    final res = await _repo.loadClasses();
+    data.value = null;
+    final res = await _loader();
     if (res.success && res.data != null) {
       data.value = res.data;
     } else {
@@ -63,7 +71,8 @@ class HeadmasterClassesController extends GetxController {
         if (trimmed.isEmpty) return 'Class name is required';
         final existing = data.value?.grades ?? const [];
         final dupe = existing.any(
-            (g) => g.className.toLowerCase() == trimmed.toLowerCase());
+          (g) => g.className.toLowerCase() == trimmed.toLowerCase(),
+        );
         if (dupe) return 'A class named "$trimmed" already exists';
         final res = await _repo.createClass(
           name: trimmed,
@@ -74,8 +83,11 @@ class HeadmasterClassesController extends GetxController {
       },
     );
     if (ok == true) {
-      Get.snackbar('Class created', 'The class was added.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Class created',
+        'The class was added.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     }
   }
@@ -107,8 +119,11 @@ class HeadmasterClassesController extends GetxController {
       },
     );
     if (ok == true) {
-      Get.snackbar('Section added', 'The section was created.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Section added',
+        'The section was created.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     }
   }
@@ -128,9 +143,14 @@ class HeadmasterClassesController extends GetxController {
               },
             ),
             ListTile(
-              leading: const Icon(AppIcons.deleteOutline, color: AppColors.error),
-              title: const Text('Delete class',
-                  style: TextStyle(color: AppColors.error)),
+              leading: const Icon(
+                AppIcons.deleteOutline,
+                color: AppColors.error,
+              ),
+              title: const Text(
+                'Delete class',
+                style: TextStyle(color: AppColors.error),
+              ),
               onTap: () {
                 Get.back<void>();
                 _deleteClassFlow(classId, className);
@@ -154,14 +174,19 @@ class HeadmasterClassesController extends GetxController {
       ],
       onSubmit: () async {
         if (name.text.trim().isEmpty) return 'Class name is required';
-        final res =
-            await _repo.updateClass(classId: classId, name: name.text.trim());
+        final res = await _repo.updateClass(
+          classId: classId,
+          name: name.text.trim(),
+        );
         return res.success ? null : (res.error ?? 'Could not rename class');
       },
     );
     if (ok == true) {
-      Get.snackbar('Class renamed', 'The class name was updated.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Class renamed',
+        'The class name was updated.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     }
   }
@@ -178,12 +203,18 @@ class HeadmasterClassesController extends GetxController {
     if (!confirm) return;
     final res = await _repo.deleteClass(classId);
     if (res.success) {
-      Get.snackbar('Class deleted', '"$className" was removed.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Class deleted',
+        '"$className" was removed.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     } else {
-      Get.snackbar('Could not delete', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not delete',
+        res.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 }

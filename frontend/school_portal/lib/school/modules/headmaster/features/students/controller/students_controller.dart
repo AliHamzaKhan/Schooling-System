@@ -1,17 +1,26 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../../../../../config/headmaster_routes.dart';
 import '../../../../../widgets/filter_sheet.dart';
 import '../../../data/headmaster_repository.dart';
 import '../models/student.dart';
 
+typedef StudentsLoader =
+    Future<ApiResponse<List<Student>>> Function({
+      String query,
+      String? grade,
+      String? section,
+    });
+
 /// Drives the Student Roster: search + grade/section filters + pagination.
 class StudentsController extends GetxController {
-  final HeadmasterRepository _repo;
-  StudentsController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+  final StudentsLoader _loader;
+  StudentsController({HeadmasterRepository? repo, StudentsLoader? loader})
+    : _loader =
+          loader ?? (repo ?? Get.find<HeadmasterRepository>()).loadStudents;
 
   /// Student cards shown per page.
   static const pageSize = 4;
@@ -19,9 +28,7 @@ class StudentsController extends GetxController {
   static const anyGrade = 'All Grades';
   static const anySection = 'All Sections';
 
-  static const grades = [
-    anyGrade, '9th', '10th', '11th', '12th',
-  ];
+  static const grades = [anyGrade, '9th', '10th', '11th', '12th'];
   static const sections = [anySection, 'Alpha', 'Beta', 'Gamma'];
 
   final loading = true.obs;
@@ -40,8 +47,7 @@ class StudentsController extends GetxController {
     fetch();
   }
 
-  int get totalPages =>
-      (_all.length / pageSize).ceil().clamp(1, 999);
+  int get totalPages => (_all.length / pageSize).ceil().clamp(1, 999);
 
   List<Student> get pageItems {
     final start = (page.value - 1) * pageSize;
@@ -89,7 +95,9 @@ class StudentsController extends GetxController {
     final pickedGrade = result['grade'] ?? const <String>{};
     final pickedSection = result['section'] ?? const <String>{};
     final nextGrade = pickedGrade.isEmpty ? anyGrade : pickedGrade.first;
-    final nextSection = pickedSection.isEmpty ? anySection : pickedSection.first;
+    final nextSection = pickedSection.isEmpty
+        ? anySection
+        : pickedSection.first;
     if (nextGrade == grade.value && nextSection == section.value) return;
     grade.value = nextGrade;
     section.value = nextSection;
@@ -100,8 +108,12 @@ class StudentsController extends GetxController {
   Future<void> fetch() async {
     loading.value = true;
     error.value = null;
-    final res = await _repo.loadStudents(
-        query: query.value, grade: grade.value, section: section.value);
+    _all.clear();
+    final res = await _loader(
+      query: query.value,
+      grade: grade.value,
+      section: section.value,
+    );
     if (res.success && res.data != null) {
       _all.assignAll(res.data!);
     } else {
