@@ -72,33 +72,24 @@ class SettingsController extends GetxController {
     return (v != null && v >= 1 && v <= 31) ? v : -1; // -1 = invalid sentinel
   }
 
-  Future<void> save() async {
-    if (name.value.trim().isEmpty) {
-      Get.snackbar(
-        'Name required',
-        'School name cannot be empty.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
+  /// Checks the editable values without touching the backend. Returns `null`
+  /// when they are safe to save, or a human-readable reason otherwise.
+  String? validate() {
+    if (name.value.trim().isEmpty) return 'School name cannot be empty.';
+    if (_validDay(feeDueDay) == -1) return 'Enter a fee day between 1 and 31.';
+    if (_validDay(salaryDay) == -1) {
+      return 'Enter a salary day between 1 and 31.';
     }
-    final day = _validDay(feeDueDay);
-    if (day == -1) {
-      Get.snackbar(
-        'Invalid fee day',
-        'Enter a day between 1 and 31.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-    final salary = _validDay(salaryDay);
-    if (salary == -1) {
-      Get.snackbar(
-        'Invalid salary day',
-        'Enter a day between 1 and 31.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
+    return null;
+  }
+
+  /// Validates then persists the profile, filling the form from the saved
+  /// record on success. Returns `null` on success or a message on validation
+  /// or backend failure. UI-free (no snackbar) so the save journey is
+  /// harnessable; [save] wraps it for the screen.
+  Future<String?> submitSave() async {
+    final invalid = validate();
+    if (invalid != null) return invalid;
     saving.value = true;
     final res = await _repo.saveSchoolProfile(
       name: name.value.trim(),
@@ -106,12 +97,20 @@ class SettingsController extends GetxController {
       uniformColor: uniformColor.value.trim().isEmpty
           ? null
           : uniformColor.value.trim(),
-      feeDueDay: day,
-      salaryDay: salary,
+      feeDueDay: _validDay(feeDueDay),
+      salaryDay: _validDay(salaryDay),
     );
     saving.value = false;
     if (res.success) {
       if (res.data != null) _fill(res.data!);
+      return null;
+    }
+    return res.error ?? 'Could not save school settings.';
+  }
+
+  Future<void> save() async {
+    final err = await submitSave();
+    if (err == null) {
       Get.snackbar(
         'Settings saved',
         'Your school settings were updated.',
@@ -120,7 +119,7 @@ class SettingsController extends GetxController {
     } else {
       Get.snackbar(
         'Could not save',
-        res.error ?? 'Please try again.',
+        err,
         snackPosition: SnackPosition.BOTTOM,
       );
     }

@@ -67,6 +67,20 @@ class HeadmasterTimetableController extends GetxController {
     loading.value = false;
   }
 
+  /// Validates and creates a class/grade, then refreshes the timetable on
+  /// success. Returns `null` on success or a message for an empty name or a
+  /// backend failure. UI-free so the authoring journey is harnessable.
+  Future<String?> submitNewClass({required String name, String? level}) async {
+    if (name.trim().isEmpty) return 'Class name is required';
+    final res = await _repo.createClass(
+      name: name.trim(),
+      level: int.tryParse(level?.trim() ?? ''),
+    );
+    if (!res.success) return res.error ?? 'Could not create class';
+    await load();
+    return null;
+  }
+
   /// Opens the "New Class" form (creates a class/grade); reloads on success.
   Future<void> createClassFlow() async {
     final name = TextEditingController();
@@ -85,14 +99,7 @@ class HeadmasterTimetableController extends GetxController {
           keyboardType: TextInputType.number,
         ),
       ],
-      onSubmit: () async {
-        if (name.text.trim().isEmpty) return 'Class name is required';
-        final res = await _repo.createClass(
-          name: name.text.trim(),
-          level: int.tryParse(level.text.trim()),
-        );
-        return res.success ? null : (res.error ?? 'Could not create class');
-      },
+      onSubmit: () => submitNewClass(name: name.text, level: level.text),
     );
     if (ok == true) {
       Get.snackbar(
@@ -100,7 +107,6 @@ class HeadmasterTimetableController extends GetxController {
         'The class was added.',
         snackPosition: SnackPosition.BOTTOM,
       );
-      await load();
     }
   }
 }

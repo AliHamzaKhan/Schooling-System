@@ -1,7 +1,7 @@
 # Meri Taleem — Product Flow, Enhancement Plan & Progress Tracker
 
 Last updated: **2026-09-21** (Asia/Karachi)
-Baseline: commit `0464003` (U02.4.2 landed on `main`) plus any current uncommitted working tree
+Baseline: commit `0464003` (U02.4.2 landed on `main`) plus the current uncommitted U02.4.3 working tree
 Document owner: Product owner / engineering lead — individual to be assigned
 Stage: **Phase 1 implementation in progress**
 
@@ -38,12 +38,13 @@ or schedule notifications. Broader aggregate reports and exam/quiz lifecycles re
 separate audit work; F01.4 does not certify all student-record endpoints.
 F07 provider-receipt reconciliation and real-provider rollout remain separate gates.
 
-**Next experience packet: U02.4.3 — complete mutation-journey coverage.**
-Exercise class/section creation, timetable authoring and school-settings save
-paths through automated form harnesses, then prepare a concise physical browser
-checklist for the user. Actual visual browser refresh remains a physical acceptance
-step by user request; do not open a preview. U02.3.1–U02.3.4 do not certify the
-complete browser-only setup and management journey.
+**Next experience step: physical browser acceptance of U02 (user-run).**
+U02.4.3 landed the automated class/section, timetable and settings mutation
+harnesses and the [physical browser checklist](U02_HEADMASTER_BROWSER_CHECKLIST.md).
+The remaining U02 step is the user running that checklist in a real browser; do
+not open a preview. The next unblocked automated experience packet is **U03 —
+apply the student design beyond home** (assignments, quizzes, exams/results,
+content, messages, profile/settings).
 
 ## Update procedure for every future development session
 

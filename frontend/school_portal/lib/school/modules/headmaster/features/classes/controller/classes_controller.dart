@@ -42,6 +42,53 @@ class HeadmasterClassesController extends GetxController {
     loading.value = false;
   }
 
+  /// Validates and creates a class, then refreshes the directory on success.
+  /// Returns `null` when the class was created, or a human-readable message
+  /// for an empty name, a duplicate, or a backend failure. Kept free of any UI
+  /// (sheet/snackbar) so the full mutation journey is directly harnessable.
+  Future<String?> submitNewClass({
+    required String name,
+    String? level,
+    String? roomNo,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'Class name is required';
+    final existing = data.value?.grades ?? const [];
+    final dupe = existing.any(
+      (g) => g.className.toLowerCase() == trimmed.toLowerCase(),
+    );
+    if (dupe) return 'A class named "$trimmed" already exists';
+    final trimmedRoom = roomNo?.trim() ?? '';
+    final res = await _repo.createClass(
+      name: trimmed,
+      level: int.tryParse(level?.trim() ?? ''),
+      roomNo: trimmedRoom.isEmpty ? null : trimmedRoom,
+    );
+    if (!res.success) return res.error ?? 'Could not create class';
+    await load();
+    return null;
+  }
+
+  /// Validates and adds a section to [classId], then refreshes on success.
+  /// Returns `null` on success or a message otherwise. UI-free, like
+  /// [submitNewClass].
+  Future<String?> submitNewSection({
+    required String classId,
+    required String name,
+    String? roomNo,
+  }) async {
+    if (name.trim().isEmpty) return 'Section name is required';
+    final trimmedRoom = roomNo?.trim() ?? '';
+    final res = await _repo.createSection(
+      classId: classId,
+      name: name.trim(),
+      roomNo: trimmedRoom.isEmpty ? null : trimmedRoom,
+    );
+    if (!res.success) return res.error ?? 'Could not add section';
+    await load();
+    return null;
+  }
+
   /// Opens the "New Class" form; on success reloads the directory.
   Future<void> createClassFlow() async {
     final name = TextEditingController();
@@ -66,21 +113,8 @@ class HeadmasterClassesController extends GetxController {
           controller: room,
         ),
       ],
-      onSubmit: () async {
-        final trimmed = name.text.trim();
-        if (trimmed.isEmpty) return 'Class name is required';
-        final existing = data.value?.grades ?? const [];
-        final dupe = existing.any(
-          (g) => g.className.toLowerCase() == trimmed.toLowerCase(),
-        );
-        if (dupe) return 'A class named "$trimmed" already exists';
-        final res = await _repo.createClass(
-          name: trimmed,
-          level: int.tryParse(level.text.trim()),
-          roomNo: room.text.trim().isEmpty ? null : room.text.trim(),
-        );
-        return res.success ? null : (res.error ?? 'Could not create class');
-      },
+      onSubmit: () =>
+          submitNewClass(name: name.text, level: level.text, roomNo: room.text),
     );
     if (ok == true) {
       Get.snackbar(
@@ -88,7 +122,6 @@ class HeadmasterClassesController extends GetxController {
         'The class was added.',
         snackPosition: SnackPosition.BOTTOM,
       );
-      await load();
     }
   }
 
@@ -108,15 +141,8 @@ class HeadmasterClassesController extends GetxController {
           controller: room,
         ),
       ],
-      onSubmit: () async {
-        if (name.text.trim().isEmpty) return 'Section name is required';
-        final res = await _repo.createSection(
-          classId: classId,
-          name: name.text.trim(),
-          roomNo: room.text.trim().isEmpty ? null : room.text.trim(),
-        );
-        return res.success ? null : (res.error ?? 'Could not add section');
-      },
+      onSubmit: () =>
+          submitNewSection(classId: classId, name: name.text, roomNo: room.text),
     );
     if (ok == true) {
       Get.snackbar(
@@ -124,7 +150,6 @@ class HeadmasterClassesController extends GetxController {
         'The section was created.',
         snackPosition: SnackPosition.BOTTOM,
       );
-      await load();
     }
   }
 
