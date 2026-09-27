@@ -18,6 +18,16 @@ class DriverShell extends GetView<DriverTripController> {
         backgroundColor: AppColors.surface,
         actions: [
           IconButton(
+            tooltip: 'Active sessions',
+            icon: const Icon(Icons.devices_outlined),
+            onPressed: () => Get.to(
+              () => SessionsView(
+                auth: Get.find<AuthService>(),
+                onSignedOut: () => Get.offAllNamed(AuthRoutes.login),
+              ),
+            ),
+          ),
+          IconButton(
             tooltip: 'Log out',
             icon: const Icon(AppIcons.logoutRounded),
             onPressed: _logout,
@@ -29,8 +39,12 @@ class DriverShell extends GetView<DriverTripController> {
           return const SkeletonPage(body: SkeletonRosterList());
         }
         if (controller.error.value != null) {
-          return Center(
-              child: Text(controller.error.value!, style: AppTypography.bodyLg));
+          return AppStateView.error(
+            title: 'Trip information is unavailable',
+            message: controller.error.value!,
+            actionLabel: 'Try again',
+            onAction: controller.load,
+          );
         }
         return controller.trip.value == null
             ? _StartTrip(controller: controller)
@@ -68,8 +82,11 @@ class _StartTrip extends StatelessWidget {
           Text('Start today\'s trip', style: AppTypography.titleLg),
           const SizedBox(height: AppSpacing.stackSm),
           if (options.isEmpty)
-            Text('No students are assigned to you yet. Ask your school to '
-                'assign pickups to you.', style: AppTypography.bodyLg)
+            Text(
+              'No students are assigned to you yet. Ask your school to '
+              'assign pickups to you.',
+              style: AppTypography.bodyLg,
+            )
           else ...[
             Text('Route', style: AppTypography.labelCaps),
             const SizedBox(height: 6),
@@ -83,7 +100,10 @@ class _StartTrip extends StatelessWidget {
             const SizedBox(height: 6),
             _Dropdown(
               value: controller.tripType.value,
-              items: const {'pickup': 'Pickup (to school)', 'dropoff': 'Drop-off (from school)'},
+              items: const {
+                'pickup': 'Pickup (to school)',
+                'dropoff': 'Drop-off (from school)',
+              },
               onChanged: (v) => controller.tripType.value = v ?? 'pickup',
             ),
             const SizedBox(height: AppSpacing.stackXl),
@@ -129,8 +149,9 @@ class _ActiveTrip extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${controller.routeName(trip.routeId)} · ${trip.tripType}',
-                  style: AppTypography.bodyMd
-                      .copyWith(color: AppColors.onSurfaceVariant),
+                  style: AppTypography.bodyMd.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -138,8 +159,9 @@ class _ActiveTrip extends StatelessWidget {
           Expanded(
             child: ReorderableListView(
               padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.containerPaddingMobile,
-                  vertical: AppSpacing.stackMd),
+                horizontal: AppSpacing.containerPaddingMobile,
+                vertical: AppSpacing.stackMd,
+              ),
               onReorder: controller.reorder,
               children: [
                 for (final studentId in trip.stopOrder)
@@ -201,20 +223,28 @@ class _StopTile extends StatelessWidget {
             : AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(AppRadius.button),
         border: Border.all(
-            color: isNext ? AppColors.primary : AppColors.outlineVariant),
+          color: isNext ? AppColors.primary : AppColors.outlineVariant,
+        ),
       ),
       child: Row(
         children: [
-          const Icon(AppIcons.dragIndicator, size: 20, color: AppColors.onSurfaceVariant),
+          const Icon(
+            AppIcons.dragIndicator,
+            size: 20,
+            color: AppColors.onSurfaceVariant,
+          ),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: AppTypography.bodyMd),
-                Text(status,
-                    style: AppTypography.labelMd
-                        .copyWith(color: AppColors.onSurfaceVariant)),
+                Text(
+                  status,
+                  style: AppTypography.labelMd.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -241,7 +271,11 @@ class _StopTile extends StatelessWidget {
               ],
             )
           else
-            const Icon(AppIcons.checkCircle, color: AppColors.primary, size: 22),
+            const Icon(
+              AppIcons.checkCircle,
+              color: AppColors.primary,
+              size: 22,
+            ),
         ],
       ),
     );
@@ -252,7 +286,11 @@ class _Dropdown extends StatelessWidget {
   final String? value;
   final Map<String, String> items;
   final ValueChanged<String?> onChanged;
-  const _Dropdown({required this.value, required this.items, required this.onChanged});
+  const _Dropdown({
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {

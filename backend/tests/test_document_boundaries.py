@@ -2,7 +2,7 @@ from uuid import uuid4
 from unittest.mock import AsyncMock, patch
 
 from .conftest import API
-from .utils import create_user
+from .utils import create_user, login
 
 
 async def test_document_creation_rejects_foreign_student_and_non_student(client, school):
@@ -45,6 +45,48 @@ async def test_document_delete_must_match_student_in_url(client, school):
     assert [row["id"] for row in listing.json()] == [document_id]
     deleted = await client.delete(f"{base}/{owner['id']}/documents/{document_id}", headers=hm)
     assert deleted.status_code == 204, deleted.text
+
+
+async def test_guardian_document_history_is_paginated_after_child_access(client, school):
+    """A guardian's child-scoped document page is bounded only after access succeeds."""
+    sid, hm = school["id"], school["hm"]
+    student = await create_user(client, sid, hm, "student")
+    guardian = await create_user(client, sid, hm, "guardian")
+    guardian_headers = await login(client, guardian["email"], guardian["password"])
+    linked = await client.post(
+        f"{API}/schools/{sid}/guardians/{guardian['id']}/children",
+        headers=hm,
+        json={"student_id": student["id"]},
+    )
+    assert linked.status_code == 201, linked.text
+
+    base = f"{API}/schools/{sid}/students/{student['id']}/documents"
+    for title in ("Birth certificate", "Transfer certificate"):
+        created = await client.post(
+            base,
+            headers=hm,
+            json={
+                "title": title,
+                "doc_type": "certificate",
+                "file_url": f"https://files.example/{title.replace(' ', '-')}.pdf",
+            },
+        )
+        assert created.status_code == 201, created.text
+
+    full = await client.get(base, headers=guardian_headers)
+    assert full.status_code == 200, full.text
+    expected_ids = [row["id"] for row in full.json()]
+    assert len(expected_ids) == 2
+
+    first = await client.get(base, headers=guardian_headers, params={"limit": 1})
+    second = await client.get(
+        base, headers=guardian_headers, params={"limit": 1, "offset": 1},
+    )
+    assert first.status_code == second.status_code == 200
+    assert [row["id"] for row in first.json()] == expected_ids[:1]
+    assert [row["id"] for row in second.json()] == expected_ids[1:]
+    assert (await client.get(base, headers=guardian_headers, params={"limit": 101})).status_code == 422
+    assert (await client.get(base, headers=guardian_headers, params={"offset": -1})).status_code == 422
 
 
 async def test_upload_rejects_empty_or_oversized_before_storage(client, school, monkeypatch):

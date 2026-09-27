@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
-from app.core.exceptions import bad_request, credentials_exception
+from app.core.exceptions import bad_request, credentials_exception, not_found
 from app.core.security import (
     REFRESH_TOKEN,
     RESET_TOKEN,
@@ -140,6 +140,35 @@ class AuthService:
             .values(revoked_at=datetime.now(timezone.utc))
         )
         return result.rowcount or 0
+
+    async def list_live_sessions(self, user_id: uuid.UUID, current_id: uuid.UUID | None) -> list[RefreshSession]:
+        now = datetime.now(timezone.utc)
+        result = await self.db.execute(
+            select(RefreshSession)
+            .where(
+                RefreshSession.user_id == user_id,
+                RefreshSession.revoked_at.is_(None),
+                RefreshSession.expires_at > now,
+            )
+            .order_by(RefreshSession.last_used_at.desc().nullslast(), RefreshSession.created_at.desc())
+        )
+        sessions = list(result.scalars().all())
+        # The router derives `is_current` from the authenticated access token;
+        # never persist UI state on the credential row.
+        for session in sessions:
+            session._is_current = session.id == current_id  # type: ignore[attr-defined]
+        return sessions
+
+    async def revoke_owned_session(self, user_id: uuid.UUID, session_id: uuid.UUID) -> None:
+        session = await self.db.scalar(
+            select(RefreshSession)
+            .where(RefreshSession.id == session_id, RefreshSession.user_id == user_id)
+            .with_for_update()
+        )
+        if session is None:
+            raise not_found("Session not found")
+        if session.revoked_at is None:
+            session.revoked_at = datetime.now(timezone.utc)
 
     async def change_password(
         self, user: User, current_password: str, new_password: str

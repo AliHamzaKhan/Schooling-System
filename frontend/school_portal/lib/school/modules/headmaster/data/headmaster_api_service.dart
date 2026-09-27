@@ -308,10 +308,17 @@ class HeadmasterApiService {
   /// `/fees/invoices` (filtered to `is_overdue`). Invoices carry no student
   /// name/grade (only `student_id`), so overdue rows show the id-derived title;
   /// trend % is not tracked server-side.
-  Future<ApiResponse<FeesData>> fetchFees() async {
+  Future<ApiResponse<FeesData>> fetchFees({DateTime? agingAsOf}) async {
     final fin = await _get(HeadmasterEndpoints.reportsFinance(_sid));
     if (!fin.success) return ApiResponse.fail(fin.error ?? 'Failed to load');
     final f = (fin.data as Map).cast<String, dynamic>();
+    final aging = await _get(
+      HeadmasterEndpoints.feesAging(_sid),
+      query: {if (agingAsOf != null) 'as_of': _dateOnly(agingAsOf)},
+    );
+    final reconciliation = await _get(
+      HeadmasterEndpoints.feesReconciliation(_sid),
+    );
     final inv = await _get(
       HeadmasterEndpoints.feesInvoices(_sid),
       query: {'limit': '200'},
@@ -345,9 +352,34 @@ class HeadmasterApiService {
         outstandingAmount: _money(outstanding),
         outstandingCount: (f['overdue_count'] as num?)?.toInt() ?? 0,
         overdue: overdue,
+        aging: aging.success && aging.data is Map
+            ? ((aging.data as Map)['buckets'] as List? ?? const [])
+                  .map(
+                    (bucket) => FeeAgingBucket.fromJson(
+                      (bucket as Map).cast<String, dynamic>(),
+                    ),
+                  )
+                  .toList()
+            : const [],
+        agingAsOfDate: aging.success && aging.data is Map
+            ? DateTime.tryParse(
+                (aging.data as Map)['as_of_date'] as String? ?? '',
+              )
+            : null,
+        reconciliationIssues:
+            reconciliation.success && reconciliation.data is Map
+            ? (((reconciliation.data as Map)['mismatch_count'] as num?)
+                      ?.toInt() ??
+                  0)
+            : null,
       ),
     );
   }
+
+  /// Format an API date without leaking a local time component into the
+  /// school-scoped reporting boundary.
+  static String _dateOnly(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   /// Search students + their fee snapshot for the Record Payment / Overdue /
   /// All-Students screens. [feeStatus] may be `overdue`, `pending`, `paid`, or
@@ -1255,6 +1287,9 @@ class HeadmasterApiService {
     required double amount,
     required String method,
     DateTime? paidOn,
+    String? reference,
+    String? note,
+    String? proofUrl,
   }) {
     final sid = _sid;
     final userId = Get.find<AuthService>().currentUser.value?['id']?.toString();
@@ -1272,7 +1307,15 @@ class HeadmasterApiService {
         final d = paidOn ?? DateTime.now();
         final iso =
             '${d.year.toString().padLeft(4, "0")}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}';
-        return {'amount': amount, 'method': method, 'paid_on': iso};
+        return {
+          'amount': amount,
+          'method': method,
+          'paid_on': iso,
+          if (reference != null && reference.trim().isNotEmpty)
+            'reference': reference.trim(),
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+          if (proofUrl != null && proofUrl.isNotEmpty) 'proof_url': proofUrl,
+        };
       },
       send: (key, payload) => _api.request<dynamic>(
         method: HttpMethod.post,
@@ -1283,6 +1326,98 @@ class HeadmasterApiService {
       ),
     );
   }
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> fetchFinancialAdjustments({
+    int limit = 20,
+    int offset = 0,
+    String? kind,
+    String? targetType,
+    String? decision,
+  }) => _api.request<List<Map<String, dynamic>>>(
+    method: HttpMethod.get,
+    path: HeadmasterEndpoints.feesAdjustments(_sid),
+    query: {
+      'limit': '$limit',
+      'offset': '$offset',
+      if (kind != null) 'kind': kind,
+      if (targetType != null) 'target_type': targetType,
+      if (decision != null) 'decision': decision,
+    },
+    parser: (json) => (json as List)
+        .map((item) => (item as Map).cast<String, dynamic>())
+        .toList(),
+  );
+
+  Future<ApiResponse<Map<String, dynamic>>> createFinancialAdjustment({
+    required String kind,
+    required String targetId,
+    required String proposedAmount,
+    required String currencyCode,
+    required String reason,
+  }) => _api.request<Map<String, dynamic>>(
+    method: HttpMethod.post,
+    path: HeadmasterEndpoints.feesAdjustments(_sid),
+    body: {
+      'kind': kind,
+      'target_id': targetId,
+      'proposed_amount': proposedAmount.trim(),
+      'currency_code': currencyCode.trim(),
+      'reason': reason.trim(),
+    },
+    parser: (json) => (json as Map).cast<String, dynamic>(),
+  );
+
+  Future<ApiResponse<Map<String, dynamic>>> decideFinancialAdjustment({
+    required String adjustmentId,
+    required String decision,
+    required String reason,
+  }) => _api.request<Map<String, dynamic>>(
+    method: HttpMethod.post,
+    path: HeadmasterEndpoints.feeAdjustmentDecision(_sid, adjustmentId),
+    body: {'decision': decision, 'reason': reason.trim()},
+    parser: (json) => (json as Map).cast<String, dynamic>(),
+  );
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> fetchBillingContacts(
+    String studentId,
+  ) => _api.request<List<Map<String, dynamic>>>(
+    method: HttpMethod.get,
+    path: HeadmasterEndpoints.billingContacts(_sid, studentId),
+    parser: (json) => (json as List)
+        .map((item) => (item as Map).cast<String, dynamic>())
+        .toList(),
+  );
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> fetchBillingContactCandidates(
+    String studentId,
+  ) => _api.request<List<Map<String, dynamic>>>(
+    method: HttpMethod.get,
+    path: HeadmasterEndpoints.billingContactCandidates(_sid, studentId),
+    parser: (json) => (json as List)
+        .map((item) => (item as Map).cast<String, dynamic>())
+        .toList(),
+  );
+
+  Future<ApiResponse<Map<String, dynamic>>> saveBillingContact({
+    required String studentId,
+    required String guardianId,
+    String? billingEmail,
+    String? billingPhone,
+    String? payerReference,
+    required bool isPrimary,
+    String? note,
+  }) => _api.request<Map<String, dynamic>>(
+    method: HttpMethod.put,
+    path: HeadmasterEndpoints.billingContact(_sid, studentId, guardianId),
+    body: {
+      'billing_email': ?billingEmail?.trim(),
+      'billing_phone': ?billingPhone?.trim(),
+      'payer_reference': ?payerReference?.trim(),
+      'is_primary': isPrimary,
+      'note': ?note?.trim(),
+    },
+    parser: (json) => (json as Map).cast<String, dynamic>(),
+  );
 
   /// Compose a school broadcast (announcement) via
   /// `POST /schools/{id}/communication/broadcasts`. [audienceType] is a backend

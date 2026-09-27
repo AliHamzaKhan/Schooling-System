@@ -26,12 +26,18 @@ class QuizPerformanceController extends GetxController {
     } else if (arg is String) {
       _quizId = arg;
     }
+    if (_quizId.isEmpty) _quizId = Get.parameters['quiz_id'] ?? '';
     load();
   }
 
   Future<void> load() async {
     loading.value = true;
     error.value = null;
+    if (_quizId.isEmpty) {
+      loading.value = false;
+      error.value = 'No quiz selected.';
+      return;
+    }
     final res = await _repo.loadQuizPerformance(_quizId);
     if (res.success && res.data != null) {
       performance.value = res.data;

@@ -16,16 +16,27 @@ class TeacherLeaveReviewView extends GetView<TeacherLeaveReviewController> {
       appBar: AppBar(title: const Text('Leave Requests')),
       body: Obx(() {
         if (controller.loading.value) {
-          return const SkeletonPage(body: SkeletonCardList(count: 4, height: 140));
+          return const SkeletonPage(
+            body: SkeletonCardList(count: 4, height: 140),
+          );
         }
-        if (controller.error.value != null) {
-          return Center(
-              child: Text(controller.error.value!, style: AppTypography.bodyLg));
+        final error = controller.error.value;
+        if (error != null) {
+          return AppStateView.error(
+            title: 'Leave requests are unavailable',
+            message: error,
+            actionLabel: 'Try again',
+            onAction: controller.load,
+          );
         }
         if (controller.items.isEmpty) {
           return Center(
-              child: Text('No leave requests from your students.',
-                  textAlign: TextAlign.center, style: AppTypography.bodyLg));
+            child: Text(
+              'No leave requests from your students.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyLg,
+            ),
+          );
         }
         final pending = controller.pending;
         final reviewed = controller.reviewed;
@@ -34,15 +45,19 @@ class TeacherLeaveReviewView extends GetView<TeacherLeaveReviewController> {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackLg,
-                AppSpacing.containerPaddingMobile,
-                AppSpacing.stackXxl),
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackLg,
+              AppSpacing.containerPaddingMobile,
+              AppSpacing.stackXxl,
+            ),
             children: [
               if (pending.isNotEmpty) ...[
-                Text('Pending (${pending.length})',
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  'Pending (${pending.length})',
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.stackMd),
                 for (final l in pending) ...[
                   LeaveReviewCard(
@@ -55,9 +70,12 @@ class TeacherLeaveReviewView extends GetView<TeacherLeaveReviewController> {
               ],
               if (reviewed.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.stackSm),
-                Text('Reviewed',
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  'Reviewed',
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.stackMd),
                 for (final l in reviewed) ...[
                   LeaveReviewCard(item: l),

@@ -43,6 +43,15 @@ class _LoginViewState extends State<LoginView> with ScreenTextControllers {
           const SizedBox(height: AppSpacing.stackXl),
 
           Text('Login', style: AppTypography.displayLg),
+          Obx(() {
+            final auth = Get.find<AuthService>();
+            final notice = auth.sessionNotice.value;
+            if (notice == null) return const SizedBox.shrink();
+            return Column(children: [
+              Semantics(liveRegion: true, child: Text(notice)),
+              TextButton(onPressed: auth.logout, child: const Text('Retry sign-out cleanup')),
+            ]);
+          }),
           const SizedBox(height: AppSpacing.stackLg),
 
           // Institution (school portal only).

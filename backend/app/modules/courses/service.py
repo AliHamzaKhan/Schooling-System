@@ -4,7 +4,8 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import not_found
+from app.core.enums import EnrollmentStatus
+from app.core.exceptions import bad_request, not_found
 from app.models.academic import Section, SchoolClass, StudentEnrollment, Subject
 from app.models.course import (
     BookChapter,
@@ -28,11 +29,68 @@ class CourseService:
             raise not_found(f"{label} not found in this school")
         return obj
 
+    async def _validate_course_links(
+        self,
+        school_id: uuid.UUID,
+        section_id: uuid.UUID | None,
+        subject_id: uuid.UUID | None,
+    ) -> None:
+        """Ensure a course cannot point at another school's academic catalog."""
+        section = (
+            await self._get_scoped(Section, school_id, section_id, "Section")
+            if section_id is not None
+            else None
+        )
+        subject = (
+            await self._get_scoped(Subject, school_id, subject_id, "Subject")
+            if subject_id is not None
+            else None
+        )
+        if (
+            section is not None
+            and subject is not None
+            and subject.class_id is not None
+            and subject.class_id != section.class_id
+        ):
+            raise bad_request("Subject does not belong to the course section's class")
+
+    async def _require_course_access(
+        self, school_id: uuid.UUID, course: Course, student_id: uuid.UUID | None
+    ) -> None:
+        """Restrict a student's section-scoped material to active enrolments."""
+        if student_id is None or course.section_id is None:
+            return
+        enrollment = await self.db.scalar(
+            select(StudentEnrollment.id).where(
+                StudentEnrollment.school_id == school_id,
+                StudentEnrollment.student_id == student_id,
+                StudentEnrollment.section_id == course.section_id,
+                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+            )
+        )
+        if enrollment is None:
+            raise not_found("Course not found in this school")
+
+    async def _course_for_book(
+        self, school_id: uuid.UUID, book: CourseBook, student_id: uuid.UUID | None
+    ) -> Course:
+        course = await self._get_scoped(Course, school_id, book.course_id, "Course")
+        await self._require_course_access(school_id, course, student_id)
+        return course
+
+    async def _course_for_note(
+        self, school_id: uuid.UUID, note: CourseNote, student_id: uuid.UUID | None
+    ) -> Course:
+        course = await self._get_scoped(Course, school_id, note.course_id, "Course")
+        await self._require_course_access(school_id, course, student_id)
+        return course
+
     # ------------------------------ courses ------------------------------ #
 
     async def create_course(
         self, school_id: uuid.UUID, data: schemas.CourseCreate, created_by: uuid.UUID
     ) -> Course:
+        await self._validate_course_links(school_id, data.section_id, data.subject_id)
         course = Course(
             school_id=school_id,
             title=data.title,
@@ -51,6 +109,10 @@ class CourseService:
         self, school_id: uuid.UUID, course_id: uuid.UUID, data: schemas.CourseUpdate
     ) -> Course:
         course = await self._get_scoped(Course, school_id, course_id, "Course")
+        fields = data.model_fields_set
+        section_id = data.section_id if "section_id" in fields else course.section_id
+        subject_id = data.subject_id if "subject_id" in fields else course.subject_id
+        await self._validate_course_links(school_id, section_id, subject_id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(course, field, value)
         await self.db.flush()
@@ -86,6 +148,7 @@ class CourseService:
                 select(StudentEnrollment.section_id).where(
                     StudentEnrollment.school_id == school_id,
                     StudentEnrollment.student_id == student_id,
+                    StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
                 )
             ).scalar_subquery()
             # Their sections' courses, plus unscoped (legacy) courses.
@@ -160,8 +223,12 @@ class CourseService:
             for c in courses
         ]
 
-    async def get_course(self, school_id: uuid.UUID, course_id: uuid.UUID) -> Course:
-        return await self._get_scoped(Course, school_id, course_id, "Course")
+    async def get_course(
+        self, school_id: uuid.UUID, course_id: uuid.UUID, student_id: uuid.UUID | None = None
+    ) -> Course:
+        course = await self._get_scoped(Course, school_id, course_id, "Course")
+        await self._require_course_access(school_id, course, student_id)
+        return course
 
     # ------------------------------- books ------------------------------- #
 
@@ -181,9 +248,9 @@ class CourseService:
         return book
 
     async def list_books(
-        self, school_id: uuid.UUID, course_id: uuid.UUID
+        self, school_id: uuid.UUID, course_id: uuid.UUID, student_id: uuid.UUID | None = None
     ) -> list[schemas.BookListOut]:
-        await self._get_scoped(Course, school_id, course_id, "Course")
+        await self.get_course(school_id, course_id, student_id)
         books = list(
             (
                 await self.db.execute(
@@ -234,9 +301,10 @@ class CourseService:
         return chapter
 
     async def list_chapters(
-        self, school_id: uuid.UUID, book_id: uuid.UUID
+        self, school_id: uuid.UUID, book_id: uuid.UUID, student_id: uuid.UUID | None = None
     ) -> list[BookChapter]:
-        await self._get_scoped(CourseBook, school_id, book_id, "Book")
+        book = await self._get_scoped(CourseBook, school_id, book_id, "Book")
+        await self._course_for_book(school_id, book, student_id)
         return list(
             (
                 await self.db.execute(
@@ -248,9 +316,12 @@ class CourseService:
         )
 
     async def get_chapter(
-        self, school_id: uuid.UUID, chapter_id: uuid.UUID
+        self, school_id: uuid.UUID, chapter_id: uuid.UUID, student_id: uuid.UUID | None = None
     ) -> BookChapter:
-        return await self._get_scoped(BookChapter, school_id, chapter_id, "Chapter")
+        chapter = await self._get_scoped(BookChapter, school_id, chapter_id, "Chapter")
+        book = await self._get_scoped(CourseBook, school_id, chapter.book_id, "Book")
+        await self._course_for_book(school_id, book, student_id)
+        return chapter
 
     # ------------------------------- notes ------------------------------- #
 
@@ -270,9 +341,9 @@ class CourseService:
         return note
 
     async def list_notes(
-        self, school_id: uuid.UUID, course_id: uuid.UUID
+        self, school_id: uuid.UUID, course_id: uuid.UUID, student_id: uuid.UUID | None = None
     ) -> list[CourseNote]:
-        await self._get_scoped(Course, school_id, course_id, "Course")
+        await self.get_course(school_id, course_id, student_id)
         return list(
             (
                 await self.db.execute(
@@ -283,8 +354,21 @@ class CourseService:
             ).scalars().all()
         )
 
-    async def get_note(self, school_id: uuid.UUID, note_id: uuid.UUID) -> CourseNote:
-        return await self._get_scoped(CourseNote, school_id, note_id, "Note")
+    async def get_note(
+        self, school_id: uuid.UUID, note_id: uuid.UUID, student_id: uuid.UUID | None = None
+    ) -> CourseNote:
+        note = await self._get_scoped(CourseNote, school_id, note_id, "Note")
+        await self._course_for_note(school_id, note, student_id)
+        return note
+
+    async def _progress_resource_course(
+        self, school_id: uuid.UUID, resource_type: str, resource_id: uuid.UUID
+    ) -> Course:
+        if resource_type == "book":
+            book = await self._get_scoped(CourseBook, school_id, resource_id, "Book")
+            return await self._get_scoped(Course, school_id, book.course_id, "Course")
+        note = await self._get_scoped(CourseNote, school_id, resource_id, "Note")
+        return await self._get_scoped(Course, school_id, note.course_id, "Course")
 
     # --------------------------- reading progress ------------------------ #
 
@@ -294,7 +378,10 @@ class CourseService:
         user_id: uuid.UUID,
         resource_type: str,
         resource_id: uuid.UUID,
+        student_id: uuid.UUID | None = None,
     ) -> ReadingProgress | None:
+        course = await self._progress_resource_course(school_id, resource_type, resource_id)
+        await self._require_course_access(school_id, course, student_id)
         return await self.db.scalar(
             select(ReadingProgress).where(
                 ReadingProgress.school_id == school_id,
@@ -309,9 +396,14 @@ class CourseService:
         school_id: uuid.UUID,
         user_id: uuid.UUID,
         data: schemas.ReadingProgressSet,
+        student_id: uuid.UUID | None = None,
     ) -> ReadingProgress:
+        course = await self._progress_resource_course(
+            school_id, data.resource_type, data.resource_id
+        )
+        await self._require_course_access(school_id, course, student_id)
         existing = await self.get_progress(
-            school_id, user_id, data.resource_type, data.resource_id
+            school_id, user_id, data.resource_type, data.resource_id, student_id
         )
         if existing is not None:
             existing.chapter_id = data.chapter_id

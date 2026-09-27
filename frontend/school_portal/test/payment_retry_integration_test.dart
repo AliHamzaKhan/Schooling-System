@@ -93,6 +93,10 @@ void main() {
         expect(tester.takeException(), isNull);
         await tester.ensureVisible(find.text('Mark as paid'));
         await tester.tap(find.text('Mark as paid'));
+        await tester.pumpAndSettle();
+        expect(find.text('Record manual payment'), findsOneWidget);
+        await tester.ensureVisible(find.text('Record payment'));
+        await tester.tap(find.text('Record payment'));
         await tester.pump();
         final recording = find.widgetWithText(FilledButton, 'Recording…');
         expect(recording, findsOneWidget);

@@ -13,8 +13,8 @@ class DriverTripController extends GetxController {
   final DriverRepository _repo;
   final LocationService _location;
   DriverTripController({DriverRepository? repo, LocationService? location})
-      : _repo = repo ?? Get.find<DriverRepository>(),
-        _location = location ?? const LocationService();
+    : _repo = repo ?? Get.find<DriverRepository>(),
+      _location = location ?? const LocationService();
 
   static const _pingInterval = Duration(minutes: 1);
 
@@ -47,6 +47,10 @@ class DriverTripController extends GetxController {
   Future<void> load() async {
     loading.value = true;
     error.value = null;
+    assignments.clear();
+    _routeNames.clear();
+    trip.value = null;
+    selectedRouteId.value = null;
 
     final asgRes = await _repo.loadMyAssignments();
     if (asgRes.success && asgRes.data != null) {
@@ -58,17 +62,27 @@ class DriverTripController extends GetxController {
     final routeRes = await _repo.loadRoutes();
     if (routeRes.success && routeRes.data != null) {
       _routeNames.assignAll({for (final r in routeRes.data!) r.id: r.name});
+    } else if (error.value == null) {
+      error.value = routeRes.error ?? 'Could not load your routes.';
     }
 
     // Resume an in-progress trip if one exists.
     final activeRes = await _repo.loadActiveTrips();
-    if (activeRes.success && activeRes.data != null && activeRes.data!.isNotEmpty) {
+    if (error.value == null &&
+        activeRes.success &&
+        activeRes.data != null &&
+        activeRes.data!.isNotEmpty) {
       trip.value = activeRes.data!.first;
       _startPinging();
+    } else if (!activeRes.success && error.value == null) {
+      error.value = activeRes.error ?? 'Could not load your active trip.';
     }
 
-    selectedRouteId.value ??=
-        routeOptions.isNotEmpty ? routeOptions.first.id : null;
+    if (error.value == null) {
+      selectedRouteId.value = routeOptions.isNotEmpty
+          ? routeOptions.first.id
+          : null;
+    }
     loading.value = false;
   }
 
@@ -95,19 +109,28 @@ class DriverTripController extends GetxController {
   Future<void> startTrip() async {
     final routeId = selectedRouteId.value;
     if (routeId == null) {
-      Get.snackbar('No route', 'You have no assigned route to start.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'No route',
+        'You have no assigned route to start.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
     busy.value = true;
-    final res = await _repo.startTrip(routeId: routeId, tripType: tripType.value);
+    final res = await _repo.startTrip(
+      routeId: routeId,
+      tripType: tripType.value,
+    );
     busy.value = false;
     if (res.success && res.data != null) {
       trip.value = res.data;
       _startPinging();
     } else {
-      Get.snackbar('Could not start', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not start',
+        res.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
@@ -120,11 +143,17 @@ class DriverTripController extends GetxController {
     if (res.success) {
       _stopPinging();
       trip.value = null;
-      Get.snackbar('Trip ended', 'Nice work — the trip is complete.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Trip ended',
+        'Nice work — the trip is complete.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } else {
-      Get.snackbar('Could not end trip', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not end trip',
+        res.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
@@ -132,12 +161,18 @@ class DriverTripController extends GetxController {
     final t = trip.value;
     if (t == null) return;
     final res = await _repo.setStudentStatus(
-        tripId: t.id, studentId: studentId, status: status);
+      tripId: t.id,
+      studentId: studentId,
+      status: status,
+    );
     if (res.success && res.data != null) {
       trip.value = res.data;
     } else {
-      Get.snackbar('Could not update', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not update',
+        res.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
@@ -151,15 +186,23 @@ class DriverTripController extends GetxController {
     order.insert(newIndex, moved);
     // Optimistic local update, then persist.
     trip.value = DriverTrip(
-      id: t.id, routeId: t.routeId, tripType: t.tripType, status: t.status,
-      stopOrder: order, nextStudentId: t.nextStudentId, events: t.events,
+      id: t.id,
+      routeId: t.routeId,
+      tripType: t.tripType,
+      status: t.status,
+      stopOrder: order,
+      nextStudentId: t.nextStudentId,
+      events: t.events,
     );
     final res = await _repo.updateStopOrder(t.id, order);
     if (res.success && res.data != null) {
       trip.value = res.data;
     } else {
-      Get.snackbar('Could not reorder', res.error ?? 'Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Could not reorder',
+        res.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await refreshTrip();
     }
   }

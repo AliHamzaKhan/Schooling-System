@@ -25,7 +25,7 @@ class GradebookController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final arg = Get.arguments;
+    final arg = Get.arguments ?? Get.parameters['paper_id'];
     if (arg is String && arg.isNotEmpty) {
       selectedPaperId.value = arg;
       load(arg);

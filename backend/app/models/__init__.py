@@ -1,4 +1,5 @@
 """Import all models so Alembic autogenerate and metadata see them."""
+
 from app.models.academic import (
     Section,
     SchoolClass,
@@ -17,7 +18,8 @@ from app.models.examination import (
     ExamSubject,
     Mark,
 )
-from app.models.fees import FeeStructure, Invoice, Payment
+from app.models.fees import FeeStructure, Invoice, Payment, StudentBillingContact
+from app.models.finance import FinancialAdjustment, FinancialAdjustmentDecision
 from app.models.communication import (
     DeviceToken,
     Message,
@@ -25,6 +27,7 @@ from app.models.communication import (
     NotificationConfig,
     NotificationTemplate,
     NotificationOutbox,
+    WorkerHeartbeat,
 )
 from app.models.course import (
     BookChapter,
@@ -71,6 +74,7 @@ from app.models.user import User
 
 __all__ = [
     "NotificationOutbox",
+    "WorkerHeartbeat",
     "Base",
     "user_roles",
     "Role",
@@ -100,6 +104,9 @@ __all__ = [
     "FeeStructure",
     "Invoice",
     "Payment",
+    "StudentBillingContact",
+    "FinancialAdjustment",
+    "FinancialAdjustmentDecision",
     "Assignment",
     "Submission",
     "Course",

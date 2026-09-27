@@ -9,10 +9,11 @@ import '../controller/guardian_session_controller.dart';
 class GuardianSessionBinding extends Bindings {
   @override
   void dependencies() {
-    Get.put<GuardianRepository>(GuardianRepository(), permanent: true);
-    Get.put<GuardianSessionController>(
-      GuardianSessionController(),
-      permanent: true,
-    );
+    if (!Get.isRegistered<GuardianRepository>()) {
+      Get.put<GuardianRepository>(GuardianRepository(), permanent: true);
+    }
+    if (!Get.isRegistered<GuardianSessionController>()) {
+      Get.put<GuardianSessionController>(GuardianSessionController(), permanent: true);
+    }
   }
 }

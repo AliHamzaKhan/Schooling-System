@@ -8,7 +8,7 @@ import '../models/message_thread.dart';
 class CommunicationController extends GetxController {
   final TeacherRepository _repo;
   CommunicationController({TeacherRepository? repo})
-      : _repo = repo ?? Get.find<TeacherRepository>();
+    : _repo = repo ?? Get.find<TeacherRepository>();
 
   static const filters = ['All', 'Parents', 'Students', 'Staff'];
 
@@ -23,6 +23,7 @@ class CommunicationController extends GetxController {
   /// The list area alone is busy — drives the shimmer.
   final listLoading = false.obs;
   final loadingMore = false.obs;
+  final error = RxnString();
 
   final threads = <MessageThread>[].obs;
   final query = ''.obs;
@@ -40,11 +41,11 @@ class CommunicationController extends GetxController {
   }
 
   ThreadParty? get _partyFilter => switch (filterIndex.value) {
-        1 => ThreadParty.parent,
-        2 => ThreadParty.student,
-        3 => ThreadParty.staff,
-        _ => null,
-      };
+    1 => ThreadParty.parent,
+    2 => ThreadParty.student,
+    3 => ThreadParty.staff,
+    _ => null,
+  };
 
   String get filterLabel => filters[filterIndex.value];
 
@@ -73,8 +74,10 @@ class CommunicationController extends GetxController {
     if (loadingMore.value || !hasMore) return;
     loadingMore.value = true;
     await Future<void>.delayed(const Duration(milliseconds: 250));
-    visibleCount.value =
-        (visibleCount.value + pageSize).clamp(0, threads.length);
+    visibleCount.value = (visibleCount.value + pageSize).clamp(
+      0,
+      threads.length,
+    );
     loadingMore.value = false;
   }
 
@@ -85,11 +88,19 @@ class CommunicationController extends GetxController {
     } else {
       listLoading.value = true;
     }
-    final res = await _repo.loadMessages(query: query.value, party: _partyFilter);
+    error.value = null;
+    threads.clear();
+    visibleCount.value = pageSize;
+    final res = await _repo.loadMessages(
+      query: query.value,
+      party: _partyFilter,
+    );
     if (res.success && res.data != null) {
       threads.assignAll(res.data!);
       // A new result set starts from page one again.
       visibleCount.value = pageSize;
+    } else {
+      error.value = res.error ?? 'Could not load conversations.';
     }
     loading.value = false;
     listLoading.value = false;

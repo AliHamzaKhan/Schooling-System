@@ -31,6 +31,7 @@ class ErrorCode(str, Enum):
     BAD_REQUEST = "bad_request"  # 400: validation / bad input
     CONFLICT = "conflict"  # 409: state conflict
     RATE_LIMITED = "rate_limited"  # 429: too many requests for this key
+    SERVICE_UNAVAILABLE = "service_unavailable"  # 503: dependency outage
 
 
 class AppHTTPException(HTTPException):
@@ -72,6 +73,16 @@ def not_found(
 
 def bad_request(detail: str, code: ErrorCode = ErrorCode.BAD_REQUEST) -> AppHTTPException:
     return AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail, code=code)
+
+
+def service_unavailable(
+    detail: str = "The service is temporarily unavailable. Please try again.",
+) -> AppHTTPException:
+    return AppHTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=detail,
+        code=ErrorCode.SERVICE_UNAVAILABLE,
+    )
 
 
 def payment_required(

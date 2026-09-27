@@ -37,13 +37,14 @@ class SchoolPortalApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SessionNavigation.routes = [...AuthRoutes.pages, ...AppPages.pages].map((page) => page.name).toSet();
     return GetMaterialApp(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       // Always the splash: it restores the session and replaces itself with
       // login or the role's module shell.
-      initialRoute: AppRoutes.splash,
+      initialRoute: SessionNavigation.restoreFor(Uri.base.fragment),
       getPages: [
         ...AuthRoutes.pages,
         ...AppPages.pages,

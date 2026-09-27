@@ -124,6 +124,43 @@ async def test_pending_assignment_records_no_payment(client, sa_headers, school)
     assert r.json()["id"] in {s["id"] for s in pend.json()}
 
 
+async def test_assignment_retry_uses_one_subscription_and_one_ledger_entry(
+    client, sa_headers, school
+):
+    plan = await _create_plan(client, sa_headers, price=700)
+    key = str(uuid4())
+    payload = {"school_id": school["id"], "plan_id": plan["id"]}
+    headers = sa_headers | {"Idempotency-Key": key}
+
+    first = await client.post(f"{API}/subscriptions", headers=headers, json=payload)
+    retry = await client.post(f"{API}/subscriptions", headers=headers, json=payload)
+
+    assert first.status_code == retry.status_code == 201, (first.text, retry.text)
+    assert first.json() == retry.json()
+    assert first.json()["id"] == key
+    ledger = await client.get(f"{API}/schools/{school['id']}/payments", headers=sa_headers)
+    assert ledger.status_code == 200, ledger.text
+    assert len(ledger.json()) == 1
+
+
+async def test_assignment_key_reuse_for_different_request_conflicts(
+    client, sa_headers, school
+):
+    plan = await _create_plan(client, sa_headers, price=700)
+    key = str(uuid4())
+    headers = sa_headers | {"Idempotency-Key": key}
+    initial = {"school_id": school["id"], "plan_id": plan["id"], "discount_value": 5}
+    assert (await client.post(f"{API}/subscriptions", headers=headers, json=initial)).status_code == 201
+    changed = await client.post(
+        f"{API}/subscriptions",
+        headers=headers,
+        json=initial | {"discount_value": 10},
+    )
+    assert changed.status_code == 409, changed.text
+    ledger = await client.get(f"{API}/schools/{school['id']}/payments", headers=sa_headers)
+    assert len(ledger.json()) == 1
+
+
 # ------------------------------ tabs / lists ---------------------------- #
 
 
@@ -158,6 +195,31 @@ async def test_renew_and_cancel(client, sa_headers, school):
 
     r = await client.post(f"{API}/subscriptions/{sub['id']}/cancel", headers=sa_headers)
     assert r.status_code == 200 and r.json()["status"] == "cancelled"
+
+
+async def test_renewal_retry_uses_one_ledger_entry(client, sa_headers, school):
+    plan = await _create_plan(client, sa_headers, price=400, billing_period="monthly")
+    sub = (
+        await client.post(
+            f"{API}/subscriptions",
+            headers=sa_headers,
+            json={"school_id": school["id"], "plan_id": plan["id"]},
+        )
+    ).json()
+    headers = sa_headers | {"Idempotency-Key": str(uuid4())}
+
+    first = await client.post(
+        f"{API}/subscriptions/{sub['id']}/renew", headers=headers, json={}
+    )
+    retry = await client.post(
+        f"{API}/subscriptions/{sub['id']}/renew", headers=headers, json={}
+    )
+
+    assert first.status_code == retry.status_code == 200, (first.text, retry.text)
+    assert first.json() == retry.json()
+    ledger = await client.get(f"{API}/schools/{school['id']}/payments", headers=sa_headers)
+    assert ledger.status_code == 200, ledger.text
+    assert len(ledger.json()) == 2
 
 
 # ------------------------------ status ---------------------------------- #

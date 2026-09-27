@@ -85,6 +85,48 @@ async def test_link_list_and_unlink_child(client: AsyncClient, school: dict):
 
 
 @pytest.mark.asyncio
+async def test_relink_preserves_or_corrects_relationship_and_revocation_is_immediate(
+    client: AsyncClient, school: dict,
+):
+    """The returned relationship is durable, and unlinking removes read access."""
+    sid = school["id"]
+    guardian = await _make_user(client, school, "guardian")
+    student = await _make_user(client, school, "student")
+    link_url = f"{API}/schools/{sid}/guardians/{guardian['id']}/children"
+    attendance_url = f"{API}/schools/{sid}/students/{student['id']}/attendance"
+
+    linked = await client.post(
+        link_url,
+        headers=school["hm"],
+        json={"student_id": student["id"], "relationship": "father"},
+    )
+    assert linked.status_code == 201, linked.text
+    assert linked.json()["relationship"] == "father"
+
+    # An idempotent retry must report the existing durable label, not the
+    # omitted request value. A supplied label explicitly corrects it.
+    retry = await client.post(
+        link_url, headers=school["hm"], json={"student_id": student["id"]},
+    )
+    assert retry.status_code == 201, retry.text
+    assert retry.json()["relationship"] == "father"
+    corrected = await client.post(
+        link_url,
+        headers=school["hm"],
+        json={"student_id": student["id"], "relationship": "guardian"},
+    )
+    assert corrected.status_code == 201, corrected.text
+    assert corrected.json()["relationship"] == "guardian"
+
+    assert (await client.get(attendance_url, headers=guardian["headers"])).status_code == 200
+    unlinked = await client.delete(
+        f"{link_url}/{student['id']}", headers=school["hm"],
+    )
+    assert unlinked.status_code == 204, unlinked.text
+    assert (await client.get(attendance_url, headers=guardian["headers"])).status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_cannot_link_non_student(client: AsyncClient, school: dict):
     sid = school["id"]
     guardian = await _make_user(client, school, "guardian")

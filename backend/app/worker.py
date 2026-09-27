@@ -8,11 +8,30 @@ import uuid
 
 from arq import cron
 from arq.connections import RedisSettings
+from sqlalchemy.dialects.postgresql import insert
 
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.errors import configure_logging
+from app.models.communication import WorkerHeartbeat
 from app.modules.communication.outbox import OutboxWorker
+
+OUTBOX_WORKER_NAME = "notification_outbox"
+
+
+async def record_worker_heartbeat(sessions=AsyncSessionLocal) -> None:
+    """Publish only liveness for the coalesced delivery-worker type."""
+    from app.modules.communication.outbox import now
+
+    seen_at = now()
+    statement = insert(WorkerHeartbeat).values(
+        worker_name=OUTBOX_WORKER_NAME, last_seen_at=seen_at
+    ).on_conflict_do_update(
+        index_elements=[WorkerHeartbeat.worker_name],
+        set_={"last_seen_at": seen_at},
+    )
+    async with sessions() as db, db.begin():
+        await db.execute(statement)
 
 
 async def deliver_message(ctx: dict, message_id: str) -> None:
@@ -20,11 +39,14 @@ async def deliver_message(ctx: dict, message_id: str) -> None:
 
 
 async def poll_outbox(ctx: dict) -> None:
+    await record_worker_heartbeat()
     await OutboxWorker(AsyncSessionLocal).run_due()
+    await record_worker_heartbeat()
 
 
 async def _startup(ctx: dict) -> None:
     configure_logging()
+    await record_worker_heartbeat()
 
 
 class WorkerSettings:

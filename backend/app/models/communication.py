@@ -111,6 +111,20 @@ class NotificationOutbox(Base, TimestampMixin):
     last_error: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
 
+class WorkerHeartbeat(Base, TimestampMixin):
+    """Coalesced liveness record for a durable background worker type.
+
+    Multiple replicas share one row: a recent heartbeat proves that at least
+    one replica is polling. It deliberately carries no host, process, message,
+    recipient or provider details.
+    """
+
+    __tablename__ = "worker_heartbeats"
+
+    worker_name: Mapped[str] = mapped_column(String(80), primary_key=True)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class DeviceToken(Base, UUIDMixin, TimestampMixin):
     """A user's push device token (for FCM)."""
 

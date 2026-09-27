@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../features/auth/auth_routes.dart';
+import '../features/auth/session_navigation.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/data_store_service.dart';
@@ -23,7 +24,7 @@ import '../services/data_store_service.dart';
 /// finishes.
 Future<void> initSharedServices({bool restoreSession = true}) async {
   final store = DataStoreService();
-  await store.init();
+  try { await store.init(); } catch (_) { /* Restore UI offers retry. */ }
 
   final api = ApiService(store: store);
   final auth = AuthService(api: api, store: store);
@@ -31,10 +32,15 @@ Future<void> initSharedServices({bool restoreSession = true}) async {
   // On a 401, ApiService first tries to renew the access token via the refresh
   // token; only if that fails (or the failure is a tenant/subscription one a
   // refresh can't fix) does onUnauthorized fire (clear session + login).
-  api.tokenRefresher = auth.refreshSession;
-  api.onUnauthorized = () {
-    auth.logout();
-    Get.offAllNamed(AuthRoutes.login);
+  api.tokenRefresherForToken = (token) => auth.refreshSession(rejectedAccessToken: token);
+  api.onUnauthorized = () async {
+    final target = SessionNavigation.safeTarget(Get.currentRoute);
+    await auth.logout();
+    if (Get.key.currentState != null) Get.offAllNamed(SessionNavigation.loginFor(target));
+  };
+  auth.onExternalSessionChanged = () {
+    // Drop every route/controller from the previous account before rehydration.
+    if (Get.key.currentState != null) Get.offAllNamed(AuthRoutes.restore);
   };
 
   Get.put<DataStoreService>(store, permanent: true);

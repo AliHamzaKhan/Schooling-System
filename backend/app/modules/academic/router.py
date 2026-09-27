@@ -32,8 +32,13 @@ async def create_class(school_id: uuid.UUID, data: schemas.ClassCreate, db: DbDe
 
 
 @router.get("/classes", response_model=list[schemas.ClassOut], dependencies=[_view])
-async def list_classes(school_id: uuid.UUID, db: DbDep) -> list[schemas.ClassOut]:
-    return await AcademicService(db).list_classes(school_id)
+async def list_classes(
+    school_id: uuid.UUID,
+    db: DbDep,
+    session_id: uuid.UUID | None = Query(default=None),
+) -> list[schemas.ClassOut]:
+    """List usable classes, optionally narrowed to one school-owned session."""
+    return await AcademicService(db).list_classes(school_id, session_id)
 
 
 @router.get(

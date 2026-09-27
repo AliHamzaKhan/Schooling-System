@@ -3,13 +3,14 @@
 Reads live counts from `schools` / `school_subscriptions` and sums the
 `subscription_payments` ledger. Revenue is grouped by the calendar month a
 payment was recorded (`paid_at`)."""
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import SubscriptionStatus
 from app.models.school import School
+from app.models.communication import NotificationOutbox, WorkerHeartbeat
 from app.models.subscription import (
     SchoolSubscription,
     SubscriptionPayment,
@@ -307,4 +308,96 @@ class AdminMetricsService:
             churn_rate=churn_rate,
             plan_distribution=plan_distribution,
             revenue_by_month=await self._revenue_buckets(6),
+        )
+
+    async def operations(self) -> schemas.OperationsStatus:
+        """Return bounded worker/outbox health without exposing message content."""
+        from app.core.config import settings
+        from app.worker import OUTBOX_WORKER_NAME
+
+        checked_at = datetime.now(timezone.utc)
+        rows = (
+            await self.db.execute(
+                select(NotificationOutbox.state, func.count())
+                .group_by(NotificationOutbox.state)
+            )
+        ).all()
+        counts = {state: int(count) for state, count in rows}
+        due_filter = (
+            (NotificationOutbox.state == "pending")
+            & (NotificationOutbox.available_at <= checked_at)
+        )
+        expired_lease_filter = (
+            (NotificationOutbox.state == "processing")
+            & (NotificationOutbox.lease_until.is_not(None))
+            & (NotificationOutbox.lease_until <= checked_at)
+        )
+        oldest_due_at = await self.db.scalar(
+            select(func.min(NotificationOutbox.available_at)).where(due_filter)
+        )
+        due = await self.db.scalar(
+            select(func.count()).select_from(NotificationOutbox).where(due_filter)
+        ) or 0
+        expired_leases = await self.db.scalar(
+            select(func.count()).select_from(NotificationOutbox).where(expired_lease_filter)
+        ) or 0
+        heartbeat = await self.db.get(WorkerHeartbeat, OUTBOX_WORKER_NAME)
+        age_seconds = (
+            max(0, int((checked_at - heartbeat.last_seen_at).total_seconds()))
+            if heartbeat is not None
+            else None
+        )
+        worker_status = (
+            "not_seen"
+            if heartbeat is None
+            else "healthy"
+            if age_seconds is not None
+            and age_seconds <= settings.OUTBOX_WORKER_STALE_AFTER_SECONDS
+            else "stale"
+        )
+        oldest_due_age_seconds = (
+            max(0, int((checked_at - oldest_due_at).total_seconds()))
+            if oldest_due_at is not None
+            else None
+        )
+        return schemas.OperationsStatus(
+            outbox=schemas.OutboxOperationsStatus(
+                pending=counts.get("pending", 0),
+                due=int(due),
+                processing=counts.get("processing", 0),
+                expired_leases=int(expired_leases),
+                needs_review=counts.get("needs_review", 0),
+                oldest_due_at=oldest_due_at,
+                oldest_due_age_seconds=oldest_due_age_seconds,
+            ),
+            worker=schemas.WorkerOperationsStatus(
+                name=OUTBOX_WORKER_NAME,
+                status=worker_status,
+                last_seen_at=heartbeat.last_seen_at if heartbeat else None,
+                age_seconds=age_seconds,
+                stale_after_seconds=settings.OUTBOX_WORKER_STALE_AFTER_SECONDS,
+            ),
+            providers=schemas.ProviderOperationsStatus(
+                whatsapp=(
+                    "configured"
+                    if settings.TWILIO_ACCOUNT_SID
+                    and settings.TWILIO_AUTH_TOKEN
+                    and settings.TWILIO_WHATSAPP_FROM
+                    else "simulated"
+                ),
+                sms=(
+                    "configured"
+                    if settings.TWILIO_ACCOUNT_SID
+                    and settings.TWILIO_AUTH_TOKEN
+                    and settings.TWILIO_SMS_FROM
+                    else "simulated"
+                ),
+                push=(
+                    "configured"
+                    if settings.FIREBASE_CREDENTIALS_FILE
+                    or settings.FIREBASE_CREDENTIALS_JSON
+                    else "simulated"
+                ),
+                email="simulated",
+            ),
         )

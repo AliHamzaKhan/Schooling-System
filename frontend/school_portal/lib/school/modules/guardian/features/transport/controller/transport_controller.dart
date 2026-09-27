@@ -18,9 +18,9 @@ class GuardianTransportController extends GetxController {
     GuardianRepository? repo,
     GuardianSessionController? session,
     LocationService? location,
-  })  : _repo = repo ?? Get.find<GuardianRepository>(),
-        _session = session ?? Get.find<GuardianSessionController>(),
-        _location = location ?? const LocationService();
+  }) : _repo = repo ?? Get.find<GuardianRepository>(),
+       _session = session ?? Get.find<GuardianSessionController>(),
+       _location = location ?? const LocationService();
 
   final loading = true.obs;
   final error = RxnString();
@@ -38,6 +38,10 @@ class GuardianTransportController extends GetxController {
   Future<void> load() async {
     loading.value = true;
     error.value = null;
+    requests.clear();
+    trips.clear();
+    location.value = null;
+    eta.value = null;
     final reqRes = await _repo.loadMyTransportRequests();
     if (reqRes.success && reqRes.data != null) {
       requests.assignAll(reqRes.data!);
@@ -48,6 +52,8 @@ class GuardianTransportController extends GetxController {
     if (tripRes.success && tripRes.data != null) {
       trips.assignAll(tripRes.data!);
       if (trips.isNotEmpty) await refreshTracking(trips.first.id);
+    } else if (error.value == null) {
+      error.value = tripRes.error ?? 'Could not load active transport trips.';
     }
     loading.value = false;
   }
@@ -62,8 +68,11 @@ class GuardianTransportController extends GetxController {
   Future<void> raiseRequestFlow() async {
     final childId = _session.selectedId.value;
     if (childId == null) {
-      Get.snackbar('Select a child', 'Choose a child before requesting transport.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Select a child',
+        'Choose a child before requesting transport.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
 
@@ -77,8 +86,11 @@ class GuardianTransportController extends GetxController {
       lng = picked.longitude;
       if (picked.address != null) address.text = picked.address!;
     } on LocationException catch (e) {
-      Get.snackbar('Location', '${e.message} You can type the address instead.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Location',
+        '${e.message} You can type the address instead.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (_) {
       // Non-fatal — manual address entry still works.
     }
@@ -101,8 +113,10 @@ class GuardianTransportController extends GetxController {
         if (lat != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text('Location captured ✓',
-                style: AppTypography.labelMd.copyWith(color: AppColors.primary)),
+            child: Text(
+              'Location captured ✓',
+              style: AppTypography.labelMd.copyWith(color: AppColors.primary),
+            ),
           ),
       ],
       onSubmit: () async {
@@ -118,8 +132,11 @@ class GuardianTransportController extends GetxController {
       },
     );
     if (ok == true) {
-      Get.snackbar('Request sent', 'The school will review it shortly.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Request sent',
+        'The school will review it shortly.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       await load();
     }
   }

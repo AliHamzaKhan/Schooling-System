@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import SystemRole
 from app.core.exceptions import bad_request, forbidden, not_found
+from app.core.pagination import OffsetPage
 from app.models.academic import SchoolClass, Section, StudentEnrollment, Subject, TimetableSlot
 from app.models.associations import guardian_students
 from app.models.direct_message import DirectMessage
@@ -123,8 +124,9 @@ class DirectMessageService:
     async def list_for_user(
         self, school_id: uuid.UUID, user_id: uuid.UUID, box: str = "inbox",
         counterpart_id: uuid.UUID | None = None,
+        page: OffsetPage | None = None,
     ) -> list[schemas.DirectMessageOut]:
-        """The acting user's messages: 'inbox' (received), 'sent', or 'all'."""
+        """A bounded message page for the acting user's scoped history."""
         stmt = select(DirectMessage).where(self._valid_history(school_id))
         if box == "sent":
             stmt = stmt.where(DirectMessage.sender_id == user_id)
@@ -143,6 +145,8 @@ class DirectMessageService:
                 and_(DirectMessage.recipient_id == user_id, DirectMessage.sender_id == counterpart_id),
             ))
         stmt = stmt.order_by(DirectMessage.created_at.desc(), DirectMessage.id.desc())
+        if page is not None:
+            stmt = page.apply(stmt)
         messages = list((await self.db.execute(stmt)).scalars().all())
         ids: set[uuid.UUID] = set()
         for m in messages:

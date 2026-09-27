@@ -22,39 +22,54 @@ class ExamsView extends GetView<StudentExamsController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: SkeletonCardList(count: 5, height: 96));
+              return const SkeletonPage(
+                body: SkeletonCardList(count: 5, height: 96),
+              );
+            }
+            final error = controller.error.value;
+            if (error != null) {
+              return _ExamsLoadError(message: error, onRetry: controller.load);
             }
             final data = controller.data.value;
             if (data == null) return const SizedBox.shrink();
             return ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  0,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                0,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
                 Text('Exam Schedule', style: AppTypography.headlineLg),
                 const SizedBox(height: AppSpacing.stackSm),
-                Text('You have ${data.comingThisMonth} exams coming up this month.',
-                    style: AppTypography.bodyLg),
+                Text(
+                  'You have ${data.comingThisMonth} exams coming up this month.',
+                  style: AppTypography.bodyLg,
+                ),
                 const SizedBox(height: AppSpacing.stackLg),
                 CountdownCard(
                   next: data.next,
                   onTap: data.nextEntry == null
                       ? null
-                      : () => Get.toNamed(StudentRoutes.examDetail,
-                          arguments: data.nextEntry),
+                      : () => Get.toNamed(
+                          StudentRoutes.examDetail,
+                          arguments: data.nextEntry,
+                        ),
                 ),
                 const SizedBox(height: AppSpacing.stackXl),
-                Text('Upcoming Timeline',
-                    style: AppTypography.displayLg.copyWith(fontSize: 28)),
+                Text(
+                  'Upcoming Timeline',
+                  style: AppTypography.displayLg.copyWith(fontSize: 28),
+                ),
                 const SizedBox(height: AppSpacing.stackMd),
                 for (var i = 0; i < data.timeline.length; i++)
                   TimelineCard(
                     exam: data.timeline[i],
                     isLast: i == data.timeline.length - 1,
-                    onTap: () => Get.toNamed(StudentRoutes.examDetail,
-                        arguments: data.timeline[i]),
+                    onTap: () => Get.toNamed(
+                      StudentRoutes.examDetail,
+                      arguments: data.timeline[i],
+                    ),
                   ),
               ],
             );
@@ -63,4 +78,42 @@ class ExamsView extends GetView<StudentExamsController> {
       ],
     );
   }
+}
+
+class _ExamsLoadError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _ExamsLoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.stackXl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            AppIcons.errorOutlineRounded,
+            color: AppColors.error,
+            size: 32,
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text('Exam schedule is unavailable', style: AppTypography.headlineLg),
+          const SizedBox(height: AppSpacing.stackSm),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyLg,
+          ),
+          const SizedBox(height: AppSpacing.stackLg),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(AppIcons.refreshRounded),
+            label: const Text('Try again'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

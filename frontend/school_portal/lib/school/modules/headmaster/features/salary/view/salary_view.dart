@@ -25,14 +25,16 @@ class SalaryView extends GetView<SalaryController> {
         }
         if (controller.error.value != null) {
           return Center(
-              child: Text(controller.error.value!, style: AppTypography.bodyLg));
+            child: Text(controller.error.value!, style: AppTypography.bodyLg),
+          );
         }
         return ListView(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackLg,
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackXl),
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackLg,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackXl,
+          ),
           children: [
             Text('Teachers', style: AppTypography.labelCaps),
             const SizedBox(height: AppSpacing.stackSm),
@@ -83,8 +85,9 @@ class _StaffCard extends StatelessWidget {
                       staff.hasSalary
                           ? '${staff.designation ?? "Teacher"} · ${money(staff.baseSalary ?? 0)}/mo'
                           : 'No salary set',
-                      style: AppTypography.bodyMd
-                          .copyWith(color: AppColors.onSurfaceVariant),
+                      style: AppTypography.bodyMd.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -123,8 +126,8 @@ class _PayslipCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPaid = payslip.status.toLowerCase() == 'paid';
-    final monthName = SalaryController
-        .monthNames[(payslip.month - 1).clamp(0, 11)];
+    final monthName =
+        SalaryController.monthNames[(payslip.month - 1).clamp(0, 11)];
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadius.button),
       onTap: () => controller.showPayslipDetail(payslip),
@@ -141,20 +144,49 @@ class _PayslipCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('$monthName ${payslip.year} · ${money(payslip.net)} net',
-                      style: AppTypography.bodyMd),
-                  Text('Gross ${money(payslip.gross)} · ${payslip.status}',
-                      style: AppTypography.labelMd
-                          .copyWith(color: AppColors.onSurfaceVariant)),
+                  Text(
+                    '$monthName ${payslip.year} · ${money(payslip.net)} net',
+                    style: AppTypography.bodyMd,
+                  ),
+                  Text(
+                    'Gross ${money(payslip.gross)} · ${payslip.status}',
+                    style: AppTypography.labelMd.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
             if (isPaid)
-              const Icon(AppIcons.checkCircle, color: AppColors.primary, size: 22)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Icon(
+                    AppIcons.checkCircle,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        controller.requestPayrollCorrectionFlow(payslip),
+                    child: const Text('Correction'),
+                  ),
+                ],
+              )
             else
-              TextButton(
-                onPressed: () => controller.markPaid(payslip),
-                child: const Text('Mark paid'),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => controller.markPaid(payslip),
+                    child: const Text('Mark paid'),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        controller.requestPayrollCorrectionFlow(payslip),
+                    child: const Text('Correction'),
+                  ),
+                ],
               ),
           ],
         ),

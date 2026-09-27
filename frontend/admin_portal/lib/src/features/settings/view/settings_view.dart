@@ -36,11 +36,27 @@ class SettingsView extends StatelessWidget {
           const AdminTopBar(showAvatar: true),
           Expanded(
             child: ListView(
-              padding:
-                  const EdgeInsets.fromLTRB(kAdminGutter, 4, kAdminGutter, 36),
+              padding: const EdgeInsets.fromLTRB(
+                kAdminGutter,
+                4,
+                kAdminGutter,
+                36,
+              ),
               children: [
                 const AdminPageHeader(title: 'Settings'),
 
+                AdminNavTile(
+                  icon: Icons.devices_outlined,
+                  title: 'Active sessions',
+                  subtitle: 'Review sessions and sign out on other devices.',
+                  onTap: () => Get.to(
+                    () => SessionsView(
+                      auth: Get.find<AuthService>(),
+                      onSignedOut: () => Get.offAllNamed(AuthRoutes.login),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
                 const AdminGroupLabel('Access Control'),
                 AdminNavTile(
                   icon: AppIcons.adminPanelSettingsOutlined,
@@ -87,10 +103,13 @@ class SettingsView extends StatelessWidget {
                     label: const Text('Sign Out'),
                     style: TextButton.styleFrom(
                       foregroundColor: AdminPalette.danger,
-                      textStyle:
-                          AdminType.label.copyWith(fontWeight: FontWeight.w700),
+                      textStyle: AdminType.label.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),

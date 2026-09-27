@@ -84,3 +84,43 @@ class MetricsReport(BaseModel):
     churn_rate: float  # % of subscriptions that are expired/cancelled
     plan_distribution: list[PlanShare]
     revenue_by_month: list[RevenueMonth]
+
+
+# --------------------------------------------------------------------------- #
+# Operations (platform-only, aggregate and content-free)
+# --------------------------------------------------------------------------- #
+
+
+class OutboxOperationsStatus(BaseModel):
+    pending: int
+    due: int
+    processing: int
+    expired_leases: int
+    needs_review: int
+    oldest_due_at: datetime | None = None
+    oldest_due_age_seconds: int | None = None
+
+
+class WorkerOperationsStatus(BaseModel):
+    name: str
+    status: str  # healthy | stale | not_seen
+    last_seen_at: datetime | None = None
+    age_seconds: int | None = None
+    stale_after_seconds: int
+
+
+class ProviderOperationsStatus(BaseModel):
+    """Configuration modes only; this intentionally contains no credentials."""
+
+    whatsapp: str  # configured | simulated
+    sms: str  # configured | simulated
+    push: str  # configured | simulated
+    email: str  # simulated until a real adapter is added
+
+
+class OperationsStatus(BaseModel):
+    """Aggregate operational state; intentionally omits work and recipient data."""
+
+    outbox: OutboxOperationsStatus
+    worker: WorkerOperationsStatus
+    providers: ProviderOperationsStatus

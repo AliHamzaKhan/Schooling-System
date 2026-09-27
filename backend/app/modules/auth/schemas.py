@@ -1,5 +1,6 @@
 """Auth request/response schemas."""
 import uuid
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -39,6 +40,20 @@ class TokenPair(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class SessionOut(BaseModel):
+    """Safe self-service view of one live login session.
+
+    Refresh hashes, IP addresses and user-agent strings stay server-only: they
+    are credentials/tracking data, not required to let a user revoke a login.
+    """
+
+    id: uuid.UUID
+    created_at: datetime
+    last_used_at: datetime | None = None
+    expires_at: datetime
+    is_current: bool
 
 
 # ── Password reset (forgot-password OTP flow) ─────────────────────────────────

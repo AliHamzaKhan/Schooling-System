@@ -9,6 +9,7 @@ from app.core.enums import Module, PermissionAction as PA, SystemRole
 from app.core.exceptions import bad_request, forbidden, not_found
 from app.models.academic import Section, TimetableSlot
 from app.models.document import StudentDocument
+from app.models.fees import Payment
 from app.models.homework import Assignment, Submission
 from app.modules.permissions.service import PermissionService
 
@@ -44,7 +45,15 @@ def local_key(url: str) -> str:
     return key
 
 
-def validate_new_reference(url, school_id, uploader_id, folder, *, existing=None):
+def validate_new_reference(
+    url,
+    school_id,
+    uploader_id,
+    folder,
+    *,
+    existing=None,
+    allow_external: bool = True,
+):
     """Never let a caller claim someone else's blob through editable metadata.
 
     Historical references can stay on the same submission, but cannot be newly
@@ -57,7 +66,9 @@ def validate_new_reference(url, school_id, uploader_id, folder, *, existing=None
     except ValueError:
         raise bad_request("Invalid attachment reference")
     if parsed.scheme in ("http", "https") and not parsed.path.startswith("/media/"):
-        return
+        if allow_external:
+            return
+        raise bad_request("Attachment must be a managed upload")
     key = local_key(url)
     prefix = f"private/{folder}/{school_id}/{uploader_id}/"
     if not key.startswith(prefix) or "/" in key[len(prefix):]:
@@ -110,6 +121,22 @@ async def authorize_attachment(db, school_id, kind, record_id, user):
         elif Module.HOMEWORK.value not in await PermissionService(db).get_effective_modules(user):
             raise forbidden("Homework is not available")
         url, owner = record.attachment_url, record.student_id
+    elif kind == "payment_proofs":
+        record = await db.scalar(select(Payment).where(
+            Payment.id == record_id, Payment.school_id == school_id,
+        ))
+        if record is None or not record.proof_url:
+            raise not_found("Attachment not found")
+        # Bank/cheque evidence can expose account details. It is available to
+        # the recorder and school administration only, never through a
+        # guardian's ordinary fee-view permission.
+        if not (
+            user.id == record.recorded_by
+            or PermissionService.is_super_admin(user)
+            or any(role.code == SystemRole.HEADMASTER.value for role in user.roles)
+        ):
+            raise forbidden("Only the Headmaster can access payment proof")
+        url, owner = record.proof_url, record.recorded_by
     else:
         raise not_found("Attachment kind not found")
     if not url:

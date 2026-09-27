@@ -2,14 +2,14 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import AttendanceStatus, EnrollmentStatus, ResultStatus, SystemRole
 from app.models.academic import Section, SchoolClass, StudentEnrollment, Subject
 from app.models.associations import guardian_students
 from app.models.attendance import AttendanceRecord
-from app.models.examination import Exam, ExamResult
+from app.models.examination import Exam, ExamCategory, ExamResult
 from app.models.homework import Assignment, Submission
 from app.models.quiz import Quiz, QuizAttempt
 from app.models.role import Role
@@ -17,13 +17,27 @@ from app.models.school import AcademicSession
 from app.models.user import User
 from app.modules.fees.service import FeeService
 from app.modules.reports import schemas
-from app.modules.academic.access import role_ids, valid_sections
-from app.core.exceptions import not_found
+from app.modules.academic.access import role_ids, valid_classes, valid_sections, valid_subjects
+from app.modules.attendance.service import AttendanceService
+from app.core.exceptions import bad_request, not_found
 
 
 class ReportingService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+
+    def _sections(self, school_id):
+        return valid_sections(school_id).where(Section.class_id.in_(valid_classes(school_id)))
+
+    def _enrollments(self, school_id):
+        return select(StudentEnrollment).where(
+            StudentEnrollment.school_id == school_id,
+            StudentEnrollment.section_id.in_(self._sections(school_id)),
+            StudentEnrollment.student_id.in_(role_ids(school_id, SystemRole.STUDENT.value)),
+            StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+            or_(StudentEnrollment.session_id.is_(None), StudentEnrollment.session_id.in_(
+                select(AcademicSession.id).where(AcademicSession.school_id == school_id))),
+        )
 
     # ----------------------------- overview ------------------------------ #
 
@@ -43,13 +57,13 @@ class ReportingService:
             select(func.count()).select_from(User).where(User.school_id == school_id)
         ) or 0
         classes = await self.db.scalar(
-            select(func.count()).select_from(SchoolClass).where(SchoolClass.school_id == school_id)
+            select(func.count()).select_from(SchoolClass).where(SchoolClass.id.in_(valid_classes(school_id)))
         ) or 0
         sections = await self.db.scalar(
-            select(func.count()).select_from(Section).where(Section.school_id == school_id)
+            select(func.count()).select_from(Section).where(Section.id.in_(self._sections(school_id)))
         ) or 0
         subjects = await self.db.scalar(
-            select(func.count()).select_from(Subject).where(Subject.school_id == school_id)
+            select(func.count()).select_from(Subject).where(Subject.id.in_(valid_subjects(school_id)))
         ) or 0
         active_session = await self.db.scalar(
             select(AcademicSession.name).where(
@@ -77,9 +91,17 @@ class ReportingService:
         date_from: date | None = None,
         date_to: date | None = None,
     ) -> schemas.AttendanceReport:
-        stmt = select(AttendanceRecord.status, func.count()).where(
-            AttendanceRecord.school_id == school_id
-        )
+        if section_id is not None and await self.db.scalar(
+            valid_sections(school_id).where(Section.id == section_id)
+        ) is None:
+            raise not_found("Section not found in this school")
+        if date_from is not None and date_to is not None and date_from > date_to:
+            raise bad_request("date_from must not be after date_to")
+        # Reuse the register's structural boundary so JSON and CSV agree with
+        # the authorized source rows. Unknown legacy statuses are not CSV labels.
+        stmt = AttendanceService(self.db).visible_records(school_id).with_only_columns(
+            AttendanceRecord.status, func.count(),
+        ).where(AttendanceRecord.status.in_([s.value for s in AttendanceStatus]))
         if section_id is not None:
             stmt = stmt.where(AttendanceRecord.section_id == section_id)
         if date_from is not None:
@@ -108,7 +130,11 @@ class ReportingService:
 
     async def academic(self, school_id: uuid.UUID) -> schemas.AcademicReport:
         exams = list(
-            (await self.db.execute(select(Exam).where(Exam.school_id == school_id))).scalars().all()
+            (await self.db.execute(select(Exam).where(
+                Exam.school_id == school_id, Exam.class_id.in_(valid_classes(school_id)),
+                or_(Exam.session_id.is_(None), Exam.session_id.in_(select(AcademicSession.id).where(AcademicSession.school_id == school_id))),
+                or_(Exam.category_id.is_(None), Exam.category_id.in_(select(ExamCategory.id).where(ExamCategory.school_id == school_id))),
+            ))).scalars().all()
         )
         summaries: list[schemas.ExamSummary] = []
         for exam in exams:
@@ -116,7 +142,9 @@ class ReportingService:
                 (
                     await self.db.execute(
                         select(ExamResult).where(
-                            ExamResult.exam_id == exam.id, ExamResult.published.is_(True)
+                            ExamResult.exam_id == exam.id, ExamResult.published.is_(True),
+                            ExamResult.school_id == school_id,
+                            ExamResult.student_id.in_(role_ids(school_id, SystemRole.STUDENT.value)),
                         )
                     )
                 )
@@ -161,12 +189,12 @@ class ReportingService:
 
     async def enrollment(self, school_id: uuid.UUID) -> schemas.EnrollmentReport:
         classes = list(
-            (await self.db.execute(select(SchoolClass).where(SchoolClass.school_id == school_id)))
+            (await self.db.execute(select(SchoolClass).where(SchoolClass.id.in_(valid_classes(school_id)))))
             .scalars()
             .all()
         )
-        # Two grouped aggregates for the whole school instead of a pair of COUNT
-        # queries per class (was 2N+1; now 3). Counts are keyed by class_id.
+        # Bounded grouped queries for the whole school, not per-class COUNTs.
+        # A separate distinct total avoids double-counting across classes.
         section_counts = {
             class_id: n
             for class_id, n in (
@@ -174,7 +202,7 @@ class ReportingService:
                     select(Section.class_id, func.count())
                     .select_from(Section)
                     .join(SchoolClass, SchoolClass.id == Section.class_id)
-                    .where(SchoolClass.school_id == school_id)
+                    .where(Section.id.in_(self._sections(school_id)))
                     .group_by(Section.class_id)
                 )
             ).all()
@@ -191,8 +219,7 @@ class ReportingService:
                     .join(Section, Section.id == StudentEnrollment.section_id)
                     .join(SchoolClass, SchoolClass.id == Section.class_id)
                     .where(
-                        SchoolClass.school_id == school_id,
-                        StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                        StudentEnrollment.id.in_(self._enrollments(school_id).with_only_columns(StudentEnrollment.id)),
                     )
                     .group_by(Section.class_id)
                 )
@@ -200,10 +227,8 @@ class ReportingService:
         }
 
         out: list[schemas.ClassEnrollment] = []
-        total_students = 0
         for cls in classes:
             students = student_counts.get(cls.id, 0)
-            total_students += students
             out.append(
                 schemas.ClassEnrollment(
                     class_id=cls.id,
@@ -212,6 +237,12 @@ class ReportingService:
                     students=students,
                 )
             )
+        # A student enrolled in two classes is one school-wide student; each
+        # class still counts them once. Historical/inactive user accounts remain
+        # counted if their enrollment is active, preserving existing semantics.
+        total_students = await self.db.scalar(self._enrollments(school_id).with_only_columns(
+            func.count(func.distinct(StudentEnrollment.student_id)),
+        )) or 0
         return schemas.EnrollmentReport(
             school_id=school_id, total_students=total_students, classes=out
         )
@@ -230,16 +261,15 @@ class ReportingService:
         name = student.full_name if student else ""
         avatar_url = (student.profile_metadata or {}).get("avatar_url") if student else None
 
-        # Active sections (assignment scope).
+        # Active sections (assignment scope).  Reuse the school-wide enrollment
+        # boundary so a legacy enrollment pointing to another school's session
+        # cannot make assignments appear in this student's report.
         section_ids = [
             r[0]
             for r in (await self.db.execute(
-                select(StudentEnrollment.section_id).where(
-                    StudentEnrollment.school_id == school_id,
-                    StudentEnrollment.student_id == student_id,
-                    StudentEnrollment.section_id.in_(valid_sections(school_id)),
-                    StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
-                )
+                self._enrollments(school_id)
+                .where(StudentEnrollment.student_id == student_id)
+                .with_only_columns(StudentEnrollment.section_id)
             )).all()
         ]
 

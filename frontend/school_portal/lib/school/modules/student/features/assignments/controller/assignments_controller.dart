@@ -7,10 +7,11 @@ import '../models/assignment.dart';
 class StudentAssignmentsController extends GetxController {
   final StudentRepository _repo;
   StudentAssignmentsController({StudentRepository? repo})
-      : _repo = repo ?? Get.find<StudentRepository>();
+    : _repo = repo ?? Get.find<StudentRepository>();
 
   final loading = true.obs;
   final data = Rxn<AssignmentsData>();
+  final error = RxnString();
 
   // Client-side filters applied over the active assignments list.
   final subjectFilter = <String>{}.obs;
@@ -24,13 +25,20 @@ class StudentAssignmentsController extends GetxController {
 
   Future<void> load() async {
     loading.value = true;
+    error.value = null;
+    data.value = null;
     final res = await _repo.loadAssignments();
-    if (res.success) data.value = res.data;
+    if (res.success && res.data != null) {
+      data.value = res.data;
+    } else {
+      error.value = res.error ?? 'Could not load assignments.';
+    }
     loading.value = false;
   }
 
   /// Distinct subjects present in the loaded assignments (sorted), for filtering.
-  List<String> get subjectOptions => ((data.value?.assignments ?? const [])
+  List<String> get subjectOptions =>
+      ((data.value?.assignments ?? const [])
           .map((a) => a.subject)
           .where((s) => s.isNotEmpty)
           .toSet()

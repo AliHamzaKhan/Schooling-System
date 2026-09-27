@@ -110,3 +110,32 @@ async def test_headmaster_sees_all(client, school):
     q = await client.get(f"{API}/schools/{sid}/leave/requests/for-review", headers=hm)
     assert q.status_code == 200
     assert len(q.json()) >= 1
+
+
+async def test_own_leave_pagination_scopes_before_page_window(client, school):
+    sid, hm = school["id"], school["hm"]
+    student = await create_user(client, sid, hm, "student")
+    stranger = await create_user(client, sid, hm, "student")
+    sh = await login(client, student["email"], student["password"])
+    stranger_headers = await login(client, stranger["email"], stranger["password"])
+
+    first = await _submit(client, sid, sh, leave_type="sick", reason="first")
+    second = await _submit(client, sid, sh, leave_type="sick", reason="second")
+    hidden = await _submit(client, sid, stranger_headers, leave_type="sick", reason="hidden")
+    assert first.status_code == second.status_code == hidden.status_code == 201
+
+    all_visible = await client.get(f"{API}/schools/{sid}/leave/requests/mine", headers=sh)
+    page_one = await client.get(
+        f"{API}/schools/{sid}/leave/requests/mine?limit=1&offset=0", headers=sh
+    )
+    page_two = await client.get(
+        f"{API}/schools/{sid}/leave/requests/mine?limit=1&offset=1", headers=sh
+    )
+    assert all_visible.status_code == page_one.status_code == page_two.status_code == 200
+    visible_ids = [item["id"] for item in all_visible.json()]
+    assert visible_ids == [item["id"] for item in page_one.json() + page_two.json()]
+    assert hidden.json()["id"] not in visible_ids
+
+    invalid_limit = await client.get(f"{API}/schools/{sid}/leave/requests/mine?limit=101", headers=sh)
+    invalid_offset = await client.get(f"{API}/schools/{sid}/leave/requests/mine?offset=-1", headers=sh)
+    assert invalid_limit.status_code == invalid_offset.status_code == 422

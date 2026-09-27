@@ -45,6 +45,15 @@ async def test_fee_payment_and_overpayment(client, school):
     assert inv["status"] == "unpaid"
     assert inv["is_overdue"] is True  # due date in the past
 
+    future = await client.post(
+        f"{API}/schools/{sid}/fees/invoices/{inv['id']}/payments",
+        headers=hm,
+        json={"amount": 2000, "method": "cash", "paid_on": "2099-01-01"},
+    )
+    assert future.status_code == 422
+    unchanged = await client.get(f"{API}/schools/{sid}/fees/invoices/{inv['id']}", headers=hm)
+    assert unchanged.json()["amount_paid"] == 0
+
     # Partial payment.
     await client.post(f"{API}/schools/{sid}/fees/invoices/{inv['id']}/payments", headers=hm,
                       json={"amount": 2000, "method": "cash", "paid_on": "2026-06-18"})

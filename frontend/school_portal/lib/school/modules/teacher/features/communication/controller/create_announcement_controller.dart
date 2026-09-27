@@ -32,7 +32,7 @@ enum AnnouncementChannel {
 class CreateAnnouncementController extends GetxController {
   final TeacherRepository _repo;
   CreateAnnouncementController({TeacherRepository? repo})
-      : _repo = repo ?? Get.find<TeacherRepository>();
+    : _repo = repo ?? Get.find<TeacherRepository>();
 
   /// Field values. Their `TextEditingController`s are owned by
   /// [CreateAnnouncementView]'s State and disposed with that screen.
@@ -41,6 +41,7 @@ class CreateAnnouncementController extends GetxController {
 
   final loadingSections = true.obs;
   final sections = <MyClass>[].obs;
+  final sectionsError = RxnString();
 
   final audience = AnnouncementAudience.section.obs;
   final channel = AnnouncementChannel.push.obs;
@@ -57,21 +58,34 @@ class CreateAnnouncementController extends GetxController {
     if (pending != null) {
       title.value = pending['title'] as String? ?? '';
       body.value = pending['body'] as String? ?? '';
-      audience.value = AnnouncementAudience.values.firstWhere((a) => a.wire == pending['audience_type']);
-      channel.value = AnnouncementChannel.values.firstWhere((c) => c.wire == pending['channel']);
+      audience.value = AnnouncementAudience.values.firstWhere(
+        (a) => a.wire == pending['audience_type'],
+      );
+      channel.value = AnnouncementChannel.values.firstWhere(
+        (c) => c.wire == pending['channel'],
+      );
       sectionId.value = pending['audience_ref'] as String?;
-      error.value = 'Previous save unresolved. Retry this restored announcement unchanged.';
+      error.value =
+          'Previous save unresolved. Retry this restored announcement unchanged.';
     }
-    _loadSections();
+    loadSections();
   }
 
-  Future<void> _loadSections() async {
+  Future<void> loadSections() async {
     loadingSections.value = true;
+    sectionsError.value = null;
+    sections.clear();
+    sectionId.value = null;
     final res = await _repo.loadMyTimetable();
     if (res.success) {
       final mine = MyClass.fromSlots(res.data ?? const []);
       sections.assignAll(mine);
-      if (mine.isNotEmpty && sectionId.value == null) sectionId.value = mine.first.sectionId;
+      if (mine.isNotEmpty && sectionId.value == null) {
+        sectionId.value = mine.first.sectionId;
+      }
+    } else {
+      sectionsError.value =
+          res.error ?? 'Could not load your timetable sections.';
     }
     loadingSections.value = false;
   }
@@ -90,6 +104,11 @@ class CreateAnnouncementController extends GetxController {
       return false;
     }
     final targetingSection = audience.value == AnnouncementAudience.section;
+    if (targetingSection && sectionsError.value != null) {
+      error.value =
+          'Reconnect to load your sections before sending to a section.';
+      return false;
+    }
     if (targetingSection && sectionId.value == null) {
       error.value = 'Pick a section to send to.';
       return false;

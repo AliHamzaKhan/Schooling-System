@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:shared/shared.dart';
 
 import '../models/child.dart';
 import '../../data/guardian_repository.dart';
@@ -13,11 +14,14 @@ import '../../data/guardian_repository.dart';
 class GuardianSessionController extends GetxController {
   final GuardianRepository _repo;
   GuardianSessionController({GuardianRepository? repo})
-      : _repo = repo ?? Get.find<GuardianRepository>();
+    : _repo = repo ?? Get.find<GuardianRepository>();
 
   final loading = true.obs;
   final children = <Child>[].obs;
   final selectedId = RxnString();
+  final error = RxnString();
+  Worker? _accountWorker;
+  int _generation = 0;
 
   /// The active child, or null while loading / if the guardian has none.
   Child? get selected {
@@ -31,15 +35,39 @@ class GuardianSessionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    if (Get.isRegistered<AuthService>()) {
+      final auth = Get.find<AuthService>();
+      _accountWorker = ever(auth.currentUser, (_) {
+        ++_generation;
+        children.clear();
+        selectedId.value = null;
+        error.value = null;
+        if (auth.roleCodes.contains('guardian')) load();
+      });
+    }
     load();
   }
 
+  @override
+  void onClose() {
+    ++_generation;
+    _accountWorker?.dispose();
+    super.onClose();
+  }
+
   Future<void> load() async {
+    final generation = ++_generation;
     loading.value = true;
+    error.value = null;
+    children.clear();
+    selectedId.value = null;
     final res = await _repo.loadChildren();
+    if (generation != _generation || isClosed) return;
     if (res.success && res.data != null) {
       children.assignAll(res.data!);
-      selectedId.value ??= children.isNotEmpty ? children.first.id : null;
+      selectedId.value = children.isNotEmpty ? children.first.id : null;
+    } else {
+      error.value = res.error ?? 'Could not load linked children.';
     }
     loading.value = false;
   }

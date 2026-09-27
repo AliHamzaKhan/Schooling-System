@@ -3,13 +3,12 @@ import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 
-import '../env/env_config.dart';
 import 'notification_api.dart';
 import 'notification_config.dart';
+import 'notification_diagnostics.dart';
 import 'push_message.dart';
 
 /// Top-level FCM background handler.
@@ -81,10 +80,6 @@ class NotificationService extends GetxService {
   final _subscriptions = <StreamSubscription<dynamic>>[];
   bool _initialised = false;
 
-  void _log(String msg) {
-    if (EnvConfig.verboseLogging) debugPrint('[NotificationService] $msg');
-  }
-
   /// Initialise messaging, local notifications, permissions and all listeners.
   /// Assumes `Firebase.initializeApp()` has already run. Idempotent.
   Future<void> init({NotificationConfig? config}) async {
@@ -105,17 +100,19 @@ class NotificationService extends GetxService {
 
     // Token + refresh.
     token.value = await _fcm.getToken();
-    _log('token: ${token.value}');
+    writeNotificationDiagnostic(NotificationDiagnosticEvent.tokenRetrieved);
     _subscriptions.add(_fcm.onTokenRefresh.listen((t) {
       token.value = t;
-      _log('token refreshed');
+      writeNotificationDiagnostic(NotificationDiagnosticEvent.tokenRefreshed);
     }));
 
     // Foreground messages → re-raise as a local notification + expose state.
     _subscriptions.add(FirebaseMessaging.onMessage.listen((m) {
       final msg = PushMessage.fromRemote(m, source: PushSource.foreground);
       lastMessage.value = msg;
-      _log('foreground: $msg');
+      writeNotificationDiagnostic(
+        NotificationDiagnosticEvent.foregroundMessageReceived,
+      );
       _showLocal(m);
     }));
 
@@ -211,12 +208,16 @@ class NotificationService extends GetxService {
   // ── Topics ──────────────────────────────────────────────────
   Future<void> subscribeToTopic(String topic) async {
     await _fcm.subscribeToTopic(topic);
-    _log('subscribed: $topic');
+    writeNotificationDiagnostic(
+      NotificationDiagnosticEvent.topicSubscriptionChanged,
+    );
   }
 
   Future<void> unsubscribeFromTopic(String topic) async {
     await _fcm.unsubscribeFromTopic(topic);
-    _log('unsubscribed: $topic');
+    writeNotificationDiagnostic(
+      NotificationDiagnosticEvent.topicSubscriptionChanged,
+    );
   }
 
   /// Subscribe to several topics at once (e.g. role + per-user).
@@ -249,8 +250,10 @@ class NotificationService extends GetxService {
     if (current != null && current.isNotEmpty) {
       try {
         await api.registerDevice(token: current, platform: platform);
-      } catch (e) {
-        _log('device register failed: $e');
+      } catch (_) {
+        writeNotificationDiagnostic(
+          NotificationDiagnosticEvent.deviceRegistrationFailed,
+        );
       }
     }
     // Re-register whenever FCM rotates the token.
@@ -258,8 +261,10 @@ class NotificationService extends GetxService {
       if (t == null || t.isEmpty) return;
       try {
         await api.registerDevice(token: t, platform: _syncPlatform);
-      } catch (e) {
-        _log('device re-register failed: $e');
+      } catch (_) {
+        writeNotificationDiagnostic(
+          NotificationDiagnosticEvent.deviceReregistrationFailed,
+        );
       }
     });
   }
@@ -272,8 +277,10 @@ class NotificationService extends GetxService {
     if (current != null && current.isNotEmpty) {
       try {
         await api.unregisterDevice(current);
-      } catch (e) {
-        _log('device unregister failed: $e');
+      } catch (_) {
+        writeNotificationDiagnostic(
+          NotificationDiagnosticEvent.deviceUnregistrationFailed,
+        );
       }
     }
   }

@@ -22,27 +22,37 @@ class AttendanceClassesView extends GetView<TeacherAttendanceController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: SkeletonCardList(count: 4, height: 96));
+              return const SkeletonPage(
+                body: SkeletonCardList(count: 4, height: 96),
+              );
+            }
+            final error = controller.error.value;
+            if (error != null) {
+              return _AttendanceClassesError(
+                message: error,
+                onRetry: controller.load,
+              );
             }
             return ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  0,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                0,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
                 Text('Attendance', style: AppTypography.headlineLg),
                 const SizedBox(height: AppSpacing.stackSm),
-                Text('Pick a class to take today\'s attendance.',
-                    style: AppTypography.bodyLg),
+                Text(
+                  'Pick a class to take today\'s attendance.',
+                  style: AppTypography.bodyLg,
+                ),
                 const SizedBox(height: AppSpacing.stackLg),
                 for (final c in controller.classes) ...[
                   _ClassRow(
                     item: c,
-                    onTap: () => Get.toNamed(
-                      TeacherRoutes.attendanceMark,
-                      arguments: c,
-                    ),
+                    onTap: () =>
+                        Get.toNamed(TeacherRoutes.attendanceMark, arguments: c),
                   ),
                   const SizedBox(height: AppSpacing.stackMd),
                 ],
@@ -53,6 +63,44 @@ class AttendanceClassesView extends GetView<TeacherAttendanceController> {
       ],
     );
   }
+}
+
+class _AttendanceClassesError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _AttendanceClassesError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.stackXl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            AppIcons.errorOutlineRounded,
+            color: AppColors.error,
+            size: 32,
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text('Attendance is unavailable', style: AppTypography.headlineLg),
+          const SizedBox(height: AppSpacing.stackSm),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyLg,
+          ),
+          const SizedBox(height: AppSpacing.stackLg),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(AppIcons.refreshRounded),
+            label: const Text('Try again'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ClassRow extends StatelessWidget {
@@ -81,14 +129,23 @@ class _ClassRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.subject,
-                    style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w700)),
-                Text('${item.grade} · ${item.students} students',
-                    style: AppTypography.bodyMd),
+                Text(
+                  item.subject,
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${item.grade} · ${item.students} students',
+                  style: AppTypography.bodyMd,
+                ),
               ],
             ),
           ),
-          const Icon(AppIcons.chevronRightRounded, color: AppColors.onSurfaceVariant),
+          const Icon(
+            AppIcons.chevronRightRounded,
+            color: AppColors.onSurfaceVariant,
+          ),
         ],
       ),
     );

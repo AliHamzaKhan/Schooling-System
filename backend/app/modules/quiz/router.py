@@ -70,9 +70,10 @@ async def generate_questions_from_pdf(
 
 @router.get("", response_model=list[schemas.QuizOut], dependencies=[_view])
 async def list_quizzes(
-    school_id: uuid.UUID, db: DbDep, section_id: uuid.UUID | None = Query(default=None)
+    school_id: uuid.UUID, db: DbDep, current_user: CurrentUser,
+    section_id: uuid.UUID | None = Query(default=None)
 ) -> list[schemas.QuizOut]:
-    return await QuizService(db).list_quizzes(school_id, section_id)
+    return await QuizService(db).list_quizzes(school_id, section_id, current_user.id)
 
 
 @router.get("/assigned", response_model=list[schemas.QuizOut], dependencies=[_view])
@@ -103,7 +104,7 @@ async def section_roster(
 async def get_quiz(
     school_id: uuid.UUID, quiz_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> schemas.QuizDetailOut:
-    quiz = await QuizService(db).get_quiz(school_id, quiz_id)
+    quiz = await QuizService(db).get_quiz(school_id, quiz_id, current_user.id)
     detail = schemas.QuizDetailOut.model_validate(quiz)
     # Students (view-only) must not receive the answer key. Teachers/graders
     # (HOMEWORK edit) keep it so they can review questions.
@@ -126,10 +127,10 @@ async def assign_quiz(
 
 @router.get("/{quiz_id}/performance", response_model=schemas.QuizPerformance, dependencies=[_view])
 async def quiz_performance(
-    school_id: uuid.UUID, quiz_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, quiz_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> schemas.QuizPerformance:
     """Per-student scores for a quiz (roster joined with attempts)."""
-    return await QuizService(db).performance(school_id, quiz_id)
+    return await QuizService(db).performance(school_id, quiz_id, current_user.id)
 
 
 @router.patch("/{quiz_id}", response_model=schemas.QuizOut, dependencies=[_edit])
@@ -201,16 +202,16 @@ async def submit_attempt(
 
 @router.get("/{quiz_id}/attempts", response_model=list[schemas.AttemptOut], dependencies=[_view])
 async def list_attempts(
-    school_id: uuid.UUID, quiz_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, quiz_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> list[schemas.AttemptOut]:
-    return await QuizService(db).list_attempts(school_id, quiz_id)
+    return await QuizService(db).list_attempts(school_id, quiz_id, current_user.id)
 
 
 @router.get("/attempts/{attempt_id}", response_model=schemas.AttemptDetailOut, dependencies=[_view])
 async def get_attempt(
-    school_id: uuid.UUID, attempt_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, attempt_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> schemas.AttemptDetailOut:
-    return await QuizService(db).get_attempt(school_id, attempt_id)
+    return await QuizService(db).get_attempt(school_id, attempt_id, current_user.id)
 
 
 @router.patch("/attempts/{attempt_id}/grade", response_model=schemas.AttemptDetailOut, dependencies=[_edit])
@@ -226,14 +227,14 @@ async def grade_attempt(
 
 @router.get("/students/{student_id}/attempts", response_model=list[schemas.AttemptOut], dependencies=[_view, Depends(verify_student_access)])
 async def student_attempts(
-    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> list[schemas.AttemptOut]:
-    return await QuizService(db).student_attempts(school_id, student_id)
+    return await QuizService(db).student_attempts(school_id, student_id, current_user.id)
 
 
 # -------------------------------- report -------------------------------- #
 
 
 @router.get("/{quiz_id}/report", response_model=schemas.QuizReport, dependencies=[_view])
-async def quiz_report(school_id: uuid.UUID, quiz_id: uuid.UUID, db: DbDep) -> schemas.QuizReport:
-    return await QuizService(db).report(school_id, quiz_id)
+async def quiz_report(school_id: uuid.UUID, quiz_id: uuid.UUID, db: DbDep, current_user: CurrentUser) -> schemas.QuizReport:
+    return await QuizService(db).report(school_id, quiz_id, current_user.id)

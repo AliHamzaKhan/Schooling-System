@@ -125,7 +125,46 @@ class HeadmasterRepository {
 
   Future<ApiResponse<ExamsData>> loadExams() => _api.fetchExams();
 
-  Future<ApiResponse<FeesData>> loadFees() => _api.fetchFees();
+  Future<ApiResponse<FeesData>> loadFees({DateTime? agingAsOf}) =>
+      _api.fetchFees(agingAsOf: agingAsOf);
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> loadFinancialAdjustments({
+    int limit = 20,
+    int offset = 0,
+    String? kind,
+    String? targetType,
+    String? decision,
+  }) => _api.fetchFinancialAdjustments(
+    limit: limit,
+    offset: offset,
+    kind: kind,
+    targetType: targetType,
+    decision: decision,
+  );
+
+  Future<ApiResponse<Map<String, dynamic>>> createFinancialAdjustment({
+    required String kind,
+    required String targetId,
+    required String proposedAmount,
+    required String currencyCode,
+    required String reason,
+  }) => _api.createFinancialAdjustment(
+    kind: kind,
+    targetId: targetId,
+    proposedAmount: proposedAmount,
+    currencyCode: currencyCode,
+    reason: reason,
+  );
+
+  Future<ApiResponse<Map<String, dynamic>>> decideFinancialAdjustment({
+    required String adjustmentId,
+    required String decision,
+    required String reason,
+  }) => _api.decideFinancialAdjustment(
+    adjustmentId: adjustmentId,
+    decision: decision,
+    reason: reason,
+  );
 
   Future<ApiResponse<ClassDirectoryData>> loadClasses() => _api.fetchClasses();
 
@@ -290,11 +329,43 @@ class HeadmasterRepository {
     required double amount,
     required String method,
     DateTime? paidOn,
+    String? reference,
+    String? note,
+    String? proofUrl,
   }) => _api.recordPayment(
     invoiceId: invoiceId,
     amount: amount,
     method: method,
     paidOn: paidOn,
+    reference: reference,
+    note: note,
+    proofUrl: proofUrl,
+  );
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> loadBillingContacts(
+    String studentId,
+  ) => _api.fetchBillingContacts(studentId);
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> loadBillingContactCandidates(
+    String studentId,
+  ) => _api.fetchBillingContactCandidates(studentId);
+
+  Future<ApiResponse<Map<String, dynamic>>> saveBillingContact({
+    required String studentId,
+    required String guardianId,
+    String? billingEmail,
+    String? billingPhone,
+    String? payerReference,
+    required bool isPrimary,
+    String? note,
+  }) => _api.saveBillingContact(
+    studentId: studentId,
+    guardianId: guardianId,
+    billingEmail: billingEmail,
+    billingPhone: billingPhone,
+    payerReference: payerReference,
+    isPrimary: isPrimary,
+    note: note,
   );
 
   /// Compose a school-wide (or audience-scoped) announcement broadcast.

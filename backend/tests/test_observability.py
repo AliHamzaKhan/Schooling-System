@@ -28,6 +28,7 @@ async def test_readiness_reports_dependency_checks(client):
     assert body["status"] == "ready"
     assert body["checks"]["database"] == "ok"
     assert body["checks"]["redis"] == "not_configured"
+    assert body["checks"]["upload_scanner"] == "disabled"
 
 
 async def test_metrics_endpoint_exposes_prometheus(client):

@@ -219,6 +219,18 @@ def test_download_access_log_redacts_ticket_query():
     assert "file-download" in record.getMessage()
 
 
+def test_download_access_log_redacts_every_query_value():
+    import logging
+    from app.modules.uploads.downloads import DownloadLogFilter
+
+    record = logging.LogRecord("uvicorn.access", logging.INFO, "", 0, '%s - "%s %s HTTP/%s" %d',
+                               ("client", "GET", f"{API}/auth/verify?email=student@example.test&token=secret", "1.1", 200), None)
+    assert DownloadLogFilter().filter(record)
+    assert "student@example.test" not in record.getMessage()
+    assert "secret" not in record.getMessage()
+    assert "/auth/verify" in record.getMessage()
+
+
 async def test_public_raster_compatibility_and_active_content_rejected(client, school):
     png = b"\x89PNG\r\n\x1a\nfixture"
     url = await upload(client, school, school["hm"], "avatars", png)

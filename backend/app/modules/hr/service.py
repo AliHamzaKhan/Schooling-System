@@ -19,8 +19,17 @@ class HRService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def _get_profile(self, school_id: uuid.UUID, profile_id: uuid.UUID) -> StaffProfile:
-        profile = await self.db.get(StaffProfile, profile_id)
+    async def _get_profile(
+        self,
+        school_id: uuid.UUID,
+        profile_id: uuid.UUID,
+        *,
+        for_update: bool = False,
+    ) -> StaffProfile:
+        stmt = select(StaffProfile).where(StaffProfile.id == profile_id)
+        if for_update:
+            stmt = stmt.with_for_update()
+        profile = await self.db.scalar(stmt)
         if profile is None or profile.school_id != school_id:
             raise not_found("Staff profile not found in this school")
         return profile
@@ -111,7 +120,10 @@ class HRService:
         )
 
     async def generate_payslip(self, school_id: uuid.UUID, profile_id: uuid.UUID, data: schemas.PayslipGenerate) -> Payslip:
-        profile = await self._get_profile(school_id, profile_id)
+        # Lock the profile before checking the period constraint.  The unique
+        # index remains the final invariant, while this gives callers a clear
+        # business error rather than a late integrity failure under overlap.
+        profile = await self._get_profile(school_id, profile_id, for_update=True)
         dupe = await self.db.scalar(
             select(Payslip).where(
                 Payslip.staff_profile_id == profile_id,
@@ -159,7 +171,9 @@ class HRService:
         return payslip
 
     async def mark_paid(self, school_id: uuid.UUID, payslip_id: uuid.UUID) -> Payslip:
-        payslip = await self.db.get(Payslip, payslip_id)
+        payslip = await self.db.scalar(
+            select(Payslip).where(Payslip.id == payslip_id).with_for_update()
+        )
         if payslip is None or payslip.school_id != school_id:
             raise not_found("Payslip not found in this school")
         if payslip.status == "paid":

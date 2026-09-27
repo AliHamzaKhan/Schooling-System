@@ -51,6 +51,8 @@ class SecurityHeadersMiddleware:
                     path.startswith(f"{settings.API_V1_PREFIX}/schools/")
                     and ("/communication/" in path or "/messages/" in path or path.endswith("/messages")
                          or "/academic/" in path or "/reports/" in path
+                         or "/attendance/" in path or path.endswith("/attendance")
+                         or path.endswith("/fees/report")
                          or ("/sections/" in path and path.endswith("/students")))
                 )
                 if (private_communication or path == f"{settings.API_V1_PREFIX}/file-download" or

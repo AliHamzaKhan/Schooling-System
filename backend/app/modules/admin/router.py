@@ -34,3 +34,9 @@ async def transactions(
 @router.get("/metrics", response_model=schemas.MetricsReport)
 async def metrics(db: DbDep, _: SuperAdmin) -> schemas.MetricsReport:
     return await AdminMetricsService(db).metrics()
+
+
+@router.get("/operations", response_model=schemas.OperationsStatus)
+async def operations(db: DbDep, _: SuperAdmin) -> schemas.OperationsStatus:
+    """Platform-only aggregate view of the durable delivery worker and outbox."""
+    return await AdminMetricsService(db).operations()

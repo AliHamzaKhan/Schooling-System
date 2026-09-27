@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.core.deps import CurrentUser, DbDep, require_school_member, require_school_permission
 from app.core.enums import Module, PermissionAction as PA
+from app.core.pagination import OffsetPage
 from app.modules.leave import schemas
 from app.modules.leave.service import LeaveService
 
@@ -26,22 +27,33 @@ async def submit_leave(school_id: uuid.UUID, data: schemas.LeaveSubmit, db: DbDe
 
 
 @router.get("/requests/mine", response_model=list[schemas.LeaveOut], dependencies=[_member])
-async def my_leave(school_id: uuid.UUID, db: DbDep, current_user: CurrentUser) -> list[schemas.LeaveOut]:
-    return await LeaveService(db).list_own(school_id, current_user.id)
+async def my_leave(
+    school_id: uuid.UUID, db: DbDep, current_user: CurrentUser, page: OffsetPage = Depends()
+) -> list[schemas.LeaveOut]:
+    return await LeaveService(db).list_own(school_id, current_user.id, page)
 
 
 @router.get("/requests/for-review", response_model=list[schemas.LeaveOut], dependencies=[_member])
 async def review_queue(
-    school_id: uuid.UUID, db: DbDep, current_user: CurrentUser, status: str | None = Query(default=None)
+    school_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+    status: str | None = Query(default=None),
+    page: OffsetPage = Depends(),
 ) -> list[schemas.LeaveOut]:
     """Leaves the caller may review — all for a headmaster/approver, or their own
     sections' students for a class teacher."""
-    return await LeaveService(db).list_for_review(school_id, current_user, status)
+    return await LeaveService(db).list_for_review(school_id, current_user, status, page)
 
 
 @router.get("/requests", response_model=list[schemas.LeaveOut], dependencies=[_view])
-async def list_leave(school_id: uuid.UUID, db: DbDep, status: str | None = Query(default=None)) -> list[schemas.LeaveOut]:
-    return await LeaveService(db).list_all(school_id, status)
+async def list_leave(
+    school_id: uuid.UUID,
+    db: DbDep,
+    status: str | None = Query(default=None),
+    page: OffsetPage = Depends(),
+) -> list[schemas.LeaveOut]:
+    return await LeaveService(db).list_all(school_id, status, page)
 
 
 @router.post("/requests/{leave_id}/approve", response_model=schemas.LeaveOut, dependencies=[_member])

@@ -64,8 +64,18 @@ recipients) is lifted off the request path onto an `arq` worker.
   least one worker: `arq app.worker.WorkerSettings` (the `worker` service in
   `deploy/docker-compose.prod.yml`). Scale workers independently: `--scale
   worker=2`.
-- With the flag off (default) delivery runs inline, unchanged — so enabling
-  offload is a deliberate step that can't strand jobs with no consumer.
+- Notifications always persist work in the durable outbox; the worker consumes
+  that work regardless of the legacy queue flag. Run at least one worker before
+  accepting broadcasts in an environment.
+
+The worker writes a coalesced `notification_outbox` heartbeat at startup and on
+each polling cycle. `GET /api/v1/admin/operations` is Super-Admin-only and
+reports only aggregate queue counts, due/expired work, and whether at least one
+worker replica has recently checked in. It never returns notification content,
+recipient data, message IDs, hostnames or provider errors. A `stale` or
+`not_seen` result is an operational alert condition; it is deliberately not an
+API readiness failure, because serving authenticated requests and processing
+background deliveries have different recovery actions.
 
 ## Observability
 
@@ -73,6 +83,10 @@ recipients) is lifted off the request path onto an `arq` worker.
   honoured), and every log line for that request includes it, so a request can be
   traced across instances. Format: `… [<request_id>]: <message>`.
 - **Access log + latency** — one line per request (method, path, status, ms).
+- **Structured production logs** — `LOG_FORMAT=json` emits a fixed envelope:
+  timestamp, level, logger, correlation ID and a source-controlled message;
+  exception type is retained without an exception message/trace. API events use
+  the route template instead of a raw path or query string.
 - **Health probes**:
   - `GET /health` — liveness (process up). Used by the container healthcheck.
   - `GET /health/ready` — readiness: checks Postgres and Redis, returns `503`
@@ -109,6 +123,8 @@ subject) when authenticated else per-IP:
 |---|---|---|
 | `REDIS_URL` | — (required in prod) | rate limits, cache, task broker |
 | `TASK_QUEUE_ENABLED` | `false` | offload notifications to the worker |
+| `OUTBOX_WORKER_STALE_AFTER_SECONDS` | `60` | heartbeat age before operations reports the worker stale |
+| `LOG_FORMAT` | `text` locally / `json` required outside development | content-free machine-readable application logs |
 | `TENANT_STATUS_CACHE_TTL` | `30` | seconds to cache tenant serviceability (0 = off) |
 | `PASSWORD_RESET_OTP_TTL_MINUTES` | `10` | reset OTP validity |
 | `PASSWORD_RESET_MAX_ATTEMPTS` | `5` | wrong-OTP guesses before it's burned |

@@ -14,6 +14,7 @@ from app.core.deps import (
     verify_student_access,
 )
 from app.core.enums import Module, PermissionAction as PA
+from app.core.pagination import OffsetPage
 from app.modules.documents import schemas
 from app.modules.documents.service import DocumentService
 
@@ -36,9 +37,12 @@ async def add_document(
 
 @router.get("", response_model=list[schemas.DocumentOut], dependencies=[Depends(verify_student_access)])
 async def list_documents(
-    school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID,
+    student_id: uuid.UUID,
+    db: DbDep,
+    page: OffsetPage = Depends(),
 ) -> list[schemas.DocumentOut]:
-    return await DocumentService(db).list_for_student(school_id, student_id)
+    return await DocumentService(db).list_for_student(school_id, student_id, page)
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[_delete])

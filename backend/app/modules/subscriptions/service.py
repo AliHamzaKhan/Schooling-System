@@ -6,17 +6,18 @@ is *soft*: subscriptions past their end date are lazily flipped to `expired` and
 reflected in status/lists, but no API access is blocked here.
 """
 import calendar
+import hashlib
 import re
 import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import cache
 from app.core.enums import BillingPeriod, DiscountType, SubscriptionStatus
-from app.core.exceptions import bad_request, not_found
+from app.core.exceptions import AppHTTPException, ErrorCode, bad_request, not_found
 from app.modules.subscriptions.capacity import active_student_count
 from app.models.school import School
 from app.models.subscription import (
@@ -137,15 +138,73 @@ class SubscriptionService:
             .values(status=SubscriptionStatus.EXPIRED.value)
         )
 
-    async def assign(self, data: schemas.SubscriptionCreate) -> SchoolSubscription:
-        school = await self.db.get(School, data.school_id)
+    async def _lock_idempotency_key(self, scope: bytes, key: uuid.UUID) -> None:
+        """Serialize retries for a durable ledger/request identity.
+
+        The row identity alone prevents duplicate records after commit.  The
+        advisory transaction lock also closes the check-then-insert window for
+        overlapping requests before either transaction has committed.
+        """
+        lock_key = int.from_bytes(
+            hashlib.sha256(scope + key.bytes).digest()[:8], "big", signed=True
+        )
+        await self.db.execute(
+            text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key}
+        )
+
+    @staticmethod
+    def _same_assignment(
+        subscription: SchoolSubscription,
+        data: schemas.SubscriptionCreate,
+        start: date,
+    ) -> bool:
+        """Check immutable assignment inputs when a request key is retried."""
+        return (
+            subscription.school_id == data.school_id
+            and subscription.plan_id == data.plan_id
+            and subscription.start_date == start
+            and subscription.discount_type == data.discount_type.value
+            and subscription.discount_value == Decimal(str(data.discount_value))
+            # A missing override means "use the plan cap". That cap is
+            # deliberately snapshotted, so a later plan edit must not make an
+            # otherwise identical retry conflict with its original request.
+            and (
+                data.max_students is None
+                or subscription.max_students == data.max_students
+            )
+        )
+
+    async def assign(
+        self,
+        data: schemas.SubscriptionCreate,
+        *,
+        idempotency_key: uuid.UUID | None = None,
+    ) -> SchoolSubscription:
+        start = data.start_date or date.today()
+        if idempotency_key is not None:
+            await self._lock_idempotency_key(b"subscription-assignment:", idempotency_key)
+            existing = await self.db.get(SchoolSubscription, idempotency_key)
+            if existing is not None:
+                if not self._same_assignment(existing, data, start):
+                    raise AppHTTPException(
+                        409,
+                        "Subscription request key was already used for different details",
+                        ErrorCode.CONFLICT,
+                    )
+                return await self._load_out(existing.id)
+
+        # Serializing assignments on the school makes the active-subscription
+        # replacement and the corresponding initial ledger entry one atomic
+        # state transition.
+        school = await self.db.scalar(
+            select(School).where(School.id == data.school_id).with_for_update()
+        )
         if school is None:
             raise not_found("School not found")
         plan = await self.get_plan(data.plan_id)
         if not plan.is_active:
             raise bad_request("Cannot assign an archived plan")
 
-        start = data.start_date or date.today()
         period = BillingPeriod(plan.billing_period)
         end = _add_months(start, period.months)
         base = Decimal(str(plan.price))
@@ -170,6 +229,7 @@ class SubscriptionService:
             data.max_students if data.max_students is not None else plan.max_students
         )
         sub = SchoolSubscription(
+            id=idempotency_key or uuid.uuid4(),
             school_id=school.id,
             plan_id=plan.id,
             status=status.value,
@@ -203,9 +263,29 @@ class SubscriptionService:
         return await self._load_out(sub.id)
 
     async def renew(
-        self, subscription_id: uuid.UUID, data: schemas.SubscriptionRenew
+        self,
+        subscription_id: uuid.UUID,
+        data: schemas.SubscriptionRenew,
+        *,
+        idempotency_key: uuid.UUID | None = None,
     ) -> SchoolSubscription:
-        sub = await self.db.get(SchoolSubscription, subscription_id)
+        if idempotency_key is not None:
+            await self._lock_idempotency_key(b"subscription-renewal:", idempotency_key)
+            existing = await self.db.get(SubscriptionPayment, idempotency_key)
+            if existing is not None:
+                if existing.subscription_id != subscription_id:
+                    raise AppHTTPException(
+                        409,
+                        "Subscription request key was already used for a different renewal",
+                        ErrorCode.CONFLICT,
+                    )
+                return await self._load_out(subscription_id)
+
+        sub = await self.db.scalar(
+            select(SchoolSubscription)
+            .where(SchoolSubscription.id == subscription_id)
+            .with_for_update()
+        )
         if sub is None:
             raise not_found("Subscription not found")
 
@@ -218,6 +298,7 @@ class SubscriptionService:
         sub.end_date = new_end
         self.db.add(
             SubscriptionPayment(
+                id=idempotency_key or uuid.uuid4(),
                 subscription_id=sub.id,
                 school_id=sub.school_id,
                 amount=sub.net_amount,
@@ -230,7 +311,11 @@ class SubscriptionService:
         return await self._load_out(sub.id)
 
     async def cancel(self, subscription_id: uuid.UUID) -> SchoolSubscription:
-        sub = await self.db.get(SchoolSubscription, subscription_id)
+        sub = await self.db.scalar(
+            select(SchoolSubscription)
+            .where(SchoolSubscription.id == subscription_id)
+            .with_for_update()
+        )
         if sub is None:
             raise not_found("Subscription not found")
         sub.status = SubscriptionStatus.CANCELLED.value

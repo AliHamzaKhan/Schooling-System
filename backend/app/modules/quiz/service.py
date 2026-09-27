@@ -11,6 +11,8 @@ from app.core.enums import (
     EnrollmentStatus,
     QuestionType,
     QuizStatus,
+    Module,
+    PermissionAction as PA,
 )
 from app.core.exceptions import bad_request, forbidden, not_found
 from app.models.academic import Section, StudentEnrollment, Subject
@@ -19,7 +21,8 @@ from app.models.user import User
 from app.modules.ai.providers import ai_provider
 from app.modules.ai.service import _questions_schema
 from app.modules.quiz import schemas
-from app.modules.academic.access import enrolled_students
+from app.modules.academic.access import enrolled_students, role_ids, valid_sections, valid_subjects
+from app.modules.permissions.service import PermissionService
 
 
 def _now() -> datetime:
@@ -38,28 +41,48 @@ class QuizService:
             raise not_found(f"{label} not found in this school")
         return obj
 
-    async def _is_enrolled(self, section_id: uuid.UUID, student_id: uuid.UUID) -> bool:
+    async def _get_question(self, school_id: uuid.UUID, question_id: uuid.UUID) -> QuizQuestion:
+        question = await self._get_scoped(QuizQuestion, school_id, question_id, "Question")
+        await self.get_quiz(school_id, question.quiz_id)
+        return question
+
+    async def _valid_links(self, school_id: uuid.UUID, section_id: uuid.UUID, subject_id: uuid.UUID) -> None:
+        section = await self.db.scalar(valid_sections(school_id).where(Section.id == section_id))
+        if section is None:
+            raise not_found("Section not found in this school")
+        if await self.db.scalar(valid_subjects(school_id).where(Subject.id == subject_id)) is None:
+            raise not_found("Subject not found in this school")
+
+    async def _is_enrolled(self, school_id: uuid.UUID, section_id: uuid.UUID, student_id: uuid.UUID) -> bool:
         row = await self.db.scalar(
             select(StudentEnrollment).where(
+                StudentEnrollment.school_id == school_id,
                 StudentEnrollment.section_id == section_id,
                 StudentEnrollment.student_id == student_id,
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                StudentEnrollment.section_id.in_(valid_sections(school_id)),
+                StudentEnrollment.student_id.in_(role_ids(school_id, "student", active=True)),
             )
         )
         return row is not None
 
-    async def _enrolled_student_ids(self, section_id: uuid.UUID) -> list[uuid.UUID]:
+    async def _enrolled_student_ids(self, school_id: uuid.UUID, section_id: uuid.UUID) -> list[uuid.UUID]:
         rows = await self.db.execute(
             select(StudentEnrollment.student_id).where(
+                StudentEnrollment.school_id == school_id,
                 StudentEnrollment.section_id == section_id,
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                StudentEnrollment.section_id.in_(valid_sections(school_id)),
+                StudentEnrollment.student_id.in_(role_ids(school_id, "student", active=True)),
             )
         )
         return [r[0] for r in rows.all()]
 
-    async def _assignee_ids(self, quiz_id: uuid.UUID) -> set[uuid.UUID]:
+    async def _assignee_ids(self, school_id: uuid.UUID, quiz_id: uuid.UUID) -> set[uuid.UUID]:
         rows = await self.db.execute(
             select(QuizAssignment.student_id).where(QuizAssignment.quiz_id == quiz_id)
+            .where(QuizAssignment.school_id == school_id,
+                   QuizAssignment.student_id.in_(role_ids(school_id, "student")))
         )
         return {r[0] for r in rows.all()}
 
@@ -67,14 +90,16 @@ class QuizService:
         self, school_id: uuid.UUID, quiz: Quiz, student_ids: list[uuid.UUID]
     ) -> None:
         """Replace a quiz's targeted students (validating each is enrolled)."""
-        enrolled = set(await self._enrolled_student_ids(quiz.section_id))
+        enrolled = set(await self._enrolled_student_ids(school_id, quiz.section_id))
         wanted = list(dict.fromkeys(student_ids))  # de-dupe, keep order
         for sid in wanted:
             if sid not in enrolled:
                 raise bad_request("Every assignee must be enrolled in the quiz's section")
         # Clear existing then re-add.
         existing = await self.db.execute(
-            select(QuizAssignment).where(QuizAssignment.quiz_id == quiz.id)
+            select(QuizAssignment).where(
+                QuizAssignment.school_id == school_id, QuizAssignment.quiz_id == quiz.id
+            )
         )
         for row in existing.scalars().all():
             await self.db.delete(row)
@@ -85,21 +110,20 @@ class QuizService:
             )
         await self.db.flush()
 
-    async def _can_attempt(self, quiz: Quiz, student_id: uuid.UUID) -> bool:
+    async def _can_attempt(self, school_id: uuid.UUID, quiz: Quiz, student_id: uuid.UUID) -> bool:
         """A student may attempt when explicitly assigned, or — if the quiz has no
         explicit assignees — when enrolled in its section."""
-        assignees = await self._assignee_ids(quiz.id)
+        assignees = await self._assignee_ids(school_id, quiz.id)
         if assignees:
             return student_id in assignees
-        return await self._is_enrolled(quiz.section_id, student_id)
+        return await self._is_enrolled(school_id, quiz.section_id, student_id)
 
     # ------------------------------ quizzes ------------------------------ #
 
     async def create_quiz(
         self, school_id: uuid.UUID, data: schemas.QuizCreate, created_by: uuid.UUID
     ) -> Quiz:
-        await self._get_scoped(Section, school_id, data.section_id, "Section")
-        await self._get_scoped(Subject, school_id, data.subject_id, "Subject")
+        await self._valid_links(school_id, data.section_id, data.subject_id)
         quiz = Quiz(
             school_id=school_id,
             section_id=data.section_id,
@@ -119,15 +143,28 @@ class QuizService:
         return quiz
 
     async def list_quizzes(
-        self, school_id: uuid.UUID, section_id: uuid.UUID | None = None
+        self, school_id: uuid.UUID, section_id: uuid.UUID | None = None,
+        viewer_id: uuid.UUID | None = None,
     ) -> list[Quiz]:
-        stmt = select(Quiz).where(Quiz.school_id == school_id)
+        stmt = select(Quiz).where(
+            Quiz.school_id == school_id,
+            Quiz.section_id.in_(valid_sections(school_id)),
+            Quiz.subject_id.in_(valid_subjects(school_id)),
+        )
         if section_id is not None:
             stmt = stmt.where(Quiz.section_id == section_id)
         stmt = stmt.order_by(Quiz.created_at.desc())
-        return list((await self.db.execute(stmt)).scalars().all())
+        quizzes = list((await self.db.execute(stmt)).scalars().all())
+        if viewer_id is None:
+            return quizzes
+        viewer = await self.db.get(User, viewer_id)
+        if viewer is not None and await PermissionService(self.db).has_permission(viewer, Module.HOMEWORK, PA.EDIT):
+            return quizzes
+        visible = await self.list_for_student(school_id, viewer_id)
+        visible_ids = {q.id for q in visible}
+        return [q for q in quizzes if q.id in visible_ids]
 
-    async def get_quiz(self, school_id: uuid.UUID, quiz_id: uuid.UUID) -> Quiz:
+    async def get_quiz(self, school_id: uuid.UUID, quiz_id: uuid.UUID, viewer_id: uuid.UUID | None = None) -> Quiz:
         quiz = await self.db.scalar(
             select(Quiz)
             .where(Quiz.id == quiz_id, Quiz.school_id == school_id)
@@ -135,26 +172,32 @@ class QuizService:
         )
         if quiz is None:
             raise not_found("Quiz not found in this school")
+        await self._valid_links(school_id, quiz.section_id, quiz.subject_id)
+        if viewer_id is not None and await self.db.get(User, viewer_id):
+            viewer = await self.db.get(User, viewer_id)
+            can_edit = await PermissionService(self.db).has_permission(viewer, Module.HOMEWORK, PA.EDIT)
+            if not can_edit and (quiz.status != QuizStatus.PUBLISHED.value or not await self._can_attempt(school_id, quiz, viewer_id)):
+                raise not_found("Quiz not found")
         return quiz
 
     async def update_quiz(
         self, school_id: uuid.UUID, quiz_id: uuid.UUID, data: schemas.QuizUpdate
     ) -> Quiz:
-        quiz = await self._get_scoped(Quiz, school_id, quiz_id, "Quiz")
+        quiz = await self.get_quiz(school_id, quiz_id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(quiz, field, value)
         await self.db.flush()
         return quiz
 
     async def delete_quiz(self, school_id: uuid.UUID, quiz_id: uuid.UUID) -> None:
-        quiz = await self._get_scoped(Quiz, school_id, quiz_id, "Quiz")
+        quiz = await self.get_quiz(school_id, quiz_id)
         await self.db.delete(quiz)
         await self.db.flush()
 
     async def set_status(
         self, school_id: uuid.UUID, quiz_id: uuid.UUID, status: QuizStatus
     ) -> Quiz:
-        quiz = await self._get_scoped(Quiz, school_id, quiz_id, "Quiz")
+        quiz = await self.get_quiz(school_id, quiz_id)
         if status == QuizStatus.PUBLISHED:
             has_question = await self.db.scalar(
                 select(QuizQuestion.id).where(QuizQuestion.quiz_id == quiz_id).limit(1)
@@ -180,7 +223,7 @@ class QuizService:
     async def add_question(
         self, school_id: uuid.UUID, quiz_id: uuid.UUID, data: schemas.QuestionCreate
     ) -> QuizQuestion:
-        await self._get_scoped(Quiz, school_id, quiz_id, "Quiz")
+        await self.get_quiz(school_id, quiz_id)
         self._validate_question(data, data.question_type.value)
         question = QuizQuestion(
             school_id=school_id,
@@ -199,7 +242,7 @@ class QuizService:
     async def update_question(
         self, school_id: uuid.UUID, question_id: uuid.UUID, data: schemas.QuestionUpdate
     ) -> QuizQuestion:
-        question = await self._get_scoped(QuizQuestion, school_id, question_id, "Question")
+        question = await self._get_question(school_id, question_id)
         payload = data.model_dump(exclude_unset=True)
         if "question_type" in payload and data.question_type is not None:
             payload["question_type"] = data.question_type.value
@@ -218,7 +261,7 @@ class QuizService:
         return question
 
     async def delete_question(self, school_id: uuid.UUID, question_id: uuid.UUID) -> None:
-        question = await self._get_scoped(QuizQuestion, school_id, question_id, "Question")
+        question = await self._get_question(school_id, question_id)
         await self.db.delete(question)
         await self.db.flush()
 
@@ -227,13 +270,14 @@ class QuizService:
     async def start_attempt(
         self, school_id: uuid.UUID, quiz_id: uuid.UUID, student_id: uuid.UUID
     ) -> QuizAttempt:
-        quiz = await self._get_scoped(Quiz, school_id, quiz_id, "Quiz")
+        quiz = await self.get_quiz(school_id, quiz_id)
         if quiz.status != QuizStatus.PUBLISHED.value:
             raise bad_request("This quiz is not open for attempts")
-        if not await self._can_attempt(quiz, student_id):
+        if not await self._can_attempt(school_id, quiz, student_id):
             raise forbidden("This quiz is not assigned to you")
         existing = await self.db.scalar(
             select(QuizAttempt).where(
+                QuizAttempt.school_id == school_id,
                 QuizAttempt.quiz_id == quiz_id, QuizAttempt.student_id == student_id
             )
         )
@@ -258,12 +302,15 @@ class QuizService:
         data: schemas.AttemptSubmit,
     ) -> QuizAttempt:
         quiz = await self.get_quiz(school_id, quiz_id)
-        if not await self._can_attempt(quiz, student_id):
+        if quiz.status != QuizStatus.PUBLISHED.value:
+            raise bad_request("This quiz is not open for attempts")
+        if not await self._can_attempt(school_id, quiz, student_id):
             raise forbidden("This quiz is not assigned to you")
 
         attempt = await self.db.scalar(
             select(QuizAttempt)
-            .where(QuizAttempt.quiz_id == quiz_id, QuizAttempt.student_id == student_id)
+            .where(QuizAttempt.school_id == school_id,
+                   QuizAttempt.quiz_id == quiz_id, QuizAttempt.student_id == student_id)
             .options(selectinload(QuizAttempt.answers))
         )
         if attempt is None:
@@ -278,7 +325,11 @@ class QuizService:
             await self.db.flush()
         else:
             if attempt.status != AttemptStatus.IN_PROGRESS.value:
-                raise bad_request("This quiz has already been submitted")
+                # Submission is idempotent.  A mobile client can lose the
+                # successful response after the server has persisted it; a
+                # retry must return that immutable result rather than turning
+                # a completed attempt into an error (or overwriting answers).
+                return attempt
             # Clear any prior answers for a clean re-computation.
             for old in list(attempt.answers):
                 await self.db.delete(old)
@@ -286,6 +337,9 @@ class QuizService:
 
         questions = {q.id: q for q in quiz.questions}
         responses = {a.question_id: a.response for a in data.answers}
+        unknown = set(responses) - set(questions)
+        if unknown:
+            raise bad_request("Answer contains a question outside this quiz")
 
         auto_score = 0.0
         needs_manual = False
@@ -320,9 +374,9 @@ class QuizService:
         )
         await self.db.flush()
         # Re-fetch with answers eagerly loaded for serialization.
-        return await self.get_attempt(school_id, attempt.id)
+        return await self.get_attempt(school_id, attempt.id, student_id)
 
-    async def get_attempt(self, school_id: uuid.UUID, attempt_id: uuid.UUID) -> QuizAttempt:
+    async def get_attempt(self, school_id: uuid.UUID, attempt_id: uuid.UUID, viewer_id: uuid.UUID | None = None) -> QuizAttempt:
         attempt = await self.db.scalar(
             select(QuizAttempt)
             .where(QuizAttempt.id == attempt_id, QuizAttempt.school_id == school_id)
@@ -330,12 +384,21 @@ class QuizService:
         )
         if attempt is None:
             raise not_found("Attempt not found in this school")
+        if viewer_id is not None and attempt.student_id != viewer_id:
+            viewer = await self.db.get(User, viewer_id)
+            if viewer is None or not await PermissionService(self.db).has_permission(viewer, Module.HOMEWORK, PA.EDIT):
+                raise forbidden("You cannot access this attempt")
+        await self.get_quiz(school_id, attempt.quiz_id)
         return attempt
 
-    async def list_attempts(self, school_id: uuid.UUID, quiz_id: uuid.UUID) -> list[QuizAttempt]:
-        await self._get_scoped(Quiz, school_id, quiz_id, "Quiz")
+    async def list_attempts(self, school_id: uuid.UUID, quiz_id: uuid.UUID, viewer_id: uuid.UUID | None = None) -> list[QuizAttempt]:
+        await self.get_quiz(school_id, quiz_id)
+        if viewer_id is not None:
+            viewer = await self.db.get(User, viewer_id)
+            if viewer is None or not await PermissionService(self.db).has_permission(viewer, Module.HOMEWORK, PA.EDIT):
+                raise forbidden("Only quiz staff can view all attempts")
         result = await self.db.execute(
-            select(QuizAttempt).where(QuizAttempt.quiz_id == quiz_id)
+            select(QuizAttempt).where(QuizAttempt.school_id == school_id, QuizAttempt.quiz_id == quiz_id)
         )
         return list(result.scalars().all())
 
@@ -346,7 +409,7 @@ class QuizService:
         data: schemas.GradeAttempt,
         graded_by: uuid.UUID,
     ) -> QuizAttempt:
-        attempt = await self.get_attempt(school_id, attempt_id)
+        attempt = await self.get_attempt(school_id, attempt_id, graded_by)
         answers = {a.id: a for a in attempt.answers}
         for grade in data.grades:
             answer = answers.get(grade.answer_id)
@@ -362,8 +425,14 @@ class QuizService:
         return attempt
 
     async def student_attempts(
-        self, school_id: uuid.UUID, student_id: uuid.UUID
+        self, school_id: uuid.UUID, student_id: uuid.UUID, viewer_id: uuid.UUID | None = None
     ) -> list[QuizAttempt]:
+        if await self.db.scalar(role_ids(school_id, "student").where(User.id == student_id)) is None:
+            raise not_found("Student not found in this school")
+        if viewer_id is not None and viewer_id != student_id:
+            viewer = await self.db.get(User, viewer_id)
+            if viewer is None or not await PermissionService(self.db).has_permission(viewer, Module.HOMEWORK, PA.EDIT):
+                raise forbidden("You cannot access this student's attempts")
         result = await self.db.execute(
             select(QuizAttempt).where(
                 QuizAttempt.school_id == school_id, QuizAttempt.student_id == student_id
@@ -373,10 +442,13 @@ class QuizService:
 
     # ------------------------------- report ------------------------------ #
 
-    async def report(self, school_id: uuid.UUID, quiz_id: uuid.UUID) -> schemas.QuizReport:
+    async def report(self, school_id: uuid.UUID, quiz_id: uuid.UUID, viewer_id: uuid.UUID | None = None) -> schemas.QuizReport:
         quiz = await self.get_quiz(school_id, quiz_id)
+        viewer = await self.db.get(User, viewer_id) if viewer_id else None
+        if viewer is None or not await PermissionService(self.db).has_permission(viewer, Module.HOMEWORK, PA.EDIT):
+            raise forbidden("Only quiz staff can view reports")
         total_marks = sum(q.marks for q in quiz.questions)
-        attempts = await self.list_attempts(school_id, quiz_id)
+        attempts = await self.list_attempts(school_id, quiz_id, viewer_id)
         submitted = [a for a in attempts if a.submitted_at is not None]
         graded = [a for a in attempts if a.status == AttemptStatus.GRADED.value]
         scores = [a.score for a in graded if a.score is not None]
@@ -397,7 +469,7 @@ class QuizService:
     async def assign(
         self, school_id: uuid.UUID, quiz_id: uuid.UUID, data: schemas.AssignQuiz
     ) -> Quiz:
-        quiz = await self._get_scoped(Quiz, school_id, quiz_id, "Quiz")
+        quiz = await self.get_quiz(school_id, quiz_id)
         await self._set_assignees(school_id, quiz, data.student_ids)
         return quiz
 
@@ -405,7 +477,8 @@ class QuizService:
         self, school_id: uuid.UUID, section_id: uuid.UUID
     ) -> list[schemas.RosterStudent]:
         """Enrolled students of a section (for the assignee picker)."""
-        await self._get_scoped(Section, school_id, section_id, "Section")
+        if await self.db.scalar(valid_sections(school_id).where(Section.id == section_id)) is None:
+            raise not_found("Section not found in this school")
         ids = list((await self.db.scalars(enrolled_students(school_id, [section_id]).distinct())).all())
         if not ids:
             return []
@@ -421,8 +494,11 @@ class QuizService:
         they're enrolled in."""
         sec_rows = await self.db.execute(
             select(StudentEnrollment.section_id).where(
+                StudentEnrollment.school_id == school_id,
                 StudentEnrollment.student_id == student_id,
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                StudentEnrollment.section_id.in_(valid_sections(school_id)),
+                StudentEnrollment.student_id.in_(role_ids(school_id, "student", active=True)),
             )
         )
         section_ids = {r[0] for r in sec_rows.all()}
@@ -444,8 +520,12 @@ class QuizService:
         targeted_quiz_ids = {r[0] for r in targeted_rows.all()}
 
         result = await self.db.execute(
-            select(Quiz)
-            .where(Quiz.school_id == school_id, Quiz.status == QuizStatus.PUBLISHED.value)
+            select(Quiz).where(
+                Quiz.school_id == school_id,
+                Quiz.section_id.in_(valid_sections(school_id)),
+                Quiz.subject_id.in_(valid_subjects(school_id)),
+                Quiz.status == QuizStatus.PUBLISHED.value,
+            )
             .order_by(Quiz.created_at.desc())
         )
         visible: list[Quiz] = []
@@ -457,15 +537,18 @@ class QuizService:
         return visible
 
     async def performance(
-        self, school_id: uuid.UUID, quiz_id: uuid.UUID
+        self, school_id: uuid.UUID, quiz_id: uuid.UUID, viewer_id: uuid.UUID | None = None
     ) -> schemas.QuizPerformance:
         """Per-student scores for a quiz (its roster joined with attempts)."""
         quiz = await self.get_quiz(school_id, quiz_id)
+        viewer = await self.db.get(User, viewer_id) if viewer_id else None
+        if viewer is None or not await PermissionService(self.db).has_permission(viewer, Module.HOMEWORK, PA.EDIT):
+            raise forbidden("Only quiz staff can view performance")
         total_marks = sum(q.marks for q in quiz.questions)
-        assignees = await self._assignee_ids(quiz_id)
+        assignees = await self._assignee_ids(school_id, quiz_id)
         roster_ids = (
             list(assignees) if assignees
-            else await self._enrolled_student_ids(quiz.section_id)
+            else await self._enrolled_student_ids(school_id, quiz.section_id)
         )
         names: dict[uuid.UUID, str] = {}
         if roster_ids:

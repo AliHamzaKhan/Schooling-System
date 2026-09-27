@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'role_page_bindings.dart';
 import 'package:shared/shared.dart';
 
 import '../modules/student/features/courses/binding/courses_binding.dart';
@@ -28,12 +29,14 @@ import '../modules/student/features/timetable/view/timetable_view.dart';
 import '../modules/student/features/submission/view/submission_view.dart';
 import '../modules/student/student_shell.dart';
 import 'student_routes.dart';
+import '../modules/student/features/courses/models/course_models.dart';
+import '../modules/student/features/courses/controller/reader_controller.dart';
 
 /// `GetPage` declarations for the Student module.
 class StudentPages {
   StudentPages._();
 
-  static final pages = <GetPage>[
+  static final _pages = <GetPage>[
     GetPage(name: StudentRoutes.shell, page: () => const StudentShell()),
     GetPage(
       name: StudentRoutes.messages,
@@ -86,21 +89,21 @@ class StudentPages {
     ),
     GetPage(
       name: StudentRoutes.courseDetail,
-      page: () => const CourseDetailView(),
+      page: () => Get.arguments is Course ? const CourseDetailView() : const RouteContextMissingView(returnRoute: StudentRoutes.courses),
     ),
     GetPage(
       name: StudentRoutes.courseBook,
-      page: () => const BookChaptersView(),
+      page: () => Get.arguments is Course ? const BookChaptersView() : const RouteContextMissingView(returnRoute: StudentRoutes.courses),
       binding: BookChaptersBinding(),
     ),
     GetPage(
       name: StudentRoutes.courseNotes,
-      page: () => const NotesListView(),
+      page: () => Get.arguments is Course ? const NotesListView() : const RouteContextMissingView(returnRoute: StudentRoutes.courses),
       binding: NotesBinding(),
     ),
     GetPage(
       name: StudentRoutes.courseReader,
-      page: () => const ReaderView(),
+      page: () => Get.arguments is ReaderArgs ? const ReaderView() : const RouteContextMissingView(returnRoute: StudentRoutes.courses),
       binding: ReaderBinding(),
     ),
 
@@ -125,4 +128,8 @@ class StudentPages {
       binding: SchoolInfoBinding(),
     ),
   ];
+  static List<GetPage> get pages => _pages.map((page) => page.copy(
+    middlewares: [...?page.middlewares, RoleRouteGuard({'student'})],
+    bindings: [StudentRouteBinding(), ...page.bindings],
+  )).toList();
 }

@@ -8,11 +8,12 @@ import '../models/fees_data.dart';
 class FeesController extends GetxController {
   final HeadmasterRepository _repo;
   FeesController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+    : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;
   final error = RxnString();
   final data = Rxn<FeesData>();
+  final agingAsOf = Rxn<DateTime>();
 
   @override
   void onInit() {
@@ -20,24 +21,29 @@ class FeesController extends GetxController {
     load();
   }
 
-  Future<void> load() async {
+  Future<void> load({DateTime? asOf}) async {
     loading.value = true;
     error.value = null;
-    final res = await _repo.loadFees();
+    final res = await _repo.loadFees(agingAsOf: asOf ?? agingAsOf.value);
     if (res.success && res.data != null) {
       data.value = res.data;
+      agingAsOf.value = res.data!.agingAsOfDate ?? asOf ?? agingAsOf.value;
     } else {
       error.value = res.error ?? 'Could not load fees.';
     }
     loading.value = false;
   }
 
+  /// Reload the read-only aging report at a selected calendar date.
+  Future<void> setAgingAsOf(DateTime value) =>
+      load(asOf: DateTime(value.year, value.month, value.day));
+
   /// Sends a payment reminder for a single overdue invoice.
   void remind(OverduePayment payment) => Get.snackbar(
-        'Reminder sent',
-        'A payment reminder was sent for ${payment.studentName}.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    'Reminder sent',
+    'A payment reminder was sent for ${payment.studentName}.',
+    snackPosition: SnackPosition.BOTTOM,
+  );
 
   /// Sends reminders to every outstanding invoice.
   void remindAll() {

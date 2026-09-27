@@ -14,7 +14,11 @@ class AssignmentsView extends GetView<StudentAssignmentsController> {
   final ValueChanged<StudentAssignment>? onOpenAssignment;
   final VoidCallback? onNotifications;
 
-  const AssignmentsView({super.key, this.onOpenAssignment, this.onNotifications});
+  const AssignmentsView({
+    super.key,
+    this.onOpenAssignment,
+    this.onNotifications,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,29 +28,43 @@ class AssignmentsView extends GetView<StudentAssignmentsController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: SkeletonCardList(count: 5, height: 104));
+              return const SkeletonPage(
+                body: SkeletonCardList(count: 5, height: 104),
+              );
+            }
+            final error = controller.error.value;
+            if (error != null) {
+              return _AssignmentsLoadError(
+                message: error,
+                onRetry: controller.load,
+              );
             }
             final data = controller.data.value;
             if (data == null) return const SizedBox.shrink();
             return ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  0,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                0,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
                 Text('My Assignments', style: AppTypography.headlineLg),
                 const SizedBox(height: AppSpacing.stackSm),
-                Text("Keep up the great work! You're making solid progress this week.",
-                    style: AppTypography.bodyLg),
+                Text(
+                  "Keep up the great work! You're making solid progress this week.",
+                  style: AppTypography.bodyLg,
+                ),
                 const SizedBox(height: AppSpacing.stackLg),
                 WeeklyProgressCard(summary: data.summary),
                 const SizedBox(height: AppSpacing.stackLg),
                 Row(
                   children: [
                     Expanded(
-                      child: Text('Active Assignments',
-                          style: AppTypography.headlineLg.copyWith(fontSize: 22)),
+                      child: Text(
+                        'Active Assignments',
+                        style: AppTypography.headlineLg.copyWith(fontSize: 22),
+                      ),
                     ),
                     _FilterPill(
                       onTap: controller.openFilter,
@@ -59,8 +77,10 @@ class AssignmentsView extends GetView<StudentAssignmentsController> {
                   Padding(
                     padding: const EdgeInsets.all(AppSpacing.stackXl),
                     child: Center(
-                      child: Text('No assignments match your filters.',
-                          style: AppTypography.bodyLg),
+                      child: Text(
+                        'No assignments match your filters.',
+                        style: AppTypography.bodyLg,
+                      ),
                     ),
                   )
                 else
@@ -78,6 +98,44 @@ class AssignmentsView extends GetView<StudentAssignmentsController> {
       ],
     );
   }
+}
+
+class _AssignmentsLoadError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _AssignmentsLoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.stackXl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            AppIcons.errorOutlineRounded,
+            color: AppColors.error,
+            size: 32,
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text('Assignments are unavailable', style: AppTypography.headlineLg),
+          const SizedBox(height: AppSpacing.stackSm),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyLg,
+          ),
+          const SizedBox(height: AppSpacing.stackLg),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(AppIcons.refreshRounded),
+            label: const Text('Try again'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _FilterPill extends StatelessWidget {
@@ -106,11 +164,19 @@ class _FilterPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(AppIcons.tuneRounded, size: 16, color: AppColors.primary),
+              const Icon(
+                AppIcons.tuneRounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 6),
-              Text(active ? 'Filter ($count)' : 'Filter',
-                  style: AppTypography.labelMd
-                      .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
+              Text(
+                active ? 'Filter ($count)' : 'Filter',
+                style: AppTypography.labelMd.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         ),

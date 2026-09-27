@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../services/auth_service.dart';
 import 'auth_routes.dart';
+import 'session_navigation.dart';
 
 /// Client-side route boundary for role-specific portal surfaces.
 ///
@@ -20,8 +21,14 @@ class RoleRouteGuard extends GetMiddleware {
     }
 
     final auth = Get.find<AuthService>();
+    if (!auth.restoreAttempted && auth.currentUser.value == null) {
+      return RouteSettings(name: SessionNavigation.restoreFor(route));
+    }
     if (!auth.isLoggedIn.value) {
-      return const RouteSettings(name: AuthRoutes.login);
+      return RouteSettings(name: SessionNavigation.loginFor(route));
+    }
+    if (auth.currentUser.value == null) {
+      return RouteSettings(name: SessionNavigation.restoreFor(route));
     }
 
     if (auth.roleCodes.any(allowedRoles.contains)) return null;

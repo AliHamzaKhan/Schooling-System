@@ -25,11 +25,12 @@ HEADERS = {"Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer
 
 class DownloadLogFilter(logging.Filter):
     def filter(self, record):
-        # Uvicorn's access log includes the query string by default. Never log
-        # this bearer capability. Reverse proxies must independently redact it.
+        # Uvicorn's access log includes query strings by default. Queries may
+        # carry bearer capabilities, reset values, or PII, so access logs retain
+        # only the path for every request (not merely file-download tickets).
         if isinstance(record.args, tuple) and len(record.args) == 5:
             args = list(record.args)
-            if isinstance(args[2], str) and "/file-download?" in args[2]:
+            if isinstance(args[2], str) and "?" in args[2]:
                 args[2] = args[2].split("?", 1)[0]
                 record.args = tuple(args)
         return True

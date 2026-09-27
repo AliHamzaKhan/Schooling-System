@@ -1,6 +1,5 @@
 # =============================================================================
-# GitLab CI/CD — backend deploy to the shared AHKStudios VPS.
-# Frontend/Flutter pipelines are intentionally omitted for now.
+# GitLab CI/CD — backend deploy and Flutter release gates.
 #
 # One-time setup (see backend/deploy/README.md for the full checklist):
 #   - Create `school_db` in the shared postgres.
@@ -17,6 +16,26 @@ stages: [lint, test, build, deploy]
 variables:
   IMAGE: $CI_REGISTRY_IMAGE/backend
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+# Flutter is pinned to the SDK revision recorded by all three front-end
+# projects. Update this tag deliberately with the projects' SDK constraints.
+.flutter:
+  image: ghcr.io/cirruslabs/flutter:3.44.1
+  variables:
+    PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+  cache:
+    key:
+      files:
+        - frontend/shared/pubspec.lock
+        - frontend/school_portal/pubspec.lock
+        - frontend/admin_portal/pubspec.lock
+    paths: [.pub-cache/]
+
+.frontend_rules: &frontend_rules
+  - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    changes: [frontend/**/*, .gitlab-ci.yml]
+  - if: '$CI_COMMIT_BRANCH == "main"'
+    changes: [frontend/**/*, .gitlab-ci.yml]
 
 # --------------------------------------------------------------------------- #
 # Backend (FastAPI) — runs from the backend/ directory
@@ -44,6 +63,37 @@ backend:lint:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes: [backend/**/*]
 
+secret:scan:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    # The scanner emits only file/line/category, never matched values.
+    - python backend/scripts/scan_tracked_secrets.py
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+backend:dependency-audit:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    # Pinned scanner; advisory data is fetched at run time and a finding fails
+    # the job. The requirement file includes the production dependencies.
+    - pip install --no-cache-dir "pip-audit==2.9.0"
+    - pip-audit --strict --progress-spinner off -r backend/requirements-dev.txt
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: [backend/**/*, .gitlab-ci.yml]
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes: [backend/**/*, .gitlab-ci.yml]
+
+frontend:dependency-audit:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - python backend/scripts/audit_pub_dependencies.py
+  rules: *frontend_rules
+
 backend:test:
   extends: .backend
   stage: test
@@ -69,10 +119,144 @@ backend:test:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes: [backend/**/*]
 
+backend:migration-rehearsal:
+  extends: .backend
+  stage: test
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: schooling_test
+  script:
+    # The isolated runner creates a disposable restricted role/database. This
+    # tests upgrade/downgrade the outbox and worker-heartbeat migrations in
+    # their own disposable schemas.
+    - export SCHOOLING_TEST_ADMIN_URL="postgresql+asyncpg://postgres:postgres@postgres:5432/postgres"
+    - export JWT_SECRET_KEY="ci-test-secret-not-used-in-prod"
+    - export REDIS_URL=""
+    - export ENVIRONMENT="test"
+    - python scripts/run_isolated_tests.py -- -q tests/test_outbox_migration.py tests/test_worker_heartbeat_migration.py
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: [backend/**/*, .gitlab-ci.yml]
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes: [backend/**/*, .gitlab-ci.yml]
+
+backend:critical-journeys:
+  extends: .backend
+  stage: test
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: schooling_test
+  script:
+    # Named release gate: API contract plus the highest-risk cross-layer flows.
+    - export SCHOOLING_TEST_ADMIN_URL="postgresql+asyncpg://postgres:postgres@postgres:5432/postgres"
+    - export JWT_SECRET_KEY="ci-test-secret-not-used-in-prod"
+    - export REDIS_URL=""
+    - export ENVIRONMENT="test"
+    - python scripts/run_isolated_tests.py -- -q tests/test_api_contract.py tests/test_auth.py tests/test_session_device_lifecycle.py tests/test_payment_concurrency.py tests/test_payment_idempotency.py tests/test_private_downloads.py tests/test_broadcast_isolation.py
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: [backend/**/*, .gitlab-ci.yml]
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes: [backend/**/*, .gitlab-ci.yml]
+
+# --------------------------------------------------------------------------- #
+# Frontend (Flutter) — validate every affected package before a release build.
+# `shared` is a library, so it has no independently deployable web artifact.
+# Both portals are compiled in production mode with an explicit public API URL;
+# the build never contacts that URL or requires a production credential.
+# --------------------------------------------------------------------------- #
+frontend:shared:lint:
+  extends: .flutter
+  stage: lint
+  script:
+    - cd frontend/shared
+    - flutter pub get
+    # Existing informational/warning debt is reported, while errors fail the
+    # release gate. Promote those findings after the recorded baseline cleanup.
+    - flutter analyze --no-fatal-infos --no-fatal-warnings
+  rules: *frontend_rules
+
+frontend:school:lint:
+  extends: .flutter
+  stage: lint
+  script:
+    - cd frontend/school_portal
+    - flutter pub get
+    - flutter analyze --no-fatal-infos --no-fatal-warnings
+  rules: *frontend_rules
+
+frontend:admin:lint:
+  extends: .flutter
+  stage: lint
+  script:
+    - cd frontend/admin_portal
+    - flutter pub get
+    - flutter analyze --no-fatal-infos --no-fatal-warnings
+  rules: *frontend_rules
+
+frontend:shared:test:
+  extends: .flutter
+  stage: test
+  script:
+    - cd frontend/shared
+    - flutter pub get
+    - flutter test
+  rules: *frontend_rules
+
+frontend:school:test:
+  extends: .flutter
+  stage: test
+  script:
+    - cd frontend/school_portal
+    - flutter pub get
+    - flutter test
+  rules: *frontend_rules
+
+frontend:admin:test:
+  extends: .flutter
+  stage: test
+  script:
+    - cd frontend/admin_portal
+    - flutter pub get
+    - flutter test
+  rules: *frontend_rules
+
+frontend:school:build:web:
+  extends: .flutter
+  stage: build
+  script:
+    - cd frontend/school_portal
+    - flutter pub get
+    - flutter build web --release --dart-define=APP_ENV=production --dart-define=API_BASE_URL=https://school.ahkstudios.com/api/v1
+  artifacts:
+    paths: [frontend/school_portal/build/web]
+    expire_in: 1 day
+  rules: *frontend_rules
+
+frontend:admin:build:web:
+  extends: .flutter
+  stage: build
+  script:
+    - cd frontend/admin_portal
+    - flutter pub get
+    - flutter build web --release --dart-define=APP_ENV=production --dart-define=API_BASE_URL=https://school.ahkstudios.com/api/v1
+  artifacts:
+    paths: [frontend/admin_portal/build/web]
+    expire_in: 1 day
+  rules: *frontend_rules
+
 backend:build:
   stage: build
   image: docker:27
-  services: [docker:27-dind]
+  services: ["docker:27-dind"]
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
   script:
@@ -104,6 +288,14 @@ backend:deploy:prod:
 
     # 3) Build .env locally, then scp it (avoids fragile heredoc-over-ssh quoting).
     - |
+      : "${DATABASE_URL:?Set protected DATABASE_URL before production deploy}"
+      : "${REDIS_URL:?Set protected REDIS_URL before production deploy}"
+      : "${JWT_SECRET_KEY:?Set protected JWT_SECRET_KEY before production deploy}"
+      : "${FIRST_SUPERADMIN_EMAIL:?Set protected FIRST_SUPERADMIN_EMAIL before production deploy}"
+      : "${FIRST_SUPERADMIN_PASSWORD:?Set protected FIRST_SUPERADMIN_PASSWORD before production deploy}"
+      : "${BACKEND_CORS_ORIGINS:?Set protected BACKEND_CORS_ORIGINS before production deploy}"
+      : "${UPLOAD_SCANNER_BACKEND:?Set protected UPLOAD_SCANNER_BACKEND=clamav before production deploy}"
+      : "${UPLOAD_SCANNER_HOST:?Set protected UPLOAD_SCANNER_HOST before production deploy}"
       cat > /tmp/school.env <<EOF
       ENVIRONMENT=production
       IMAGE=$IMAGE
@@ -118,11 +310,17 @@ backend:deploy:prod:
       BACKEND_CORS_ORIGINS=$BACKEND_CORS_ORIGINS
       STORAGE_BACKEND=${STORAGE_BACKEND:-local}
       STORAGE_LOCAL_DIR=/app/uploads
+      UPLOAD_SCANNER_BACKEND=$UPLOAD_SCANNER_BACKEND
+      UPLOAD_SCANNER_HOST=$UPLOAD_SCANNER_HOST
+      UPLOAD_SCANNER_PORT=${UPLOAD_SCANNER_PORT:-3310}
+      UPLOAD_SCANNER_TIMEOUT_SECONDS=${UPLOAD_SCANNER_TIMEOUT_SECONDS:-15}
+      LOG_FORMAT=json
       TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
       TWILIO_WHATSAPP_FROM=${TWILIO_WHATSAPP_FROM:-}
       TWILIO_SMS_FROM=${TWILIO_SMS_FROM:-}
       FCM_SERVER_KEY=${FCM_SERVER_KEY:-}
+      FIREBASE_CREDENTIALS_JSON_B64=${FIREBASE_CREDENTIALS_JSON_B64:-}
       EMAIL_FROM=${EMAIL_FROM:-}
       ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       EOF
@@ -141,16 +339,16 @@ backend:deploy:prod:
         docker compose ps
       "
 
-    # 5) Healthcheck — retry a few times while migrations + seed run.
+    # 5) Readiness check — retry while migrations + seed run.
     - |
       ssh $SSH_USER@$SSH_HOST "
         for i in \$(seq 1 20); do
-          if docker exec school-backend python -c 'import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(\"http://127.0.0.1:8000/health\").status==200 else 1)'; then
-            echo 'Healthcheck OK'; exit 0
+          if docker exec school-backend python -c 'import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(\"http://127.0.0.1:8000/health/ready\").status==200 else 1)'; then
+            echo 'Readiness check OK'; exit 0
           fi
           echo \"Waiting for backend (\$i/20)...\"; sleep 5
         done
-        echo 'Healthcheck FAILED'; docker logs --tail 200 school-backend; exit 1
+        echo 'Readiness check FAILED'; docker logs --tail 200 school-backend; exit 1
       "
   environment:
     name: production

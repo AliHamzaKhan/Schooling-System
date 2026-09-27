@@ -16,6 +16,7 @@ from app.core.deps import (
     verify_student_access,
 )
 from app.core.enums import Module, PermissionAction as PA
+from app.core.pagination import OffsetPage
 from app.modules.examination import schemas
 from app.modules.examination.service import ExaminationService
 
@@ -81,9 +82,12 @@ async def create_exam(school_id: uuid.UUID, data: schemas.ExamCreate, db: DbDep)
 
 @router.get("", response_model=list[schemas.ExamOut], dependencies=[_exam_view])
 async def list_exams(
-    school_id: uuid.UUID, db: DbDep, class_id: uuid.UUID | None = Query(default=None)
+    school_id: uuid.UUID,
+    db: DbDep,
+    class_id: uuid.UUID | None = Query(default=None),
+    page: OffsetPage = Depends(),
 ) -> list[schemas.ExamOut]:
-    return await ExaminationService(db).list_exams(school_id, class_id)
+    return await ExaminationService(db).list_exams(school_id, class_id, page)
 
 
 @router.patch("/{exam_id}", response_model=schemas.ExamOut, dependencies=[_exam_edit])
@@ -177,9 +181,10 @@ async def student_exam_results(
 
 @router.get("/{exam_id}/students/{student_id}/report-card", response_model=schemas.ReportCard, dependencies=[_result_view, Depends(verify_student_access)])
 async def report_card(
-    school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, exam_id: uuid.UUID, student_id: uuid.UUID, db: DbDep,
+    current_user: CurrentUser,
 ) -> schemas.ReportCard:
-    return await ExaminationService(db).report_card(school_id, exam_id, student_id)
+    return await ExaminationService(db).report_card(school_id, exam_id, student_id, current_user.id)
 
 
 # ---------------------------- admit card & seating ---------------------------- #

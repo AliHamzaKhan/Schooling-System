@@ -67,10 +67,23 @@ class ApiService {
   /// is fired. Wire to `AuthService.refreshSession` at boot. Kept as a plain
   /// callback so `shared` stays free of app-level auth wiring.
   Future<bool> Function()? tokenRefresher;
+  Future<bool> Function(String? rejectedToken)? tokenRefresherForToken;
 
   /// Coalesces concurrent refreshes so several parallel 401s share one refresh.
   Future<bool>? _refreshInFlight;
   int _sessionGeneration = 0;
+  String? _boundRevision;
+  bool _credentialsDisabled = false;
+  void bindSession() {
+    _boundRevision = _store.coordinator.revision;
+    _credentialsDisabled = false;
+  }
+  void disableCredentials() {
+    _credentialsDisabled = true;
+    invalidateSessionRequests();
+  }
+  bool get _identityChanged => _boundRevision != null &&
+      _boundRevision != _store.coordinator.revision;
 
   /// Stop requests from an earlier login/logout boundary from being replayed.
   void invalidateSessionRequests() => _sessionGeneration++;
@@ -112,18 +125,24 @@ class ApiService {
   }) async {
     final sessionGeneration = _sessionGeneration;
     final uri = _buildUri(path, query);
+    final effectiveTimeout = timeout ?? EnvConfig.apiTimeout;
+    try {
+      if (requiresAuth && (_credentialsDisabled || _identityChanged)) {
+        return ApiResponse.fail('Session changed. Please sign in again.', statusCode: 401);
+      }
     final mergedHeaders = await _buildHeaders(
       headers,
       requiresAuth,
       isMultipart: method == HttpMethod.multipart,
       asForm: asForm,
     );
-    final effectiveTimeout = timeout ?? EnvConfig.apiTimeout;
 
     // Never log URLs, payloads or headers: any can contain credentials or PII.
     _diagnostic('→ ${method.name.toUpperCase()}');
 
-    try {
+      if (requiresAuth && (sessionGeneration != _sessionGeneration || _identityChanged || _credentialsDisabled)) {
+        return ApiResponse.fail('Session changed. Please retry.', statusCode: 401);
+      }
       var headersToUse = mergedHeaders;
       var response = await _dispatch(
         method,
@@ -136,7 +155,7 @@ class ApiService {
       );
       var parsed = _parseResponse<T>(response, parser);
 
-      if (requiresAuth && sessionGeneration != _sessionGeneration) {
+      if (requiresAuth && (sessionGeneration != _sessionGeneration || _identityChanged || _credentialsDisabled)) {
         return ApiResponse.fail(
           'Session changed. Please retry.',
           statusCode: 401,
@@ -147,8 +166,8 @@ class ApiService {
       // one-time token refresh + retry before giving up; login/refresh calls
       // (requiresAuth:false) are exempt so a bad-credentials 401 stays local.
       if (parsed.statusCode == 401 && requiresAuth) {
-        if (tokenRefresher != null && await _refreshToken()) {
-          if (sessionGeneration != _sessionGeneration) {
+        if ((tokenRefresher != null || tokenRefresherForToken != null) && await _refreshToken(mergedHeaders['Authorization']?.replaceFirst('Bearer ', ''))) {
+          if ((sessionGeneration != _sessionGeneration || _identityChanged || _credentialsDisabled)) {
             return ApiResponse.fail(
               'Session changed. Please retry.',
               statusCode: 401,
@@ -160,7 +179,7 @@ class ApiService {
             isMultipart: method == HttpMethod.multipart,
             asForm: asForm,
           );
-          if (sessionGeneration != _sessionGeneration) {
+          if ((sessionGeneration != _sessionGeneration || _identityChanged || _credentialsDisabled)) {
             return ApiResponse.fail(
               'Session changed. Please retry.',
               statusCode: 401,
@@ -179,7 +198,7 @@ class ApiService {
         }
       }
 
-      if (requiresAuth && sessionGeneration != _sessionGeneration) {
+      if (requiresAuth && (sessionGeneration != _sessionGeneration || _identityChanged || _credentialsDisabled)) {
         return ApiResponse.fail(
           'Session changed. Please retry.',
           statusCode: 401,
@@ -295,10 +314,10 @@ class ApiService {
 
   /// Runs [tokenRefresher] at most once concurrently; parallel 401s await the
   /// same refresh instead of each firing their own.
-  Future<bool> _refreshToken() {
+  Future<bool> _refreshToken(String? rejectedToken) {
     return _refreshInFlight ??= () async {
       try {
-        return await tokenRefresher?.call() ?? false;
+        return await (tokenRefresherForToken?.call(rejectedToken) ?? tokenRefresher?.call()) ?? false;
       } finally {
         _refreshInFlight = null;
       }
@@ -330,7 +349,7 @@ class ApiService {
           : 'application/json';
     }
     if (requiresAuth) {
-      final token = await _store.readToken();
+      final token = await _store.coordinator.exclusive(() => _store.readToken());
       if (token != null && token.isNotEmpty) {
         h['Authorization'] = 'Bearer $token';
       }

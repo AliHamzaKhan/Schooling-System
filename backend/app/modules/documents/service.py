@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import not_found
 from app.core.enums import SystemRole
+from app.core.pagination import OffsetPage
 from app.models.document import StudentDocument
 from app.models.role import Role
 from app.models.user import User
@@ -48,17 +49,24 @@ class DocumentService:
         return doc
 
     async def list_for_student(
-        self, school_id: uuid.UUID, student_id: uuid.UUID
+        self,
+        school_id: uuid.UUID,
+        student_id: uuid.UUID,
+        page: OffsetPage | None = None,
     ) -> list[StudentDocument]:
+        """Return a bounded document page after the caller's student access check."""
         await self._validate_student(school_id, student_id)
-        result = await self.db.execute(
+        stmt = (
             select(StudentDocument)
             .where(
                 StudentDocument.school_id == school_id,
                 StudentDocument.student_id == student_id,
             )
-            .order_by(StudentDocument.created_at.desc())
+            .order_by(StudentDocument.created_at.desc(), StudentDocument.id.desc())
         )
+        if page is not None:
+            stmt = page.apply(stmt)
+        result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
     async def delete(self, school_id: uuid.UUID, student_id: uuid.UUID, document_id: uuid.UUID) -> None:

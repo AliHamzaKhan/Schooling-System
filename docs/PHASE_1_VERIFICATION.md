@@ -168,6 +168,85 @@ public-avatar privacy, proxy/CDN exposure, scanning/quotas and native/browser
 acceptance remain open. No existing-data migration, release build, hosted CI,
 production deployment or manual device/browser download walkthrough was done.
 
+## F04.3 — read-only private-asset inventory (2026-09-23)
+
+`backend/scripts/audit_private_assets.py` inventories persisted document,
+submission, avatar, uniform, logo, course-cover and URL-shaped metadata
+references. It requires an explicit audit database URL, opens a PostgreSQL
+`SET TRANSACTION READ ONLY` transaction, writes only JSON to stdout, and redacts
+stored paths/queries in its aggregate and detail results. It makes no database,
+blob or client change.
+
+The [inventory and rollout plan](PRIVATE_ASSET_INVENTORY.md) records expected
+private/public/policy visibility, the production read-only runbook, copy/checksum
+validation, rollback boundary and remaining public-media, scanning, quota and
+retention decisions. It does not authorize or execute a migration.
+
+Focused inventory/download suite: **17 passed in 17.73s**. Full isolated backend:
+**337 passed in 526.32s**, with the generated database and role removed. Targeted
+`python -m ruff check`, compilation and `git diff --check` passed. No production
+database connection, UI preview, asset copy, data rewrite/deletion, deployment or
+device/browser acceptance was performed.
+
+## F04.4 — new-upload allowlist and policy gates (2026-09-23)
+
+New uploads can use only `documents`, `submissions`, `avatars` and `uniform`.
+Private documents/submissions accept PDF/PNG/JPEG/WebP signatures; public avatar/
+uniform assets accept PNG/JPEG/WebP signatures. The server ignores caller MIME
+headers and filename extensions, derives its returned content type from the bytes,
+and uses the corresponding suffix in the stored key. Unknown folders and active/
+unknown private bytes fail before storage.
+
+The [new-upload policy](PRIVATE_ASSET_POLICY.md) records the compatibility-only
+public media posture and the unimplemented scanner/quarantine, cumulative quota,
+retention, staging and approval gates. Focused upload/download suite: **19 passed
+in 26.01s**. Full isolated backend: **340 passed in 518.96s**, with the generated
+database and role removed. Targeted `python -m ruff check`, compilation and
+`git diff --check` passed. No production database connection, UI preview,
+existing-data migration, deletion or deployment was performed.
+
+## F04.5 — fail-closed upload scanning and readiness (2026-09-23)
+
+New uploads stream to a configurable ClamAV INSTREAM endpoint before any storage
+key is constructed. Clean content is stored; detected content is discarded; a
+scanner timeout, connection failure or unrecognized reply returns 503 without a
+blob or metadata write. Non-development configuration must use ClamAV and name a
+private scanner host. Readiness, compose health and CI deployment readiness now
+include the scanner.
+
+Focused scanner/upload/readiness suite: **26 passed in 27.42s**; the final combined
+scanner/privacy/configuration suite: **28 passed in 20.59s**. Full isolated backend:
+**347 passed in 500.11s**, with the generated database and role removed. The
+[scanner rollout](PRIVATE_ASSET_SCANNING.md) defines protected configuration variables
+and required staging checks. No UI preview, scanner deployment, production database
+connection, existing-data migration, deletion or deployment was performed.
+
+## F05.3 — production configuration and diagnostic redaction (2026-09-23)
+
+Production settings now reject the development database URL, default super-admin
+identity, wildcard/non-HTTPS CORS values, missing Redis and a disabled/missing
+ClamAV scanner. The deploy job requires every critical value before it writes the
+remote environment. Notification diagnostics use fixed event labels; cache, attendance
+and Uvicorn access diagnostics avoid identifiers, exception text and all query values.
+
+Focused isolated scanner/privacy/configuration suite: **28 passed in 20.59s**;
+shared environment/notification diagnostics suite: **6 passed**; focused Flutter
+analysis reports no issues. Full isolated backend: **347 passed in 500.11s**, with
+the generated database and role removed. The existing `local_auth_android` package
+warning remains. No UI preview, staging release, production database access, data
+migration, deletion or deployment was performed.
+
+## F06.3 — fixed-precision policy rehearsal (2026-09-23)
+
+Added a policy-required read-only money reconciliation command for fee and payroll
+floats. It requires an explicit currency, decimal scale and rounding mode, opens a
+read-only transaction, and reports only structural counts/IDs for scale, sign,
+non-finite, cached-ledger and overpayment exceptions. It does not print amounts or
+change records. Focused money/payment/report suite: **31 passed in 52.43s**; Ruff,
+compilation and `git diff --check` pass. The isolated database and role were removed.
+No production read, backup, restored-copy rehearsal, data migration or deployment was
+performed. Currency policy and migration approval remain required.
+
 ## Fourth batch — fee-payment retry safety (2026-09-14–15)
 
 Added optional UUID `Idempotency-Key` support to fee-payment creation, backed by
@@ -475,3 +554,157 @@ See [academic/report contract](ACADEMIC_REPORT_ACCESS.md) for exact scope and li
 No existing school-data migration, provider send, deployment or dependency change.
 F01 and Phase 1 remain open. Next packet: **F01.5 attendance/enrollment access**, then
 remaining aggregate, exam/quiz and other nested-object audits.
+
+## Twelfth batch — attendance/enrollment boundaries (2026-09-22)
+
+F01.5 validates current attendance read relationships, enrollment session ownership,
+all supplied attendance references and existing-row school/section ownership before
+mutation. Registers, summaries and individual history filter malformed tenant
+references. Daily/subject teacher write authority and valid historical reads remain.
+
+- Full isolated backend: **305 passed in 456.99s**; **18 new regressions**.
+  JUnit: `/private/tmp/schooling-f015-backend.xml`, zero failures/errors/skips.
+  Generated database and restricted role were removed by the runner.
+- Initial focused run: 40 passed / 1 fixture setup failure (duplicate section name
+  in deliberately corrupt parent data). Corrected before the successful full run.
+- Standalone safety/provider checks: **17 passed**; changed backend Ruff and
+  `git diff --check` pass. No frontend changes or new Flutter run.
+
+See [attendance/enrollment contract](ATTENDANCE_ENROLLMENT_ACCESS.md) for exact
+rules, remaining UI defects and recovery limits. No existing-data migration,
+real provider delivery, UI preview or deployment. Parent F01 remains open;
+next packet is F01.6 aggregate reports and export access.
+
+## Thirteenth batch — aggregate report and export boundaries (2026-09-23)
+
+F01.6 validates school-wide report ownership and action boundaries. Overview and
+enrollment aggregates reject malformed nested classes, sections, subjects,
+students and sessions. Academic reports exclude foreign classes, categories,
+sessions, students, draft results and invalid result tenants. Finance projections
+use valid local invoice references and sum school-owned payment ledger rows rather
+than cached invoice amounts. Attendance JSON and CSV share the register's
+structural filters, reject foreign sections/reversed dates and exclude unknown
+statuses. REPORTS view/export and subscription/module-toggle behavior are tested.
+
+- Full isolated backend: **321 passed in 472.89s**; final focused F01.6/F01.5 suite
+  **34 passed in 92.12s**. JUnit: `/private/tmp/schooling-f016-final-backend.xml`,
+  zero failures/errors/skips.
+  Generated database and restricted role were removed by the runner.
+- Standalone safety/provider checks: **17 passed**; changed backend Ruff and
+  `git diff --check` pass. No frontend changes or Flutter run.
+
+See [aggregate report access contract](AGGREGATE_REPORT_ACCESS.md). No existing-data
+migration, real provider delivery, UI preview or deployment. Parent F01 remains
+open; next packet is F01.8 remaining nested-object and action audit.
+
+## Fourteenth batch — exam and quiz lifecycle boundaries (2026-09-23)
+
+F01.7 validates exam class/session/category and paper/subject ownership, school-scoped
+marks/results/seats and current student rosters. Published results remain visible only
+through authorized result paths; draft report cards require result-approval authority.
+Quiz reads and attempts are limited by publication, assignment and active enrollment;
+answer IDs must belong to the submitted quiz, students cannot inspect other attempts,
+and performance/report views are staff-only.
+
+- Full isolated backend: **324 passed in 469.05s**; focused final exam/quiz/scenario suite
+  **19 passed**. JUnit: `/private/tmp/schooling-f017-final-backend.xml`, zero
+  failures/errors/skips; the three new F01.7 cross-school/privacy cases are included.
+  Generated database and restricted role were removed by the runner.
+- Changed backend Ruff and `git diff --check` pass. No frontend changes, migration,
+  UI preview, physical browser/device acceptance, deployment or provider send.
+
+See [exam/quiz access contract](EXAM_QUIZ_ACCESS.md). Parent F01 remains open;
+next packet is F01.9 remaining student-facing action audit.
+
+## Fifteenth batch — promotion, calendar and lesson boundaries (2026-09-23)
+
+F01.8 validates promotion exam/session/student/section ownership before mutating
+enrollments. Mixed or foreign target batches fail during preflight, so an earlier
+valid item cannot partially move a student. Promotion previews and merit lists use
+published local results and current student roles. Calendar events validate local
+sessions and update date ranges; exam feeds exclude malformed class/session links.
+Lessons require a local section and subject whose class relationship is valid, and
+progress uses that same structural scope.
+
+- Full isolated backend: **327 passed in 509.41s**; focused promotion/calendar/
+  lesson/scenario suite **13 passed**; new F01.8 cross-school/no-write suite
+  **3 passed**. JUnit: `/private/tmp/schooling-f018-final-backend.xml`, zero
+  failures/errors/skips. Generated database and restricted role were removed by
+  the runner.
+- Changed backend Ruff and `git diff --check` pass. No frontend changes, migration,
+  UI preview, physical browser/device acceptance, deployment or provider send.
+
+See [promotion/calendar/lesson access contract](PROMOTION_CALENDAR_LESSON_ACCESS.md).
+Parent F01 remains open; next packet is F01.10 remaining registered-router and job audit.
+
+## Sixteenth batch — student-facing action boundaries (2026-09-23)
+
+F01.9 validates homework assignment section/subject structure and limits student
+assignment reads and submissions to active enrollment. Submission reads and grading
+use school-owned assignment links. Student documents remain tied to a local student
+and the student ID in the URL. Transport route stops, assignments, trips, events,
+locations and student/guardian requests keep school and relationship predicates on
+each read or write.
+
+- Full isolated backend: **329 passed in 483.36s**; focused homework/document/
+  transport/lesson suite **25 passed**; new F01.9 cross-school/privacy/no-write
+  suite **5 passed**. JUnit: `/private/tmp/schooling-f019-final-backend.xml`, zero
+  failures/errors/skips. Generated database and restricted role were removed by
+  the runner.
+- Changed backend Ruff and `git diff --check` pass. No frontend changes, migration,
+  UI preview, physical browser/device acceptance, deployment or provider send.
+
+See [student action access contract](STUDENT_ACTION_ACCESS.md). Parent F01 remains
+open; next packet is F01.10 remaining registered-router and job audit.
+
+## Seventeenth batch — course-content and remaining router audit (2026-09-23)
+
+F01.10 validates every academic link supplied while creating or updating course
+content. A course can only reference its own school's section and subject, and a
+class-bound subject must match the selected section's class. Students can directly
+read or save progress only for school-wide content or courses assigned to one of
+their active sections; the same check now covers course, book, chapter and note
+URLs. Progress lookup and writes validate the local book or note before querying or
+storing a position.
+
+- The scheduled fee-reminder job authenticates with its dedicated secret, selects
+  only active schools, and passes the selected school ID into the already scoped
+  fee service. The registered export paths retain the report permission and
+  school/structure validation added in F01.6. Meetings, leave, inventory and HR
+  paths were reviewed; their route payloads do not introduce an unscoped nested
+  reference in this packet.
+- Focused course/router verification: **6 passed**. Full isolated backend:
+  **331 passed in 488.01s**. JUnit:
+  `/private/tmp/schooling-f0110-final-backend.xml`, zero failures/errors/skips.
+  Generated database and restricted role were removed by the runner.
+- Changed backend Ruff and `git diff --check` pass. No frontend changes, schema
+  migration, UI preview, physical browser/device acceptance, deployment or provider
+  send.
+
+See [course content access contract](COURSE_CONTENT_ACCESS.md). Parent F01 remains
+open; next packet is F01.11 final audit reconciliation and independent-review scope.
+
+## Eighteenth batch — registered-router reconciliation (2026-09-23)
+
+F01.11 reconciles all registered routers against the F01 contract and records the
+platform-only exceptions separately from tenant routes. The final audit found two
+malformed-data paths outside normal API writes: guardian placement enrichment could
+display a foreign enrollment's class metadata, and a corrupted guardian link could
+carry a foreign student into a local leave request. Both now fail closed.
+
+- Guardian placement enrichment requires the enrollment, section and class to be
+  owned by the requested school. Guardian leave child resolution requires an
+  association, user and student role in that same school.
+- `tests/test_final_f01_audit.py` directly seeds malformed rows, proves the
+  placement metadata is withheld, and proves a rejected foreign-child leave makes
+  no local leave write. Focused guardian/leave/final-audit suite: **11 passed**.
+- Full isolated backend: **333 passed in 523.57s**. JUnit:
+  `/private/tmp/schooling-f0111-final-backend.xml`, zero failures/errors/skips.
+  Generated database and restricted role were removed by the runner.
+- Changed backend Ruff and `git diff --check` pass. No frontend change, schema
+  migration, UI preview, physical browser/device acceptance, deployment or provider
+  send.
+
+See the [registered-router audit](F01_ROUTER_AUDIT.md). F01 moves to **Review**;
+independent security/product review remains required. Next implementation packet:
+F04.3 private-asset rollout inventory.

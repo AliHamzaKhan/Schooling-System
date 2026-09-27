@@ -37,7 +37,10 @@ def _get_client() -> Any:
 
             _client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
         except Exception:
-            logger.exception("Redis cache unavailable; continuing without cache")
+            # Redis exceptions can include a connection URL (and its password).
+            # The service safely falls through to the database, so the category
+            # is enough for an operator without retaining configuration secrets.
+            logger.warning("Redis cache unavailable; continuing without cache")
             _unavailable = True
             return None
     return _client
@@ -52,7 +55,7 @@ async def get_json(key: str) -> Any | None:
         raw = await client.get(key)
         return json.loads(raw) if raw is not None else None
     except Exception:
-        logger.warning("cache get failed for %s", key, exc_info=True)
+        logger.warning("cache get failed; continuing without cache")
         return None
 
 
@@ -64,7 +67,7 @@ async def set_json(key: str, value: Any, ttl: int) -> None:
     try:
         await client.set(key, json.dumps(value), ex=ttl)
     except Exception:
-        logger.warning("cache set failed for %s", key, exc_info=True)
+        logger.warning("cache set failed; continuing without cache")
 
 
 async def invalidate(*keys: str) -> None:
@@ -75,7 +78,7 @@ async def invalidate(*keys: str) -> None:
     try:
         await client.delete(*keys)
     except Exception:
-        logger.warning("cache invalidate failed for %s", keys, exc_info=True)
+        logger.warning("cache invalidate failed; continuing without cache")
 
 
 async def close() -> None:

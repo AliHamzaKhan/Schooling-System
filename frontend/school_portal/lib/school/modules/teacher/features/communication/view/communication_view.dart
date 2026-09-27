@@ -42,7 +42,8 @@ class _CommunicationViewState extends State<CommunicationView> {
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
-    final remaining = _scroll.position.maxScrollExtent - _scroll.position.pixels;
+    final remaining =
+        _scroll.position.maxScrollExtent - _scroll.position.pixels;
     if (remaining <= _prefetchExtent) controller.loadMore();
   }
 
@@ -51,9 +52,13 @@ class _CommunicationViewState extends State<CommunicationView> {
     return AppScaffold(
       appBar: AppBar(
         leading: const BackButton(),
-        title: Text('Communication',
-            style: AppTypography.titleLg.copyWith(
-                color: AppColors.primary, fontWeight: FontWeight.w700)),
+        title: Text(
+          'Communication',
+          style: AppTypography.titleLg.copyWith(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
       bottomNavigationBar: _bottomBar(context),
       body: Obx(() {
@@ -67,10 +72,11 @@ class _CommunicationViewState extends State<CommunicationView> {
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.containerPaddingMobile,
-                    AppSpacing.stackMd,
-                    AppSpacing.containerPaddingMobile,
-                    AppSpacing.stackMd),
+                  AppSpacing.containerPaddingMobile,
+                  AppSpacing.stackMd,
+                  AppSpacing.containerPaddingMobile,
+                  AppSpacing.stackMd,
+                ),
                 sliver: SliverToBoxAdapter(child: _searchRow(context)),
               ),
               _list(),
@@ -88,10 +94,11 @@ class _CommunicationViewState extends State<CommunicationView> {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-            AppSpacing.containerPaddingMobile,
-            AppSpacing.stackSm,
-            AppSpacing.containerPaddingMobile,
-            AppSpacing.stackSm),
+          AppSpacing.containerPaddingMobile,
+          AppSpacing.stackSm,
+          AppSpacing.containerPaddingMobile,
+          AppSpacing.stackSm,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -101,8 +108,9 @@ class _CommunicationViewState extends State<CommunicationView> {
                 trailingIcon: null,
                 expanded: true,
                 onPressed: () async {
-                  final sent =
-                      await Get.toNamed(TeacherRoutes.createAnnouncement);
+                  final sent = await Get.toNamed(
+                    TeacherRoutes.createAnnouncement,
+                  );
                   // A published announcement becomes a new thread — pull it in.
                   if (sent == true) await controller.fetch();
                 },
@@ -128,16 +136,15 @@ class _CommunicationViewState extends State<CommunicationView> {
   Widget _firstLoad() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.containerPaddingMobile,
-          AppSpacing.stackMd,
-          AppSpacing.containerPaddingMobile,
-          AppSpacing.stackXl),
+        AppSpacing.containerPaddingMobile,
+        AppSpacing.stackMd,
+        AppSpacing.containerPaddingMobile,
+        AppSpacing.stackXl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Shimmer(
-            child: SkeletonBox(height: 48, radius: AppRadius.button),
-          ),
+          Shimmer(child: SkeletonBox(height: 48, radius: AppRadius.button)),
           SizedBox(height: AppSpacing.stackLg),
           Expanded(child: SkeletonThreadList()),
         ],
@@ -152,10 +159,12 @@ class _CommunicationViewState extends State<CommunicationView> {
         Row(
           children: [
             // Filter moved off the page into a sheet, reached from this icon.
-            Obx(() => PortalFilterButton(
-                  onTap: () => _showFilterSheet(context),
-                  count: controller.activeFilterCount,
-                )),
+            Obx(
+              () => PortalFilterButton(
+                onTap: () => _showFilterSheet(context),
+                count: controller.activeFilterCount,
+              ),
+            ),
             const SizedBox(width: AppSpacing.stackSm),
             Expanded(
               child: PortalSearchField(
@@ -172,15 +181,20 @@ class _CommunicationViewState extends State<CommunicationView> {
             padding: const EdgeInsets.only(top: AppSpacing.stackSm),
             child: Row(
               children: [
-                Text('Showing: ${controller.filterLabel}',
-                    style: AppTypography.bodySm),
+                Text(
+                  'Showing: ${controller.filterLabel}',
+                  style: AppTypography.bodySm,
+                ),
                 const SizedBox(width: AppSpacing.stackSm),
                 GestureDetector(
                   onTap: () => controller.selectFilter(0),
-                  child: Text('Clear',
-                      style: AppTypography.labelMd.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700)),
+                  child: Text(
+                    'Clear',
+                    style: AppTypography.labelMd.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -193,13 +207,29 @@ class _CommunicationViewState extends State<CommunicationView> {
   Widget _list() {
     return Obx(() {
       final pad = const EdgeInsets.symmetric(
-          horizontal: AppSpacing.containerPaddingMobile);
+        horizontal: AppSpacing.containerPaddingMobile,
+      );
 
       // Filter/search in flight — shimmer the list only.
       if (controller.listLoading.value) {
         return SliverPadding(
           padding: pad.copyWith(bottom: AppSpacing.stackXl),
           sliver: const SliverToBoxAdapter(child: SkeletonThreadList()),
+        );
+      }
+
+      final error = controller.error.value;
+      if (error != null) {
+        return SliverPadding(
+          padding: pad,
+          sliver: SliverToBoxAdapter(
+            child: AppStateView.error(
+              title: 'Conversations are unavailable',
+              message: error,
+              actionLabel: 'Try again',
+              onAction: controller.fetch,
+            ),
+          ),
         );
       }
 
@@ -211,8 +241,10 @@ class _CommunicationViewState extends State<CommunicationView> {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackXl),
               child: Center(
-                child: Text('No conversations match your filters.',
-                    style: AppTypography.bodyLg),
+                child: Text(
+                  'No conversations match your filters.',
+                  style: AppTypography.bodyLg,
+                ),
               ),
             ),
           ),
@@ -254,8 +286,10 @@ class _CommunicationViewState extends State<CommunicationView> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackLg),
         child: Center(
-          child: Text("That's all $shown conversations.",
-              style: AppTypography.bodySm),
+          child: Text(
+            "That's all $shown conversations.",
+            style: AppTypography.bodySm,
+          ),
         ),
       );
     }
@@ -267,16 +301,18 @@ class _CommunicationViewState extends State<CommunicationView> {
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
       ),
       builder: (sheet) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackMd,
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackLg),
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackMd,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackLg,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -292,33 +328,41 @@ class _CommunicationViewState extends State<CommunicationView> {
                   ),
                 ),
               ),
-              Text('Filter conversations',
-                  style: AppTypography.displayLg.copyWith(fontSize: 22)),
+              Text(
+                'Filter conversations',
+                style: AppTypography.displayLg.copyWith(fontSize: 22),
+              ),
               const SizedBox(height: AppSpacing.stackMd),
-              Obx(() => Column(
-                    children: [
-                      for (var i = 0;
-                          i < CommunicationController.filters.length;
-                          i++)
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(
-                            controller.filterIndex.value == i
-                                ? AppIcons.radioButtonCheckedRounded
-                                : AppIcons.radioButtonUncheckedRounded,
-                            color: controller.filterIndex.value == i
-                                ? AppColors.primary
-                                : AppColors.outline,
-                          ),
-                          title: Text(CommunicationController.filters[i],
-                              style: AppTypography.bodyLg),
-                          onTap: () {
-                            controller.selectFilter(i);
-                            Navigator.of(sheet).pop();
-                          },
+              Obx(
+                () => Column(
+                  children: [
+                    for (
+                      var i = 0;
+                      i < CommunicationController.filters.length;
+                      i++
+                    )
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          controller.filterIndex.value == i
+                              ? AppIcons.radioButtonCheckedRounded
+                              : AppIcons.radioButtonUncheckedRounded,
+                          color: controller.filterIndex.value == i
+                              ? AppColors.primary
+                              : AppColors.outline,
                         ),
-                    ],
-                  )),
+                        title: Text(
+                          CommunicationController.filters[i],
+                          style: AppTypography.bodyLg,
+                        ),
+                        onTap: () {
+                          controller.selectFilter(i);
+                          Navigator.of(sheet).pop();
+                        },
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

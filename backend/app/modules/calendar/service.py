@@ -6,13 +6,15 @@ Examination module so the calendar can surface exams without duplicating them.
 import uuid
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import CalendarEventType
-from app.core.exceptions import not_found
+from app.core.exceptions import bad_request, not_found
 from app.models.calendar import CalendarEvent
 from app.models.examination import Exam
+from app.models.school import AcademicSession
+from app.modules.academic.access import valid_classes
 from app.modules.calendar import schemas
 
 
@@ -26,9 +28,16 @@ class CalendarService:
             raise not_found("Calendar event not found in this school")
         return event
 
+    async def _validate_session(self, school_id: uuid.UUID, session_id: uuid.UUID | None) -> None:
+        if session_id is not None and await self.db.scalar(select(AcademicSession.id).where(
+            AcademicSession.id == session_id, AcademicSession.school_id == school_id,
+        )) is None:
+            raise not_found("Academic session not found in this school")
+
     async def create(
         self, school_id: uuid.UUID, data: schemas.EventCreate, created_by: uuid.UUID
     ) -> CalendarEvent:
+        await self._validate_session(school_id, data.session_id)
         event = CalendarEvent(
             school_id=school_id,
             session_id=data.session_id,
@@ -55,10 +64,16 @@ class CalendarService:
         from_date: date | None = None,
         to_date: date | None = None,
     ) -> list[CalendarEvent]:
-        stmt = select(CalendarEvent).where(CalendarEvent.school_id == school_id)
+        stmt = select(CalendarEvent).where(
+            CalendarEvent.school_id == school_id,
+            or_(CalendarEvent.session_id.is_(None), CalendarEvent.session_id.in_(
+                select(AcademicSession.id).where(AcademicSession.school_id == school_id)
+            )),
+        )
         if event_type is not None:
             stmt = stmt.where(CalendarEvent.event_type == event_type.value)
         if session_id is not None:
+            await self._validate_session(school_id, session_id)
             stmt = stmt.where(CalendarEvent.session_id == session_id)
         if from_date is not None:
             # Include multi-day events that overlap the window.
@@ -76,8 +91,24 @@ class CalendarService:
     ) -> CalendarEvent:
         event = await self._get_scoped(event_id, school_id)
         payload = data.model_dump(exclude_unset=True)
+        await self._validate_session(school_id, payload.get("session_id", event.session_id))
         if "event_type" in payload and data.event_type is not None:
             payload["event_type"] = data.event_type.value
+        start_date = payload.get("start_date", event.start_date)
+        end_date = payload.get("end_date", event.end_date)
+        if end_date is not None and end_date < start_date:
+            raise bad_request("end_date cannot be before start_date")
+        # EventUpdate does not have all values at schema-validation time. Check
+        # the merged range here so a partial patch cannot turn a valid timed
+        # event into one that ends before it starts.
+        start_time = payload.get("start_time", event.start_time)
+        end_time = payload.get("end_time", event.end_time)
+        if (
+            start_time is not None
+            and end_time is not None
+            and end_time < start_time
+        ):
+            raise bad_request("end_time cannot be before start_time")
         for field, value in payload.items():
             setattr(event, field, value)
         await self.db.flush()
@@ -93,9 +124,15 @@ class CalendarService:
     ) -> list[schemas.EventOut]:
         """Exam events derived from the Examination module (read-only feed)."""
         stmt = select(Exam).where(
-            Exam.school_id == school_id, Exam.start_date.is_not(None)
+            Exam.school_id == school_id,
+            Exam.start_date.is_not(None),
+            Exam.class_id.in_(valid_classes(school_id)),
+            or_(Exam.session_id.is_(None), Exam.session_id.in_(
+                select(AcademicSession.id).where(AcademicSession.school_id == school_id)
+            )),
         )
         if session_id is not None:
+            await self._validate_session(school_id, session_id)
             stmt = stmt.where(Exam.session_id == session_id)
         stmt = stmt.order_by(Exam.start_date)
         exams = list((await self.db.execute(stmt)).scalars().all())

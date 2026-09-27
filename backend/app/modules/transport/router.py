@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.core.deps import CurrentUser, DbDep, require_school_member, require_school_permission
 from app.core.enums import Module, PermissionAction as PA
+from app.core.pagination import OffsetPage
 from app.modules.transport import schemas
 from app.modules.transport.service import TransportService
 
@@ -86,9 +87,12 @@ async def assign_student(school_id: uuid.UUID, data: schemas.AssignmentCreate, d
 
 @router.get("/assignments", response_model=list[schemas.AssignmentOut], dependencies=[_view])
 async def list_assignments(
-    school_id: uuid.UUID, db: DbDep, route_id: uuid.UUID | None = Query(default=None)
+    school_id: uuid.UUID,
+    db: DbDep,
+    route_id: uuid.UUID | None = Query(default=None),
+    page: OffsetPage = Depends(),
 ) -> list[schemas.AssignmentOut]:
-    return await TransportService(db).list_assignments(school_id, route_id)
+    return await TransportService(db).list_assignments(school_id, route_id, page)
 
 
 @router.delete("/assignments/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[_delete])
@@ -186,8 +190,14 @@ async def list_trips(
 
 
 @router.get("/trips/active", response_model=list[schemas.ActiveTripOut], dependencies=[_member])
-async def active_trips(school_id: uuid.UUID, db: DbDep, current_user: CurrentUser) -> list[schemas.ActiveTripOut]:
-    return await TransportService(db).active_trips_for(school_id, current_user)
+async def active_trips(
+    school_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+    page: OffsetPage = Depends(),
+) -> list[schemas.ActiveTripOut]:
+    """The actor's bounded, visibility-scoped active-trip page."""
+    return await TransportService(db).active_trips_for(school_id, current_user, page)
 
 
 @router.get("/trips/{trip_id}", response_model=schemas.TripOut, dependencies=[_member])

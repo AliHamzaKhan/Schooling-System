@@ -10,7 +10,7 @@ import 'src/ui/admin_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   EnvConfig.bootstrap();
-  await initSharedServices();
+  await initSharedServices(restoreSession: false);
 
   // This executable hosts both control planes: platform administration for a
   // super admin and school administration for a headmaster.
@@ -30,15 +30,13 @@ class AdminPortalApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Get.find<AuthService>();
-    final initialRoute = auth.isLoggedIn.value
-        ? portalHomeForRoles(auth.roleCodes)
-        : AuthRoutes.login;
+    final pages = [...AuthRoutes.pages, ...AdminRoutes.pages, ...HeadmasterPages.pages];
+    SessionNavigation.routes = pages.map((page) => page.name).toSet();
     return GetMaterialApp(
       title: 'Meri Taleem — Admin Portal',
       debugShowCheckedModeBanner: false,
       theme: adminTheme(),
-      initialRoute: initialRoute,
+      initialRoute: SessionNavigation.restoreFor(Uri.base.fragment),
       getPages: [
         ...AuthRoutes.pages,
         ...AdminRoutes.pages,

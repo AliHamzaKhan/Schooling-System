@@ -9,6 +9,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.deps import CurrentUser, DbDep, require_school_member
+from app.core.pagination import OffsetPage
 from app.modules.messages import schemas
 from app.modules.messages.service import DirectMessageService
 
@@ -54,9 +55,12 @@ async def list_messages(
     current_user: CurrentUser,
     box: str = Query(default="inbox", pattern="^(inbox|sent|all)$"),
     counterpart_id: uuid.UUID | None = Query(default=None),
+    page: OffsetPage = Depends(),
 ) -> list[schemas.DirectMessageOut]:
-    """The acting user's direct messages (inbox / sent / all), newest first."""
-    return await DirectMessageService(db).list_for_user(school_id, current_user.id, box, counterpart_id)
+    """The acting user's bounded message page (inbox / sent / all), newest first."""
+    return await DirectMessageService(db).list_for_user(
+        school_id, current_user.id, box, counterpart_id, page
+    )
 
 
 @router.patch(

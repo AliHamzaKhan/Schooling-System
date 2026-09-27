@@ -5,6 +5,8 @@ toggle + subscription logic is the top of the permission cascade described in
 docs/permissions/04 and 07.
 """
 import uuid
+from collections.abc import Mapping
+from typing import Any
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,6 +47,23 @@ class SchoolService:
         if plan is None:
             raise bad_request(f"Subscription plan '{plan_code.value}' is not configured")
         return plan
+
+    @staticmethod
+    def _merge_settings(existing: Mapping[str, Any], incoming: Mapping[str, Any]) -> dict[str, Any]:
+        """Merge partial settings without discarding sibling nested values.
+
+        Settings are edited by separate setup surfaces.  A save from one of
+        those surfaces must not remove another surface's keys merely because
+        they share a top-level namespace such as ``billing`` or ``branding``.
+        """
+        merged = dict(existing)
+        for key, value in incoming.items():
+            current = merged.get(key)
+            if isinstance(current, Mapping) and isinstance(value, Mapping):
+                merged[key] = SchoolService._merge_settings(current, value)
+            else:
+                merged[key] = value
+        return merged
 
     # ------------------------------ schools ------------------------------ #
 
@@ -100,7 +119,7 @@ class SchoolService:
         for field, value in payload.items():
             setattr(school, field, value)
         if incoming_settings is not None:
-            school.settings = {**(school.settings or {}), **incoming_settings}
+            school.settings = self._merge_settings(school.settings or {}, incoming_settings)
         await self.db.flush()
         await self.db.refresh(school)
         return school
@@ -146,8 +165,7 @@ class SchoolService:
         for field, value in payload.items():
             setattr(school, field, value)
         if incoming_settings is not None:
-            merged = {**(school.settings or {}), **incoming_settings}
-            school.settings = merged
+            school.settings = self._merge_settings(school.settings or {}, incoming_settings)
         await self.db.flush()
         await self.db.refresh(school)
         return school
@@ -225,10 +243,22 @@ class SchoolService:
 
     # --------------------------- academic sessions ----------------------- #
 
+    @staticmethod
+    def _validate_session_dates(start_date, end_date) -> None:
+        """Keep an academic session's time window meaningful.
+
+        This lives in the service rather than only the request schema so a
+        partial update is checked against the values already stored on the
+        session as well.
+        """
+        if start_date is not None and end_date is not None and end_date < start_date:
+            raise bad_request("Academic session end date cannot be before its start date")
+
     async def create_session(
         self, school_id: uuid.UUID, data: schemas.AcademicSessionCreate
     ) -> AcademicSession:
         await self._get_school(school_id)  # ensure exists
+        self._validate_session_dates(data.start_date, data.end_date)
         dupe = await self.db.scalar(
             select(AcademicSession).where(
                 AcademicSession.school_id == school_id, AcademicSession.name == data.name
@@ -266,7 +296,24 @@ class SchoolService:
         session = await self.db.get(AcademicSession, session_id)
         if session is None:
             raise not_found("Academic session not found")
-        for field, value in data.model_dump(exclude_unset=True).items():
+        payload = data.model_dump(exclude_unset=True)
+        self._validate_session_dates(
+            payload.get("start_date", session.start_date),
+            payload.get("end_date", session.end_date),
+        )
+        if "name" in payload:
+            duplicate = await self.db.scalar(
+                select(AcademicSession.id).where(
+                    AcademicSession.school_id == session.school_id,
+                    AcademicSession.name == payload["name"],
+                    AcademicSession.id != session.id,
+                )
+            )
+            if duplicate is not None:
+                raise bad_request(
+                    f"Session '{payload['name']}' already exists for this school"
+                )
+        for field, value in payload.items():
             setattr(session, field, value)
         await self.db.flush()
         await self.db.refresh(session)

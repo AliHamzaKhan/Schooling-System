@@ -14,8 +14,8 @@ Part of the [Product Enhancement Plan](PRODUCT_ENHANCEMENT_PLAN.md). Append-heav
 | Recent student/shared visual refresh | Existing baseline — partial | Student dashboard/course/assignment styling, shared tokens and reduced-motion widget/test exist in the working tree. Not completion of U01/U03/U04. |
 | Headmaster entry in admin portal | Existing baseline — partial | Admin imports headmaster pages and has role-based landing. F03/U02 remain open for route regression, refresh-safe flows and desktop completeness. |
 | Auth rate-limit response fix | Existing baseline — targeted verification recorded previously | `backend/verification/test_auth_rate_headers.py` and modified auth router. Does not close the broader identity/security backlog. |
-| Phase 1 implementation | In progress | F08 is implemented and under review. F01/F05 and scoped F02/F03/F04/F06/F07 substeps below are technically verified. Full backend suite: 286 passed; final affected-module suite after multi-role adjustment: 32 passed; standalone safety/provider tests: 17 passed. Latest Flutter suites: shared 56, school 42, admin 8 passed. F01.4 academic/student-report boundaries verified technically; F07.2 migration still not applied to existing school data. Phase 1 is not complete. |
-| Experience foundation | In progress | U01 is in Review after catalogue, canonical components, headmaster-settings adoption, keyboard/200%-text coverage, measured WCAG AA text-pair contrast and reduced-motion dialog checks. U02.1/U02.2 add grouped search, capability-aware navigation and persistent school/session context; U02.3.1–U02.3.4 add cold-route dependencies, direct-link capability gates, URL-first canonical reads, canonical approval/class lists and automated named-route/back coverage. Latest Flutter suites: shared 63, school 53, admin 10 passed. Independent U01 acceptance plus physical browser acceptance and complete setup/management journeys remain open. |
+| Phase 1 implementation | In progress | F08 is implemented and under review. F01 is in Review after its F01.1–F01.11 technical packets; F05.1–F05.3 and scoped F02/F03/F04/F06/F07 substeps below are technically verified. F04.3 adds a non-mutating inventory command and migration/rollback plan; F04.4 narrows new upload types/folders; F04.5 adds a fail-closed pre-storage scanner contract. F05.3 makes production config and diagnostics fail closed/source-redacted. O01 is in Review: Flutter lint/analyze/test/release-build, redacted secret, migration-rehearsal, OpenAPI contract, critical-journey and backend/Pub dependency-audit gates are locally verified; one hosted GitLab run remains. O02.1/O02.2 add aggregate worker/outbox visibility, enforced structured logs, alert rules and recovery runbooks; hosted alert integration, restore/rollback rehearsal and provider acceptance remain. Local Flutter evidence is shared **65**, school **60** and admin **10** passing tests. Production inventory, staging scanner/configuration acceptance and all data changes remain open. Latest full backend suite: **347 passed in 500.11s**. F01 independent security/product review and F07.2 migration remain open. Phase 1 is not complete. |
+| Experience foundation | In progress | U01 is in Review after catalogue, canonical components, headmaster-settings adoption, keyboard/200%-text coverage, measured WCAG AA text-pair contrast and reduced-motion dialog checks. U02.1/U02.2 add grouped search, capability-aware navigation and persistent school/session context; U02.3.1–U02.3.4 add cold-route dependencies, direct-link capability gates, URL-first canonical reads, canonical approval/class lists and automated named-route/back coverage. Latest recorded Flutter suites: shared 63, school 60, admin 10 passed (not rerun for the backend-only F01.5 packet). U02.4.1–U02.4.3 add automated setup/management mutation coverage. The lean launch portfolio now groups the remaining 31 planned records into six tracks (L01–L06); 16 source records are included by those tracks and 15 expansion records are post-launch. Independent U01 acceptance and physical browser acceptance of the complete journeys remain open. |
 
 The earlier development session reported local student login/mobile-layout checks. This Phase 1 batch reruns automated suites; it does not repeat the live browser/device walkthrough or certify a production release.
 
@@ -29,40 +29,51 @@ Owner and implementation reviewer: **Codex (self-review)**. Independent engineer
 | F01.1 | Tenant-owned class/section/student audience references validated before write/enqueue and again at recipient resolution; recipient queries constrain user, enrollment and section school IDs plus active status | `tests/test_broadcast_isolation.py`: 10 tests pass, including immediate/scheduled foreign references, zero side effects, active/enrolled recipients and missing/unknown references | Verified; full router/object/action audit remains under F01 |
 | F05.1 | Both Flutter entrypoints resolve APP_ENV; release selection rejects debug; staging/production require explicit HTTPS public endpoint; HTTP diagnostics omit payloads, URLs, headers and exception text | `frontend/shared/test/environment_safety_test.dart`: default and production-define runs; changed-file static analysis clean | Verified for configuration/unit scope; real release artifact startup against approved staging endpoint remains |
 | F05.2 | Communication/AI stub diagnostics omit recipient/content/token/prompt; provider exceptions and remote error bodies no longer copied into delivery errors; FCM preserves allowlisted machine codes | `verification/test_provider_privacy.py`: three tests pass for stub, exception and AI prompt privacy | Verified for tested paths; broader backend/infrastructure logging audit remains |
+| F05.3 | Production configuration rejects development database/default admin/non-HTTPS CORS; CI requires deploy secrets; notification, cache, attendance and access diagnostics omit payloads, tokens, IDs, query values and exception strings | Focused isolated scanner/privacy/config suite **28 passed in 20.59s**; shared environment/notification diagnostics suite **6 passed**; focused Flutter analysis clean; full isolated backend **347 passed in 500.11s** | Verified technically; approved staging artifact startup and reverse-proxy/infrastructure log acceptance remain |
 | F04.1 | Document add/list student-school-role validation and delete student-ID binding; bounded upload reads reject empty/oversized files before storage | Four upload-limit unit tests and three document/HTTP upload regressions pass; included in latest full suite | Verified technically; byte access is handled separately by F04.2 |
 | F04.2 / F01.2 | Private uploader-owned keys; no public storage-root mount; resource-bound 60-second tickets with authorization rechecks; student/teacher download UI; assigned-staff homework lists, history and mutations | 13 new backend tests; final full suite 190 passed in 211.72s. Shared 14, school 22, admin 8 Flutter tests pass; changed-file analysis clean | Verified technically; [legacy/public-media rollout gates](PRIVATE_FILE_ROLLOUT.md), scanning/quotas and real device/browser acceptance remain open |
 | F06.1 | Scoped invoice row lock; ledger-based balance check; ledger-derived receipt projection; non-finite fee write rejection and safe 422 validation response | Seven payment integration cases pass, including three deliberately overlapping request scenarios; two money-validation unit tests pass; full suite 177/177 | Verified technically; Float storage, historical reconciliation and payroll/subscription money remain open; keyed fee retries addressed by F06.2 |
 | F06.2 | Optional UUID payment request identity; transaction key lock and original-response replay; changed payload/actor/invoice conflict; stable headmaster client attempts, duplicate-tap guard and responsive payment action | 12 new backend regressions; full backend 202 passed in 577.68s. Shared 25, school 26, admin 8 tests passed; includes phone/large-text/desktop payment checks and auth-refresh/lost-response replay | Verified technically for keyed fee requests and in-memory client recovery. Keyless callers, durable restart/device recovery and payroll/subscription replay remain open. [Contract and precision migration design](PAYMENT_SAFETY_AND_MIGRATION.md); currency decision requested, no data migration |
+| F06.3 | Explicit-policy, read-only fee/payroll precision reconciliation: flags non-finite, sign/scale, cached-ledger and overpayment exceptions without reporting amounts or changing rows | `tests/test_money_precision_audit.py`: 3 policy/reconciliation/privacy cases; focused money/payment/report suite **31 passed in 52.43s** | Verified technically; an approved currency/scale/rounding policy, read-only production run, restored-copy rehearsal and additive migration remain required |
 | F02.1 | Session-bound access/file tickets; locked refresh/revoke and one-use reset challenges; deactivate/re-enable revocation; honest profile login, retryable refresh outages, local-first logout and account-switch request guards | Full isolated backend 213 passed; 11 new backend regressions; shared 37 passed including 12 lifecycle cases; standalone 14 passed | Verified technically. [Rollout contract](SESSION_AND_ROUTE_ROLLOUT.md); cross-tab refresh, device cleanup, storage-failure handling and full recovery review remain open |
+| F02.2 | Self-service live-session list and single-session revoke; server returns lifecycle metadata only and client clears local credentials after revoking the current device | Backend session/auth suite **19 passed in 14.91s**; shared lifecycle suite **13 passed**; targeted analysis clean | Verified technically; session-management UI, cross-tab behavior and real-device acceptance remain |
 | F03.1 | Dedicated guarded teacher roster/report URLs, query IDs, local binding, read-only actions and repaired class/performance links | School 30 passed including four teacher URL/guard/back/action tests; admin 8 passed; changed-route analysis clean | Verified widget/route scope; actual browser refresh/login-return and all-module route/controller audit remain open |
+| F02.4 | Browser credential mutation coordination, cross-tab account invalidation, fail-closed secure-storage reads/writes and local logout cleanup reporting | Focused shared auth/storage/navigation suite **20 passed**; static analysis reported no source issues. A Chrome cross-context suite exercises Web Locks, separate contexts and stale-account blocking; final runner evidence remains pending. | Implemented; Chrome and native-device acceptance remain required. |
+| F03.2 | Every school role route has a client guard and cold-route binding; known in-app deep links survive session restoration/login; missing transient detail context recovers safely; guardian account changes clear selected-child state | Focused school route-recovery suite **3 passed**; existing school suite **72 passed** before the new targeted suite; static analysis reported no source issues. | Implemented; browser refresh/login-return across all routes remains required. |
 | F07.1 | Simulated vs provider-accepted outcomes; missing-device failure records; honest summaries/timestamps; teacher/headmaster confirmations and responsive status cards; current grouped audience radios | Nine new backend outcome tests; final backend 222 passed in 279.74s; standalone 16 including mocked Twilio/FCM acceptance; shared 37 / school 34 / admin 8 passed; changed announcement/auth analysis clean | Verified technically. [Delivery contract](NOTIFICATION_DELIVERY_CONTRACT.md); real email, receipts, transactional outbox, worker retry/deduplication and real-provider/broker rollout remain open |
 | F07.2 | Transactional notification outbox; fenced worker leases; per-recipient committed attempt markers; bounded recovery of untouched work; uncertainty instead of blind resend; independent DB poller and ARQ adapter; additive migration and guarded downgrade | Full backend 233 passed in 279.14s; twelve outbox cases plus migration rehearsal; standalone 17; Flutter shared 37 / school 34 / admin 8 passed; static/compose/head checks pass | Verified technically. [Migration/worker rollout](NOTIFICATION_OUTBOX_ROLLOUT.md) remains required and unapplied to existing data. Real provider/broker acceptance, review tooling, request-level idempotency and provider-specific retry rules remain open |
 | F07.3 | UUID broadcast request serialization/replay; actor/school/payload conflicts; immutable teacher/headmaster retry drafts; sender/admin-only delivery inspection; masked, paginated read-only headmaster review panel with responsive/error states | 13 new backend cases; full backend 246 passed in 294.86s; standalone 17; Flutter shared 48 / school 41 / admin 8 passed, including refresh/lost-response identity and phone/desktop review | Verified technically. [Replay/review contract](BROADCAST_REPLAY_AND_REVIEW.md). In-memory recovery only; legacy keyless clients, provider receipts/reconciliation, teacher review navigation, real devices and coordinated rollout remain open. No resend or outcome override added |
 | F01.2 | Shared SQL feed/detail visibility, current role/enrollment/guardian checks, scheduled-content privacy, sender/admin due-work oversight, aligned worker recipient checks and private no-store response headers | 12 new privacy tests; final isolated backend 258 passed in 601.73s; final focused privacy/review/download suite 38 passed; standalone 17; Flutter shared 48 / school 41 / admin 8 passed | Verified technically. [Audience policy](BROADCAST_AUDIENCE_ACCESS.md); current-membership history, not recipient-snapshot history. Direct conversations, full nested-object audit, real-browser acceptance and production rollout remain open |
 | F01.3 | Send/contact parity, current shared-student validation for both participants, tenant-safe contact relationships, private participant history, server-side conversation filter, row-locked read receipts and safer shared UI context/error state | 15 new backend cases; full backend 273 passed in 333.11s; standalone 17; Flutter shared 56 / school 41 / admin 8 passed; eight new messaging tests | Verified technically. [Direct-message contract](DIRECT_MESSAGE_ACCESS.md). No administrative mailbox surveillance; historical participant mailbox retained. Request replay/offline recovery, pagination, moderation/retention and real-device acceptance remain open |
 | F01.4 | Current teacher/student/guardian report relationships, section and quiz-picker roster gates, draft-result visibility, nested tenant filters, active teacher assignment validation and denied-refresh data clearing | Full backend 286 passed in 393.33s; final affected-module suite after multi-role adjustment 32 passed in 69.50s; standalone 17; Flutter shared 56 / school 42 / admin 8 passed; 14 new backend cases and one new UI case | Verified technically. [Academic/report contract](ACADEMIC_REPORT_ACCESS.md). Broader aggregate, attendance-write, examination/quiz lifecycle, published-grade snapshots and custom-staff audits remain open |
+| F01.5 | Current attendance section/student read relationships; session validation on enrollment; tenant-safe attendance references, roster eligibility and locked existing-row ownership checks; private no-store reads | Full isolated backend **305 passed in 456.99s**, including **18 new cases**; standalone safety/provider **17 passed**; changed backend Ruff and whitespace checks pass | Verified technically. [Attendance/enrollment contract](ATTENDANCE_ENROLLMENT_ACCESS.md). Broader aggregates, exam/quiz lifecycle, concurrent new saves, honest frontend save/error states and physical acceptance remain open |
+| F01.6 | School overview, attendance/academic/enrollment/finance aggregate ownership; explicit REPORTS view/export and module-toggle checks; structurally filtered attendance JSON/CSV; ledger-derived finance totals; distinct valid enrollment totals | Final isolated backend **321 passed in 472.89s**, including **34 final focused F01.6/F01.5 cases**; standalone **17 passed**; Ruff and whitespace checks clean | Verified technically. [Aggregate report access contract](AGGREGATE_REPORT_ACCESS.md). Exam/quiz lifecycle, concurrent payment writes, fixed-precision migration, export pagination, independent acceptance and physical browser/device acceptance remain open |
+| F01.7 | Exam category/class/session/paper/mark/result ownership; published-result and draft-report privacy; seating/admit-card roster boundaries; quiz nested links, publication, assignment, answer IDs, attempt privacy and staff-only reports | Final isolated backend **324 passed in 469.05s**, including **3 new cross-school/privacy regressions**; focused final exam/quiz/scenario suite **19 passed**; Ruff and whitespace checks clean | Verified technically. [Exam/quiz access contract](EXAM_QUIZ_ACCESS.md). Promotion, concurrent payment writes, fixed-precision migration, export pagination, independent acceptance and physical browser/device acceptance remain open |
+| F01.8 | Promotion exam/session/student/section ownership with no-partial-write preflight; calendar session/date and exam-feed filtering; lesson section/subject class pairing and progress scope | Final isolated backend **327 passed in 509.41s**, including **3 new cross-school/no-write regressions**; focused promotion/calendar/lesson/scenario suite **13 passed**; Ruff and whitespace checks clean | Verified technically. [Promotion/calendar/lesson access contract](PROMOTION_CALENDAR_LESSON_ACCESS.md). Remaining student-facing action paths, finance precision/concurrency, export pagination, independent acceptance and physical browser/device acceptance remain open |
+| F01.9 | Homework assignment/submission nested links and student visibility; document student ownership; transport route/stop/assignment/trip school filters and student/guardian actions | Final isolated backend **329 passed in 483.36s**, including **5 new cross-school/privacy/no-write regressions**; focused homework/document/transport/lesson suite **25 passed**; Ruff and whitespace checks clean | Verified technically. [Student action access contract](STUDENT_ACTION_ACCESS.md). Remaining registered-router/job/export audit, finance precision/concurrency, independent acceptance and physical browser/device acceptance remain open |
+| F01.10 | Course section/subject ownership; active student enrollment for direct course/book/chapter/note reads and reading-progress resources; registered jobs/export audit | Final isolated backend **331 passed in 488.01s**, including **2 new course cross-school/privacy/no-write regressions**; focused course/router suite **6 passed**; Ruff and whitespace checks clean | Verified technically. [Course content access contract](COURSE_CONTENT_ACCESS.md). Final F01 audit reconciliation, finance precision/concurrency, independent acceptance and physical browser/device acceptance remain open |
+| F01.11 | Reconciled all registered routers with the F01 contract; hardened malformed guardian placement and leave-link relationships | Focused guardian/leave/final-audit suite **11 passed**; final isolated backend **333 passed in 523.57s**; Ruff and whitespace checks clean | Verified technically. [Registered-router audit](F01_ROUTER_AUDIT.md). Parent F01 moved to Review pending independent security/product review |
+| F04.3 | Read-only persisted-reference inventory, visibility classification and migration/rollback runbook; no existing school data or objects changed | `tests/test_private_asset_inventory.py`: 4 cases; focused inventory/download suite **17 passed in 17.73s**; full isolated backend **337 passed in 526.32s**. The command uses an explicit URL and `SET TRANSACTION READ ONLY`, redacts stored references, and produces aggregate or record-ID detail JSON. | Verified technically; public-avatar/course-cover policy, scanning/quotas/retention, production inventory evidence and an explicitly approved migration remain |
+| F04.4 | New-upload folder/type policy: only document/submission PDF/raster and public avatar/uniform raster signatures; caller MIME/extension cannot control stored metadata | `tests/test_upload_policy.py`: 3 cases; focused upload/download suite **19 passed in 26.01s**; full isolated backend **340 passed in 518.96s**. [Policy and production gates](PRIVATE_ASSET_POLICY.md). | Verified technically; public-media approval, scanner/quarantine, cumulative quotas/retention, staging evidence and an approved migration remain |
+| F04.5 | ClamAV pre-storage scan gate, scanner-aware readiness and production configuration/deploy guard | `tests/test_upload_scanner.py` and `tests/test_upload_scanner_config.py`: 5 scanner/config cases; focused scanner/privacy/config suite **28 passed in 20.59s**; full isolated backend **347 passed in 500.11s**. [Scanner rollout](PRIVATE_ASSET_SCANNING.md). | Verified technically; staging scanner evidence, public-media approval, cumulative quotas/retention, production inventory and an approved migration remain |
 
 Verification instructions and environment changes: [Phase 1 verification guide](PHASE_1_VERIFICATION.md).
 
-Remaining Phase 1 work is explicit: private-asset inventory/migration, public-avatar policy, scanning/quotas and rollout verification (F04), fixed-precision money and concurrency/idempotency (F06), session/device lifecycle (F02), teacher route/deep-link repair (F03), complete nested-object audit (F01), production environment/logging verification (F05), and honest delivery states/provider/queue recovery (F07). No existing private-file or money data migration has been applied.
+Remaining Phase 1 work is explicit: private-asset scanner staging/operations evidence, cumulative quotas/retention, public-avatar approval and rollout verification (F04), fixed-precision money and concurrency/idempotency (F06), session/device lifecycle (F02), teacher route/deep-link repair (F03), complete nested-object audit (F01), staging artifact/infrastructure-log acceptance (F05), and honest delivery states/provider/queue recovery (F07). No existing private-file or money data migration has been applied.
 
-Known tooling warnings: shared-package tests report a missing `local_auth_android` plugin reference; app tests report `printing` Swift Package Manager support warnings. They do not fail these tests but must be resolved/verified for native distribution under O01/O04. No plugin dependency changes were made in this batch.
+Known tooling warnings: `local_auth_android` plugin registration and `printing` Swift Package Manager support warnings remain. They do not fail the Flutter tests or web builds. O01 records current analyzer info/warning debt as non-fatal while analyzer errors remain release-blocking; the baseline must be reduced before native distribution acceptance under O04. No plugin dependency changes were made in this batch.
 
-Next implementation packet: **F01.5 — attendance/enrollment access boundaries**.
-Audit section register/summary and individual attendance reads, enrollment session
-references, and attendance upsert tenant ownership. Preserve class-teacher versus
-subject-teacher write authority; denied or malformed requests must not change data
-or schedule notifications. Broader aggregate reports and exam/quiz lifecycles remain
-separate audit work; F01.4 does not certify all student-record endpoints.
-F07 provider-receipt reconciliation and real-provider rollout remain separate gates.
+**Next implementation packet: O03.1 — representative-fixture and pagination performance baseline.**
+O01 is in Review pending hosted GitLab evidence. F06.3 remains pending
+currency/scale/rounding approval, a read-only production run and restored-copy
+rehearsal; no money data is changed until those gates are accepted. Independent F01
+security/product review remains open.
 
-Next experience packet: **U02.4.3 — complete mutation-journey coverage**.
-Exercise class/section creation, timetable authoring and school-settings save
-paths through automated form harnesses, then prepare a concise physical browser
-checklist for the user.
-Actual visual browser refresh remains a physical acceptance step by user
-request; do not open a preview. U02.3.1–U02.3.4 do not certify the complete
-browser-only setup and management journey.
+Next experience prerequisite: **physical browser acceptance of U02 (user-run)**.
+U02.4.3 automated mutation journeys are complete; follow the
+[physical browser checklist](U02_HEADMASTER_BROWSER_CHECKLIST.md). Do not open a
+preview. The next launch experience track is **L01 — role journeys**, which folds
+in U03 and U04 after its active foundation dependencies are ready.
 
 ### Experience foundation substeps — 2026-09-16
 
@@ -90,6 +101,31 @@ browser-only setup and management journey.
 
 | Date | IDs | Status change / work performed | Verification | Blocker / next action |
 | --- | --- | --- | --- | --- |
+| 2026-09-26 | L05.6 | Made invoice and student-fee class filters fail closed: a foreign class ID is rejected instead of producing an ambiguous empty financial list. | Isolated invoice-pagination regression: **1 passed in 1.47s**; Ruff/compile/whitespace pass. No UI preview opened. | Continue L05 reporting definitions, drill-down and safe-export coverage; payment-gateway integration remains deferred. |
+| 2026-09-26 | L05.5 | Made bulk fee issuance retry-safe: if any targeted student already has the same structure, resolved session, title and due-date invoice, the entire repeat request is rejected before it creates another charge. | Isolated fee-scope suite: **4 passed in 6.71s**; Ruff/compile/whitespace pass. No UI preview opened. | Continue L05 reporting definitions, drill-down and safe-export coverage; payment-gateway integration remains deferred. |
+| 2026-09-26 | L05.4 | Prevented duplicate invoice issuance for the same student, fee structure, resolved session, title and due date, while retaining legitimate invoices for a later due date. | Isolated fee-scope suite: **3 passed in 4.13s**; Ruff/compile/whitespace pass. No UI preview opened. | Continue L05 reporting definitions, drill-down and safe-export coverage; payment-gateway integration remains deferred. |
+| 2026-09-26 | L05.2–L05.3 | Continued L05. L05.2 rejects future payment dates and preserves the unpaid invoice. It also validates class/session-scoped fee structures before issuance. L05.3 applies shared valid-enrollment eligibility to student-report assignments, excluding foreign-session enrollment rows. | Future-payment regression: **4 passed in 5.51s**. Fee-scope suite: **2 passed in 2.96s**; combined fee suite: **6 passed in 7.49s**. Reporting Ruff/compile/whitespace pass; its isolated runner was blocked by local provisioning permissions and an approval-service rejection, so no passed count is claimed. No UI preview opened. | Continue L05 reporting definitions, drill-down and safe-export coverage; payment-gateway integration remains deferred. |
+| 2026-09-25 | L05.1 | Began the finance and reporting launch track. Invoice lists now use the shared bounded pagination contract and a stable due-date/id order after school scope. | Isolated invoice-pagination regression: **1 passed in 1.55s**; Ruff/compile/whitespace pass. No UI preview opened. | Continue fee-operation and reporting integrity slices; payment-gateway integration remains deferred. |
+| 2026-09-25 | O03.9, L01.9–L04.9 | Completed the ninth parallel batch. O03.9 paginates student-document history after tenant and child access checks. L01.9 clears stale student notifications and timetable context before live reads. L03.8 clears stale teacher leave-review queues and provides retryable recovery. L04.9 prevents exam-date updates from excluding existing dated papers. | O03.9 isolated document suites: **7 passed in 8.56s**; Ruff/compile/whitespace pass. L03.8 Flutter recovery suite: **1 passed**; focused analysis clean. L04.9 isolated exam-result suite: **4 passed in 4.73s**; Ruff/compile/whitespace pass. L01.9 focused Flutter analysis clean. No UI preview opened. | Continue O03 with representative data/budgets and continue end-to-end role journeys; do not treat per-slice tests as launch certification. |
+| 2026-09-25 | O03.8, L01.8–L04.8 | Completed the eighth five-scope batch. O03.8 applies bounded, stable pagination only after own, reviewer or school leave visibility. L01.8 clears stale guardian notifications and exposes a recoverable error. L02.8 prevents restricting a subject to a class when an existing timetable slot uses it elsewhere. L03.7 clears guardian transport requests, trips and tracking data before live reload. L04.8 requires a class-specific exam paper subject to match the exam class while retaining school-wide subjects. | O03.8 isolated leave suite: **6 passed in 10.59s**; Ruff/compile/whitespace pass. L02.8 isolated timetable suite: **2 passed in 1.90s**; Ruff/compile/whitespace pass. L04.8 isolated exam-result suite: **3 passed in 3.69s**; Ruff/compile/whitespace pass. L01.8/L03.7 focused Flutter analysis clean. No UI preview opened. | Continue O03 with representative data/budgets and continue end-to-end role journeys; do not treat per-slice tests as launch certification. |
+| 2026-09-25 | O03.7, L01.7–L04.7 | Completed the seventh five-scope batch. O03.7 bounds ordered transport-assignment lists. L01.7 clears stale teacher classes before a failed live reload. L02.7 rejects duplicate subject-code changes before mutation. L03.6 clears the selected section and cached rosters when teacher-performance context reload fails. L04.7 requires each scheduled exam paper to fall inside its exam window. | O03.7/L02.7/L04.7 isolated transport, academic and examination regressions: **13 passed in 20.50s**; Ruff/compile/whitespace pass. L01.7/L03.6 focused Flutter recovery suite: **2 passed**; focused analysis clean. No UI preview opened. | Continue O03 with representative data/budgets and continue end-to-end role journeys; do not treat per-slice tests as launch certification. |
+| 2026-09-25 | O03.6, L01.6–L04.6 | Completed the sixth five-scope batch. O03.6 bounds the valid, school-scoped exam list with stable ordering. L01.6 rejects malformed teacher-attendance routes instead of inventing a class. L02.6 rejects duplicate class renames before mutation. L03.5 clears stale announcement sections, exposes retry and blocks section sends until recovery. L04.6 rejects invalid exam date ranges on create and partial update. | O03.6/L02.6/L04.6 isolated examination and academic regressions: **4 passed in 4.02s**; Ruff/compile/whitespace pass. L01.6/L03.5 focused Flutter suites: **7 passed**; focused analysis clean. No UI preview opened. | Continue O03 with representative data/budgets and continue end-to-end role journeys; do not treat per-slice tests as launch certification. |
+| 2026-09-25 | O03.5, L01.5–L04.5 | Completed the fifth five-scope batch. O03.5 paginates active transport trips only after actor visibility is established. L01.5 presents a family-access recovery state after selected-child refresh failure. L02.5 rejects duplicate section renames before mutation. L03.4 clears stale teacher conversations and presents retryable recovery. L04.5 requires a class-compatible subject for timetable creates and updates. | O03.5 isolated transport suite: **5 passed in 10.67s**; Ruff/compile/whitespace pass. Guardian family-access suite: **2 passed**; focused analysis clean. L02.5 isolated section-update regression: **1 passed**; Ruff/compile/whitespace pass. L03.4 communication failure test: **1 passed**; focused analysis clean. L04.5 isolated timetable/attendance suite: **4 passed in 4.86s**; Ruff/compile/whitespace pass. No UI preview opened. | Continue O03 with representative data/budgets and continue end-to-end role journeys; do not treat per-slice tests as launch certification. |
+| 2026-09-25 | O03.4, L01.4–L04.4 | Completed the fourth five-scope batch. O03.4 applies homework pagination only after school, valid academic-link, section and enrollment visibility filters. L01.4/L03.3 clear a selected child's cached identity and scoped data if linked-child refresh fails. L02.4 recursively merges nested school-settings updates without deleting sibling settings. L04.4 blocks exam-result publication until every active student has an explicit score or recorded absence for every paper. | O03.4 isolated homework suite: **13 passed in 20.04s**; Ruff/compile/whitespace pass. Guardian session suite: **2 passed**; focused analysis clean. L02.4 school suite: **12 passed**; Ruff/compile/whitespace pass. L04.4 result-integrity suite: **8 passed in 11.56s**; Ruff/whitespace pass. No UI preview opened. | Continue pagination coverage and connected role workflow slices; representative fixtures and measured budgets remain required for O03. |
+| 2026-09-25 | O03.3, L01.3–L04.3 | Completed the third five-scope batch. O03.3 paginates student attendance history only after tenant/access/date filters. L01.3/L03.3 make guardian child-scoped reads and driver trip loading clear stale state and expose retryable errors. L02.3 rejects partial calendar edits whose merged end time precedes the stored/proposed start time without changing the event. L04.3 returns an immutable saved quiz attempt for a retry rather than overwriting answers. | O03.3 isolated attendance regression: **1 passed in 3.22s**; Ruff/compile/whitespace pass. Guardian failure-state test: **1 passed**; focused analysis has no errors (one pre-existing driver `onReorder` deprecation info). L02.3 calendar suite: **5 passed in 4.86s**; Ruff/compile/whitespace pass. L04.3 quiz/access suite: **10 passed in 15.99s**; Ruff/whitespace pass. No UI preview opened. | Continue bounded pagination coverage and complete role journeys; use a representative fixture and agreed budgets before claiming performance readiness. |
+| 2026-09-25 | O03.2, L01.2–L04.2 | Completed the second five-scope batch. O03.2 paginates broadcast history after tenant/audience filtering. L01.2/L03.2 make teacher attendance reads fail closed and prevent a failed attendance save from showing success or navigating away. L02.2 makes section admissions session-consistent and retry-safe. L04.2 clears a staff-read receipt after a changed homework resubmission while preserving it for an identical retry. | O03.2 isolated broadcast regression: **1 passed in 8.41s**; Ruff/whitespace pass. Teacher attendance submission test: **1 passed**; focused analysis clean. L02.2 isolated admission/enrollment suite: **3 passed in 3.48s**; disposable DB/role removed. L04.2 isolated targeted homework regression, Ruff and compile checks pass; a broader runner gave no final summary and is not claimed. No UI preview opened. | Continue O03.3 and next L01–L04 slices; repeat broader homework coverage only with a conclusive final summary. |
+| 2026-09-25 | O03.1, L01–L04 | Began five concurrent launch workstreams. O03.1 adds reusable bounded direct-message pagination and a representative 105-row history regression. L01.1/L04.1 clear stale student attendance, assignment and exam data on a failed live read, expose a retryable error, and retain no false empty state. L02.1 adds academic-session date/rename integrity, session-filtered class listing, fail-closed setup targets and a no-session-move-after-enrollment rule. L03.1 adds durable guardian relinking and immediate post-unlink attendance revocation. | O03.1 focused direct-message suite: 6 tests, including the new 105-row regression, plus Ruff/compile/whitespace pass. L01.1/L04.1 focused Flutter failure-state suite: 3 passed; focused analysis clean. L02.1 focused academic-setup suite: 3 passed in 3.33s; Ruff/compile/whitespace pass. Its wider 24-case regression emitted no final summary, so it is not claimed as evidence. L03.1 focused guardian/final-audit suite: 8 passed; Ruff/whitespace pass. No UI preview opened. | Repeat L02.1's broader academic/enrollment regression to a conclusive result, then continue each track by its release-track dependency order. |
+| 2026-09-24 | PLAN-02 | Replaced 31 standalone planned packets with six dependency-ordered lean launch tracks (L01–L06). Retained every original ID as a deferred traceability record: 16 are folded into a track and 15 are deferred until after the L06 pilot. | Backlog, progress and reference phase mapping updated; this is a scope-planning change only and makes no release-readiness claim. | Continue O03.1. Execute L01 only after its active foundation dependencies are ready; L06 still requires the open O01/O02/O03 evidence. |
+| 2026-09-24 | O03.1 | Planned → In progress. Mapped current high-growth list/report paths and existing bounded-list conventions; isolating a backward-safe shared pagination contract and representative fixture before changing public responses. | Source inspection only; no performance numbers are claimed. | Implement bounded high-growth lists with tenant-fairness regressions, then publish an isolated baseline. |
+| 2026-09-24 | O02.3 | In progress → technically verified. Added fail-closed partial-provider configuration validation, configuration-mode-only provider visibility, and a line-safe protected base64 FCM service-account input for CI-generated environments. Both documented worker modes now write the same heartbeat. | Combined isolated provider/worker/logging/readiness/migration suite **33 passed in 15.21s**; Ruff, compilation, CI YAML, alert-rule YAML and whitespace checks pass. No provider was contacted. | Hosted alert routing, restore/rollback rehearsal and an approved synthetic-recipient provider exercise remain before O02 can be Reviewed. Continue O03 local performance preparation. |
+| 2026-09-24 | O02.2 | In progress → technically verified. Enforced production JSON logging, fixed route-template request logging, added versioned Prometheus alert rules and an explicit redacted alert/restore/rollback/provider-test runbook. CI now rehearses the additive worker-heartbeat migration alongside the guarded outbox migration. | Combined isolated operations suite **27 passed in 15.24s**; Ruff, compilation, CI YAML, alert-rule YAML and whitespace checks pass. | Configure hosted alert routing, run a restore and deploy-rollback rehearsal, and record an approved synthetic-recipient provider exercise before O02 can be Reviewed. |
+| 2026-09-24 | O02.1 | Planned → In progress → technically verified. Added a migration-backed, coalesced outbox-worker heartbeat and a Super-Admin aggregate operations view. It exposes only queue counts/timing and worker freshness, never messages, recipients, identifiers, hostnames or provider errors. | Isolated worker/outbox/readiness/API/migration suite **20 passed in 15.36s**; real heartbeat upsert, fresh/stale/not-seen states, Super-Admin gate and reversible migration covered. Ruff, compilation and whitespace checks pass. | Continue O02.2: alert response, backup/restore and deploy/provider rollback runbooks. Hosted O01 pipeline evidence remains separately required. |
+| 2026-09-24 | O01.5 | Added a fail-closed OSV Pub advisory scanner for the three Flutter lockfiles and a dedicated CI job. O01 moved In progress → Review. | Pub audit **375 hosted package locks checked**, no findings; scanner unit tests **2 passed in 0.02s**. CI YAML and whitespace checks pass. | Run one hosted GitLab pipeline and attach the result before O01 is Verified. Continue O02 operational readiness locally. |
+| 2026-09-24 | O01.4 | Added a pinned blocking `pip-audit` CI job, upgraded FastAPI/Starlette, pytest/pytest-asyncio, multipart and PDF dependencies, and replaced vulnerable Python-JOSE/ECDSA with PyJWT for application and FCM service-account JWTs. | Audit reduced **63 → 12 → 4 → 0** known vulnerabilities. Auth **9 passed in 3.39s**, session lifecycle/revocation **10 passed in 14.61s**, provider privacy **6 passed in 0.15s**, quiz/PDF **9 passed in 13.02s**, upload/multipart **9 passed in 3.59s**. `pip check`, tracked-secret scan, CI YAML and whitespace checks pass. | Obtain hosted GitLab pipeline evidence and add Flutter ecosystem advisory coverage. No UI preview, production access, deployment, migration or provider call. |
+| 2026-09-24 | O01.3 | Added `test_api_contract.py` and a named backend critical-journey gate covering authentication/session lifecycle, payment concurrency/idempotency, private-download authorization and broadcast tenant isolation. | Isolated contract/auth/session **12 passed in 3.81s**; payments **19 passed in 22.66s**; private downloads **14 passed in 18.04s**; broadcast isolation **10 passed in 12.37s**. Each runner removed its generated database/role. | Add dependency-vulnerability scanning, then obtain hosted GitLab pipeline evidence. No UI preview, production access, migration, deployment or provider call. |
+| 2026-09-23 | O01.2 | Added a tracked-file secret gate that reports only path/line/category, recognizes dynamic/template values and documented public Firebase client config, and rejects likely committed keys/tokens. Added a standalone disposable outbox migration upgrade/downgrade rehearsal job. | Repository secret scan passes. Focused isolated scanner/migration suite **4 passed in 0.11s**; generated role/database removed. GitLab CI YAML parses and whitespace check passes. | Add API-contract/critical-journey selection and dependency vulnerability scan, then obtain hosted GitLab pipeline evidence. |
+| 2026-09-23 | O01.1 | Planned → In progress. Added pinned Flutter 3.44.1 GitLab jobs for shared, school and admin dependency resolution, analyzer gate and tests, plus explicit production-mode web builds for both portals. Frontend changes and CI-file changes trigger all gates; build artifacts are retained for one day. Corrected the existing Docker service YAML quoting so the configuration parses. | GitLab CI YAML parses. Local non-interactive analyzer gates report only the recorded informational/warning baseline; shared **65**, school **60** and admin **10** tests pass. Both release web artifacts compiled with `APP_ENV=production` and explicit HTTPS `API_BASE_URL`; no UI preview opened. | Add API-contract/critical-journey selection, dependency/secret scanning and a disposable migration rehearsal; then obtain hosted GitLab pipeline evidence. Analyzer baseline and native plugin warnings remain tracked for O04. |
+| 2026-09-22 | F01.5 | In progress → Review → Verified technically (Codex self-review). Enforced current attendance read relationships, same-school enrollment sessions and nested write references; prevented upserts adopting another school/section record; filtered corrupt history and added no-store headers. | Full isolated backend **305 passed in 456.99s**, including **18 new regressions**; standalone **17 passed**; Ruff and whitespace checks clean. Initial focused run: 40 passed/1 fixture failure, corrected before the full run. | Next F01.6 aggregate/report export audit. Parent F01 remains In progress. Teacher false-success save and student/teacher stale-refresh UI gaps recorded under M10/U03/U04. No UI preview, frontend change, migration, deployment or provider send. |
 | 2026-09-21 | U02.4.3 | Made the headmaster create/author/save mutation journeys harnessable: extracted UI-free `submitNewClass`/`submitNewSection` (classes), `submitNewClass` (timetable) and `validate`/`submitSave` (settings) that own validation, duplicate/day-range checks, backend-failure surfacing and refresh-on-success; sheets/save button delegate to them. Wrote the user-run physical browser checklist. | Focused mutation-journey **4 passed**; full school suite **60 passed**; targeted analysis on the three controllers + new test clean. Existing `printing` distribution warning remains. | Physical browser acceptance of `U02_HEADMASTER_BROWSER_CHECKLIST.md` is user-run; no preview. Next unblocked experience work is U03 (student design beyond home). No backend, migration, dependency or deployment change. |
 | 2026-09-17 | U02.4.2 | Made core management refreshes fail closed by clearing prior class, student, teacher, timetable and settings state before each canonical read. Added deterministic loader seams and a combined success-to-failure regression. | Focused U02.4 **3 passed**; full school suite **56 passed**; targeted analysis and `git diff --check` clean. Existing `printing` distribution warning remains. | Next U02.4.3 cover class/section, timetable and settings mutations, then issue the user-run physical browser checklist. No preview. |
 | 2026-09-17 | U02.4.1 | Found duplicate-account risk after partial student enrollment or teacher salary-profile failure; added resumable IDs and honest section-load failure state. Committed the preceding complete working tree and pushed `839dcb6` directly to `origin/main` at user request. | Focused form journeys **2 passed**; full school suite at slice completion **55 passed**; focused changed-file analysis clean. | Continue U02.4.2 management refresh correctness. No preview; lost-response create idempotency remains backend work. |
@@ -135,3 +171,463 @@ Repository evidence:
 - [CI pipeline](../.gitlab-ci.yml), [operations architecture](architecture/12-scaling-and-operations.md), [existing development methodology](architecture/10-development-process-and-roadmap.md).
 
 Documentation descriptions and stale comments are not authoritative proof of runtime capability. Reconcile old foundation-only README text, outdated permission-document paths and removed-module claims as their associated packets are completed. Keep source links and standards review dates current.
+
+### 2026-09-22 — F01.5 started
+
+Owner/reviewer: Codex (self-review). Status: In progress. Estimate: one scoped implementation and verification session. Sequence: validate enrollment sessions and attendance nested IDs/upsert ownership → current relationship gates for reads while preserving daily/subject write authority → retain existing UI/API shapes → isolated HTTP negative/positive regressions and backend checks. Dependencies: F08 isolated runner and F01.4 access helpers. Physical browser acceptance remains user-run; no preview.
+
+F01.5 inspection follow-up: **P1 M10/U04** — teacher attendance submit ignores the repository result and always shows Submitted; **P1 U03/U04** — student attendance and teacher roster refresh retain prior data on failed reads. Confirmed by controller inspection; no browser reproduction. These frontend changes are outside this backend packet and remain open.
+
+### 2026-09-22 — F01.5 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → Review → **Verified technically**;
+  independent engineering/product acceptance remains outstanding, and F01 remains In progress.
+- Implemented API/permission scope and recovery limits:
+  [attendance/enrollment access contract](ATTENDANCE_ENROLLMENT_ACCESS.md).
+  No response-shape, frontend, dependency or schema change; no existing school data changed.
+- Full command from `backend`:
+  `.venv/bin/python scripts/run_isolated_tests.py --from-local-config -- -o addopts= -q --tb=short --show-capture=no --junitxml=/private/tmp/schooling-f015-backend.xml`.
+  **305 passed in 456.99s**, zero failures/errors/skips. Saved JUnit:
+  `/private/tmp/schooling-f015-backend.xml`. Runner confirmed its generated database/role removed.
+- **18 new HTTP regression cases** cover role matrices, current relationship revocation,
+  foreign/missing/nonstudent targets, invalid UUID/date inputs, session create/reactivation,
+  malformed enrollment/student/class ownership, invalid subjects/slots, duplicate/mixed batches,
+  cross-school and cross-section upsert rejection, filtered malformed history, teacher authority,
+  withdrawal history and inactive-student unenrollment. Negative writes assert unchanged
+  attendance/message/outbox counts; collisions also assert unchanged existing rows.
+- Initial focused suite: **40 passed / 1 failed in 112.26s**. The corrupt-parent fixture
+  hit a section-name uniqueness constraint before exercising the API. Renamed that fixture;
+  the final full suite above covers the corrected case and three additional cases.
+- Standalone `.venv/bin/python -m unittest discover -s verification -v`: **17 passed**.
+  Changed backend Ruff and `git diff --check`: clean. Flutter suites not rerun because
+  frontend code and API shapes are unchanged; physical UI/device acceptance remains open.
+- Initial sandboxed provisioning was denied by the filesystem/network sandbox; the approved
+  isolated runner completed outside that restriction. No user database was reset or migrated.
+- UI follow-ups above remain open. Next backend work: **F01.6 aggregate report/export
+  access**. No preview, real provider send, deployment, commit or push performed.
+
+### 2026-09-22 — F01.6 started
+
+Owner/reviewer: Codex (self-review). Status: In progress. Estimate: one scoped
+implementation/verification session. Dependencies: F08 isolated runner, F01.4
+relationship helpers and F01.5 attendance structural filters. Sequence: inspect
+aggregate source queries and finance projections → preserve explicit school-wide
+REPORTS permissions and verify view/export/toggle boundaries → retain API shapes
+and existing UI → two-school corruption/permission/CSV reconciliation tests and
+full isolated backend regression. No UI preview; no production data migration.
+
+### 2026-09-23 — F01.6 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → Review → **Verified technically**;
+  independent engineering/product acceptance remains outstanding and F01 remains In progress.
+- Hardened aggregate projections and report filters: overview/enrollment nested tenant
+  checks, distinct valid enrollment totals, school/session/category-bounded academic
+  summaries, ledger-derived finance totals, attendance structural filters, known-status
+  CSV output, reversed-date/foreign-section validation, and explicit REPORTS view/export
+  and module-toggle coverage. No API response shape, schema, migration or frontend change.
+- Full command from `backend`:
+  `.venv/bin/python scripts/run_isolated_tests.py --from-local-config -- -o addopts= -q --tb=short --show-capture=no --junitxml=/private/tmp/schooling-f016-backend.xml`.
+  **321 passed in 472.89s**, zero failures/errors/skips. Saved JUnit:
+  `/private/tmp/schooling-f016-final-backend.xml`; generated database and role removed.
+- Final focused F01.6/F01.5 suite: **34 passed in 92.12s**. Standalone safety/provider suite:
+  **17 passed**. Changed backend Ruff and `git diff --check` pass. No Flutter suite,
+  UI preview, physical browser/device acceptance, deployment or provider send.
+- New contract: [aggregate report access](AGGREGATE_REPORT_ACCESS.md). Remaining work:
+  F01.7 exam/quiz lifecycle access, fixed-precision/concurrent finance work, export
+  pagination, independent review and production acceptance.
+
+### 2026-09-23 — F01.7 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → Review → **Verified technically**;
+  independent engineering/product acceptance remains outstanding and F01 remains In progress.
+- Hardened exam and quiz lifecycle ownership: class/session/category and subject links,
+  roster/student roles, school-scoped marks/results/seats, published-result visibility,
+  draft report-card privacy, quiz publication and assignment checks, answer-question
+  binding, attempt privacy and staff-only performance/report reads. No API response
+  shape, schema, migration or frontend change.
+- Added `tests/test_exam_quiz_access.py` with cross-school nested-ID, draft-quiz,
+  attempt-privacy and cross-quiz-answer regressions.
+- Full command from `backend`:
+  `.venv/bin/python scripts/run_isolated_tests.py --from-local-config -- -o addopts= -q --tb=short --show-capture=no --junitxml=/private/tmp/schooling-f017-backend.xml`.
+  **324 passed in 469.05s**, zero failures/errors/skips. JUnit:
+  `/private/tmp/schooling-f017-final-backend.xml`; generated database and role removed.
+- Focused final exam/quiz/scenario suite: **19 passed** (including the three new
+  F01.7 cases).
+  Ruff and `git diff --check` pass. No Flutter suite, UI preview, physical
+  browser/device acceptance, deployment or provider send.
+- New contract: [exam/quiz access](EXAM_QUIZ_ACCESS.md). Remaining work:
+  F01.8 registered-router audit, promotion/remaining action paths, fixed-precision
+  and concurrent finance work, export pagination, independent review and production acceptance.
+
+### 2026-09-23 — F01.8 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → Review → **Verified technically**;
+  independent engineering/product acceptance remains outstanding and F01 remains In progress.
+- Hardened promotion, calendar and lesson lifecycle boundaries: local exam/session/
+  student/section validation, published result filtering, no-partial-write promotion
+  preflight, calendar session/date validation, nested exam-feed filtering, valid
+  section/subject class pairing, and structurally filtered lesson progress. No API
+  response shape, schema, migration or frontend change.
+- Added `tests/test_remaining_access.py` with foreign nested-ID and promotion
+  no-write regressions.
+- Full command from `backend`:
+  `.venv/bin/python scripts/run_isolated_tests.py --from-local-config -- -o addopts= -q --tb=short --show-capture=no --junitxml=/private/tmp/schooling-f018-final-backend.xml`.
+  **327 passed in 509.41s**, zero failures/errors/skips. JUnit:
+  `/private/tmp/schooling-f018-final-backend.xml`; generated database and role removed.
+- Focused promotion/calendar/lesson/scenario suite: **13 passed**; new F01.8 suite:
+  **3 passed**. Ruff and `git diff --check` pass. No Flutter suite, UI preview,
+  physical browser/device acceptance, deployment or provider send.
+- New contract: [promotion/calendar/lesson access](PROMOTION_CALENDAR_LESSON_ACCESS.md).
+  Remaining work: F01.9 student-facing action paths, fixed-precision and concurrent
+  finance work, export pagination, independent review and production acceptance.
+
+### 2026-09-23 — F01.9 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → Review → **Verified technically**;
+  independent engineering/product acceptance remains outstanding and F01 remains In progress.
+- Hardened homework, document and transport actions: class/section/subject links,
+  enrolled-student visibility, school-scoped submissions, student document ownership,
+  route/stop/assignment nesting, school-scoped trip events/locations, and student /
+  guardian transport request boundaries. No API response shape, schema, migration or
+  frontend change.
+- Added five cross-school/privacy/no-write cases to `tests/test_remaining_access.py`.
+- Full command from `backend`:
+  `.venv/bin/python scripts/run_isolated_tests.py --from-local-config -- -o addopts= -q --tb=short --show-capture=no --junitxml=/private/tmp/schooling-f019-final-backend.xml`.
+  **329 passed in 483.36s**, zero failures/errors/skips. JUnit:
+  `/private/tmp/schooling-f019-final-backend.xml`; generated database and role removed.
+- Focused homework/document/transport/lesson suite: **25 passed**; new F01.9 suite:
+  **5 passed**. Ruff and `git diff --check` pass. No Flutter suite, UI preview,
+  physical browser/device acceptance, deployment or provider send.
+- New contract: [student action access](STUDENT_ACTION_ACCESS.md). Remaining work:
+  F01.10 registered-router/job/export audit, finance precision/concurrency,
+  independent review and production acceptance.
+
+### 2026-09-23 — F01.11 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → Review → **Verified
+  technically**; the parent F01 moves to Review pending independent security and
+  product acceptance.
+- Reconciled the registered-router inventory and hardened malformed guardian
+  placement and leave-link relations. Added `tests/test_final_f01_audit.py` with
+  two cross-school/privacy/no-write regressions.
+- Focused guardian/leave/final-audit suite: **11 passed**. Full command from
+  `backend`: `.venv/bin/python scripts/run_isolated_tests.py --from-local-config
+  -- -o addopts= -q --tb=short --show-capture=no
+  --junitxml=/private/tmp/schooling-f0111-final-backend.xml`.
+  **333 passed in 523.57s**, zero failures/errors/skips; generated database and role
+  removed. Ruff and `git diff --check` pass.
+- New audit: [registered routers](F01_ROUTER_AUDIT.md). No frontend change, schema
+  migration, UI preview, physical browser/device acceptance, deployment or provider
+  send. Next implementation packet: F04.3 private-asset rollout inventory.
+
+### 2026-09-23 — F04.3 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → **Verified technically**;
+  F04 remains In progress because production evidence and policy decisions cannot
+  be inferred from a local codebase.
+- Added `backend/scripts/audit_private_assets.py`: an explicit-URL, read-only
+  PostgreSQL inventory of document, submission, avatar, uniform, logo, course-cover
+  and URL-shaped metadata references. It emits aggregate JSON by default and only
+  record IDs plus redacted/hashes reference shapes with `--details`; it neither
+  changes database metadata nor loads, copies or deletes objects.
+- Added [private-asset inventory and rollout plan](PRIVATE_ASSET_INVENTORY.md),
+  including classification targets, production runbook, staged copy validation,
+  object/metadata rollback boundary and unresolved policy decisions. Updated the
+  existing [private-file rollout](PRIVATE_FILE_ROLLOUT.md) to point to it.
+- Focused inventory/download suite: **17 passed in 17.73s**. Full command from
+  `backend`: `.venv/bin/python scripts/run_isolated_tests.py --from-local-config
+  -- -o addopts= -q --tb=short --show-capture=no
+  --junitxml=/private/tmp/schooling-f043-final-backend.xml`.
+  **337 passed in 526.32s**, zero failures/errors/skips; the generated test database
+  and role were removed. `python -m ruff check` for the new script/tests,
+  compilation and `git diff --check` pass.
+- No schema migration, UI preview, production database connection, deployment,
+  asset copy, data rewrite or deletion was performed. Next implementation packet:
+  F04.4 asset policy and controlled-migration readiness.
+
+### 2026-09-23 — F04.4 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → **Verified technically**;
+  F04 remains In progress pending product/privacy and operations approvals.
+- New-upload enforcement now accepts only `documents`, `submissions`, `avatars`
+  and `uniform`; private uploads allow signature-detected PDF/PNG/JPEG/WebP and
+  public uploads allow signature-detected PNG/JPEG/WebP. A caller-provided MIME
+  type or extension cannot determine the stored suffix or returned type. Unknown
+  folders and unrecognized bytes fail before storage.
+- Added [new-upload policy and migration readiness](PRIVATE_ASSET_POLICY.md),
+  including the compatibility status of avatars/uniform/logos, course-cover
+  decision, scanner/quarantine, quota/retention and staging evidence gates.
+- Focused upload/download suite: **19 passed in 26.01s**; generated database and
+  role removed. Full command from `backend`: `.venv/bin/python
+  scripts/run_isolated_tests.py --from-local-config -- -o addopts= -q --tb=short
+  --show-capture=no --junitxml=/private/tmp/schooling-f044-final-backend.xml`.
+  **340 passed in 518.96s**, zero failures/errors/skips; generated database and
+  role removed. Ruff and `git diff --check` pass. No schema migration, UI preview,
+  production database connection, asset copy, data rewrite, deletion or deployment
+  was performed. Next packet: F04.5 scanning, quarantine and production readiness.
+
+### 2026-09-23 — F04.5 verification and handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → **Verified technically**;
+  F04 remains In progress pending staging and production acceptance.
+- Added a ClamAV INSTREAM scanner gate before storage. A clean result is required
+  before a key/blob can exist; detected content is discarded, and scanner errors
+  fail closed with a retryable 503 and no blob/metadata write. Non-development
+  configuration requires `UPLOAD_SCANNER_BACKEND=clamav` plus a private host.
+- `/health/ready`, production compose health and the CI deploy readiness check
+  now include the scanner. CI refuses a production deploy without protected
+  scanner configuration. New [scanner rollout](PRIVATE_ASSET_SCANNING.md) records
+  the private-network configuration and staging acceptance sequence.
+- Focused scanner/upload/readiness suite: **26 passed in 27.42s**; final combined
+  scanner/privacy/configuration suite: **28 passed in 20.59s**; full isolated backend:
+  **347 passed in 500.11s**. Generated database and role removed. No UI preview,
+  scanner deployment, production database access, asset migration, rewrite or deletion
+  was performed. F04 remains open for quotas, retention, approvals and staging evidence.
+
+### 2026-09-23 — F05.3 verification and next-phase handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → **Verified technically**;
+  F05 remains In progress pending staging artifact and infrastructure-log acceptance.
+- Production settings now reject the development database, default super-admin email,
+  unsafe CORS and disabled upload scanner. CI requires all critical values before it
+  writes the deploy environment. Client notification logs, cache/attendance logs and
+  Uvicorn access logs retain only content-free event/category/path data.
+- Focused isolated scanner/privacy/configuration suite: **28 passed in 20.59s**;
+  shared configuration/notification diagnostics suite: **6 passed**; focused Flutter
+  analysis reports no issues; final isolated backend: **347 passed in 500.11s**.
+  Generated backend database and role removed. The pre-existing `local_auth_android`
+  package warning remains. No UI preview, staging release, production access, data
+  migration, deletion or deployment was performed. Next phase: F06.3 fixed-precision
+  finance policy and migration rehearsal after currency/scale/rounding approval.
+
+### 2026-09-23 — F06.3 precision-rehearsal handoff
+
+- Owner/reviewer: **Codex (self-review)**. In progress → **Verified technically**;
+  F06 remains In progress pending financial-policy and rollout acceptance.
+- Added `scripts/audit_money_precision.py`, a policy-required `SET TRANSACTION READ
+  ONLY` reconciliation command. It classifies fee/payroll scale/sign/non-finite issues
+  and invoice cached-versus-ledger mismatches without printing money values, names,
+  references or database URLs. It cannot migrate, repair or delete a record.
+- `tests/test_money_precision_audit.py`: **3 cases**; focused money/payment/report
+  suite: **31 passed in 52.43s**. Ruff, compilation and whitespace validation pass.
+  The isolated database and role were removed. No UI preview, production read, backup,
+  restored-copy rehearsal, data migration, deletion or deployment was performed.
+  Next: approve currency scope, decimal scale and rounding; then run the command with a
+  read-only production credential and rehearse an additive migration on an approved copy.
+
+### 2026-09-23 — O01.1 Flutter CI-gate handoff
+
+- Owner/reviewer: **Codex (self-review)**. Planned → **Review**. All local O01
+  gates are implemented; one hosted GitLab pipeline result is the remaining
+  evidence before O01 can be Verified.
+- `.gitlab-ci.yml` now uses the pinned Flutter 3.44.1 image, an SDK-lockfile cache
+  and frontend-change rules. It runs dependency resolution, analyzer checks and
+  tests for shared, school and admin packages, then compiles both portals with
+  `APP_ENV=production` and an explicit public HTTPS API base URL. Shared is a
+  library and deliberately has no web-artifact job. CI artifact retention is one day.
+- The CI YAML parses. Local non-interactive verification reports shared **65**,
+  school **60** and admin **10** tests passing; both production web artifacts
+  compiled. Existing analyzer information/warnings are reported but not fatal;
+  analyzer errors fail the gate. No UI preview, deployment, production access,
+  migration, deletion or external service action was performed.
+
+### 2026-09-23 — O01.2 secret and migration CI-gate handoff
+
+- Added `backend/scripts/scan_tracked_secrets.py` and a dedicated `secret:scan`
+  lint job. It scans Git-tracked text only, emits a file/line/category without a
+  matched value and avoids documented templates, dynamic values and Firebase
+  client configuration that is intentionally public.
+- Added `backend:migration-rehearsal`, which uses the existing isolated runner to
+  exercise the notification-outbox upgrade and guarded downgrade in a disposable
+  schema. The scanner passes; its focused test plus the migration rehearsal are
+  **4 passed in 0.11s**. No UI preview, production credentials/data, migration,
+  deletion, deployment or external service action was performed.
+
+### 2026-09-24 — O01.3 contract and critical-journey CI-gate handoff
+
+- Added a small stable OpenAPI contract test for login/refresh/logout/session
+  operations and the privacy-limited session-list schema. `backend:critical-journeys`
+  now makes those checks and the existing identity, payment, private-download and
+  broadcast-isolation journeys a named release gate.
+- Local isolated evidence: contract/auth/session **12 passed in 3.81s**; payment
+  concurrency/idempotency **19 passed in 22.66s**; private downloads **14 passed in
+  18.04s**; broadcast isolation **10 passed in 12.37s**. No UI preview, production
+  access, data change, deployment or provider call was performed.
+
+### 2026-09-24 — O01.4 backend dependency-audit handoff
+
+- Added a pinned blocking `backend:dependency-audit` job. `pip-audit` receives
+  `requirements-dev.txt`, which includes production dependencies, and fails on a
+  finding or an incomplete dependency collection.
+- Remediated every backend advisory reported on Python 3.12: FastAPI 0.141.1 /
+  Starlette 1.7.0, pytest 9.0.3 / pytest-asyncio 1.4.0, python-multipart 0.0.31
+  and pypdf 6.16.1. Replaced unfixable Python-JOSE/ECDSA with PyJWT 2.15.0 while
+  preserving the app's `JWTError` boundary and FCM RS256 assertion flow. The audit
+  now reports **no known vulnerabilities**. No UI preview, production access,
+  deployment, migration, deletion or provider call was performed.
+
+### 2026-09-24 — O01.5 Pub dependency-audit handoff
+
+- Added `audit_pub_dependencies.py`, a fail-closed OSV batch-query scanner for
+  hosted packages in all three Flutter lockfiles, and `frontend:dependency-audit`
+  to CI. It reports only public package/version/advisory coordinates.
+- The scanner's two isolated unit tests pass and the OSV audit found no advisories
+  across **375** hosted package locks. O01 is now in Review pending hosted GitLab
+  evidence. No UI preview, production access, data change, deployment or external
+  provider action was performed.
+
+### 2026-09-26 — F02.3 session-management UI start
+
+- Owner: **Codex**. Scope: shared active-session screen, revoke confirmation,
+  logout-all API/client flow, recoverable failures and entry points in both portals
+  (including driver). Estimate: one implementation/verification session.
+- Affected: shared auth service/new session view and tests, admin settings,
+  school account menu/driver shell. Depends on technically verified F02.1/F02.2;
+  existing session API contract is unchanged. No schema or deployment changes.
+
+### 2026-09-26 — F02.3 session-management UI verification
+
+- Owner/reviewer: **Codex (self-review)**. **Verified technically**; parent F02
+  remains In progress. Shared active-session screen is reachable from admin
+  settings, school account menus and driver toolbar. It identifies the current
+  session, shows local lifecycle times, confirms revocation and supports global
+  sign-out. Failure never claims confirmed revocation; refresh clears stale rows;
+  pending actions disable duplicate taps. Logout-all retains credentials on server
+  failure and clears local state after confirmation, with an account-epoch guard.
+- Shared regression suite: **71 passed**, including five new widget scenarios and
+  one logout-all service regression. Coverage includes retry, failed revocation,
+  cancellation, current/global revocation, duplicate actions and 320px / 200% text.
+  Shared changed-file and admin entry-point analysis pass. School analysis has
+  only the existing driver `onReorder` deprecation. Real device/browser walkthrough,
+  cross-tab coordination, storage-failure recovery and independent acceptance remain.
+- No backend contract/schema change, deployment, provider action or production
+  access. Existing working changes retained; no subagents used.
+- Final portal regression results: **admin 10 passed; school 72 passed**. Shared
+  changed-file analyzer reports no issues; repository whitespace check passes.
+
+### 2026-09-26 — F02.4 / F03.2 reliability implementation start
+
+- Owner: **Codex**, no subagents. Scope: recoverable credential-store failures,
+  cross-tab refresh serialization and account-change invalidation, guarded cold
+  links/login return, all school-role route guards and missing-context recovery.
+  Estimate: one implementation/verification session. Affected: shared storage,
+  auth/API/bootstrap/routing, school route bindings, portal entry points and tests.
+- Dependencies: F02.1–F02.3/F03.1 technical contracts; server-side revocation and
+  authorization remain authoritative. No production data/schema/provider changes.
+
+### 2026-09-26 — F02.4 / F03.2 implementation evidence
+
+- Owner/reviewer: **Codex (self-review)**. F02 and F03 remain **In progress**.
+  Credential reads fail closed; incomplete token writes remain invalidated across
+  restart; logout attempts independent cleanup and explains unconfirmed remote
+  revocation. Browser refreshes are serialized through Web Locks and revision
+  changes discard the previous account's state before another authenticated call.
+- All school role pages now inherit a role guard and route-local repository binding.
+  Safe in-app deep links survive session restore/login; unsupported or external
+  return targets are discarded. Missing transient detail state shows a recovery
+  screen, and guardian selected-child data is cleared/fenced on an account change.
+- Focused shared auth/storage/navigation suite: **20 passed**. Focused school
+  route-recovery suite: **3 passed**; the prior full school suite was **72
+  passed**. Static analysis reported no source issues. Chrome cross-context and
+  physical browser/device walkthroughs remain open release evidence. No database,
+  production credential, deployment, provider or user data change was made.
+
+### 2026-09-26 — F06 / L05 full-track implementation start
+
+- Owner: **Codex**, no subagents. Scope: complete the money-field and mutation
+  inventory across fees, payroll and subscriptions; harden remaining fee/payment
+  paths; prepare an additive fixed-precision migration, reconciliation and
+  rollback rehearsal package. Affected: backend money models/services/schemas,
+  Alembic migrations, finance tests and payment-safety documentation.
+- Dependencies: F08 and the existing F06.1–F06.3 contracts. The currency scope,
+  decimal scale, rounding rule and adjustment/refund approval policy remain an
+  explicit product gate; no production data, conversion or provider integration
+  will be changed before that decision.
+
+### 2026-09-26 — F06 / L05 mutation-safety and migration-package evidence
+
+- Owner/reviewer: **Codex (self-review)**. F06 remains **In progress** pending
+  financial-policy and rollout acceptance. Subscription assignment and renewal
+  now accept durable UUID request identities, use transaction advisory locks and
+  lock their school/subscription state before a ledger write. Identical retries
+  return the existing resource; incompatible key reuse is a 409. Payslip
+  generation locks the staff profile before its unique-period check, and payment
+  marking locks the payslip row.
+- The precision audit now inventories fee, payroll and platform-subscription
+  money fields under one explicit proposed policy, while excluding percentage
+  discounts because they are rates rather than currency. The payment safety
+  document now includes the exact additive/shadow-column field map, immutable
+  ledger invariants, restored-copy rehearsal sequence and rollback boundary.
+- Focused isolated backend finance suite completed successfully; changed-file
+  Ruff, compilation and `git diff --check` pass. No production database read,
+  backup, restored-copy migration, data conversion, deletion, provider call or
+  deployment was performed. Required decision before the executable migration:
+  currency scope, decimal scale, rounding mode and refund/credit/waiver/payroll-
+  adjustment approval policy.
+
+### 2026-09-26 — F06 manual billing workflow implementation
+
+- Owner/reviewer: **Codex (self-review)**. F06 remains **In progress** for the
+  exact-money migration and adjustment ledger. The agreed operating model is
+  manual school billing: no Stripe, payment provider, webhook, hosted checkout
+  or automatic settlement. A Headmaster records a cash, bank-transfer or cheque
+  payment only after verification; an optional private PDF/image proof is
+  evidence, never automatic confirmation.
+- Added private `payment_proofs` storage references to fee payments, preserving
+  idempotent request comparison. Proof access is restricted to the recorder,
+  Headmaster or Super Admin. Added Headmaster-only, linked-guardian billing
+  contacts for each student, including primary payer, billing email/phone and
+  payer reference snapshots. New Alembic head: `fa1b2c3d4e5f`.
+- The Headmaster record-payment screen now supports partial manual payments,
+  method, reference, note and an optional screenshot/PDF attachment. From the
+  same student view, the Headmaster can select a linked guardian, save billing
+  details and designate the primary payer. It remains responsive at 320px and
+  140% text scaling, and keeps the retry identity when an outcome is uncertain.
+- Focused isolated backend suite: **22 passed**; migration graph, Ruff,
+  compilation and whitespace checks pass. Focused Flutter payment suite:
+  **4 passed**; changed-file analysis reports no issues. No production database,
+  provider, banking credential, data migration, refund, waiver, payroll
+  correction or deployment was performed.
+
+### 2026-09-27 — L05 fee-aging reconciliation view
+
+- Added a Headmaster/Super Admin-only, read-only fee-aging endpoint and the
+  Headmaster Fee Management dashboard display. Outstanding invoice balances are
+  calculated from the payment ledger and grouped into Current, 1–30, 31–60,
+  61–90 and 91+ days, with an explicit as-of date available for reconciliation.
+- A guardian-access regression showed that the general fee-view permission is
+  insufficient for school-wide aging totals; the endpoint therefore uses the
+  established school-admin guard. Focused isolated backend fee/report/invoice
+  suite: **7 passed**. Migration head and whitespace checks pass. Changed
+  frontend analysis has no errors; the pre-existing API-service informational
+  lint notices remain.
+- No finance balances, payments, invoice caches, payroll, production data or
+  provider configuration were changed. The immutable refund/credit/waiver and
+  payroll-correction ledger still requires the agreed money policy.
+
+### 2026-09-27 — L05 ledger/cache reconciliation status
+
+- Added a Headmaster/Super Admin-only reconciliation endpoint and dashboard
+  status. It checks every eligible invoice against its payment ledger, reports
+  bounded cached-total/status discrepancies and identifies ledger overpayments
+  for review. It is deliberately read-only: no invoice cache or payment is
+  repaired as a side effect.
+- Focused isolated fee-aging/reconciliation/payment/invoice suite: **14
+  passed**. Guardian access is explicitly denied for both school-wide aging and
+  reconciliation. Changed frontend analysis has no errors; the pre-existing
+  API-service informational lint notices remain.
+
+### 2026-09-27 — F06 Headmaster adjustment ledger foundation
+
+- Added immutable proposed financial adjustments for refunds, credits, waivers
+  and payroll corrections, plus a single immutable Headmaster/Super Admin
+  decision. Fee requests validate their invoice target and payroll corrections
+  validate their payslip target. The proposal stores the submitted positive
+  decimal as text with an explicit currency code, avoiding new Float arithmetic
+  before the financial policy is approved.
+- The adjustment routes are Headmaster/Super Admin-only. Focused isolated
+  adjustment/manual-billing suite: **5 passed**; migration head is
+  `fb2c3d4e5f6a`; Ruff, compilation and whitespace checks pass.
+- This is non-posting by design: approval does not alter invoice, payment or
+  payslip totals. The next implementation step after the currency/scale/
+  rounding decision is a reviewed posting policy and reconciliation rules.

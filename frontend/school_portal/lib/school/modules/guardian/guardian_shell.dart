@@ -14,6 +14,7 @@ import 'features/notifications/binding/notification_binding.dart';
 import 'features/notifications/view/notification_view.dart';
 import 'features/performance/binding/performance_binding.dart';
 import 'features/performance/view/performance_view.dart';
+import 'shared/controller/guardian_session_controller.dart';
 import 'package:shared/shared.dart';
 
 /// Guardian (parent) module shell — 5-tab nav: Home (Dashboard) / Academics
@@ -93,12 +94,34 @@ class _GuardianShellState extends State<GuardianShell> {
       const NotificationView(),
     ];
 
-    return PortalTabScaffold(
-      title: 'Guardian',
-      tabs: _tabs,
-      screens: tabs,
-      controller: _tabController,
-    );
+    final session = Get.find<GuardianSessionController>();
+    return Obx(() {
+      if (session.loading.value) {
+        return const AppScaffold(
+          body: AppStateView.loading(
+            title: 'Loading linked children',
+            message: 'Checking your current family access.',
+          ),
+        );
+      }
+      final error = session.error.value;
+      if (error != null) {
+        return AppScaffold(
+          body: AppStateView.error(
+            title: 'Family access is unavailable',
+            message: error,
+            actionLabel: 'Try again',
+            onAction: session.load,
+          ),
+        );
+      }
+      return PortalTabScaffold(
+        title: 'Guardian',
+        tabs: _tabs,
+        screens: tabs,
+        controller: _tabController,
+      );
+    });
   }
 
   @override

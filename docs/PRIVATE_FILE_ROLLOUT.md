@@ -1,6 +1,10 @@
 # Private attachment rollout — F04.2
 
-Status: implemented locally; deployment and existing-data audit outstanding.
+Status: implemented locally; F04.3 supplies a read-only existing-data inventory
+and migration/rollback plan, F04.4 adds an allowlisted new-upload policy, and
+F04.5 adds a fail-closed ClamAV pre-storage scan/readiness contract. Staging
+scanner evidence, production inventory and any approved data migration remain
+outstanding.
 No existing files or school records have been moved, rewritten or deleted.
 
 ## Access contract
@@ -75,4 +79,8 @@ approved migration; retain required records. No migration is executed here.
   external-link migration messaging. Automated tests are not release acceptance.
 
 See [verification](PHASE_1_VERIFICATION.md) and
-[progress tracker](PRODUCT_ENHANCEMENT_PLAN.md). F04 stays In progress.
+[progress tracker](PRODUCT_ENHANCEMENT_PLAN.md). See the
+[F04.3 inventory and rollout plan](PRIVATE_ASSET_INVENTORY.md) before any
+existing-data work and the [F04.4 new-upload policy](PRIVATE_ASSET_POLICY.md)
+and [F04.5 scanner rollout](PRIVATE_ASSET_SCANNING.md) before production rollout.
+F04 stays In progress.

@@ -29,14 +29,18 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
       appBar: AppBar(title: const Text('New Announcement')),
       body: Obx(() {
         if (controller.loadingSections.value) {
-          return const SkeletonPage(withHeader: false, body: SkeletonForm(fields: 4));
+          return const SkeletonPage(
+            withHeader: false,
+            body: SkeletonForm(fields: 4),
+          );
         }
         return ListView(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackMd,
-              AppSpacing.containerPaddingMobile,
-              AppSpacing.stackXl),
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackMd,
+            AppSpacing.containerPaddingMobile,
+            AppSpacing.stackXl,
+          ),
           children: [
             GlassInput(
               label: 'Title (optional)',
@@ -53,12 +57,24 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
 
             Text('Send to', style: AppTypography.titleMd),
             const SizedBox(height: AppSpacing.stackSm),
-            Obx(() => RadioGroup<AnnouncementAudience>(
-              groupValue: controller.audience.value,
-              onChanged: (value) {
-                if (value != null) controller.selectAudience(value);
-              },
-              child: Column(
+            Obx(() {
+              final sectionError = controller.sectionsError.value;
+              if (sectionError == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
+                child: _SectionLoadError(
+                  message: sectionError,
+                  onRetry: controller.loadSections,
+                ),
+              );
+            }),
+            Obx(
+              () => RadioGroup<AnnouncementAudience>(
+                groupValue: controller.audience.value,
+                onChanged: (value) {
+                  if (value != null) controller.selectAudience(value);
+                },
+                child: Column(
                   children: [
                     for (final a in AnnouncementAudience.values)
                       RadioListTile<AnnouncementAudience>(
@@ -69,7 +85,8 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
                       ),
                   ],
                 ),
-              )),
+              ),
+            ),
 
             // Section picker only matters when targeting one section.
             Obx(() {
@@ -81,8 +98,9 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
                   padding: const EdgeInsets.only(top: AppSpacing.stackSm),
                   child: Text(
                     'You have no sections on your timetable to send to.',
-                    style: AppTypography.bodyMd
-                        .copyWith(color: AppColors.error),
+                    style: AppTypography.bodyMd.copyWith(
+                      color: AppColors.error,
+                    ),
                   ),
                 );
               }
@@ -94,14 +112,20 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
                   value: controller.sectionId.value,
                   items: [
                     if (controller.sectionId.value != null &&
-                        !controller.sections.any((s) => s.sectionId == controller.sectionId.value))
+                        !controller.sections.any(
+                          (s) => s.sectionId == controller.sectionId.value,
+                        ))
                       DropdownMenuItem(
                         value: controller.sectionId.value,
-                        child: const Text('Original section (no longer listed)'),
+                        child: const Text(
+                          'Original section (no longer listed)',
+                        ),
                       ),
                     for (final s in controller.sections)
                       DropdownMenuItem(
-                          value: s.sectionId, child: Text(s.title)),
+                        value: s.sectionId,
+                        child: Text(s.title),
+                      ),
                   ],
                   onChanged: controller.selectSection,
                 ),
@@ -111,18 +135,20 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
 
             Text('Channel', style: AppTypography.titleMd),
             const SizedBox(height: AppSpacing.stackSm),
-            Obx(() => Wrap(
-                  spacing: AppSpacing.stackSm,
-                  runSpacing: AppSpacing.stackSm,
-                  children: [
-                    for (final c in AnnouncementChannel.values)
-                      _ChannelChip(
-                        channel: c,
-                        selected: controller.channel.value == c,
-                        onTap: () => controller.selectChannel(c),
-                      ),
-                  ],
-                )),
+            Obx(
+              () => Wrap(
+                spacing: AppSpacing.stackSm,
+                runSpacing: AppSpacing.stackSm,
+                children: [
+                  for (final c in AnnouncementChannel.values)
+                    _ChannelChip(
+                      channel: c,
+                      selected: controller.channel.value == c,
+                      onTap: () => controller.selectChannel(c),
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(height: AppSpacing.stackLg),
 
             Obx(() {
@@ -132,45 +158,79 @@ class _CreateAnnouncementViewState extends State<CreateAnnouncementView>
                 padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
                 child: Row(
                   children: [
-                    const Icon(AppIcons.errorOutlineRounded,
-                        size: 16, color: AppColors.error),
+                    const Icon(
+                      AppIcons.errorOutlineRounded,
+                      size: 16,
+                      color: AppColors.error,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text(err,
-                          style: AppTypography.bodyMd
-                              .copyWith(color: AppColors.error)),
+                      child: Text(
+                        err,
+                        style: AppTypography.bodyMd.copyWith(
+                          color: AppColors.error,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               );
             }),
 
-            Obx(() => PrimaryButton(
-                  label: controller.submitting.value
-                      ? 'Sending…'
-                      : 'Send Announcement',
-                  leadingIcon: AppIcons.campaignOutlined,
-                  trailingIcon: null,
-                  expanded: true,
-                  onPressed: controller.submitting.value
-                      ? null
-                      : () async {
-                          final ok = await controller.submit();
-                          if (!ok) return;
-                          final outcome = controller.outcome;
-                          Get.back<bool>(result: true);
-                          Get.snackbar(
-                            outcome.label,
-                            outcome.description,
-                            snackPosition: SnackPosition.BOTTOM,
-                          );
-                        },
-                )),
+            Obx(
+              () => PrimaryButton(
+                label: controller.submitting.value
+                    ? 'Sending…'
+                    : 'Send Announcement',
+                leadingIcon: AppIcons.campaignOutlined,
+                trailingIcon: null,
+                expanded: true,
+                onPressed: controller.submitting.value
+                    ? null
+                    : () async {
+                        final ok = await controller.submit();
+                        if (!ok) return;
+                        final outcome = controller.outcome;
+                        Get.back<bool>(result: true);
+                        Get.snackbar(
+                          outcome.label,
+                          outcome.description,
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+              ),
+            ),
           ],
         );
       }),
     );
   }
+}
+
+class _SectionLoadError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _SectionLoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: AppColors.errorContainer,
+      borderRadius: BorderRadius.circular(AppRadius.button),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      child: Row(
+        children: [
+          const Icon(AppIcons.errorOutlineRounded, color: AppColors.error),
+          const SizedBox(width: AppSpacing.stackSm),
+          Expanded(child: Text(message, style: AppTypography.bodyMd)),
+          TextButton(onPressed: onRetry, child: const Text('Try again')),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ChannelChip extends StatelessWidget {
@@ -191,7 +251,9 @@ class _ChannelChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: AppMotion.fast,
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.stackMd, vertical: 8),
+          horizontal: AppSpacing.stackMd,
+          vertical: 8,
+        ),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : AppColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(AppRadius.full),
@@ -202,17 +264,21 @@ class _ChannelChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(channel.icon,
-                size: 15,
-                color: selected ? AppColors.onPrimary : AppColors.primary),
+            Icon(
+              channel.icon,
+              size: 15,
+              color: selected ? AppColors.onPrimary : AppColors.primary,
+            ),
             const SizedBox(width: 5),
-            Text(channel.label,
-                style: AppTypography.labelMd.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: selected
-                      ? AppColors.onPrimary
-                      : AppColors.onSurfaceVariant,
-                )),
+            Text(
+              channel.label,
+              style: AppTypography.labelMd.copyWith(
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? AppColors.onPrimary
+                    : AppColors.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       ),

@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import (
@@ -13,10 +13,12 @@ from app.core.enums import (
     SystemRole,
 )
 from app.core.exceptions import bad_request, forbidden, not_found
-from app.models.academic import Section, StudentEnrollment, Subject, TimetableSlot
+from app.core.pagination import OffsetPage
+from app.models.academic import SchoolClass, Section, StudentEnrollment, Subject, TimetableSlot
 from app.models.attendance import AttendanceRecord
 from app.models.role import Role
-from app.modules.academic.access import enrolled_students
+from app.modules.academic.access import enrolled_students, role_ids, valid_sections
+from app.models.school import AcademicSession
 from app.models.user import User
 from app.modules.attendance import schemas
 
@@ -41,15 +43,41 @@ class AttendanceService:
     # ------------------------------ helpers ------------------------------ #
 
     async def _get_section(self, school_id: uuid.UUID, section_id: uuid.UUID) -> Section:
-        section = await self.db.get(Section, section_id)
-        if section is None or section.school_id != school_id:
+        section = await self.db.scalar(select(Section).where(
+            Section.id == section_id, Section.id.in_(valid_sections(school_id)),
+        ))
+        if section is None:
             raise not_found("Section not found in this school")
         return section
 
-    async def _validate_student(self, school_id: uuid.UUID, student_id: uuid.UUID) -> None:
+    async def _get_enrollment_section(
+        self, school_id: uuid.UUID, section_id: uuid.UUID
+    ) -> tuple[Section, uuid.UUID | None]:
+        """Return a usable section and the session of its parent class.
+
+        A section does not store a session itself.  Resolving it through its
+        class keeps an enrollment from being attached to an unrelated local
+        academic session.  ``valid_sections`` also rejects malformed legacy
+        section/class ownership before an enrollment can be created.
+        """
+        row = (await self.db.execute(
+            select(Section, SchoolClass.session_id)
+            .join(SchoolClass, SchoolClass.id == Section.class_id)
+            .where(
+                Section.id == section_id,
+                Section.id.in_(valid_sections(school_id)),
+            )
+        )).one_or_none()
+        if row is None:
+            raise not_found("Section not found in this school")
+        return row
+
+    async def _validate_student(
+        self, school_id: uuid.UUID, student_id: uuid.UUID, *, active: bool = True,
+    ) -> None:
         user = await self.db.scalar(
             select(User)
-            .where(User.id == student_id, User.school_id == school_id)
+            .where(User.id == student_id, User.school_id == school_id, (User.is_active.is_(True) if active else True))
             .join(User.roles)
             .where(Role.code == SystemRole.STUDENT.value)
         )
@@ -61,8 +89,18 @@ class AttendanceService:
     async def enroll(
         self, school_id: uuid.UUID, section_id: uuid.UUID, data: schemas.EnrollIn
     ) -> StudentEnrollment:
-        await self._get_section(school_id, section_id)
+        _, class_session_id = await self._get_enrollment_section(school_id, section_id)
         await self._validate_student(school_id, data.student_id)
+        await self._validate_session(school_id, data.session_id)
+
+        # A class scoped to a school session carries that scope into every
+        # enrollment.  Omitting it is convenient for admission forms, while
+        # supplying another valid local session must never silently detach a
+        # student from the class's academic year.
+        if class_session_id is not None and data.session_id not in (None, class_session_id):
+            raise bad_request("Enrollment session must match the section's class session")
+        enrollment_session_id = data.session_id or class_session_id
+
         existing = await self.db.scalar(
             select(StudentEnrollment).where(
                 StudentEnrollment.section_id == section_id,
@@ -70,9 +108,20 @@ class AttendanceService:
             )
         )
         if existing is not None:
+            if existing.school_id != school_id:
+                raise bad_request("Enrollment ownership is inconsistent")
+            await self._validate_session(school_id, existing.session_id)
+
+            # Repeating an admission request must be a no-op.  In particular,
+            # do not let a retry with a different session rewrite an active
+            # enrollment and change the student's historical placement.
+            if existing.status == EnrollmentStatus.ACTIVE.value:
+                if enrollment_session_id is not None and existing.session_id != enrollment_session_id:
+                    raise bad_request("Student already has an active enrollment with a different session")
+                return existing
+
             existing.status = EnrollmentStatus.ACTIVE.value
-            if data.session_id is not None:
-                existing.session_id = data.session_id
+            existing.session_id = enrollment_session_id
             # Backfill a roll number for enrollments created before the field
             # existed (or re-activated ones that never got one).
             if existing.roll_number is None:
@@ -83,13 +132,25 @@ class AttendanceService:
             school_id=school_id,
             section_id=section_id,
             student_id=data.student_id,
-            session_id=data.session_id,
+            session_id=enrollment_session_id,
             status=EnrollmentStatus.ACTIVE.value,
             roll_number=await self._next_roll_number(section_id),
         )
         self.db.add(enrollment)
         await self.db.flush()
         return enrollment
+
+    async def _validate_session(self, school_id, session_id):
+        if session_id is not None and await self.db.scalar(select(AcademicSession.id).where(
+            AcademicSession.id == session_id, AcademicSession.school_id == school_id,
+        )) is None:
+            raise not_found("Academic session not found in this school")
+
+    async def _validate_subject(self, school_id, subject_id):
+        if subject_id is not None and await self.db.scalar(select(Subject.id).where(
+            Subject.id == subject_id, Subject.school_id == school_id,
+        )) is None:
+            raise not_found("Subject not found in this school")
 
     async def _next_roll_number(self, section_id: uuid.UUID) -> int:
         """The next sequential roll number for a section: max existing + 1,
@@ -118,6 +179,8 @@ class AttendanceService:
                 StudentEnrollment.section_id == section_id,
                 StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
                 StudentEnrollment.school_id == school_id,
+                or_(StudentEnrollment.session_id.is_(None), StudentEnrollment.session_id.in_(
+                    select(AcademicSession.id).where(AcademicSession.school_id == school_id))),
                 User.id.in_(enrolled_students(school_id, [section_id])),
             )
             .order_by(StudentEnrollment.roll_number.nulls_last(), User.full_name)
@@ -146,19 +209,21 @@ class AttendanceService:
                 StudentEnrollment.student_id == student_id,
             )
         )
-        if enrollment is None:
+        if enrollment is None or enrollment.school_id != school_id:
             raise not_found("Enrollment not found")
+        await self._validate_student(school_id, student_id, active=False)
+        await self._validate_session(school_id, enrollment.session_id)
         await self.db.delete(enrollment)
         await self.db.flush()
 
-    async def _enrolled_student_ids(self, section_id: uuid.UUID) -> set[uuid.UUID]:
-        result = await self.db.execute(
-            select(StudentEnrollment.student_id).where(
-                StudentEnrollment.section_id == section_id,
-                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+    async def _enrolled_student_ids(self, school_id, section_id) -> set[uuid.UUID]:
+        return set((await self.db.scalars(
+            enrolled_students(school_id, [section_id]).where(
+                StudentEnrollment.student_id.in_(role_ids(school_id, SystemRole.STUDENT.value, active=True)),
+                or_(StudentEnrollment.session_id.is_(None), StudentEnrollment.session_id.in_(
+                    select(AcademicSession.id).where(AcademicSession.school_id == school_id))),
             )
-        )
-        return set(result.scalars().all())
+        )).all())
 
     # -------------------------- marking authority ------------------------ #
 
@@ -207,6 +272,7 @@ class AttendanceService:
 
         teaches = await self.db.scalar(
             select(TimetableSlot.id).where(
+                TimetableSlot.school_id == school_id,
                 TimetableSlot.section_id == section.id,
                 TimetableSlot.subject_id == data.subject_id,
                 TimetableSlot.teacher_id == marked_by,
@@ -223,8 +289,14 @@ class AttendanceService:
         self, school_id: uuid.UUID, data: schemas.AttendanceMarkRequest, marked_by: uuid.UUID
     ) -> list[AttendanceRecord]:
         section = await self._get_section(school_id, data.section_id)
+        await self._validate_subject(school_id, data.subject_id)
+        if data.timetable_slot_id is not None:
+            slot = await self.db.get(TimetableSlot, data.timetable_slot_id)
+            if (data.is_daily or slot is None or slot.school_id != school_id
+                    or slot.section_id != section.id or slot.subject_id != data.subject_id):
+                raise bad_request("Timetable slot does not match this section and subject")
         await self._authorize_marking(school_id, section, data, marked_by)
-        enrolled = await self._enrolled_student_ids(data.section_id)
+        enrolled = await self._enrolled_student_ids(school_id, data.section_id)
 
         entry_ids = [e.student_id for e in data.entries]
         not_enrolled = [str(sid) for sid in entry_ids if sid not in enrolled]
@@ -247,7 +319,11 @@ class AttendanceService:
             if data.is_daily
             else AttendanceRecord.subject_id == data.subject_id
         )
-        existing = {r.student_id: r for r in (await self.db.execute(stmt)).scalars().all()}
+        # Uniqueness spans schools/sections. Reject an inconsistent collision
+        # before any mutation rather than overwriting it or surfacing a DB error.
+        existing = {r.student_id: r for r in (await self.db.execute(stmt.with_for_update())).scalars().all()}
+        if any(r.school_id != school_id or r.section_id != data.section_id for r in existing.values()):
+            raise bad_request("Attendance belongs to a different school or section")
 
         records: list[AttendanceRecord] = []
         newly_notifiable: list[tuple[uuid.UUID, str]] = []
@@ -335,9 +411,29 @@ class AttendanceService:
                     created_by=marked_by,
                 )
             except Exception:
-                logger.exception(
-                    "Guardian attendance alert failed for student %s", student_id
-                )
+                # The delivery error can carry provider content/recipient data;
+                # the notification itself already records its durable outcome.
+                logger.warning("Guardian attendance alert enqueue failed")
+
+    def visible_records(self, school_id):
+        # Historical attendance survives withdrawal; only structurally valid
+        # same-school references are returned, after the caller relationship gate.
+        valid_slot = select(TimetableSlot.id).where(
+            TimetableSlot.school_id == school_id,
+            TimetableSlot.section_id == AttendanceRecord.section_id,
+            TimetableSlot.subject_id == AttendanceRecord.subject_id,
+        )
+        return select(AttendanceRecord).where(
+            AttendanceRecord.school_id == school_id,
+            AttendanceRecord.section_id.in_(valid_sections(school_id)),
+            AttendanceRecord.student_id.in_(role_ids(school_id, SystemRole.STUDENT.value)),
+            or_(AttendanceRecord.subject_id.is_(None), AttendanceRecord.subject_id.in_(
+                select(Subject.id).where(Subject.school_id == school_id))),
+            or_(AttendanceRecord.timetable_slot_id.is_(None), AttendanceRecord.timetable_slot_id.in_(valid_slot)),
+            or_(AttendanceRecord.marked_by.is_(None), AttendanceRecord.marked_by.in_(
+                select(User.id).where(or_(User.school_id == school_id,
+                    User.roles.any(Role.code == SystemRole.SUPER_ADMIN.value))))),
+        )
 
     async def list_for_section_date(
         self,
@@ -353,7 +449,8 @@ class AttendanceService:
         subject's period, or ``daily_only`` for just the class-teacher register.
         """
         await self._get_section(school_id, section_id)
-        stmt = select(AttendanceRecord).where(
+        await self._validate_subject(school_id, subject_id)
+        stmt = self.visible_records(school_id).where(
             AttendanceRecord.section_id == section_id,
             AttendanceRecord.attendance_date == on_date,
         )
@@ -369,16 +466,23 @@ class AttendanceService:
         student_id: uuid.UUID,
         date_from: date | None = None,
         date_to: date | None = None,
+        page: OffsetPage | None = None,
     ) -> list[AttendanceRecord]:
-        stmt = select(AttendanceRecord).where(
-            AttendanceRecord.school_id == school_id,
+        if date_from is not None and date_to is not None and date_from > date_to:
+            raise bad_request("date_from must not be after date_to")
+        stmt = self.visible_records(school_id).where(
             AttendanceRecord.student_id == student_id,
         )
         if date_from is not None:
             stmt = stmt.where(AttendanceRecord.attendance_date >= date_from)
         if date_to is not None:
             stmt = stmt.where(AttendanceRecord.attendance_date <= date_to)
-        stmt = stmt.order_by(AttendanceRecord.attendance_date)
+        # Scope and date constraints must precede the page. Otherwise an
+        # invisible legacy/foreign row could consume a slot and hide a valid
+        # attendance record from the caller.
+        stmt = stmt.order_by(AttendanceRecord.attendance_date, AttendanceRecord.id)
+        if page is not None:
+            stmt = page.apply(stmt)
         return list((await self.db.execute(stmt)).scalars().all())
 
     async def summary(

@@ -78,8 +78,11 @@ class PortalTopBar extends StatelessWidget {
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(AppIcons.notificationsNoneRounded,
-                    color: AppColors.onSurface, size: 24),
+                const Icon(
+                  AppIcons.notificationsNoneRounded,
+                  color: AppColors.onSurface,
+                  size: 24,
+                ),
                 if (hasUnread)
                   Positioned(
                     top: -1,
@@ -101,8 +104,11 @@ class PortalTopBar extends StatelessWidget {
             splashRadius: 22,
             visualDensity: VisualDensity.compact,
             tooltip: 'Log out',
-            icon: const Icon(AppIcons.logoutRounded,
-                color: AppColors.onSurface, size: 22),
+            icon: const Icon(
+              AppIcons.logoutRounded,
+              color: AppColors.onSurface,
+              size: 22,
+            ),
           ),
         ],
       ),
@@ -116,7 +122,9 @@ class PortalTopBar extends StatelessWidget {
       context: context,
       backgroundColor: AppColors.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
       ),
       builder: (sheetContext) => SafeArea(
         child: Column(
@@ -133,7 +141,23 @@ class PortalTopBar extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.stackSm),
             ListTile(
-              leading: const Icon(AppIcons.logoutRounded, color: AppColors.error),
+              leading: const Icon(Icons.devices_outlined),
+              title: const Text('Active sessions'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                Get.to(
+                  () => SessionsView(
+                    auth: Get.find<AuthService>(),
+                    onSignedOut: () => Get.offAllNamed(AuthRoutes.login),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                AppIcons.logoutRounded,
+                color: AppColors.error,
+              ),
               title: const Text('Log out'),
               onTap: () {
                 Navigator.of(sheetContext).pop();

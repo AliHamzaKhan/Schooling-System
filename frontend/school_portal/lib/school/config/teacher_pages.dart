@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'role_page_bindings.dart';
 import 'package:shared/shared.dart';
 
 import '../modules/teacher/features/attendance/binding/attendance_binding.dart';
@@ -27,6 +28,8 @@ import '../modules/teacher/features/quiz/view/quiz_performance_view.dart';
 import '../modules/teacher/features/quiz/view/quizzes_view.dart';
 import '../modules/teacher/teacher_shell.dart';
 import 'teacher_routes.dart';
+import '../modules/teacher/features/classes/models/my_class.dart';
+import '../modules/teacher/features/assignments/models/assignment.dart';
 import '../modules/headmaster/features/student_report/binding/student_report_binding.dart';
 import '../modules/headmaster/features/student_report/view/section_students_view.dart';
 import '../modules/headmaster/features/student_report/view/student_report_view.dart';
@@ -35,17 +38,15 @@ import '../modules/headmaster/features/student_report/view/student_report_view.d
 class TeacherPages {
   TeacherPages._();
 
-  static final pages = <GetPage>[
+  static final _pages = <GetPage>[
     GetPage(
       name: TeacherRoutes.sectionStudents,
       page: () => const SectionStudentsView(studentReportRoute: TeacherRoutes.studentReport),
-      middlewares: [RoleRouteGuard({'teacher'})],
     ),
     GetPage(
       name: TeacherRoutes.studentReport,
       page: () => const StudentReportView(readOnly: true),
       binding: StudentReportBinding(readOnly: true),
-      middlewares: [RoleRouteGuard({'teacher'})],
     ),
     GetPage(name: TeacherRoutes.shell, page: () => const TeacherShell()),
     GetPage(
@@ -96,7 +97,7 @@ class TeacherPages {
     ),
     GetPage(
       name: TeacherRoutes.classDetail,
-      page: () => const ClassDetailView(),
+      page: () => Get.arguments is MyClass ? const ClassDetailView() : const RouteContextMissingView(returnRoute: TeacherRoutes.shell),
     ),
     GetPage(
       name: TeacherRoutes.quizzes,
@@ -121,8 +122,12 @@ class TeacherPages {
     ),
     GetPage(
       name: TeacherRoutes.grading,
-      page: () => const GradingView(),
+      page: () => Get.arguments is Assignment ? const GradingView() : const RouteContextMissingView(returnRoute: TeacherRoutes.shell),
       binding: GradingBinding(),
     ),
   ];
+  static List<GetPage> get pages => _pages.map((page) => page.copy(
+    middlewares: [...?page.middlewares, RoleRouteGuard({'teacher'})],
+    bindings: [TeacherRouteBinding(), ...page.bindings],
+  )).toList();
 }

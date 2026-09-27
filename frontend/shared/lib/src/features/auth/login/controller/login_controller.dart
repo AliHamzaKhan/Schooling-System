@@ -5,6 +5,7 @@ import '../../../../services/auth_service.dart';
 import '../../../../services/data_store_service.dart';
 import '../../auth_config.dart';
 import '../../auth_routes.dart';
+import '../../session_navigation.dart';
 import '../../models/institution.dart';
 
 /// Drives the shared login screen: institution selection, credentials, the
@@ -27,6 +28,7 @@ class LoginController extends GetxController {
   final rememberMe = false.obs;
   final submitting = false.obs;
   final error = RxnString();
+  String? _returnTo;
 
   bool get requireInstitution => AuthConfig.requireInstitution;
 
@@ -40,10 +42,12 @@ class LoginController extends GetxController {
     super.onInit();
     if (requireInstitution) _loadInstitutions();
     _restoreRemembered();
+    _returnTo = Get.parameters['returnTo'];
   }
 
   /// Prefills saved credentials so a returning user can sign straight in.
   Future<void> _restoreRemembered() async {
+    try {
     if (!_store.rememberMe) return;
     rememberMe.value = true;
     final savedEmail = _store.rememberedEmail;
@@ -51,6 +55,9 @@ class LoginController extends GetxController {
     final savedPassword = await _store.readRememberedPassword();
     if (savedPassword != null && savedPassword.isNotEmpty) {
       password.value = savedPassword;
+    }
+    } catch (_) {
+      error.value = 'Saved sign-in details are unavailable. You can enter them again.';
     }
   }
 
@@ -72,13 +79,18 @@ class LoginController extends GetxController {
     rememberMe.value = v ?? false;
     // Forget straight away when unticked — waiting until the next successful
     // login would leave the old credentials on disk in the meantime.
-    if (!rememberMe.value) _store.clearRememberedCredentials();
+    if (!rememberMe.value) {
+      _store.clearRememberedCredentials().catchError((Object _) {
+        error.value = 'Saved details could not be removed. Please retry.';
+      });
+    }
   }
   void selectInstitution(Institution? i) => selectedInstitution.value = i;
 
   void goToForgotPassword() => Get.toNamed(AuthRoutes.forgotPassword);
 
   Future<void> submit() async {
+    if (submitting.value) return;
     error.value = null;
     final enteredEmail = email.value.trim();
     final enteredPassword = password.value.trim();
@@ -99,17 +111,19 @@ class LoginController extends GetxController {
       if (res.success) {
         // Only persist once the backend has confirmed the pair is valid, so we
         // never store a wrong password.
+        try {
         if (rememberMe.value) {
           await _store.saveRememberedCredentials(
               email: enteredEmail, password: enteredPassword);
         } else {
           await _store.clearRememberedCredentials();
         }
+        } catch (_) {
+          _auth.sessionNotice.value = 'Signed in, but remember-me preferences could not be saved.';
+        }
         // Route by role when a resolver is configured; otherwise fall back to
         // the single configured home route.
-        final resolved =
-            AuthConfig.homeRouteResolver?.call(_auth.roleCodes) ??
-                AuthConfig.homeRoute;
+        final resolved = SessionNavigation.destination(_auth.roleCodes, _returnTo);
         Get.offAllNamed(resolved);
       } else {
         error.value = res.error ?? 'Login failed. Check your credentials.';

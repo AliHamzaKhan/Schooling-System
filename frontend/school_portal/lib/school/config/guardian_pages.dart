@@ -26,7 +26,7 @@ import 'guardian_routes.dart';
 class GuardianPages {
   GuardianPages._();
 
-  static final pages = <GetPage>[
+  static final _pages = <GetPage>[
     GetPage(
       name: GuardianRoutes.shell,
       page: () => const GuardianShell(),
@@ -81,4 +81,8 @@ class GuardianPages {
       binding: GuardianTransportBinding(),
     ),
   ];
+  static List<GetPage> get pages => _pages.map((page) => page.copy(
+    middlewares: [...?page.middlewares, RoleRouteGuard({'guardian'})],
+    bindings: [GuardianSessionBinding(), ...page.bindings],
+  )).toList();
 }

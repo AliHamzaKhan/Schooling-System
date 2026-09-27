@@ -193,6 +193,19 @@ async def readiness() -> JSONResponse:
     else:
         checks["redis"] = "not_configured"
 
+    from app.modules.uploads.scanner import ScannerUnavailable, get_upload_scanner
+
+    scanner = get_upload_scanner()
+    if settings.UPLOAD_SCANNER_BACKEND.lower() == "disabled":
+        checks["upload_scanner"] = "disabled"
+    else:
+        try:
+            checks["upload_scanner"] = "ok" if await scanner.ready() else "error: not_ready"
+            ok = ok and checks["upload_scanner"] == "ok"
+        except ScannerUnavailable:
+            checks["upload_scanner"] = "error: unavailable"
+            ok = False
+
     return JSONResponse(
         status_code=200 if ok else 503,
         content={"status": "ready" if ok else "not_ready", "checks": checks},

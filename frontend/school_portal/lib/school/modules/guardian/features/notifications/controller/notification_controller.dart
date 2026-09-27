@@ -8,10 +8,11 @@ import '../models/notification_item.dart';
 class NotificationController extends GetxController {
   final GuardianRepository _repo;
   NotificationController({GuardianRepository? repo})
-      : _repo = repo ?? Get.find<GuardianRepository>();
+    : _repo = repo ?? Get.find<GuardianRepository>();
 
   final loading = true.obs;
   final _all = <NotificationItem>[].obs;
+  final error = RxnString();
 
   /// 0 = All, 1 = Unread.
   final filterIndex = 0.obs;
@@ -33,8 +34,14 @@ class NotificationController extends GetxController {
 
   Future<void> load() async {
     loading.value = true;
+    error.value = null;
+    _all.clear();
     final res = await _repo.loadNotifications();
-    if (res.success && res.data != null) _all.assignAll(res.data!);
+    if (res.success && res.data != null) {
+      _all.assignAll(res.data!);
+    } else {
+      error.value = res.error ?? 'Could not load notifications.';
+    }
     loading.value = false;
   }
 

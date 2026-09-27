@@ -1,4 +1,4 @@
-# Session and teacher-route rollout — F02.1 / F03.1
+# Session and route rollout — F02.1–F02.4 / F03.1–F03.2
 
 Updated: 2026-09-15. Technical scope only; F02/F03 and Phase 1 remain open.
 
@@ -33,13 +33,18 @@ Updated: 2026-09-15. Technical scope only; F02/F03 and Phase 1 remain open.
    paths in staging. Do not roll back to stateless checks as a security workaround.
 4. Measure the per-request indexed session lookup under representative load. Do not
    add a revocation cache without defining its stale-authorization window.
-5. Test actual browser tabs and native secure storage. Refresh coalescing is within
-   one API client instance; cross-tab coordination and response-loss reconciliation
-   are not implemented. Strict refresh replay detection can require a new login.
-6. Device-token cleanup, session-list/logout-all UI, account-specific controller
-   cache disposal, storage failure recovery, MFA and full recovery-flow review
-   remain open. The unused legacy register/deactivate client contracts are not
-   evidence of implemented backend features.
+5. Browser tabs serialize refresh-token rotation with the Web Locks API. A tab
+   that receives a stale 401 rereads credentials after waiting and treats an
+   already-rotated access token as recovered. Login/logout writes a revision
+   marker; another tab clears the previous account's route and controller state
+   before it can make a further authenticated request. A browser without Web
+   Locks treats the operation as recoverable rather than attempting concurrent
+   refreshes.
+6. A secure-store failure never authorizes a request. A session write uses a
+   persisted invalidation marker until both tokens are saved; logout blocks local
+   use first, attempts each delete independently and reports server cleanup as
+   unconfirmed while offline. A native secure-storage walkthrough, device-token
+   cleanup, MFA and full recovery-flow review remain open.
 
 ## Teacher read-only routes
 
@@ -61,3 +66,27 @@ belongs to the remaining F01/F03 work.
 See [verification results](PHASE_1_VERIFICATION.md) and the
 [progress tracker](PRODUCT_ENHANCEMENT_PLAN.md). No existing database rows or files
 were migrated, and no production deployment or manual device walkthrough was done.
+
+## F02.3 session controls (2026-09-26)
+
+Admin settings, the school account menu and the driver toolbar open the shared
+Active sessions screen. Current-session and global revocation return to login
+only after server confirmation; other-session revocation reloads the live list.
+The screen exposes lifecycle times only, clears stale rows on failed refresh and
+supports retry without claiming a failed request succeeded. Global logout keeps
+local credentials on failure. Five widget checks cover failures, confirmation,
+duplicate actions and small-screen large text; real browser/device acceptance
+remains open. Local times are explicitly labelled; device names are not inferred.
+
+## F02.4 / F03.2 reliability follow-up (2026-09-26)
+
+Every school role route now carries a role guard and registers its module
+repository before feature bindings run, so an authorized direct URL does not
+depend on visiting its shell first. Cold pages that previously required a
+transient object show a safe return-to-list state instead of crashing. A guarded
+target is preserved through session restoration and login only when it is a
+known in-app route; external, auth and unknown paths are rejected. Guardian
+child state clears and fences in-flight loads on account changes. Focused tests
+cover storage failures, authorization guards, cold bindings and login-return
+validation. Chrome cross-context and physical device walkthroughs remain release
+evidence, not simulated success.

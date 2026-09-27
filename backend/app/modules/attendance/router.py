@@ -12,9 +12,9 @@ from app.core.deps import (
     CurrentUser,
     DbDep,
     require_school_permission,
-    verify_student_access,
 )
 from app.core.enums import Module, PermissionAction as PA
+from app.core.pagination import OffsetPage
 from app.modules.attendance import schemas
 from app.modules.attendance.service import AttendanceService
 from app.modules.academic.access import AcademicAccess
@@ -94,11 +94,13 @@ async def mark_attendance(
 async def list_section_attendance(
     school_id: uuid.UUID,
     db: DbDep,
+    current_user: CurrentUser,
     section_id: uuid.UUID = Query(...),
     attendance_date: date = Query(...),
     subject_id: uuid.UUID | None = Query(default=None),
     daily_only: bool = Query(default=False),
 ) -> list[schemas.AttendanceRecordOut]:
+    await AcademicAccess(db, school_id, current_user, module=Module.ATTENDANCE).section(section_id)
     return await AttendanceService(db).list_for_section_date(
         school_id, section_id, attendance_date, subject_id, daily_only
     )
@@ -112,10 +114,12 @@ async def list_section_attendance(
 async def attendance_summary(
     school_id: uuid.UUID,
     db: DbDep,
+    current_user: CurrentUser,
     section_id: uuid.UUID = Query(...),
     attendance_date: date = Query(...),
     subject_id: uuid.UUID | None = Query(default=None),
 ) -> schemas.AttendanceSummary:
+    await AcademicAccess(db, school_id, current_user, module=Module.ATTENDANCE).section(section_id)
     return await AttendanceService(db).summary(
         school_id, section_id, attendance_date, subject_id
     )
@@ -124,13 +128,18 @@ async def attendance_summary(
 @router.get(
     "/students/{student_id}/attendance",
     response_model=list[schemas.AttendanceRecordOut],
-    dependencies=[_att_view, Depends(verify_student_access)],
+    dependencies=[_att_view],
 )
 async def student_attendance(
     school_id: uuid.UUID,
     student_id: uuid.UUID,
     db: DbDep,
+    current_user: CurrentUser,
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),
+    page: OffsetPage = Depends(),
 ) -> list[schemas.AttendanceRecordOut]:
-    return await AttendanceService(db).list_for_student(school_id, student_id, date_from, date_to)
+    await AcademicAccess(db, school_id, current_user, module=Module.ATTENDANCE).student(student_id)
+    return await AttendanceService(db).list_for_student(
+        school_id, student_id, date_from, date_to, page
+    )

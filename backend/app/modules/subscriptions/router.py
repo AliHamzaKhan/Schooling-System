@@ -5,7 +5,7 @@ per-school status route is available to any member of that school (it feeds the
 Headmaster's subscription-expiry alert)."""
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Header, status
 
 from app.core.deps import DbDep, SuperAdmin, require_school_member
 from app.modules.subscriptions import schemas
@@ -68,9 +68,12 @@ async def archive_plan(
     status_code=status.HTTP_201_CREATED,
 )
 async def assign_subscription(
-    data: schemas.SubscriptionCreate, db: DbDep, _: SuperAdmin
+    data: schemas.SubscriptionCreate,
+    db: DbDep,
+    _: SuperAdmin,
+    idempotency_key: uuid.UUID | None = Header(default=None, alias="Idempotency-Key"),
 ) -> schemas.SubscriptionOut:
-    return await SubscriptionService(db).assign(data)
+    return await SubscriptionService(db).assign(data, idempotency_key=idempotency_key)
 
 
 @router.get("/subscriptions", response_model=list[schemas.SubscriptionOut])
@@ -87,8 +90,11 @@ async def renew_subscription(
     data: schemas.SubscriptionRenew,
     db: DbDep,
     _: SuperAdmin,
+    idempotency_key: uuid.UUID | None = Header(default=None, alias="Idempotency-Key"),
 ) -> schemas.SubscriptionOut:
-    return await SubscriptionService(db).renew(subscription_id, data)
+    return await SubscriptionService(db).renew(
+        subscription_id, data, idempotency_key=idempotency_key
+    )
 
 
 @router.post("/subscriptions/{subscription_id}/cancel", response_model=schemas.SubscriptionOut)

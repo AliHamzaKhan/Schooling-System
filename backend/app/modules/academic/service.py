@@ -28,7 +28,13 @@ from app.models.examination import Exam, ExamResult, ExamSubject, Mark
 from app.models.school import AcademicSession, School
 from app.models.user import User
 from app.modules.academic import schemas
-from app.modules.academic.access import enrolled_students, role_ids, taught_sections, valid_sections
+from app.modules.academic.access import (
+    enrolled_students,
+    role_ids,
+    taught_sections,
+    valid_classes,
+    valid_sections,
+)
 
 
 class AcademicService:
@@ -45,6 +51,19 @@ class AcademicService:
         obj = await self.db.get(model, obj_id)
         if obj is None or obj.school_id != school_id:
             raise not_found(f"{label} not found in this school")
+        return obj
+
+    async def _get_valid_class(self, school_id: uuid.UUID, class_id: uuid.UUID) -> SchoolClass:
+        """Return a class only when its optional session belongs to this school.
+
+        A class with a malformed foreign-session reference must never become a
+        usable setup target merely because its ``school_id`` happens to match.
+        """
+        obj = await self._get_scoped(SchoolClass, school_id, class_id, "Class")
+        if obj.session_id is not None:
+            await self._get_scoped(
+                AcademicSession, school_id, obj.session_id, "Academic session"
+            )
         return obj
 
     async def _validate_teacher(self, school_id: uuid.UUID, teacher_id: uuid.UUID | None) -> None:
@@ -77,10 +96,15 @@ class AcademicService:
         await self.db.flush()
         return obj
 
-    async def list_classes(self, school_id: uuid.UUID) -> list[SchoolClass]:
-        result = await self.db.execute(
-            select(SchoolClass).where(SchoolClass.school_id == school_id).order_by(SchoolClass.level, SchoolClass.name)
-        )
+    async def list_classes(
+        self, school_id: uuid.UUID, session_id: uuid.UUID | None = None
+    ) -> list[SchoolClass]:
+        await self._ensure_school(school_id)
+        stmt = select(SchoolClass).where(SchoolClass.id.in_(valid_classes(school_id)))
+        if session_id is not None:
+            await self._get_scoped(AcademicSession, school_id, session_id, "Academic session")
+            stmt = stmt.where(SchoolClass.session_id == session_id)
+        result = await self.db.execute(stmt.order_by(SchoolClass.level, SchoolClass.name))
         return list(result.scalars().all())
 
     async def student_roster(self, school_id: uuid.UUID, *, teacher_id: uuid.UUID | None = None) -> list[schemas.StudentRosterOut]:
@@ -137,17 +161,44 @@ class AcademicService:
     async def update_class(
         self, school_id: uuid.UUID, class_id: uuid.UUID, data: schemas.ClassUpdate
     ) -> SchoolClass:
-        obj = await self._get_scoped(SchoolClass, school_id, class_id, "Class")
+        obj = await self._get_valid_class(school_id, class_id)
         payload = data.model_dump(exclude_unset=True)
         if "session_id" in payload and payload["session_id"] is not None:
             await self._get_scoped(AcademicSession, school_id, payload["session_id"], "Academic session")
+        if "session_id" in payload and payload["session_id"] != obj.session_id:
+            has_enrollments = await self.db.scalar(
+                select(StudentEnrollment.id)
+                .join(Section, Section.id == StudentEnrollment.section_id)
+                .where(
+                    StudentEnrollment.school_id == school_id,
+                    Section.school_id == school_id,
+                    Section.class_id == obj.id,
+                )
+                .limit(1)
+            )
+            if has_enrollments is not None:
+                raise bad_request(
+                    "Cannot change a class's academic session after students have been enrolled"
+                )
+        name = payload.get("name", obj.name)
+        session_id = payload.get("session_id", obj.session_id)
+        clash = await self.db.scalar(
+            select(SchoolClass).where(
+                SchoolClass.school_id == school_id,
+                SchoolClass.session_id == session_id,
+                SchoolClass.name == name,
+                SchoolClass.id != obj.id,
+            )
+        )
+        if clash is not None:
+            raise bad_request(f"Class '{name}' already exists for this session")
         for field, value in payload.items():
             setattr(obj, field, value)
         await self.db.flush()
         return obj
 
     async def delete_class(self, school_id: uuid.UUID, class_id: uuid.UUID) -> None:
-        obj = await self._get_scoped(SchoolClass, school_id, class_id, "Class")
+        obj = await self._get_valid_class(school_id, class_id)
         await self.db.delete(obj)
         await self.db.flush()
 
@@ -156,7 +207,7 @@ class AcademicService:
     async def create_section(
         self, school_id: uuid.UUID, class_id: uuid.UUID, data: schemas.SectionCreate
     ) -> Section:
-        await self._get_scoped(SchoolClass, school_id, class_id, "Class")
+        await self._get_valid_class(school_id, class_id)
         await self._validate_teacher(school_id, data.class_teacher_id)
         dupe = await self.db.scalar(
             select(Section).where(Section.class_id == class_id, Section.name == data.name)
@@ -175,9 +226,11 @@ class AcademicService:
         return obj
 
     async def list_sections(self, school_id: uuid.UUID, class_id: uuid.UUID) -> list[Section]:
-        await self._get_scoped(SchoolClass, school_id, class_id, "Class")
+        await self._get_valid_class(school_id, class_id)
         result = await self.db.execute(
-            select(Section).where(Section.class_id == class_id).order_by(Section.name)
+            select(Section)
+            .where(Section.class_id == class_id, Section.school_id == school_id)
+            .order_by(Section.name)
         )
         return list(result.scalars().all())
 
@@ -186,6 +239,18 @@ class AcademicService:
     ) -> Section:
         obj = await self._get_scoped(Section, school_id, section_id, "Section")
         payload = data.model_dump(exclude_unset=True)
+        if "name" in payload and payload["name"] != obj.name:
+            duplicate = await self.db.scalar(
+                select(Section).where(
+                    Section.class_id == obj.class_id,
+                    Section.name == payload["name"],
+                    Section.id != obj.id,
+                )
+            )
+            if duplicate is not None:
+                raise bad_request(
+                    f"Section '{payload['name']}' already exists for this class"
+                )
         if "class_teacher_id" in payload:
             await self._validate_teacher(school_id, payload["class_teacher_id"])
         for field, value in payload.items():
@@ -203,7 +268,7 @@ class AcademicService:
     async def create_subject(self, school_id: uuid.UUID, data: schemas.SubjectCreate) -> Subject:
         await self._ensure_school(school_id)
         if data.class_id is not None:
-            await self._get_scoped(SchoolClass, school_id, data.class_id, "Class")
+            await self._get_valid_class(school_id, data.class_id)
         dupe = await self.db.scalar(
             select(Subject).where(Subject.school_id == school_id, Subject.code == data.code)
         )
@@ -228,7 +293,35 @@ class AcademicService:
         obj = await self._get_scoped(Subject, school_id, subject_id, "Subject")
         payload = data.model_dump(exclude_unset=True)
         if "class_id" in payload and payload["class_id"] is not None:
-            await self._get_scoped(SchoolClass, school_id, payload["class_id"], "Class")
+            await self._get_valid_class(school_id, payload["class_id"])
+            # A class-specific subject cannot be moved underneath slots for a
+            # different class.  Without this check a valid timetable becomes
+            # semantically invalid after an otherwise ordinary subject edit.
+            incompatible_slot = await self.db.scalar(
+                select(TimetableSlot.id)
+                .join(Section, Section.id == TimetableSlot.section_id)
+                .where(
+                    TimetableSlot.school_id == school_id,
+                    TimetableSlot.subject_id == obj.id,
+                    Section.school_id == school_id,
+                    Section.class_id != payload["class_id"],
+                )
+                .limit(1)
+            )
+            if incompatible_slot is not None:
+                raise bad_request(
+                    "Cannot restrict a subject to a class while it is timetabled for another class"
+                )
+        if "code" in payload and payload["code"] != obj.code:
+            duplicate = await self.db.scalar(
+                select(Subject).where(
+                    Subject.school_id == school_id,
+                    Subject.code == payload["code"],
+                    Subject.id != obj.id,
+                )
+            )
+            if duplicate is not None:
+                raise bad_request(f"Subject code '{payload['code']}' already exists")
         for field, value in payload.items():
             setattr(obj, field, value)
         await self.db.flush()
@@ -240,6 +333,20 @@ class AcademicService:
         await self.db.flush()
 
     # ------------------------------ timetable ---------------------------- #
+
+    async def _validate_timetable_links(
+        self, school_id: uuid.UUID, section_id: uuid.UUID, subject_id: uuid.UUID
+    ) -> tuple[Section, Subject]:
+        """Ensure a timetable subject can be taught in the slot's section.
+
+        School-wide subjects (without ``class_id``) may appear in any class,
+        while a class-specific subject must match the section's class.
+        """
+        section = await self._get_scoped(Section, school_id, section_id, "Section")
+        subject = await self._get_scoped(Subject, school_id, subject_id, "Subject")
+        if subject.class_id is not None and subject.class_id != section.class_id:
+            raise bad_request("Timetable subject must belong to the slot section's class")
+        return section, subject
 
     async def _assert_no_clash(
         self,
@@ -268,8 +375,9 @@ class AcademicService:
     async def create_slot(
         self, school_id: uuid.UUID, data: schemas.TimetableSlotCreate
     ) -> TimetableSlot:
-        section = await self._get_scoped(Section, school_id, data.section_id, "Section")
-        await self._get_scoped(Subject, school_id, data.subject_id, "Subject")
+        section, _ = await self._validate_timetable_links(
+            school_id, data.section_id, data.subject_id
+        )
         await self._validate_teacher(school_id, data.teacher_id)
         await self._assert_no_clash(
             school_id, section.id, data.teacher_id, data.day_of_week, data.start_time, data.end_time
@@ -302,8 +410,9 @@ class AcademicService:
     ) -> TimetableSlot:
         slot = await self._get_scoped(TimetableSlot, school_id, slot_id, "Timetable slot")
         payload = data.model_dump(exclude_unset=True)
-        if "subject_id" in payload:
-            await self._get_scoped(Subject, school_id, payload["subject_id"], "Subject")
+        await self._validate_timetable_links(
+            school_id, slot.section_id, payload.get("subject_id", slot.subject_id)
+        )
         if "teacher_id" in payload:
             await self._validate_teacher(school_id, payload["teacher_id"])
 

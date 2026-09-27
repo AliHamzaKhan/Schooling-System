@@ -32,8 +32,28 @@ class AuthService extends GetxService {
   final Rxn<Map<String, dynamic>> currentUser = Rxn<Map<String, dynamic>>();
   final RxBool isLoggedIn = false.obs;
   final RxBool isLoading = false.obs;
+  final RxnString sessionNotice = RxnString();
+  final RxnString restoreError = RxnString();
+  bool restoreAttempted = false;
+  void Function()? onExternalSessionChanged;
+  void Function()? _stopListening;
 
-  AuthService({required this.api, required this.store});
+  AuthService({required this.api, required this.store}) {
+    _stopListening = store.coordinator.listen(() {
+      ++_sessionEpoch;
+      api.disableCredentials();
+      currentUser.value = null;
+      isLoggedIn.value = false;
+      restoreAttempted = false;
+      onExternalSessionChanged?.call();
+    });
+  }
+
+  @override
+  void onClose() {
+    _stopListening?.call();
+    super.onClose();
+  }
 
   /// The signed-in user's school id (backend `school_id`), or null for users
   /// not scoped to a school (e.g. super-admin). Needed to build school-scoped
@@ -88,12 +108,30 @@ class AuthService extends GetxService {
 
   /// Call once after [DataStoreService.init] to restore the user's session.
   Future<void> bootstrap() async {
+    final epoch = _sessionEpoch;
+    restoreAttempted = true;
+    restoreError.value = null;
     currentUser.value = null;
-    final token = await store.readToken();
-    isLoggedIn.value = token != null && token.isNotEmpty;
-    if (isLoggedIn.value) {
-      // Best-effort hydrate; on 401 the token is wiped silently.
-      await fetchProfile(silent: true);
+    isLoggedIn.value = false;
+    try {
+      await store.init();
+      final token = await store.coordinator.exclusive(() async {
+        api.bindSession();
+        return store.readToken();
+      });
+      if (epoch != _sessionEpoch) return;
+      isLoggedIn.value = token != null && token.isNotEmpty;
+      if (isLoggedIn.value) {
+        final response = await fetchProfile(silent: true);
+        if (!response.success && !response.isSessionFatal) {
+          restoreError.value = 'Your session could not be verified. Please retry.';
+        }
+      }
+    } catch (_) {
+      if (epoch != _sessionEpoch) return;
+      api.disableCredentials();
+      isLoggedIn.value = false;
+      restoreError.value = 'Secure storage is unavailable. Unlock your device or allow browser storage, then retry.';
     }
   }
 
@@ -107,12 +145,15 @@ class AuthService extends GetxService {
     currentUser.value = null;
     isLoggedIn.value = false;
     isLoading.value = true;
+    sessionNotice.value = null;
+    String? revision;
     try {
-      await _sessionStore(() async {
+      await store.coordinator.exclusive(() => _sessionStore(() async {
         if (epoch != _sessionEpoch) return;
-        await store.deleteToken();
-        await store.deleteRefreshToken();
-      });
+        store.coordinator.advance();
+        revision = store.coordinator.revision;
+        await store.clearAll();
+      }));
       final res = await api.request<Map<String, dynamic>>(
         method: HttpMethod.post,
         path: '/auth/login',
@@ -126,18 +167,27 @@ class AuthService extends GetxService {
         if (token == null || token.isEmpty || refresh == null || refresh.isEmpty) {
           return ApiResponse.fail('The sign-in response was incomplete. Please retry.');
         }
-        await _sessionStore(() async {
-          if (epoch != _sessionEpoch) return;
-          await store.writeToken(token);
-          await store.writeRefreshToken(refresh);
-        });
-        if (epoch != _sessionEpoch) return ApiResponse.fail('Sign-in was cancelled.', statusCode: 401);
+        await store.coordinator.exclusive(() => _sessionStore(() async {
+          if (revision != store.coordinator.revision || epoch != _sessionEpoch) return;
+          await store.writeSession(token, refresh);
+          api.bindSession();
+        }));
+        if (epoch != _sessionEpoch || revision != store.coordinator.revision) return ApiResponse.fail('Sign-in was cancelled.', statusCode: 401);
         final profile = await fetchProfile(silent: true);
         if (!profile.success) return profile;
       } else if (res.success) {
         return ApiResponse.fail('The sign-in response was incomplete. Please retry.');
       }
+      restoreAttempted = true;
       return res;
+    } catch (_) {
+      if (epoch == _sessionEpoch) {
+        api.disableCredentials();
+        store.blockCredentials();
+        currentUser.value = null;
+        isLoggedIn.value = false;
+      }
+      return ApiResponse.fail('Secure storage could not save your session. Please retry.', statusCode: 0);
     } finally {
       isLoading.value = false;
     }
@@ -245,64 +295,113 @@ class AuthService extends GetxService {
     return res;
   }
 
+  /// Lists the caller's live login sessions. The server intentionally returns
+  /// lifecycle metadata only, never raw credentials, IP addresses or agents.
+  Future<ApiResponse<List<Map<String, dynamic>>>> listSessions() {
+    return api.request<List<Map<String, dynamic>>>(
+      method: HttpMethod.get,
+      path: '/auth/sessions',
+      parser: (json) => (json as List)
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList(),
+    );
+  }
+
+  /// Revokes one listed session. Revoking this device also clears local
+  /// credentials, so the client cannot continue with an already-revoked token.
+  Future<ApiResponse<dynamic>> revokeSession(String sessionId, {required bool isCurrent}) async {
+    final epoch = _sessionEpoch;
+    final res = await api.request<dynamic>(
+      method: HttpMethod.delete,
+      path: '/auth/sessions/$sessionId',
+    );
+    if (epoch != _sessionEpoch) return ApiResponse.fail('Session changed.', statusCode: 401);
+    if (res.success && isCurrent) await logout();
+    return res;
+  }
+
+  /// Clear local credentials only after the server confirms global revocation.
+  Future<ApiResponse<dynamic>> logoutAll() async {
+    final epoch = _sessionEpoch;
+    final res = await api.request<dynamic>(
+      method: HttpMethod.post,
+      path: '/auth/logout-all',
+    );
+    if (epoch != _sessionEpoch) {
+      return ApiResponse.fail('Session changed.', statusCode: 401);
+    }
+    if (res.success) await logout();
+    return res;
+  }
+
   /// Exchanges the stored refresh token for a new access token via
   /// `/auth/refresh`. Returns true when a fresh access token was stored. Wired
   /// into [ApiService.tokenRefresher] so an expired access token is renewed
   /// transparently on the next authenticated call instead of forcing a logout.
-  Future<bool> refreshSession() async {
+  Future<bool> refreshSession({String? rejectedAccessToken}) async {
     final epoch = _sessionEpoch;
-    final refresh = await store.readRefreshToken();
-    if (refresh == null || refresh.isEmpty) return false;
-    final res = await api.request<Map<String, dynamic>>(
-      method: HttpMethod.post,
-      path: '/auth/refresh',
-      body: {'refresh_token': refresh},
-      requiresAuth: false,
-    );
-    if (epoch != _sessionEpoch) throw SessionRefreshUnavailable();
-    if (res.isNetworkError || res.isServerError || res.statusCode == 429) {
+    try {
+      return await store.coordinator.exclusive(() async {
+        if (epoch != _sessionEpoch) {
+          throw SessionRefreshUnavailable();
+        }
+        if (rejectedAccessToken != null) {
+          final active = await store.readToken();
+          if (active != null && active != rejectedAccessToken) return true;
+        }
+        final refresh = await store.readRefreshToken();
+        if (refresh == null || refresh.isEmpty) return false;
+        final res = await api.request<Map<String, dynamic>>(
+          method: HttpMethod.post, path: '/auth/refresh',
+          body: {'refresh_token': refresh}, requiresAuth: false,
+        );
+        if (epoch != _sessionEpoch) throw SessionRefreshUnavailable();
+        if (res.isNetworkError || res.isServerError || res.statusCode == 429) throw SessionRefreshUnavailable();
+        if (!res.success) return false;
+        final token = res.rawJson?['access_token'] as String?;
+        final nextRefresh = res.rawJson?['refresh_token'] as String?;
+        if (token == null || token.isEmpty || nextRefresh == null || nextRefresh.isEmpty) throw SessionRefreshUnavailable();
+        await _sessionStore(() async {
+          if (epoch != _sessionEpoch) return;
+          await store.writeSession(token, nextRefresh);
+        });
+        if (epoch != _sessionEpoch) throw SessionRefreshUnavailable();
+        return true;
+      });
+    } catch (_) {
       throw SessionRefreshUnavailable();
     }
-    if (res.success && res.rawJson != null) {
-      final token = res.rawJson!['access_token'] as String?;
-      final newRefresh = res.rawJson!['refresh_token'] as String?;
-      if (token == null || token.isEmpty || newRefresh == null || newRefresh.isEmpty) {
-        throw SessionRefreshUnavailable();
-      }
-      var saved = false;
-      await _sessionStore(() async {
-        if (epoch != _sessionEpoch) return;
-        await store.writeToken(token);
-        await store.writeRefreshToken(newRefresh);
-        saved = true;
-      });
-      if (epoch != _sessionEpoch) throw SessionRefreshUnavailable();
-      return saved;
-    }
-    return false;
   }
 
   Future<void> logout() => _logoutInFlight ??= _logout().whenComplete(() => _logoutInFlight = null);
 
   Future<void> _logout() async {
     ++_sessionEpoch;
-    api.invalidateSessionRequests();
+    api.disableCredentials();
     currentUser.value = null;
     isLoggedIn.value = false;
-    final refresh = await _sessionStore(() async {
-      String? value;
-      try {
-        value = await store.readRefreshToken();
-      } finally {
+    restoreAttempted = true;
+    sessionNotice.value = null;
+    String? refresh;
+    try { refresh = await store.readRefreshToken(); } catch (_) {
+      sessionNotice.value = 'Signed out here. Server revocation could not be confirmed because secure storage is unavailable.';
+    }
+    store.blockCredentials();
+    try {
+      await store.coordinator.exclusive(() => _sessionStore(() async {
+        store.coordinator.advance();
         await store.clearAll();
-      }
-      return value;
-    });
+      }));
+    } catch (_) {
+      sessionNotice.value = 'Signed out here. Stored credentials could not be fully removed. Retry sign-out cleanup before closing this device.';
+    }
     if (refresh != null && refresh.isNotEmpty) {
-      // Local credentials are already gone. Offline logout never restores them.
-      await api.request<dynamic>(method: HttpMethod.post, path: '/auth/logout',
+      final response = await api.request<dynamic>(method: HttpMethod.post, path: '/auth/logout',
         body: {'refresh_token': refresh}, requiresAuth: false,
         timeout: const Duration(seconds: 2));
+      if (!response.success) {
+        sessionNotice.value ??= 'Signed out here. Server revocation could not be confirmed while offline.';
+      }
     }
   }
 }

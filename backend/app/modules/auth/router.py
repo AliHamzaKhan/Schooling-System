@@ -1,5 +1,6 @@
 """Auth endpoints: login, refresh, logout, password reset, current user."""
 import logging
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
@@ -18,6 +19,7 @@ from app.modules.auth.schemas import (
     RefreshRequest,
     ResetPasswordRequest,
     ResetTokenOut,
+    SessionOut,
     TokenPair,
     UserOut,
     VerifyOtpRequest,
@@ -138,6 +140,30 @@ async def logout(payload: RefreshRequest, db: DbDep) -> Response:
 async def logout_all(current_user: CurrentUser, db: DbDep) -> Response:
     """Revoke every active session for the authenticated user (all devices)."""
     await AuthService(db).revoke_all_for_user(current_user.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/sessions", response_model=list[SessionOut])
+async def list_sessions(request: Request, current_user: CurrentUser, db: DbDep) -> list[SessionOut]:
+    raw_current_id = getattr(request.state, "auth_session_id", None)
+    try:
+        current_id = uuid.UUID(raw_current_id) if raw_current_id else None
+    except (TypeError, ValueError):
+        current_id = None
+    sessions = await AuthService(db).list_live_sessions(current_user.id, current_id)
+    return [SessionOut(
+        id=session.id, created_at=session.created_at, last_used_at=session.last_used_at,
+        expires_at=session.expires_at, is_current=getattr(session, "_is_current", False),
+    ) for session in sessions]
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_session(session_id: str, current_user: CurrentUser, db: DbDep) -> Response:
+    try:
+        parsed = uuid.UUID(session_id)
+    except ValueError:
+        raise credentials_exception()
+    await AuthService(db).revoke_owned_session(current_user.id, parsed)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

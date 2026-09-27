@@ -8,7 +8,7 @@ import '../models/my_class.dart';
 class TeacherClassesController extends GetxController {
   final TeacherRepository _repo;
   TeacherClassesController({TeacherRepository? repo})
-      : _repo = repo ?? Get.find<TeacherRepository>();
+    : _repo = repo ?? Get.find<TeacherRepository>();
 
   final loading = true.obs;
   final error = RxnString();
@@ -23,6 +23,7 @@ class TeacherClassesController extends GetxController {
   Future<void> load() async {
     loading.value = true;
     error.value = null;
+    classes.clear();
     final res = await _repo.loadMyTimetable();
     if (res.success) {
       classes.assignAll(MyClass.fromSlots(res.data ?? const []));

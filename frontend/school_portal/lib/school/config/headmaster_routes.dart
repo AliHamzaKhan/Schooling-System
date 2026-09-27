@@ -17,6 +17,7 @@ class HeadmasterRoutes {
   static const overduePayments = '$_base/fees/overdue'; // full overdue list
   static const recordPayment = '$_base/fees/record'; // Record Payment screen
   static const feesRoster = '$_base/fees/students'; // All-students fee roster
+  static const financialAdjustments = '$_base/fees/adjustments';
   static const teacherAttendance = '$_base/reports/teacher-attendance';
   static const teacherAttendanceRoster =
       '$_base/reports/teacher-attendance/roster';

@@ -12,11 +12,17 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from app.core.config import settings
 from app.core.deps import CurrentUser, require_school_member
+from app.core.exceptions import bad_request, service_unavailable
 from app.core.storage import build_key, get_storage
-from app.core.exceptions import bad_request
 from app.modules.uploads import schemas
 from app.modules.uploads.limits import read_limited_upload
-from app.modules.uploads.public_media import PUBLIC_FOLDERS, raster_type
+from app.modules.uploads.policy import (
+    PUBLIC_FOLDERS,
+    canonical_filename,
+    inspect_content,
+    validate_folder,
+)
+from app.modules.uploads.scanner import ScanRejected, ScannerUnavailable, get_upload_scanner
 
 router = APIRouter(prefix="/schools/{school_id}/uploads", tags=["Uploads"])
 
@@ -38,22 +44,25 @@ async def upload_file(
     ``folder`` is a logical bucket ("submissions", "documents", …) used to
     namespace the storage key; files are additionally scoped under the school id.
     """
+    safe_folder = validate_folder(folder)
     max_bytes = settings.MAX_UPLOAD_MB * 1024 * 1024
     data = await read_limited_upload(file, max_bytes)
-
-    # Keep the folder segment to a safe, single path component.
-    safe_folder = "".join(c for c in folder if c.isalnum() or c in ("-", "_")) or "misc"
+    content = inspect_content(safe_folder, data)
+    try:
+        await get_upload_scanner().scan(data)
+    except ScanRejected:
+        raise bad_request("File rejected by security scanning")
+    except ScannerUnavailable:
+        raise service_unavailable("Upload scanning is temporarily unavailable. Try again later.")
     if safe_folder in PUBLIC_FOLDERS:
-        if raster_type(data) is None:
-            raise bad_request("Public images must be PNG, JPEG or WebP")
         prefix = f"{safe_folder}/{school_id}"
     else:
         prefix = f"private/{safe_folder}/{school_id}/{current_user.id}"
-    key = build_key(prefix, file.filename or "upload")
-    url = await get_storage().save(key=key, data=data, content_type=file.content_type)
+    key = build_key(prefix, canonical_filename(file.filename or "upload", content))
+    url = await get_storage().save(key=key, data=data, content_type=content.media_type)
     return schemas.UploadOut(
         url=url,
-        filename=file.filename or "upload",
+        filename=key.rsplit("/", 1)[-1],
         size=len(data),
-        content_type=file.content_type,
+        content_type=content.media_type,
     )

@@ -58,6 +58,43 @@ async def test_seen_receipt_and_student_name(client, school):
     assert (await _my_submission(client, sid, sh, aid))["seen_at"] is not None
 
 
+async def test_resubmission_clears_read_receipt_but_identical_retry_keeps_it(client, school):
+    sid, hm = school["id"], school["hm"]
+    setup = await _setup_submission(client, sid, hm)
+    aid, sh = setup["assignment_id"], setup["sh"]
+
+    # Staff has read the original version.
+    opened = await client.get(
+        f"{API}/schools/{sid}/homework/assignments/{aid}/submissions", headers=hm
+    )
+    assert opened.status_code == 200
+    assert (await _my_submission(client, sid, sh, aid))["seen_at"] is not None
+
+    # A changed submission is a new revision and must be visibly unread.
+    revised = await client.post(
+        f"{API}/schools/{sid}/homework/assignments/{aid}/submissions",
+        headers=sh,
+        json={"content": "revised work", "submitted_on": "2026-11-20"},
+    )
+    assert revised.status_code == 201, revised.text
+    assert revised.json()["seen_at"] is None
+    assert (await _my_submission(client, sid, sh, aid))["seen_at"] is None
+
+    # Once read, a response-loss retry with the same payload must not erase
+    # the receipt again.
+    opened = await client.get(
+        f"{API}/schools/{sid}/homework/assignments/{aid}/submissions", headers=hm
+    )
+    assert opened.status_code == 200
+    retried = await client.post(
+        f"{API}/schools/{sid}/homework/assignments/{aid}/submissions",
+        headers=sh,
+        json={"content": "revised work", "submitted_on": "2026-11-20"},
+    )
+    assert retried.status_code == 201, retried.text
+    assert retried.json()["seen_at"] is not None
+
+
 async def test_grade_visible_to_student(client, school):
     sid, hm = school["id"], school["hm"]
     s = await _setup_submission(client, sid, hm)

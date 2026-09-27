@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Header, Query, status
 
 from app.core.deps import CurrentUser, DbDep, require_school_permission
 from app.core.enums import Module, PermissionAction as PA
+from app.core.pagination import OffsetPage
 from app.modules.communication import schemas
 from app.modules.communication.service import CommunicationService
 
@@ -67,8 +68,14 @@ async def create_broadcast(
 
 
 @router.get("/broadcasts", response_model=list[schemas.MessageOut], dependencies=[_view])
-async def list_broadcasts(school_id: uuid.UUID, db: DbDep, current_user: CurrentUser) -> list[schemas.MessageOut]:
-    return await CommunicationService(db).list_messages(school_id, current_user)
+async def list_broadcasts(
+    school_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+    page: OffsetPage = Depends(),
+) -> list[schemas.MessageOut]:
+    """A bounded, visibility-filtered broadcast history page, newest first."""
+    return await CommunicationService(db).list_messages(school_id, current_user, page)
 
 
 @router.get("/broadcasts/{message_id}", response_model=schemas.MessageOut, dependencies=[_view])

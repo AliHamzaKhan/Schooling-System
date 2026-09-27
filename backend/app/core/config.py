@@ -1,16 +1,20 @@
 """Application configuration loaded from environment variables."""
+import base64
 from functools import lru_cache
+import json
 import os
 from typing import Annotated, List, Union
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # Secrets shipped as defaults for local dev. They must never be used once the
 # app runs outside development.
 _WEAK_JWT_SECRETS = {"change-this-in-production", "dev-secret-change-in-production"}
 _DEFAULT_SUPERADMIN_PASSWORD = "ChangeMe123!"
+_DEFAULT_SUPERADMIN_EMAIL = "admin@platform.com"
+_DEFAULT_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/schooling"
 _DEV_ENVS = {"development", "dev", "local", "test"}
 
 
@@ -27,7 +31,7 @@ class Settings(BaseSettings):
     # `_assemble_db_url` build the URL — it percent-encodes the password, so
     # special characters like '#', '@', ':' are handled for you. When all of
     # DB_HOST / DB_NAME / DB_USER are present the assembled URL wins.
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/schooling"
+    DATABASE_URL: str = _DEFAULT_DATABASE_URL
     DB_HOST: str = ""
     DB_PORT: int = 5432
     DB_NAME: str = ""
@@ -51,6 +55,16 @@ class Settings(BaseSettings):
     # Notifications ALWAYS persist outbox work and require an independent worker;
     # False does not enable inline delivery. The standalone DB worker needs no Redis.
     TASK_QUEUE_ENABLED: bool = False
+
+    # The delivery worker records a database heartbeat at startup and before and
+    # after each bounded poll. The Super Admin operations view marks it stale
+    # after this interval; keep enough room for a normal 10-second poll plus a
+    # short database/provider delay.
+    OUTBOX_WORKER_STALE_AFTER_SECONDS: int = Field(default=60, ge=20, le=3600)
+
+    # Development keeps readable local logs. Production uses the content-free
+    # JSON formatter so an aggregator can reliably filter level/logger/request.
+    LOG_FORMAT: str = "text"
 
     # JWT
     JWT_SECRET_KEY: str = "change-this-in-production"
@@ -103,6 +117,9 @@ class Settings(BaseSettings):
     # deploys. The project id is read from whichever one is set.
     FIREBASE_CREDENTIALS_FILE: str = ""
     FIREBASE_CREDENTIALS_JSON: str = ""
+    # Deployment-safe alternative for a multiline JSON service-account secret.
+    # Decoded in memory and never logged or returned by an API.
+    FIREBASE_CREDENTIALS_JSON_B64: str = ""
     # Email (SMTP); blank => stub
     EMAIL_FROM: str = ""
 
@@ -121,15 +138,23 @@ class Settings(BaseSettings):
     # --- File storage --- #
     # Pluggable object storage. The app depends only on the StorageBackend
     # interface (app/core/storage.py), so the provider can be swapped without
-    # touching call sites. "local" writes to STORAGE_LOCAL_DIR and serves files
-    # via the /media mount (development only). Set STORAGE_BACKEND to "s3" /
-    # "firebase" / "gcs" (and add the matching backend) for production.
+    # touching call sites. "local" writes to STORAGE_LOCAL_DIR. Only raster
+    # avatar/uniform compatibility assets have a public API route; private bytes
+    # require record-authorized tickets and must never use a static mount. Set
+    # STORAGE_BACKEND to "s3" / "firebase" / "gcs" (and add the matching
+    # backend) for production.
     STORAGE_BACKEND: str = "local"
     STORAGE_LOCAL_DIR: str = "uploads"
     # Absolute base URL used to build public file links (e.g.
     # "https://api.example.com"). Blank => links are returned relative ("/media/…").
     PUBLIC_BASE_URL: str = ""
     MAX_UPLOAD_MB: int = 10
+    # New uploads are scanned before storage. Disabled is permitted only for
+    # local/test development; non-development deployments must configure ClamAV.
+    UPLOAD_SCANNER_BACKEND: str = "disabled"
+    UPLOAD_SCANNER_HOST: str = ""
+    UPLOAD_SCANNER_PORT: int = Field(default=3310, gt=0, le=65535)
+    UPLOAD_SCANNER_TIMEOUT_SECONDS: float = Field(default=15, gt=0, le=120)
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
@@ -162,6 +187,40 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _validate_provider_configuration(self) -> "Settings":
+        """Reject partial provider settings before a worker can attempt a send."""
+        if self.FIREBASE_CREDENTIALS_JSON_B64:
+            if self.FIREBASE_CREDENTIALS_JSON:
+                raise ValueError("Configure only one Firebase JSON credential source")
+            try:
+                self.FIREBASE_CREDENTIALS_JSON = base64.b64decode(
+                    self.FIREBASE_CREDENTIALS_JSON_B64, validate=True
+                ).decode("utf-8")
+            except (UnicodeDecodeError, ValueError) as exc:
+                raise ValueError(
+                    "FIREBASE_CREDENTIALS_JSON_B64 must be valid base64 UTF-8 JSON"
+                ) from exc
+        if self.TWILIO_ACCOUNT_SID or self.TWILIO_AUTH_TOKEN:
+            if not self.TWILIO_ACCOUNT_SID or not self.TWILIO_AUTH_TOKEN:
+                raise ValueError("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be configured together")
+            if not self.TWILIO_WHATSAPP_FROM and not self.TWILIO_SMS_FROM:
+                raise ValueError("Configure a Twilio sender before enabling Twilio delivery")
+
+        if self.FIREBASE_CREDENTIALS_FILE and self.FIREBASE_CREDENTIALS_JSON:
+            raise ValueError("Configure only one Firebase credential source")
+        if self.FIREBASE_CREDENTIALS_JSON:
+            try:
+                credentials = json.loads(self.FIREBASE_CREDENTIALS_JSON)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("FIREBASE_CREDENTIALS_JSON must contain valid JSON") from exc
+            if not isinstance(credentials, dict) or not all(
+                isinstance(credentials.get(key), str) and credentials[key]
+                for key in ("project_id", "client_email", "private_key")
+            ):
+                raise ValueError("Firebase credentials must include project_id, client_email and private_key")
+        return self
+
+    @model_validator(mode="after")
     def _enforce_production_secrets(self) -> "Settings":
         """Refuse to boot with dev defaults / wildcard CORS outside development.
 
@@ -172,12 +231,32 @@ class Settings(BaseSettings):
         if self.ENVIRONMENT.lower() in _DEV_ENVS:
             return self
         problems: list[str] = []
+        if not self.DATABASE_URL or self.DATABASE_URL == _DEFAULT_DATABASE_URL:
+            problems.append("DATABASE_URL must be set to a non-development database")
         if self.JWT_SECRET_KEY in _WEAK_JWT_SECRETS or len(self.JWT_SECRET_KEY) < 32:
             problems.append("JWT_SECRET_KEY must be set to a strong (>=32 char) value")
+        if self.FIRST_SUPERADMIN_EMAIL.lower() == _DEFAULT_SUPERADMIN_EMAIL:
+            problems.append("FIRST_SUPERADMIN_EMAIL must be changed from the default")
         if self.FIRST_SUPERADMIN_PASSWORD == _DEFAULT_SUPERADMIN_PASSWORD:
             problems.append("FIRST_SUPERADMIN_PASSWORD must be changed from the default")
-        if "*" in self.BACKEND_CORS_ORIGINS:
-            problems.append("BACKEND_CORS_ORIGINS must list explicit origins, not '*'")
+        if not self.BACKEND_CORS_ORIGINS or "*" in self.BACKEND_CORS_ORIGINS:
+            problems.append("BACKEND_CORS_ORIGINS must list explicit HTTPS origins, not '*'")
+        else:
+            for origin in self.BACKEND_CORS_ORIGINS:
+                parsed = urlsplit(origin)
+                if (
+                    parsed.scheme != "https"
+                    or not parsed.netloc
+                    or parsed.username
+                    or parsed.password
+                    or parsed.path not in ("", "/")
+                    or parsed.query
+                    or parsed.fragment
+                ):
+                    problems.append(
+                        "BACKEND_CORS_ORIGINS must contain only HTTPS origins without paths or credentials"
+                    )
+                    break
         if not self.REDIS_URL:
             # In-memory rate-limit counters live per worker process, so with the
             # multi-worker production server each limit is silently multiplied by
@@ -185,6 +264,12 @@ class Settings(BaseSettings):
             problems.append(
                 "REDIS_URL must be set so rate-limit counters are shared across workers"
             )
+        if self.UPLOAD_SCANNER_BACKEND.lower() != "clamav":
+            problems.append("UPLOAD_SCANNER_BACKEND must be 'clamav' for new uploads")
+        if not self.UPLOAD_SCANNER_HOST:
+            problems.append("UPLOAD_SCANNER_HOST must be set for the ClamAV scanner")
+        if self.LOG_FORMAT.lower() != "json":
+            problems.append("LOG_FORMAT must be 'json' outside development")
         if problems:
             raise ValueError(
                 f"Insecure configuration for ENVIRONMENT={self.ENVIRONMENT}: "

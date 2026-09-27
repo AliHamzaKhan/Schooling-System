@@ -15,6 +15,7 @@ from app.core.enums import (
     SystemRole,
 )
 from app.core.exceptions import AppHTTPException, ErrorCode, bad_request, forbidden, not_found
+from app.core.pagination import OffsetPage
 from app.models.academic import SchoolClass, Section, StudentEnrollment
 from app.models.associations import guardian_students
 from app.models.communication import (
@@ -401,12 +402,16 @@ class CommunicationService:
         )
         return list(rows.scalars().all())
 
-    async def list_messages(self, school_id: uuid.UUID, user: User) -> list[Message]:
-        result = await self.db.execute(
-            select(Message).where(
-                Message.school_id == school_id, self._visibility_condition(school_id, user),
-            ).order_by(Message.created_at.desc(), Message.id.desc())
-        )
+    async def list_messages(
+        self, school_id: uuid.UUID, user: User, page: OffsetPage | None = None,
+    ) -> list[Message]:
+        """Return a bounded page after enforcing tenant and audience visibility."""
+        stmt = select(Message).where(
+            Message.school_id == school_id, self._visibility_condition(school_id, user),
+        ).order_by(Message.created_at.desc(), Message.id.desc())
+        if page is not None:
+            stmt = page.apply(stmt)
+        result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
     async def get_visible_message(self, school_id: uuid.UUID, message_id: uuid.UUID, user: User) -> Message:

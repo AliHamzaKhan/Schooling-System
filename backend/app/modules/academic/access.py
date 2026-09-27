@@ -13,6 +13,7 @@ from app.core.enums import EnrollmentStatus, Module, PermissionAction, SystemRol
 from app.core.exceptions import forbidden, not_found
 from app.models.academic import SchoolClass, Section, StudentEnrollment, Subject, TimetableSlot
 from app.models.associations import guardian_students
+from app.models.school import AcademicSession
 from app.models.role import Role
 from app.models.user import User
 from app.modules.permissions.service import PermissionService
@@ -25,9 +26,26 @@ def role_ids(school_id, code, *, active=False):
     return stmt.where(User.is_active.is_(True)) if active else stmt
 
 
+def valid_classes(school_id):
+    return select(SchoolClass.id).where(
+        SchoolClass.school_id == school_id,
+        or_(SchoolClass.session_id.is_(None), SchoolClass.session_id.in_(
+            select(AcademicSession.id).where(AcademicSession.school_id == school_id))),
+    )
+
+
+def valid_subjects(school_id):
+    return select(Subject.id).where(
+        Subject.school_id == school_id,
+        or_(Subject.class_id.is_(None), Subject.class_id.in_(valid_classes(school_id))),
+    )
+
+
 def valid_sections(school_id):
     return select(Section.id).join(SchoolClass).where(
         Section.school_id == school_id, SchoolClass.school_id == school_id,
+        or_(SchoolClass.session_id.is_(None), SchoolClass.session_id.in_(
+            select(AcademicSession.id).where(AcademicSession.school_id == school_id))),
     )
 
 
@@ -53,8 +71,9 @@ def enrolled_students(school_id, sections):
 
 
 class AcademicAccess:
-    def __init__(self, db: AsyncSession, school_id: uuid.UUID, user: User):
+    def __init__(self, db: AsyncSession, school_id: uuid.UUID, user: User, *, module: Module = Module.STUDENT_MANAGEMENT):
         self.db, self.school_id, self.user = db, school_id, user
+        self.module = module
 
     @property
     def leadership(self):
@@ -69,9 +88,9 @@ class AcademicAccess:
         if not self.leadership and not any(r.code == SystemRole.TEACHER.value for r in self.user.roles):
             raise forbidden("Academic staff access required")
         if not await PermissionService(self.db).has_permission(
-            self.user, Module.STUDENT_MANAGEMENT, PermissionAction.VIEW,
+            self.user, self.module, PermissionAction.VIEW,
         ):
-            raise forbidden("Student management view permission required")
+            raise forbidden(f"{self.module.value} view permission required")
 
     async def section(self, section_id):
         if await self.db.scalar(valid_sections(self.school_id).where(Section.id == section_id)) is None:
@@ -93,7 +112,7 @@ class AcademicAccess:
             return True
         codes = {r.code for r in self.user.roles}
         if SystemRole.TEACHER.value in codes and await PermissionService(self.db).has_permission(
-            self.user, Module.STUDENT_MANAGEMENT, PermissionAction.VIEW,
+            self.user, self.module, PermissionAction.VIEW,
         ):
             if student_id in (await self.db.scalars(enrolled_students(
                 self.school_id, taught_sections(self.school_id, self.user.id),

@@ -22,50 +22,72 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const SkeletonPage(withHeader: false, body: SkeletonRosterList());
+                return const SkeletonPage(
+                  withHeader: false,
+                  body: SkeletonRosterList(),
+                );
               }
+              final error = controller.error.value;
+              if (error != null) {
+                return _AttendanceMarkLoadError(
+                  message: error,
+                  onRetry: controller.load,
+                );
+              }
+              final classInfo = controller.classInfo!;
               return ListView(
                 padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.containerPaddingMobile,
-                    0,
-                    AppSpacing.containerPaddingMobile,
-                    140),
+                  AppSpacing.containerPaddingMobile,
+                  0,
+                  AppSpacing.containerPaddingMobile,
+                  140,
+                ),
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: controller.classInfo.color.withValues(alpha: 0.16),
+                          color: classInfo.color.withValues(alpha: 0.16),
                           borderRadius: BorderRadius.circular(AppRadius.full),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                    color: controller.classInfo.color,
-                                    shape: BoxShape.circle)),
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: classInfo.color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                             const SizedBox(width: 6),
-                            Text(controller.classInfo.subject,
-                                style: AppTypography.labelMd.copyWith(
-                                    color: controller.classInfo.color,
-                                    fontWeight: FontWeight.w700)),
+                            Text(
+                              classInfo.subject,
+                              style: AppTypography.labelMd.copyWith(
+                                color: classInfo.color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.stackSm),
-                  Text(controller.classInfo.grade,
-                      style: AppTypography.headlineLg),
+                  Text(classInfo.grade, style: AppTypography.headlineLg),
                   const SizedBox(height: AppSpacing.stackSm),
                   Row(
                     children: [
-                      const Icon(AppIcons.calendarTodayOutlined,
-                          size: 16, color: AppColors.onSurfaceVariant),
+                      const Icon(
+                        AppIcons.calendarTodayOutlined,
+                        size: 16,
+                        color: AppColors.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 6),
                       Text('Oct 24, 2023', style: AppTypography.bodyMd),
                       const Spacer(),
@@ -75,6 +97,12 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
                   const SizedBox(height: AppSpacing.stackLg),
                   _TotalsCard(controller: controller),
                   const SizedBox(height: AppSpacing.stackLg),
+                  if (controller.submitError.value != null) ...[
+                    _AttendanceSubmitError(
+                      message: controller.submitError.value!,
+                    ),
+                    const SizedBox(height: AppSpacing.stackLg),
+                  ],
                   GlassSurface(
                     padding: const EdgeInsets.all(AppSpacing.stackLg),
                     child: Column(
@@ -105,15 +133,97 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 12, right: 4),
         child: FloatingActionButton.extended(
-          onPressed: controller.submit,
+          onPressed: controller.submitting.value ? null : controller.submit,
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.onPrimary,
-          icon: const Icon(AppIcons.sendRounded),
-          label: const Text('Submit Attendance'),
+          icon: controller.submitting.value
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.onPrimary,
+                  ),
+                )
+              : const Icon(AppIcons.sendRounded),
+          label: Text(
+            controller.submitting.value ? 'Submitting…' : 'Submit Attendance',
+          ),
         ),
       ),
     );
   }
+}
+
+class _AttendanceSubmitError extends StatelessWidget {
+  final String message;
+
+  const _AttendanceSubmitError({required this.message});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(AppSpacing.stackMd),
+    decoration: BoxDecoration(
+      color: AppColors.errorContainer,
+      borderRadius: BorderRadius.circular(AppRadius.button),
+    ),
+    child: Row(
+      children: [
+        const Icon(AppIcons.errorOutlineRounded, color: AppColors.error),
+        const SizedBox(width: AppSpacing.stackSm),
+        Expanded(
+          child: Text(
+            message,
+            style: AppTypography.bodyMd.copyWith(color: AppColors.error),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _AttendanceMarkLoadError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _AttendanceMarkLoadError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.stackXl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            AppIcons.errorOutlineRounded,
+            color: AppColors.error,
+            size: 32,
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text(
+            'Class attendance is unavailable',
+            style: AppTypography.headlineLg,
+          ),
+          const SizedBox(height: AppSpacing.stackSm),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyLg,
+          ),
+          const SizedBox(height: AppSpacing.stackLg),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(AppIcons.refreshRounded),
+            label: const Text('Try again'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Compact pill CTA that marks every student present. Lives in the class
@@ -135,12 +245,19 @@ class _MarkAllPresentButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(AppIcons.doneAllRounded,
-                size: 18, color: AppColors.primary),
+            const Icon(
+              AppIcons.doneAllRounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: 6),
-            Text('Mark All Present',
-                style: AppTypography.labelMd.copyWith(
-                    color: AppColors.primary, fontWeight: FontWeight.w700)),
+            Text(
+              'Mark All Present',
+              style: AppTypography.labelMd.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),
@@ -156,14 +273,28 @@ class _TotalsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassSurface(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.stackLg, vertical: AppSpacing.stackMd),
+        horizontal: AppSpacing.stackLg,
+        vertical: AppSpacing.stackMd,
+      ),
       child: Row(
         children: [
-          _Tally(label: 'TOTAL', value: '${controller.total}', color: AppColors.primary),
+          _Tally(
+            label: 'TOTAL',
+            value: '${controller.total}',
+            color: AppColors.primary,
+          ),
           const _VDivider(),
-          _Tally(label: 'PRESENT', value: '${controller.present}', color: AppColors.tertiary),
+          _Tally(
+            label: 'PRESENT',
+            value: '${controller.present}',
+            color: AppColors.tertiary,
+          ),
           const _VDivider(),
-          _Tally(label: 'ABSENT', value: '${controller.absent}', color: AppColors.error),
+          _Tally(
+            label: 'ABSENT',
+            value: '${controller.absent}',
+            color: AppColors.error,
+          ),
         ],
       ),
     );
@@ -181,10 +312,16 @@ class _Tally extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(value,
-              style: AppTypography.displayLg.copyWith(fontSize: 28, color: color)),
-          Text(label,
-              style: AppTypography.labelCaps.copyWith(color: AppColors.onSurfaceVariant)),
+          Text(
+            value,
+            style: AppTypography.displayLg.copyWith(fontSize: 28, color: color),
+          ),
+          Text(
+            label,
+            style: AppTypography.labelCaps.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );

@@ -234,6 +234,15 @@ class SalaryController extends GetxController {
               ),
               if (p.paidOn != null) _kv('Paid on', p.paidOn!),
               const SizedBox(height: AppSpacing.stackLg),
+              GhostButton(
+                label: 'Request payroll correction',
+                leadingIcon: AppIcons.editOutlined,
+                onPressed: () async {
+                  Get.back();
+                  await requestPayrollCorrectionFlow(p);
+                },
+              ),
+              const SizedBox(height: AppSpacing.stackSm),
               Row(
                 children: [
                   Expanded(
@@ -266,6 +275,85 @@ class SalaryController extends GetxController {
       ),
       isScrollControlled: true,
     );
+  }
+
+  /// Create a Headmaster review request for a payslip. The adjustment ledger
+  /// records the request only; money-policy posting is deliberately separate.
+  Future<void> requestPayrollCorrectionFlow(PayslipRow p) async {
+    final amount = TextEditingController();
+    final currency = TextEditingController();
+    final reason = TextEditingController();
+    final monthName = monthNames[(p.month - 1).clamp(0, 11)];
+    final ok = await showActionFormSheet(
+      title: 'Request Payroll Correction',
+      submitLabel: 'Submit for review',
+      ownedControllers: [amount, currency, reason],
+      fields: [
+        _PayrollCorrectionNotice(
+          period: '$monthName ${p.year}',
+          net: money(p.net),
+        ),
+        GlassInput(
+          label: 'Proposed correction amount',
+          hint: 'e.g. 1500.00',
+          controller: amount,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        GlassInput(
+          label: 'Currency code',
+          hint: 'e.g. PKR',
+          controller: currency,
+          onChanged: (value) {
+            final upper = value.toUpperCase();
+            if (upper != value) {
+              currency.value = TextEditingValue(
+                text: upper,
+                selection: TextSelection.collapsed(offset: upper.length),
+              );
+            }
+          },
+        ),
+        GlassInput(
+          label: 'Reason',
+          hint: 'Explain what needs correction',
+          controller: reason,
+        ),
+      ],
+      onSubmit: () async {
+        final proposedAmount = amount.text.trim();
+        final parsedAmount = double.tryParse(proposedAmount);
+        final currencyCode = currency.text.trim().toUpperCase();
+        final requestReason = reason.text.trim();
+        if (parsedAmount == null ||
+            !parsedAmount.isFinite ||
+            parsedAmount <= 0) {
+          return 'Enter a positive proposed correction amount.';
+        }
+        if (!RegExp(r'^[A-Z]{3}$').hasMatch(currencyCode)) {
+          return 'Enter a three-letter currency code.';
+        }
+        if (requestReason.length < 3) {
+          return 'Give a reason with at least 3 characters.';
+        }
+        final result = await _repo.createFinancialAdjustment(
+          kind: 'payroll_correction',
+          targetId: p.id,
+          proposedAmount: proposedAmount,
+          currencyCode: currencyCode,
+          reason: requestReason,
+        );
+        return result.success
+            ? null
+            : (result.error ?? 'Could not submit the payroll correction.');
+      },
+    );
+    if (ok == true) {
+      Get.snackbar(
+        'Correction submitted',
+        'It awaits a Headmaster decision. This does not change the payslip or payroll yet.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   /// Render the payslip as a PDF (school name + logo header) and open the
@@ -331,5 +419,28 @@ class SalaryController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     }
+  }
+}
+
+class _PayrollCorrectionNotice extends StatelessWidget {
+  final String period;
+  final String net;
+
+  const _PayrollCorrectionNotice({required this.period, required this.net});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.stackMd),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.button),
+      ),
+      child: Text(
+        '$period payslip · current net $net\n\n'
+        'This creates a review request only. It does not change the payslip, mark it paid, or post a payroll movement.',
+        style: AppTypography.bodyMd,
+      ),
+    );
   }
 }

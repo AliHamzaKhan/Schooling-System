@@ -15,8 +15,7 @@ import '../../../../../widgets/skeletons.dart';
 class HomeworkView extends GetView<HomeworkController> {
   final VoidCallback? onNotifications;
   final VoidCallback? onManageChildren;
-  const HomeworkView(
-      {super.key, this.onNotifications, this.onManageChildren});
+  const HomeworkView({super.key, this.onNotifications, this.onManageChildren});
 
   @override
   Widget build(BuildContext context) {
@@ -27,28 +26,42 @@ class HomeworkView extends GetView<HomeworkController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: SkeletonCardList(count: 5, height: 104));
+              return const SkeletonPage(
+                body: SkeletonCardList(count: 5, height: 104),
+              );
+            }
+            final error = controller.error.value;
+            if (error != null) {
+              return AppStateView.error(
+                title: 'Homework is unavailable',
+                message: error,
+                actionLabel: 'Try again',
+                onAction: controller.reload,
+              );
             }
             final d = controller.data.value;
             if (d == null) return const SizedBox.shrink();
             return ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackSm,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackSm,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
                 Row(
                   children: [
                     _CounterTile(
-                        label: 'Pending',
-                        value: d.pending,
-                        color: const Color(0xFFE8A317)),
+                      label: 'Pending',
+                      value: d.pending,
+                      color: const Color(0xFFE8A317),
+                    ),
                     const SizedBox(width: AppSpacing.stackSm),
                     _CounterTile(
-                        label: 'Submitted',
-                        value: d.submitted,
-                        color: AppColors.tertiary),
+                      label: 'Submitted',
+                      value: d.submitted,
+                      color: AppColors.tertiary,
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
@@ -71,8 +84,11 @@ class _CounterTile extends StatelessWidget {
   final String label;
   final int value;
   final Color color;
-  const _CounterTile(
-      {required this.label, required this.value, required this.color});
+  const _CounterTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -81,9 +97,13 @@ class _CounterTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackMd),
         child: Column(
           children: [
-            Text('$value',
-                style: AppTypography.displayLg
-                    .copyWith(fontSize: 34, color: color)),
+            Text(
+              '$value',
+              style: AppTypography.displayLg.copyWith(
+                fontSize: 34,
+                color: color,
+              ),
+            ),
             Text(label, style: AppTypography.bodyMd),
           ],
         ),
@@ -97,12 +117,11 @@ class _HomeworkRow extends StatelessWidget {
   const _HomeworkRow({required this.item});
 
   ({String label, Color color}) get _style => switch (item.status) {
-        HomeworkStatus.pending => (label: 'Pending', color: Color(0xFFE8A317)),
-        HomeworkStatus.submitted =>
-          (label: 'Submitted', color: AppColors.primary),
-        HomeworkStatus.graded => (label: 'Graded', color: AppColors.tertiary),
-        HomeworkStatus.overdue => (label: 'Overdue', color: AppColors.error),
-      };
+    HomeworkStatus.pending => (label: 'Pending', color: Color(0xFFE8A317)),
+    HomeworkStatus.submitted => (label: 'Submitted', color: AppColors.primary),
+    HomeworkStatus.graded => (label: 'Graded', color: AppColors.tertiary),
+    HomeworkStatus.overdue => (label: 'Overdue', color: AppColors.error),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -115,13 +134,19 @@ class _HomeworkRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.subject.toUpperCase(),
-                    style: AppTypography.labelMd
-                        .copyWith(color: AppColors.onSurfaceVariant)),
+                Text(
+                  item.subject.toUpperCase(),
+                  style: AppTypography.labelMd.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(item.title,
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  item.title,
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text('Due ${item.dueDate}', style: AppTypography.bodyMd),
               ],
@@ -133,9 +158,12 @@ class _HomeworkRow extends StatelessWidget {
               StatusPill(label: s.label, color: s.color),
               if (item.grade != null) ...[
                 const SizedBox(height: 6),
-                Text(item.grade!,
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w800)),
+                Text(
+                  item.grade!,
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ],
             ],
           ),

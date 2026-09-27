@@ -1,5 +1,6 @@
 """Direct messages enforce the same current relationship rules as contacts."""
 import asyncio
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import pytest
@@ -133,6 +134,42 @@ async def test_history_thread_filter_and_read_mutations_are_participant_only(cli
     assert results[0].json()['read_at'] == results[1].json()['read_at'] is not None
     assert (await client.patch(f'{base(school)}/{mid}/read', headers=t['headers'])).status_code == 403
     assert (await client.get(base(school), headers=t['headers'], params={'counterpart_id': 'bad-id'})).status_code == 422
+
+
+async def test_message_history_uses_bounded_stable_pages(client, school, family):
+    """A representative history stays bounded without changing list payloads."""
+    teacher, guardian = family['teacher'], family['guardian']
+    count = 105
+    started = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    expected_ids: list[str] = []
+    async with family['sessions']() as db, db.begin():
+        for index in range(count):
+            message = DirectMessage(
+                school_id=UUID(school['id']),
+                sender_id=UUID(teacher['id']),
+                recipient_id=UUID(guardian['id']),
+                body=f'Representative history message {index}',
+                created_at=started + timedelta(seconds=index),
+            )
+            db.add(message)
+            await db.flush()
+            expected_ids.append(str(message.id))
+
+    first = await client.get(base(school), headers=guardian['headers'])
+    assert first.status_code == 200, first.text
+    assert len(first.json()) == 50
+    assert [row['id'] for row in first.json()] == list(reversed(expected_ids[-50:]))
+
+    second = await client.get(base(school), headers=guardian['headers'], params={'limit': 50, 'offset': 50})
+    assert second.status_code == 200, second.text
+    assert len(second.json()) == 50
+    assert [row['id'] for row in second.json()] == list(reversed(expected_ids[5:55]))
+    assert not set(row['id'] for row in first.json()) & set(row['id'] for row in second.json())
+
+    tail = await client.get(base(school), headers=guardian['headers'], params={'limit': 50, 'offset': 100})
+    assert tail.status_code == 200, tail.text
+    assert [row['id'] for row in tail.json()] == list(reversed(expected_ids[:5]))
+    assert (await client.get(base(school), headers=guardian['headers'], params={'limit': 101})).status_code == 422
 
 
 async def test_student_can_reply_to_admin_but_cannot_initiate_or_read_others_threads(client, school, family):

@@ -105,3 +105,88 @@ async def test_unrelated_student_cannot_track(client, school):
     assert r.status_code == 403
     # And they see no active trips of their own.
     assert (await client.get(f"{API}/schools/{sid}/transport/trips/active", headers=oh)).json() == []
+
+
+async def test_active_trips_paginate_after_guardian_visibility_scope(client, school):
+    """A later, unrelated trip must not consume a guardian's page window."""
+    sid, hm = school["id"], school["hm"]
+    guardian = await create_user(client, sid, hm, "guardian")
+    child = await create_user(client, sid, hm, "student")
+    unrelated = await create_user(client, sid, hm, "student")
+    linked = await client.post(
+        f"{API}/schools/{sid}/guardians/{guardian['id']}/children",
+        headers=hm,
+        json={"student_id": child["id"], "relationship": "parent"},
+    )
+    assert linked.status_code == 201, linked.text
+
+    own_driver, own_headers = await _driver(client, sid, hm, "page-own-driver@test.edu")
+    own_route = (await client.post(
+        f"{API}/schools/{sid}/transport/routes", headers=hm, json={"name": "Own route"},
+    )).json()
+    own_assignment = await client.post(
+        f"{API}/schools/{sid}/transport/assignments", headers=hm,
+        json={"student_id": child["id"], "route_id": own_route["id"], "driver_id": own_driver},
+    )
+    assert own_assignment.status_code == 201, own_assignment.text
+    own_trip = await client.post(
+        f"{API}/schools/{sid}/transport/trips/start", headers=own_headers,
+        json={"route_id": own_route["id"], "trip_type": "pickup"},
+    )
+    assert own_trip.status_code == 201, own_trip.text
+
+    other_driver, other_headers = await _driver(client, sid, hm, "page-other-driver@test.edu")
+    other_route = (await client.post(
+        f"{API}/schools/{sid}/transport/routes", headers=hm, json={"name": "Other route"},
+    )).json()
+    other_assignment = await client.post(
+        f"{API}/schools/{sid}/transport/assignments", headers=hm,
+        json={"student_id": unrelated["id"], "route_id": other_route["id"], "driver_id": other_driver},
+    )
+    assert other_assignment.status_code == 201, other_assignment.text
+    other_trip = await client.post(
+        f"{API}/schools/{sid}/transport/trips/start", headers=other_headers,
+        json={"route_id": other_route["id"], "trip_type": "pickup"},
+    )
+    assert other_trip.status_code == 201, other_trip.text
+
+    guardian_headers = await login(client, guardian["email"], guardian["password"])
+    page = await client.get(
+        f"{API}/schools/{sid}/transport/trips/active?limit=1&offset=0",
+        headers=guardian_headers,
+    )
+    assert page.status_code == 200, page.text
+    assert [trip["id"] for trip in page.json()] == [own_trip.json()["id"]]
+    assert other_trip.json()["id"] not in {trip["id"] for trip in page.json()}
+    assert (await client.get(
+        f"{API}/schools/{sid}/transport/trips/active?limit=1&offset=1",
+        headers=guardian_headers,
+    )).json() == []
+
+    assert (await client.get(
+        f"{API}/schools/{sid}/transport/trips/active?limit=101", headers=guardian_headers,
+    )).status_code == 422
+    assert (await client.get(
+        f"{API}/schools/{sid}/transport/trips/active?offset=-1", headers=guardian_headers,
+    )).status_code == 422
+
+
+async def test_transport_assignments_use_a_bounded_stable_list_window(client, school):
+    sid, hm = school["id"], school["hm"]
+    driver_uid, _ = await _driver(client, sid, hm, "assignment-page-driver@test.edu")
+    route = (await client.post(
+        f"{API}/schools/{sid}/transport/routes", headers=hm, json={"name": "Paged route"},
+    )).json()
+    for index in range(3):
+        await _assign(client, sid, hm, route["id"], driver_uid, 24.80 + index / 100, 67.0)
+
+    assignments_url = f"{API}/schools/{sid}/transport/assignments"
+    complete = await client.get(assignments_url, headers=hm)
+    first_page = await client.get(assignments_url, headers=hm, params={"limit": 2})
+    second_page = await client.get(
+        assignments_url, headers=hm, params={"limit": 2, "offset": 2}
+    )
+    assert complete.status_code == first_page.status_code == second_page.status_code == 200
+    assert first_page.json() == complete.json()[:2]
+    assert second_page.json() == complete.json()[2:]
+    assert (await client.get(assignments_url, headers=hm, params={"limit": 101})).status_code == 422

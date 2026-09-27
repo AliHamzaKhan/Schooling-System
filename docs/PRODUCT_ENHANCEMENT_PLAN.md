@@ -1,7 +1,7 @@
 # Meri Taleem — Product Flow, Enhancement Plan & Progress Tracker
 
-Last updated: **2026-09-21** (Asia/Karachi)
-Baseline: commit `0464003` (U02.4.2 landed on `main`) plus the current uncommitted U02.4.3 working tree
+Last updated: **2026-09-23** (Asia/Karachi)
+Baseline: commit `590b60d` (U02.4.3) plus the current uncommitted F01.11/F04.3–F04.5/F05.3 working tree
 Document owner: Product owner / engineering lead — individual to be assigned
 Stage: **Phase 1 implementation in progress**
 
@@ -30,21 +30,20 @@ Scope covers the 31 baseline backend router groups plus two file-access infrastr
 
 ## Next work
 
-**Next implementation packet: F01.5 — attendance/enrollment access boundaries.**
-Audit section register/summary and individual attendance reads, enrollment session
-references, and attendance upsert tenant ownership. Preserve class-teacher versus
-subject-teacher write authority; denied or malformed requests must not change data
-or schedule notifications. Broader aggregate reports and exam/quiz lifecycles remain
-separate audit work; F01.4 does not certify all student-record endpoints.
-F07 provider-receipt reconciliation and real-provider rollout remain separate gates.
+**Current implementation: O03.1 — representative-fixture and pagination performance baseline.**
+The next local work is to define a backward-safe bounded-list contract, add
+tenant-fair representative fixtures and publish an isolated before/after baseline.
+The active release foundations also still need independent F01 review, O01 hosted
+pipeline evidence, and O02 alert-routing, restore/rollback and approved
+synthetic-provider evidence.
 
 **Next experience step: physical browser acceptance of U02 (user-run).**
 U02.4.3 landed the automated class/section, timetable and settings mutation
 harnesses and the [physical browser checklist](U02_HEADMASTER_BROWSER_CHECKLIST.md).
 The remaining U02 step is the user running that checklist in a real browser; do
-not open a preview. The next unblocked automated experience packet is **U03 —
-apply the student design beyond home** (assignments, quizzes, exams/results,
-content, messages, profile/settings).
+not open a preview. The next launch experience track is **L01 — role journeys**;
+it incorporates the U03 student work and U04 role-journey work. It begins only
+when its active foundation dependencies are ready.
 
 ## Update procedure for every future development session
 

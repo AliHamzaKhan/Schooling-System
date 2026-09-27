@@ -12,6 +12,7 @@ import '../modules/headmaster/features/classes/view/classes_view.dart';
 import '../modules/headmaster/features/dashboard/view/approvals_view.dart';
 import '../modules/headmaster/features/dashboard/binding/approvals_binding.dart';
 import '../modules/headmaster/features/fees/view/fees_roster_view.dart';
+import '../modules/headmaster/features/fees/view/financial_adjustments_view.dart';
 import '../modules/headmaster/features/fees/view/overdue_payments_view.dart';
 import '../modules/headmaster/features/fees/view/record_payment_view.dart';
 import '../modules/headmaster/features/guardians/binding/guardians_binding.dart';
@@ -70,6 +71,7 @@ class HeadmasterPages {
     HeadmasterRoutes.overduePayments: {'fee_management'},
     HeadmasterRoutes.recordPayment: {'fee_management'},
     HeadmasterRoutes.feesRoster: {'fee_management'},
+    HeadmasterRoutes.financialAdjustments: {'fee_management'},
     HeadmasterRoutes.teacherAttendance: {'attendance'},
     HeadmasterRoutes.teacherAttendanceRoster: {'attendance'},
     HeadmasterRoutes.students: {'student_management'},
@@ -114,6 +116,10 @@ class HeadmasterPages {
     GetPage(
       name: HeadmasterRoutes.feesRoster,
       page: () => const FeesRosterView(),
+    ),
+    GetPage(
+      name: HeadmasterRoutes.financialAdjustments,
+      page: () => const FinancialAdjustmentsView(),
     ),
     GetPage(
       name: HeadmasterRoutes.teacherAttendance,

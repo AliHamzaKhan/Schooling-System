@@ -7,7 +7,7 @@ import '../../../data/teacher_repository.dart';
 class TeacherLeaveReviewController extends GetxController {
   final TeacherRepository _repo;
   TeacherLeaveReviewController({TeacherRepository? repo})
-      : _repo = repo ?? Get.find<TeacherRepository>();
+    : _repo = repo ?? Get.find<TeacherRepository>();
 
   final loading = true.obs;
   final error = RxnString();
@@ -23,6 +23,9 @@ class TeacherLeaveReviewController extends GetxController {
   Future<void> load() async {
     loading.value = true;
     error.value = null;
+    // A reviewer must never act on a request retained from a previous
+    // successful load when the queue can no longer be read.
+    items.clear();
     final res = await _repo.loadLeaveReview();
     if (res.success && res.data != null) {
       items.assignAll(res.data!);
@@ -33,7 +36,8 @@ class TeacherLeaveReviewController extends GetxController {
   }
 
   List<LeaveReviewItem> get pending => items.where((i) => i.isPending).toList();
-  List<LeaveReviewItem> get reviewed => items.where((i) => !i.isPending).toList();
+  List<LeaveReviewItem> get reviewed =>
+      items.where((i) => !i.isPending).toList();
 
   Future<void> review(String leaveId, bool approve) async {
     if (acting.value) return;
@@ -42,11 +46,17 @@ class TeacherLeaveReviewController extends GetxController {
     acting.value = false;
     if (res.success) {
       await load();
-      Get.snackbar('Done', approve ? 'Leave approved.' : 'Leave rejected.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Done',
+        approve ? 'Leave approved.' : 'Leave rejected.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } else {
-      Get.snackbar('Error', res.error ?? 'Could not update the request.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Error',
+        res.error ?? 'Could not update the request.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 }

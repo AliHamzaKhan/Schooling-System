@@ -1,0 +1,31 @@
+groups:
+  - name: schooling-api
+    rules:
+      - alert: SchoolingApiUnavailable
+        expr: up{job="schooling-api"} == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: Schooling API target is unavailable
+          runbook: docs/OPERATIONS_RUNBOOK.md#api-unavailable
+      - alert: SchoolingHigh5xxRate
+        expr: sum(rate(http_requests_total{route!="/metrics",status=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{route!="/metrics"}[5m])), 1) > 0.05
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Schooling API 5xx rate exceeds five percent
+          runbook: docs/OPERATIONS_RUNBOOK.md#elevated-5xx-rate
+  - name: schooling-worker
+    rules:
+      # Export this gauge from the authenticated operations probe described in
+      # the runbook; do not make queue details public just to support alerts.
+      - alert: SchoolingOutboxWorkerStale
+        expr: schooling_outbox_worker_healthy == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: Schooling notification outbox worker is stale or not seen
+          runbook: docs/OPERATIONS_RUNBOOK.md#outbox-worker-stale-or-not-seen

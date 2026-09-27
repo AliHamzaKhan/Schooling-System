@@ -29,21 +29,42 @@ class AttendanceView extends GetView<StudentAttendanceController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4, height: 76)]));
+              return const SkeletonPage(
+                body: Column(
+                  children: [
+                    SkeletonStatGrid(count: 2),
+                    SizedBox(height: AppSpacing.stackLg),
+                    SkeletonCardList(count: 4, height: 76),
+                  ],
+                ),
+              );
+            }
+            final error = controller.error.value;
+            if (error != null) {
+              return _AttendanceLoadError(
+                message: error,
+                onRetry: controller.load,
+              );
             }
             final data = controller.data.value;
             if (data == null) return const SizedBox.shrink();
             return ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  0,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                0,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
-                Text('Attendance Overview', style: AppTypography.displayLg.copyWith(fontSize: 32)),
+                Text(
+                  'Attendance Overview',
+                  style: AppTypography.displayLg.copyWith(fontSize: 32),
+                ),
                 const SizedBox(height: AppSpacing.stackSm),
-                Text('Track your presence and punctuality.',
-                    style: AppTypography.bodyLg),
+                Text(
+                  'Track your presence and punctuality.',
+                  style: AppTypography.bodyLg,
+                ),
                 const SizedBox(height: AppSpacing.stackLg),
                 AttendanceRingCard(
                   percent: data.monthlyAverage,
@@ -63,6 +84,44 @@ class AttendanceView extends GetView<StudentAttendanceController> {
       ],
     );
   }
+}
+
+class _AttendanceLoadError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _AttendanceLoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.stackXl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            AppIcons.errorOutlineRounded,
+            color: AppColors.error,
+            size: 32,
+          ),
+          const SizedBox(height: AppSpacing.stackMd),
+          Text('Attendance is unavailable', style: AppTypography.headlineLg),
+          const SizedBox(height: AppSpacing.stackSm),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyLg,
+          ),
+          const SizedBox(height: AppSpacing.stackLg),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(AppIcons.refreshRounded),
+            label: const Text('Try again'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Card header: colored icon chip, title, and a muted "View All" affordance.
@@ -93,13 +152,19 @@ class _CardHeader extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.stackSm),
         Expanded(
-          child: Text(title,
-              style: AppTypography.headlineLg.copyWith(fontSize: 20)),
+          child: Text(
+            title,
+            style: AppTypography.headlineLg.copyWith(fontSize: 20),
+          ),
         ),
         if (showViewAll)
-          Text('View All',
-              style: AppTypography.labelMd.copyWith(
-                  color: AppColors.primary, fontWeight: FontWeight.w700)),
+          Text(
+            'View All',
+            style: AppTypography.labelMd.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
       ],
     );
   }
@@ -161,14 +226,20 @@ class _AbsenceRow extends StatelessWidget {
               color: kAttendAbsent.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(AppIcons.calendarTodayOutlined,
-                size: 17, color: kAttendAbsent),
+            child: const Icon(
+              AppIcons.calendarTodayOutlined,
+              size: 17,
+              color: kAttendAbsent,
+            ),
           ),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
-            child: Text(date,
-                style: AppTypography.titleMd
-                    .copyWith(fontWeight: FontWeight.w700)),
+            child: Text(
+              date,
+              style: AppTypography.titleMd.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
           _Pill(label: 'Absent', color: kAttendAbsent),
         ],
@@ -233,17 +304,23 @@ class _MarkRow extends StatelessWidget {
               color: kAttendLate.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(AppIcons.scheduleRounded,
-                size: 17, color: kAttendLate),
+            child: const Icon(
+              AppIcons.scheduleRounded,
+              size: 17,
+              color: kAttendLate,
+            ),
           ),
           const SizedBox(width: AppSpacing.stackSm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(mark.date,
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  mark.date,
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 if (mark.period.isNotEmpty)
                   Text(mark.period, style: AppTypography.bodyMd),
               ],
@@ -270,9 +347,13 @@ class _Pill extends StatelessWidget {
         color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
-      child: Text(label,
-          style: AppTypography.labelMd
-              .copyWith(color: color, fontWeight: FontWeight.w800)),
+      child: Text(
+        label,
+        style: AppTypography.labelMd.copyWith(
+          color: color,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
@@ -304,8 +385,10 @@ class _EmptyPanel extends StatelessWidget {
             child: Icon(icon, size: 26, color: kAttendPresent),
           ),
           const SizedBox(height: AppSpacing.stackSm),
-          Text(title,
-              style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            title,
+            style: AppTypography.titleMd.copyWith(fontWeight: FontWeight.w800),
+          ),
           Text(subtitle, style: AppTypography.bodyMd),
         ],
       ),

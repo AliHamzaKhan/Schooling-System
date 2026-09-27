@@ -68,3 +68,43 @@ async def test_admit_card_for_unenrolled_student(client, school):
     r = await client.get(
         f"{API}/schools/{sid}/exams/{exam['id']}/students/{outsider['id']}/admit-card", headers=hm)
     assert r.status_code == 404
+
+
+async def test_paper_date_must_be_within_its_exam_window(client, school):
+    sid, hm = school["id"], school["hm"]
+    academics = await make_academics(client, sid, hm)
+    exam = await client.post(
+        f"{API}/schools/{sid}/exams",
+        headers=hm,
+        json={
+            "class_id": academics["class_id"],
+            "name": "Windowed finals",
+            "start_date": "2030-06-10",
+            "end_date": "2030-06-20",
+        },
+    )
+    assert exam.status_code == 201, exam.text
+
+    before = await client.post(
+        f"{API}/schools/{sid}/exams/{exam.json()['id']}/papers",
+        headers=hm,
+        json={
+            "subject_id": academics["subject_id"],
+            "max_marks": 100,
+            "pass_marks": 40,
+            "exam_date": "2030-06-09",
+        },
+    )
+    assert before.status_code == 400
+
+    after = await client.post(
+        f"{API}/schools/{sid}/exams/{exam.json()['id']}/papers",
+        headers=hm,
+        json={
+            "subject_id": academics["subject_id"],
+            "max_marks": 100,
+            "pass_marks": 40,
+            "exam_date": "2030-06-21",
+        },
+    )
+    assert after.status_code == 400

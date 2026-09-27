@@ -8,10 +8,11 @@ import 'guardian_session_controller.dart';
 abstract class ChildScopedController<T> extends GetxController {
   final GuardianSessionController session;
   ChildScopedController({GuardianSessionController? session})
-      : session = session ?? Get.find<GuardianSessionController>();
+    : session = session ?? Get.find<GuardianSessionController>();
 
   final loading = true.obs;
   final data = Rxn<T>();
+  final error = RxnString();
 
   /// Load this feature's data for [childId]. Return null on failure.
   Future<T?> fetch(String childId);
@@ -20,7 +21,12 @@ abstract class ChildScopedController<T> extends GetxController {
   void onInit() {
     super.onInit();
     ever<String?>(session.selectedId, (id) {
-      if (id != null) _load(id);
+      if (id == null) {
+        data.value = null;
+        error.value = null;
+      } else {
+        _load(id);
+      }
     });
     final current = session.selectedId.value;
     if (current != null) _load(current);
@@ -28,12 +34,19 @@ abstract class ChildScopedController<T> extends GetxController {
 
   Future<void> _load(String childId) async {
     loading.value = true;
-    data.value = await fetch(childId);
+    error.value = null;
+    data.value = null;
+    final loaded = await fetch(childId);
+    if (loaded == null) {
+      error.value = 'Could not load this child’s latest information.';
+    } else {
+      data.value = loaded;
+    }
     loading.value = false;
   }
 
-  void reload() {
+  Future<void> reload() {
     final id = session.selectedId.value;
-    if (id != null) _load(id);
+    return id == null ? Future.value() : _load(id);
   }
 }

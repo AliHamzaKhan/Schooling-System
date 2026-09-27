@@ -51,7 +51,7 @@ class SubmissionController extends GetxController {
       assignment.value = arg;
       loading.value = false;
     } else {
-      load(arg is String ? arg : '');
+      load(arg is String ? arg : (Get.parameters['assignment_id'] ?? ''));
     }
   }
 

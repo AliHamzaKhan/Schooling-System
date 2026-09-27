@@ -25,6 +25,14 @@ _member = Depends(require_school_member)
 _admin = Depends(require_school_admin)
 
 
+def _student_id(current_user: User) -> uuid.UUID | None:
+    return (
+        current_user.id
+        if any(role.code == SystemRole.STUDENT.value for role in current_user.roles)
+        else None
+    )
+
+
 # ------------------------------- courses -------------------------------- #
 
 
@@ -40,11 +48,10 @@ async def list_courses(
     A student caller only sees courses offered to the section(s) they are
     enrolled in (plus legacy school-wide courses); staff/admins see all.
     """
-    is_student = any(r.code == SystemRole.STUDENT.value for r in current_user.roles)
     return await CourseService(db).list_courses(
         school_id,
         section_id,
-        student_id=current_user.id if is_student else None,
+        student_id=_student_id(current_user),
     )
 
 
@@ -56,8 +63,10 @@ async def create_course(
 
 
 @router.get("/{course_id}", response_model=schemas.CourseOut, dependencies=[_member])
-async def get_course(school_id: uuid.UUID, course_id: uuid.UUID, db: DbDep) -> schemas.CourseOut:
-    return await CourseService(db).get_course(school_id, course_id)
+async def get_course(
+    school_id: uuid.UUID, course_id: uuid.UUID, db: DbDep, current_user: CurrentUser
+) -> schemas.CourseOut:
+    return await CourseService(db).get_course(school_id, course_id, _student_id(current_user))
 
 
 @router.patch("/{course_id}", response_model=schemas.CourseOut, dependencies=[_admin])
@@ -77,9 +86,9 @@ async def delete_course(school_id: uuid.UUID, course_id: uuid.UUID, db: DbDep) -
 
 @router.get("/{course_id}/books", response_model=list[schemas.BookListOut], dependencies=[_member])
 async def list_books(
-    school_id: uuid.UUID, course_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, course_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> list[schemas.BookListOut]:
-    return await CourseService(db).list_books(school_id, course_id)
+    return await CourseService(db).list_books(school_id, course_id, _student_id(current_user))
 
 
 @router.post("/{course_id}/books", response_model=schemas.BookOut, status_code=status.HTTP_201_CREATED, dependencies=[_admin])
@@ -91,10 +100,12 @@ async def add_book(
 
 @router.get("/books/{book_id}/chapters", response_model=list[schemas.ChapterBrief], dependencies=[_member])
 async def list_chapters(
-    school_id: uuid.UUID, book_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, book_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> list[schemas.ChapterBrief]:
     """Chapter list (table of contents) for a book — titles only, no bodies."""
-    chapters = await CourseService(db).list_chapters(school_id, book_id)
+    chapters = await CourseService(db).list_chapters(
+        school_id, book_id, _student_id(current_user)
+    )
     return [schemas.ChapterBrief.model_validate(c) for c in chapters]
 
 
@@ -108,10 +119,12 @@ async def add_chapter(
 
 @router.get("/chapters/{chapter_id}", response_model=schemas.ChapterOut, dependencies=[_member])
 async def get_chapter(
-    school_id: uuid.UUID, chapter_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, chapter_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> schemas.ChapterOut:
     """Full chapter with its text body (the reading screen)."""
-    chapter = await CourseService(db).get_chapter(school_id, chapter_id)
+    chapter = await CourseService(db).get_chapter(
+        school_id, chapter_id, _student_id(current_user)
+    )
     return schemas.ChapterOut.model_validate(chapter)
 
 
@@ -120,9 +133,9 @@ async def get_chapter(
 
 @router.get("/{course_id}/notes", response_model=list[schemas.NoteBrief], dependencies=[_member])
 async def list_notes(
-    school_id: uuid.UUID, course_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, course_id: uuid.UUID, db: DbDep, current_user: CurrentUser
 ) -> list[schemas.NoteBrief]:
-    notes = await CourseService(db).list_notes(school_id, course_id)
+    notes = await CourseService(db).list_notes(school_id, course_id, _student_id(current_user))
     return [schemas.NoteBrief.model_validate(n) for n in notes]
 
 
@@ -135,9 +148,11 @@ async def add_note(
 
 
 @router.get("/notes/{note_id}", response_model=schemas.NoteOut, dependencies=[_member])
-async def get_note(school_id: uuid.UUID, note_id: uuid.UUID, db: DbDep) -> schemas.NoteOut:
+async def get_note(
+    school_id: uuid.UUID, note_id: uuid.UUID, db: DbDep, current_user: CurrentUser
+) -> schemas.NoteOut:
     """Full note with its text body (the reading screen)."""
-    note = await CourseService(db).get_note(school_id, note_id)
+    note = await CourseService(db).get_note(school_id, note_id, _student_id(current_user))
     return schemas.NoteOut.model_validate(note)
 
 
@@ -154,7 +169,7 @@ async def get_progress(
 ) -> schemas.ReadingProgressOut:
     """The caller's saved reading position for a book/note (page 0 if none)."""
     progress = await CourseService(db).get_progress(
-        school_id, current_user.id, resource_type, resource_id
+        school_id, current_user.id, resource_type, resource_id, _student_id(current_user)
     )
     if progress is None:
         return schemas.ReadingProgressOut(
@@ -171,5 +186,7 @@ async def set_progress(
     current_user: CurrentUser,
 ) -> schemas.ReadingProgressOut:
     """Save the caller's reading position for a book/note."""
-    progress = await CourseService(db).set_progress(school_id, current_user.id, data)
+    progress = await CourseService(db).set_progress(
+        school_id, current_user.id, data, _student_id(current_user)
+    )
     return schemas.ReadingProgressOut.model_validate(progress)

@@ -124,7 +124,7 @@ class RequestContextMiddleware:
                 logger.info(
                     "%s %s -> %s (%.1fms)",
                     method,
-                    scope.get("path", "-"),
+                    route,
                     status_code,
                     duration * 1000,
                 )

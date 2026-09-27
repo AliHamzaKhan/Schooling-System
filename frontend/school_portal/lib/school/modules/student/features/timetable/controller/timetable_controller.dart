@@ -7,7 +7,7 @@ import '../models/timetable_data.dart';
 class StudentTimetableController extends GetxController {
   final StudentRepository _repo;
   StudentTimetableController({StudentRepository? repo})
-      : _repo = repo ?? Get.find<StudentRepository>();
+    : _repo = repo ?? Get.find<StudentRepository>();
 
   final loading = true.obs;
   final error = RxnString();
@@ -23,6 +23,8 @@ class StudentTimetableController extends GetxController {
   Future<void> load() async {
     loading.value = true;
     error.value = null;
+    days.clear();
+    selectedIndex.value = 0;
     final res = await _repo.loadTimetable();
     if (res.success) {
       days.assignAll(res.data ?? const []);
@@ -39,6 +41,6 @@ class StudentTimetableController extends GetxController {
 
   TimetableDay? get selectedDay =>
       (days.isEmpty || selectedIndex.value >= days.length)
-          ? null
-          : days[selectedIndex.value];
+      ? null
+      : days[selectedIndex.value];
 }

@@ -14,6 +14,7 @@ from app.core.deps import (
     verify_student_access,
 )
 from app.core.enums import Module, PermissionAction as PA
+from app.core.pagination import OffsetPage
 from app.modules.homework import schemas
 from app.modules.homework.service import HomeworkService
 from app.models.homework import Assignment, Submission
@@ -43,9 +44,11 @@ async def list_assignments(
     db: DbDep,
     current_user: CurrentUser,
     section_id: uuid.UUID | None = Query(default=None),
+    page: OffsetPage = Depends(),
 ) -> list[schemas.AssignmentListOut]:
+    """A bounded assignment page after the caller's visibility scope is applied."""
     return await HomeworkService(db).list_assignments(
-        school_id, section_id, current_user_id=current_user.id
+        school_id, section_id, current_user_id=current_user.id, page=page
     )
 
 

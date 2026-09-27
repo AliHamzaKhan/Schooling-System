@@ -5,19 +5,9 @@ from fastapi import APIRouter, Response
 
 from app.core.exceptions import not_found
 from app.core.storage import get_storage
+from app.modules.uploads.policy import PUBLIC_FOLDERS, raster_type
 
 router = APIRouter(include_in_schema=False)
-PUBLIC_FOLDERS = {"avatars", "uniform"}
-
-
-def raster_type(data: bytes) -> str | None:
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-        return "image/png"
-    if data.startswith(b"\xff\xd8\xff"):
-        return "image/jpeg"
-    if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
-        return "image/webp"
-    return None
 
 
 @router.get("/media/{folder}/{school_id}/{filename}")

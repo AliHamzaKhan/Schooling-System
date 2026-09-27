@@ -192,3 +192,24 @@ async def test_update_school_merges_settings(client, sa_headers):
     merged = r.json()["settings"]
     assert merged["uniform_color"] == "#1565C0"
     assert merged["billing"]["method"] == "bank_transfer"
+
+
+async def test_update_school_preserves_sibling_nested_settings(client, sa_headers):
+    """A partial setup save must not erase an existing nested setting."""
+    s = await _create_school(
+        client,
+        sa_headers,
+        settings={
+            "billing": {"method": "bank_transfer", "receipt_prefix": "ACME"},
+            "branding": {"primary_color": "#1565C0"},
+        },
+    )
+    r = await client.patch(
+        f"{API}/schools/{s['id']}",
+        headers=sa_headers,
+        json={"settings": {"billing": {"method": "cash"}}},
+    )
+    assert r.status_code == 200, r.text
+    settings = r.json()["settings"]
+    assert settings["billing"] == {"method": "cash", "receipt_prefix": "ACME"}
+    assert settings["branding"] == {"primary_color": "#1565C0"}

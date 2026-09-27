@@ -32,6 +32,25 @@ http.Response json(Object value, [int status = 200]) => http.Response(jsonEncode
 void main() {
   setUp(() => EnvConfig.bootstrap(Environment.debug));
 
+  test('logout-all keeps credentials on failure and clears them on confirmed revocation', () async {
+    final store = _Store(token: 'access', refresh: 'refresh');
+    var fails = true;
+    final api = ApiService(store: store, client: MockClient((request) async {
+      if (request.url.path.endsWith('/logout-all')) {
+        expect(request.method, 'POST');
+        return fails ? json({'detail': 'Unavailable'}, 503) : http.Response('', 204);
+      }
+      return http.Response('', 204);
+    }));
+    final auth = AuthService(api: api, store: store);
+    expect((await auth.logoutAll()).success, isFalse);
+    expect(store.token, 'access');
+    fails = false;
+    expect((await auth.logoutAll()).success, isTrue);
+    expect(store.token, isNull);
+    expect(store.refresh, isNull);
+  });
+
   test('login does not report success when profile hydration fails; retry can recover', () async {
     final store = _Store();
     var offline = true;
@@ -204,6 +223,30 @@ void main() {
     await auth.logout();
     response.complete(json({'access_token': 'late', 'refresh_token': 'late-refresh'}));
     expect((await pending).success, isFalse);
+    expect(store.token, isNull);
+    expect(store.refresh, isNull);
+  });
+
+  test('session controls parse metadata and clear this device after revocation', () async {
+    final store = _Store(token: 'access', refresh: 'refresh');
+    var deleted = false;
+    final api = ApiService(store: store, client: MockClient((request) async {
+      if (request.url.path.endsWith('/sessions')) {
+        return json([{'id': 'session', 'is_current': true, 'expires_at': '2030-01-01T00:00:00Z'}]);
+      }
+      if (request.url.path.endsWith('/sessions/session')) {
+        deleted = true;
+        return http.Response('', 204);
+      }
+      if (request.url.path.endsWith('/logout')) return http.Response('', 204);
+      return json({}, 404);
+    }));
+    final auth = AuthService(api: api, store: store);
+    final sessions = await auth.listSessions();
+    expect(sessions.success, isTrue);
+    expect(sessions.data!.single['id'], 'session');
+    await auth.revokeSession('session', isCurrent: true);
+    expect(deleted, isTrue);
     expect(store.token, isNull);
     expect(store.refresh, isNull);
   });

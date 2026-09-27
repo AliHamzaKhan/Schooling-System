@@ -17,7 +17,7 @@ class TeacherPerformanceController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final arg = Get.arguments;
+    final arg = Get.arguments ?? Get.parameters['student_id'];
     if (arg is String && arg.isNotEmpty) {
       load(arg);
     } else {

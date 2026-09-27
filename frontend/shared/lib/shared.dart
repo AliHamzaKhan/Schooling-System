@@ -88,3 +88,8 @@ export 'src/features/auth/role_route_guard.dart';
 export 'src/features/auth/models/institution.dart';
 export 'src/features/auth/models/password_strength.dart';
 export 'src/services/broadcast_retry_guard.dart';
+
+export 'src/features/auth/view/sessions_view.dart';
+
+export 'src/features/auth/session_navigation.dart';
+export 'src/features/auth/view/route_context_missing_view.dart';

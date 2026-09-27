@@ -23,8 +23,10 @@ already return JSON through the CORS layer.
 """
 from __future__ import annotations
 
+import json
 import logging
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -36,6 +38,27 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app.core.exceptions import AppHTTPException, ErrorCode
 
 logger = logging.getLogger("app.errors")
+
+
+class StructuredJsonFormatter(logging.Formatter):
+    """Render a fixed, content-free log envelope for external aggregators."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, str] = {
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+            "level": record.levelname,
+            "logger": record.name,
+            "request_id": getattr(record, "request_id", "-"),
+            "message": record.getMessage(),
+        }
+        if record.exc_info and record.exc_info[0]:
+            payload["exception_type"] = record.exc_info[0].__name__
+        return json.dumps(payload, separators=(",", ":"), sort_keys=True)
+
+
+def _safe_route(scope: dict) -> str:
+    """Use a route template; never put raw paths or query values in logs."""
+    return getattr(scope.get("route"), "path", "unmatched")
 
 
 async def _validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -130,7 +153,7 @@ class CatchAllErrorMiddleware:
                 "Unhandled error [%s] on %s %s",
                 error_id,
                 scope.get("method", "?"),
-                scope.get("path", "?"),
+                _safe_route(scope),
             )
             if response_started:
                 # Too late to send an error body — let the server tear the
@@ -153,7 +176,7 @@ async def _sqlalchemy_error_handler(request: Request, exc: Exception) -> JSONRes
     """
     error_id = uuid.uuid4().hex[:12]
     logger.exception(
-        "Database error [%s] on %s %s", error_id, request.method, request.url.path
+        "Database error [%s] on %s %s", error_id, request.method, _safe_route(request.scope)
     )
     return JSONResponse(
         status_code=503,
@@ -172,22 +195,26 @@ def configure_logging() -> None:
     its timestamp and logger name. The ``[%(request_id)s]`` field ties each line
     to one request across instances (see ``app/core/observability.py``).
     """
+    from app.core.config import settings
     from app.core.observability import RequestIdLogFilter
 
     root = logging.getLogger()
+    formatter: logging.Formatter = (
+        StructuredJsonFormatter()
+        if settings.LOG_FORMAT.lower() == "json"
+        else logging.Formatter(
+            "%(asctime)s %(levelname)-8s %(name)s [%(request_id)s]: %(message)s"
+        )
+    )
     if not root.handlers:
         handler = logging.StreamHandler()
-        handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s %(levelname)-8s %(name)s [%(request_id)s]: %(message)s"
-            )
-        )
         root.addHandler(handler)
         root.setLevel(logging.INFO)
     # Ensure the filter is present on all root handlers so third-party records
     # (uvicorn, sqlalchemy) also get a `request_id` attribute for the format.
     request_filter = RequestIdLogFilter()
     for handler in root.handlers:
+        handler.setFormatter(formatter)
         if not any(isinstance(f, RequestIdLogFilter) for f in handler.filters):
             handler.addFilter(request_filter)
 

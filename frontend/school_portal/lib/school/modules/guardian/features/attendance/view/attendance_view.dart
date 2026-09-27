@@ -15,8 +15,11 @@ import '../../../../../widgets/skeletons.dart';
 class GuardianAttendanceView extends GetView<GuardianAttendanceController> {
   final VoidCallback? onNotifications;
   final VoidCallback? onManageChildren;
-  const GuardianAttendanceView(
-      {super.key, this.onNotifications, this.onManageChildren});
+  const GuardianAttendanceView({
+    super.key,
+    this.onNotifications,
+    this.onManageChildren,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,35 +30,56 @@ class GuardianAttendanceView extends GetView<GuardianAttendanceController> {
         Expanded(
           child: Obx(() {
             if (controller.loading.value) {
-              return const SkeletonPage(body: Column(children: [SkeletonStatGrid(count: 2), SizedBox(height: AppSpacing.stackLg), SkeletonCardList(count: 4, height: 76)]));
+              return const SkeletonPage(
+                body: Column(
+                  children: [
+                    SkeletonStatGrid(count: 2),
+                    SizedBox(height: AppSpacing.stackLg),
+                    SkeletonCardList(count: 4, height: 76),
+                  ],
+                ),
+              );
+            }
+            final error = controller.error.value;
+            if (error != null) {
+              return AppStateView.error(
+                title: 'Attendance is unavailable',
+                message: error,
+                actionLabel: 'Try again',
+                onAction: controller.reload,
+              );
             }
             final d = controller.data.value;
             if (d == null) return const SizedBox.shrink();
             return ListView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackSm,
-                  AppSpacing.containerPaddingMobile,
-                  AppSpacing.stackXl),
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackSm,
+                AppSpacing.containerPaddingMobile,
+                AppSpacing.stackXl,
+              ),
               children: [
                 _MonthlyCard(percent: d.monthlyPercent),
                 const SizedBox(height: AppSpacing.stackMd),
                 Row(
                   children: [
                     _BreakdownTile(
-                        label: 'Present',
-                        value: d.presentDays,
-                        color: AppColors.tertiary),
+                      label: 'Present',
+                      value: d.presentDays,
+                      color: AppColors.tertiary,
+                    ),
                     const SizedBox(width: AppSpacing.stackSm),
                     _BreakdownTile(
-                        label: 'Absent',
-                        value: d.absentDays,
-                        color: AppColors.error),
+                      label: 'Absent',
+                      value: d.absentDays,
+                      color: AppColors.error,
+                    ),
                     const SizedBox(width: AppSpacing.stackSm),
                     _BreakdownTile(
-                        label: 'Late',
-                        value: d.lateDays,
-                        color: const Color(0xFFE8A317)),
+                      label: 'Late',
+                      value: d.lateDays,
+                      color: const Color(0xFFE8A317),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
@@ -67,8 +91,9 @@ class GuardianAttendanceView extends GetView<GuardianAttendanceController> {
                     children: [
                       for (var i = 0; i < d.recent.length; i++)
                         _RecordRow(
-                            record: d.recent[i],
-                            isLast: i == d.recent.length - 1),
+                          record: d.recent[i],
+                          isLast: i == d.recent.length - 1,
+                        ),
                     ],
                   ),
                 ),
@@ -96,8 +121,10 @@ class _MonthlyCard extends StatelessWidget {
               children: [
                 Text('Monthly Attendance', style: AppTypography.bodyLg),
                 const SizedBox(height: 4),
-                Text('$percent%',
-                    style: AppTypography.displayLg.copyWith(fontSize: 40)),
+                Text(
+                  '$percent%',
+                  style: AppTypography.displayLg.copyWith(fontSize: 40),
+                ),
               ],
             ),
           ),
@@ -116,8 +143,11 @@ class _BreakdownTile extends StatelessWidget {
   final String label;
   final int value;
   final Color color;
-  const _BreakdownTile(
-      {required this.label, required this.value, required this.color});
+  const _BreakdownTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -126,9 +156,13 @@ class _BreakdownTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackMd),
         child: Column(
           children: [
-            Text('$value',
-                style: AppTypography.headlineLg
-                    .copyWith(fontSize: 26, color: color)),
+            Text(
+              '$value',
+              style: AppTypography.headlineLg.copyWith(
+                fontSize: 26,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
             Text(label, style: AppTypography.labelMd),
           ],
@@ -146,25 +180,25 @@ class _RecordRow extends StatelessWidget {
   ({String label, Color color, IconData icon}) get _style =>
       switch (record.status) {
         AttendanceStatus.present => (
-            label: 'Present',
-            color: AppColors.tertiary,
-            icon: AppIcons.checkCircleOutlineRounded
-          ),
+          label: 'Present',
+          color: AppColors.tertiary,
+          icon: AppIcons.checkCircleOutlineRounded,
+        ),
         AttendanceStatus.absent => (
-            label: 'Absent',
-            color: AppColors.error,
-            icon: AppIcons.cancelOutlined
-          ),
+          label: 'Absent',
+          color: AppColors.error,
+          icon: AppIcons.cancelOutlined,
+        ),
         AttendanceStatus.late => (
-            label: 'Late',
-            color: const Color(0xFFE8A317),
-            icon: AppIcons.scheduleRounded
-          ),
+          label: 'Late',
+          color: const Color(0xFFE8A317),
+          icon: AppIcons.scheduleRounded,
+        ),
         AttendanceStatus.holiday => (
-            label: 'Holiday',
-            color: AppColors.onSurfaceVariant,
-            icon: AppIcons.beachAccessOutlined
-          ),
+          label: 'Holiday',
+          color: AppColors.onSurfaceVariant,
+          icon: AppIcons.beachAccessOutlined,
+        ),
       };
 
   @override
@@ -175,8 +209,7 @@ class _RecordRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : const Border(
-                bottom: BorderSide(color: AppColors.outlineVariant)),
+            : const Border(bottom: BorderSide(color: AppColors.outlineVariant)),
       ),
       child: Row(
         children: [
@@ -186,9 +219,12 @@ class _RecordRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(record.date,
-                    style: AppTypography.titleMd
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  record.date,
+                  style: AppTypography.titleMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 if (record.note != null)
                   Text(record.note!, style: AppTypography.bodyMd),
               ],

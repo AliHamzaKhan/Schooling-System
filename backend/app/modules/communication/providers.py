@@ -139,11 +139,11 @@ class Notifier:
             return _fcm_token[0]
 
         import httpx
-        from jose import jwt as jose_jwt
+        import jwt
 
         key = cls._load_fcm_key()
         token_uri = key.get("token_uri", "https://oauth2.googleapis.com/token")
-        assertion = jose_jwt.encode(
+        assertion = jwt.encode(
             {
                 "iss": key["client_email"],
                 "scope": FCM_SCOPE,

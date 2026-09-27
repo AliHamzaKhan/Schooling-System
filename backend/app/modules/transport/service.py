@@ -16,6 +16,7 @@ from app.core.enums import (
     TripStudentStatus,
 )
 from app.core.exceptions import bad_request, forbidden, not_found
+from app.core.pagination import OffsetPage
 from app.models.associations import guardian_students
 from app.models.role import Role
 from app.models.transport import (
@@ -157,7 +158,9 @@ class TransportService:
     async def list_stops(self, school_id: uuid.UUID, route_id: uuid.UUID) -> list[RouteStop]:
         await self._get_scoped(Route, school_id, route_id, "Route")
         result = await self.db.execute(
-            select(RouteStop).where(RouteStop.route_id == route_id).order_by(RouteStop.sequence)
+            select(RouteStop).where(
+                RouteStop.school_id == school_id, RouteStop.route_id == route_id
+            ).order_by(RouteStop.sequence)
         )
         return list(result.scalars().all())
 
@@ -201,7 +204,10 @@ class TransportService:
             await self._get_driver_by_user(school_id, data.driver_id)
 
         existing = await self.db.scalar(
-            select(TransportAssignment).where(TransportAssignment.student_id == student_id)
+            select(TransportAssignment).where(
+                TransportAssignment.school_id == school_id,
+                TransportAssignment.student_id == student_id,
+            )
         )
         if existing is not None:
             raise bad_request("Student already has a transport assignment")
@@ -214,7 +220,12 @@ class TransportService:
                     select(func.count())
                     .select_from(TransportAssignment)
                     .join(Route, Route.id == TransportAssignment.route_id)
-                    .where(Route.vehicle_id == vehicle.id, TransportAssignment.status == "active")
+                    .where(
+                        Route.school_id == school_id,
+                        TransportAssignment.school_id == school_id,
+                        Route.vehicle_id == vehicle.id,
+                        TransportAssignment.status == "active",
+                    )
                 ) or 0
                 if assigned >= vehicle.capacity:
                     raise bad_request("Vehicle capacity reached for this route")
@@ -228,10 +239,19 @@ class TransportService:
         await self.db.flush()
         return assignment
 
-    async def list_assignments(self, school_id: uuid.UUID, route_id: uuid.UUID | None = None) -> list[TransportAssignment]:
+    async def list_assignments(
+        self,
+        school_id: uuid.UUID,
+        route_id: uuid.UUID | None = None,
+        page: OffsetPage | None = None,
+    ) -> list[TransportAssignment]:
         stmt = select(TransportAssignment).where(TransportAssignment.school_id == school_id)
         if route_id is not None:
+            await self._get_scoped(Route, school_id, route_id, "Route")
             stmt = stmt.where(TransportAssignment.route_id == route_id)
+        stmt = stmt.order_by(TransportAssignment.created_at.desc(), TransportAssignment.id.desc())
+        if page is not None:
+            stmt = page.apply(stmt)
         return list((await self.db.execute(stmt)).scalars().all())
 
     async def unassign(self, school_id: uuid.UUID, assignment_id: uuid.UUID) -> None:
@@ -457,6 +477,7 @@ class TransportService:
         # Guard against a second concurrent active trip for this driver.
         existing = await self.db.scalar(
             select(TransportTrip).where(
+                TransportTrip.school_id == school_id,
                 TransportTrip.driver_id == actor.id,
                 TransportTrip.status == TripStatus.IN_PROGRESS.value,
             )
@@ -525,6 +546,7 @@ class TransportService:
         trip = await self._get_trip_for_driver(school_id, actor, trip_id)
         event = await self.db.scalar(
             select(TripStudentEvent).where(
+                TripStudentEvent.school_id == school_id,
                 TripStudentEvent.trip_id == trip.id,
                 TripStudentEvent.student_id == student_id,
             )
@@ -649,7 +671,10 @@ class TransportService:
         if event is None or event.approach_notified:
             return
         assignment = await self.db.scalar(
-            select(TransportAssignment).where(TransportAssignment.student_id == next_id)
+            select(TransportAssignment).where(
+                TransportAssignment.school_id == school_id,
+                TransportAssignment.student_id == next_id,
+            )
         )
         if assignment is None or assignment.latitude is None or assignment.longitude is None:
             return
@@ -669,8 +694,10 @@ class TransportService:
         trip = await self._get_scoped(TransportTrip, school_id, trip_id, "Trip")
         await self._assert_trip_view_access(school_id, actor, trip)
         ping = await self.db.scalar(
-            select(VehicleLocation)
-            .where(VehicleLocation.trip_id == trip.id)
+            select(VehicleLocation).where(
+                VehicleLocation.school_id == school_id,
+                VehicleLocation.trip_id == trip.id,
+            )
             .order_by(VehicleLocation.recorded_at.desc())
             .limit(1)
         )
@@ -699,6 +726,7 @@ class TransportService:
             raise forbidden("You do not have access to this trip")
         on_trip = await self.db.scalar(
             select(TripStudentEvent.student_id).where(
+                TripStudentEvent.school_id == school_id,
                 TripStudentEvent.trip_id == trip.id,
                 TripStudentEvent.student_id.in_(allowed),
             )
@@ -706,7 +734,12 @@ class TransportService:
         if on_trip is None:
             raise forbidden("You do not have access to this trip")
 
-    async def active_trips_for(self, school_id: uuid.UUID, actor: User) -> list[schemas.ActiveTripOut]:
+    async def active_trips_for(
+        self,
+        school_id: uuid.UUID,
+        actor: User,
+        page: OffsetPage | None = None,
+    ) -> list[schemas.ActiveTripOut]:
         """In-progress trips the actor may see (their child's, their own, or all
         for a headmaster), each enriched with the driver's name + phone."""
         from sqlalchemy.orm import selectinload
@@ -718,25 +751,32 @@ class TransportService:
                 TransportTrip.status == TripStatus.IN_PROGRESS.value,
             )
             .options(selectinload(TransportTrip.events))
-            .order_by(TransportTrip.started_at.desc())
+            .order_by(TransportTrip.started_at.desc(), TransportTrip.id.desc())
         )
         if PermissionService.is_super_admin(actor) or self._has_role(actor, SystemRole.HEADMASTER.value):
-            trips = list((await self.db.execute(base)).scalars().all())
+            scoped = base
         elif self._has_role(actor, SystemRole.DRIVER.value):
-            trips = list((await self.db.execute(
-                base.where(TransportTrip.driver_id == actor.id)
-            )).scalars().all())
+            scoped = base.where(TransportTrip.driver_id == actor.id)
         else:
             allowed = await self._student_ids_for(actor, school_id)
             if not allowed:
                 return []
             trip_ids = await self.db.execute(
-                select(TripStudentEvent.trip_id).where(TripStudentEvent.student_id.in_(allowed))
+                select(TripStudentEvent.trip_id).where(
+                    TripStudentEvent.school_id == school_id,
+                    TripStudentEvent.student_id.in_(allowed),
+                )
             )
             ids = {t[0] for t in trip_ids.all()}
             if not ids:
                 return []
-            trips = list((await self.db.execute(base.where(TransportTrip.id.in_(ids)))).scalars().all())
+            scoped = base.where(TransportTrip.id.in_(ids))
+
+        # Scope (tenant, role and student assignment) is complete before the
+        # bounded window is applied, so invisible rows can never consume it.
+        if page is not None:
+            scoped = page.apply(scoped)
+        trips = list((await self.db.execute(scoped)).scalars().all())
 
         return [await self._active_trip_out(t) for t in trips]
 
@@ -766,6 +806,7 @@ class TransportService:
         if allowed:
             student_id = await self.db.scalar(
                 select(TripStudentEvent.student_id).where(
+                    TripStudentEvent.school_id == school_id,
                     TripStudentEvent.trip_id == trip.id,
                     TripStudentEvent.student_id.in_(allowed),
                 )
@@ -778,11 +819,17 @@ class TransportService:
             raise not_found("No pending stop to estimate")
 
         ping = await self.db.scalar(
-            select(VehicleLocation).where(VehicleLocation.trip_id == trip.id)
+            select(VehicleLocation).where(
+                VehicleLocation.school_id == school_id,
+                VehicleLocation.trip_id == trip.id,
+            )
             .order_by(VehicleLocation.recorded_at.desc()).limit(1)
         )
         assignment = await self.db.scalar(
-            select(TransportAssignment).where(TransportAssignment.student_id == student_id)
+            select(TransportAssignment).where(
+                TransportAssignment.school_id == school_id,
+                TransportAssignment.student_id == student_id,
+            )
         )
         distance_m = eta_minutes = based_on = None
         if (

@@ -16,7 +16,7 @@ Authorization model (mirrors UserService):
 """
 import uuid
 
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -52,7 +52,7 @@ class GuardianService:
         return user
 
     async def _placements(
-        self, student_ids: list[uuid.UUID]
+        self, school_id: uuid.UUID, student_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, tuple]:
         """student_id → (section_id, section_name, class_name, grade_level).
 
@@ -72,6 +72,9 @@ class GuardianService:
             .join(SchoolClass, Section.class_id == SchoolClass.id)
             .where(
                 StudentEnrollment.student_id.in_(student_ids),
+                StudentEnrollment.school_id == school_id,
+                Section.school_id == school_id,
+                SchoolClass.school_id == school_id,
                 StudentEnrollment.status == "active",
             )
             .order_by(StudentEnrollment.created_at.desc())
@@ -146,24 +149,55 @@ class GuardianService:
         if guardian.id == student.id:
             raise bad_request("A user cannot be their own guardian")
 
-        already = await self.db.scalar(
-            select(guardian_students.c.guardian_id).where(
-                guardian_students.c.guardian_id == guardian_id,
-                guardian_students.c.student_id == student.id,
+        existing = (
+            await self.db.execute(
+                select(
+                    guardian_students.c.school_id,
+                    guardian_students.c.relationship,
+                )
+                .where(
+                    guardian_students.c.guardian_id == guardian_id,
+                    guardian_students.c.student_id == student.id,
+                )
+                .with_for_update()
             )
-        )
-        if already is None:
+        ).one_or_none()
+        relationship = data.relationship
+        if existing is None:
             await self.db.execute(
                 insert(guardian_students).values(
                     guardian_id=guardian_id,
                     student_id=student.id,
                     school_id=school_id,
-                    relationship=data.relationship,
+                    relationship=relationship,
                 )
             )
-            await self.db.flush()
-        placements = await self._placements([student.id])
-        return self._to_child_out(student, data.relationship, placements)
+        else:
+            existing_school_id, existing_relationship = existing
+            # The composite key is global to the two users. Do not silently
+            # accept a malformed association whose tenant disagrees with both
+            # verified users; that would make a successful response lie about
+            # a link that is not usable within this school.
+            if existing_school_id != school_id:
+                raise bad_request("Guardian link ownership is inconsistent")
+            # Re-linking without a label is intentionally idempotent and keeps
+            # the current relationship. A supplied label is an explicit
+            # correction (for example, from "father" to "guardian").
+            if relationship is None:
+                relationship = existing_relationship
+            elif relationship != existing_relationship:
+                await self.db.execute(
+                    update(guardian_students)
+                    .where(
+                        guardian_students.c.guardian_id == guardian_id,
+                        guardian_students.c.student_id == student.id,
+                        guardian_students.c.school_id == school_id,
+                    )
+                    .values(relationship=relationship)
+                )
+        await self.db.flush()
+        placements = await self._placements(school_id, [student.id])
+        return self._to_child_out(student, relationship, placements)
 
     async def unlink_child(
         self,
@@ -206,7 +240,7 @@ class GuardianService:
                 .order_by(User.full_name)
             )
         ).all()
-        placements = await self._placements([u.id for u, _ in rows])
+        placements = await self._placements(school_id, [u.id for u, _ in rows])
         return [self._to_child_out(u, rel, placements) for u, rel in rows]
 
     async def my_children(

@@ -73,6 +73,42 @@ async def test_objective_questions_autograded(client, school):
     assert body["score"] == 2
 
 
+async def test_submit_retry_returns_saved_attempt_without_replacing_answers(client, school):
+    """A lost successful response must be safely retryable by the student."""
+    sid, hm = school["id"], school["hm"]
+    ac = await make_academics(client, sid, hm)
+    quiz = await _quiz(client, sid, hm, ac["section_id"], ac["subject_id"])
+    question = await _question(
+        client, sid, hm, quiz["id"],
+        prompt="2+2?", question_type="mcq", options=["3", "4"], correct_answer="4", marks=2,
+    )
+    await client.post(f"{API}/schools/{sid}/quizzes/{quiz['id']}/publish", headers=hm)
+    student = await create_user(client, sid, hm, "student")
+    await enroll(client, sid, hm, ac["section_id"], student["id"])
+    sh = await login(client, student["email"], student["password"])
+
+    first = await client.post(
+        f"{API}/schools/{sid}/quizzes/{quiz['id']}/attempts/submit",
+        headers=sh,
+        json={"answers": [{"question_id": question["id"], "response": "4"}]},
+    )
+    assert first.status_code == 200, first.text
+    saved = first.json()
+
+    retry = await client.post(
+        f"{API}/schools/{sid}/quizzes/{quiz['id']}/attempts/submit",
+        headers=sh,
+        # A changed retry payload cannot alter a completed attempt.
+        json={"answers": [{"question_id": question["id"], "response": "3"}]},
+    )
+    assert retry.status_code == 200, retry.text
+    replayed = retry.json()
+    assert replayed["id"] == saved["id"]
+    assert replayed["status"] == "graded"
+    assert replayed["score"] == 2
+    assert replayed["answers"][0]["response"] == "4"
+
+
 async def test_short_answer_pending_then_manual_grade(client, school):
     sid, hm = school["id"], school["hm"]
     ac = await make_academics(client, sid, hm)

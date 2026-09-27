@@ -44,6 +44,13 @@ class HeadmasterEndpoints {
       '/schools/$schoolId/fees/invoices';
   static String feesStudents(String schoolId) =>
       '/schools/$schoolId/fees/students';
+  static String feesAging(String schoolId) => '/schools/$schoolId/fees/aging';
+  static String feesReconciliation(String schoolId) =>
+      '/schools/$schoolId/fees/reconciliation';
+  static String feesAdjustments(String schoolId) =>
+      '/schools/$schoolId/fees/adjustments';
+  static String feeAdjustmentDecision(String schoolId, String adjustmentId) =>
+      '${feesAdjustments(schoolId)}/$adjustmentId/decision';
   static String academicTimetable(String schoolId) =>
       '/schools/$schoolId/academic/timetable';
   static String academicSubjects(String schoolId) =>
@@ -84,6 +91,15 @@ class HeadmasterEndpoints {
       '/schools/$schoolId/sections/$sectionId/students';
   static String invoicePayments(String schoolId, String invoiceId) =>
       '/schools/$schoolId/fees/invoices/$invoiceId/payments';
+  static String billingContacts(String schoolId, String studentId) =>
+      '/schools/$schoolId/fees/students/$studentId/billing-contacts';
+  static String billingContactCandidates(String schoolId, String studentId) =>
+      '${billingContacts(schoolId, studentId)}/candidates';
+  static String billingContact(
+    String schoolId,
+    String studentId,
+    String guardianId,
+  ) => '${billingContacts(schoolId, studentId)}/$guardianId';
   static String examResultsPublish(String schoolId, String examId) =>
       '/schools/$schoolId/exams/$examId/results/publish';
   static String examCategories(String schoolId) =>

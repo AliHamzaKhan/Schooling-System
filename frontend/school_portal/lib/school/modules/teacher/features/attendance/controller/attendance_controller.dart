@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:shared/shared.dart';
 
 import '../../../data/teacher_repository.dart';
 import '../models/attendance_models.dart';
@@ -8,10 +7,11 @@ import '../models/attendance_models.dart';
 class TeacherAttendanceController extends GetxController {
   final TeacherRepository _repo;
   TeacherAttendanceController({TeacherRepository? repo})
-      : _repo = repo ?? Get.find<TeacherRepository>();
+    : _repo = repo ?? Get.find<TeacherRepository>();
 
   final loading = true.obs;
   final classes = <AttendanceClass>[].obs;
+  final error = RxnString();
 
   @override
   void onInit() {
@@ -21,8 +21,14 @@ class TeacherAttendanceController extends GetxController {
 
   Future<void> load() async {
     loading.value = true;
+    error.value = null;
+    classes.clear();
     final res = await _repo.loadAttendanceClasses();
-    if (res.success && res.data != null) classes.assignAll(res.data!);
+    if (res.success && res.data != null) {
+      classes.assignAll(res.data!);
+    } else {
+      error.value = res.error ?? 'Could not load attendance classes.';
+    }
     loading.value = false;
   }
 }
@@ -31,20 +37,33 @@ class TeacherAttendanceController extends GetxController {
 /// resets when the teacher backs out and re-enters.
 class AttendanceMarkController extends GetxController {
   final TeacherRepository _repo;
-  AttendanceMarkController({TeacherRepository? repo})
-      : _repo = repo ?? Get.find<TeacherRepository>();
+  final AttendanceClass? _initialClassInfo;
+  AttendanceMarkController({
+    TeacherRepository? repo,
+    AttendanceClass? initialClassInfo,
+  }) : _repo = repo ?? Get.find<TeacherRepository>(),
+       _initialClassInfo = initialClassInfo;
 
-  late final AttendanceClass classInfo;
+  AttendanceClass? classInfo;
   final loading = true.obs;
+  final submitting = false.obs;
   final students = <AttendanceStudent>[].obs;
   final marks = <String, AttendanceMark>{}.obs;
   final query = ''.obs;
+  final error = RxnString();
+  final submitError = RxnString();
 
   @override
   void onInit() {
     super.onInit();
     final arg = Get.arguments;
-    classInfo = arg is AttendanceClass ? arg : _fallback;
+    classInfo = _initialClassInfo ?? (arg is AttendanceClass ? arg : null);
+    if (classInfo == null) {
+      error.value =
+          'Choose a class from the attendance list before marking attendance.';
+      loading.value = false;
+      return;
+    }
     load();
   }
 
@@ -58,9 +77,11 @@ class AttendanceMarkController extends GetxController {
     if (query.value.isEmpty) return students;
     final q = query.value.toLowerCase();
     return students
-        .where((s) =>
-            s.name.toLowerCase().contains(q) ||
-            s.id.toLowerCase().contains(q))
+        .where(
+          (s) =>
+              s.name.toLowerCase().contains(q) ||
+              s.id.toLowerCase().contains(q),
+        )
         .toList();
   }
 
@@ -79,30 +100,50 @@ class AttendanceMarkController extends GetxController {
 
   void onSearch(String v) => query.value = v;
 
-  Future<void> submit() async {
-    await _repo.saveAttendanceMarks(
-      classInfo.id,
-      {for (final e in marks.entries) e.key: e.value.name},
-    );
+  Future<bool> submit() async {
+    if (submitting.value) return false;
+    final selectedClass = classInfo;
+    if (selectedClass == null) {
+      submitError.value = 'Choose a class before submitting attendance.';
+      return false;
+    }
+    submitting.value = true;
+    submitError.value = null;
+    final res = await _repo.saveAttendanceMarks(selectedClass.id, {
+      for (final e in marks.entries) e.key: e.value.name,
+    });
+    submitting.value = false;
+    if (!res.success) {
+      submitError.value = res.error ?? 'Could not save attendance. Try again.';
+      return false;
+    }
     Get.back<bool>(result: true);
-    Get.snackbar('Submitted',
-        'Attendance recorded for ${classInfo.subject} — ${classInfo.grade}.',
-        snackPosition: SnackPosition.BOTTOM);
+    Get.snackbar(
+      'Submitted',
+      'Attendance recorded for ${selectedClass.subject} — ${selectedClass.grade}.',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+    return true;
   }
 
   Future<void> load() async {
     loading.value = true;
-    final res = await _repo.loadAttendanceStudents(classInfo.id);
-    if (res.success && res.data != null) students.assignAll(res.data!);
+    error.value = null;
+    students.clear();
+    marks.clear();
+    final selectedClass = classInfo;
+    if (selectedClass == null) {
+      error.value =
+          'Choose a class from the attendance list before marking attendance.';
+      loading.value = false;
+      return;
+    }
+    final res = await _repo.loadAttendanceStudents(selectedClass.id);
+    if (res.success && res.data != null) {
+      students.assignAll(res.data!);
+    } else {
+      error.value = res.error ?? 'Could not load class attendance.';
+    }
     loading.value = false;
   }
-
-  static const _fallback = AttendanceClass(
-    id: 'MATH-G8',
-    subject: 'Mathematics',
-    grade: 'Grade 8',
-    students: 28,
-    icon: AppIcons.functionsRounded,
-    color: AppColors.primary,
-  );
 }

@@ -7,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import EnrollmentStatus, Module, PermissionAction, SystemRole
 from app.core.exceptions import bad_request, forbidden, not_found
+from app.core.pagination import OffsetPage
 from app.models.academic import SchoolClass, Section, StudentEnrollment
 from app.models.associations import guardian_students
 from app.models.leave import LeaveRequest
+from app.models.role import Role
 from app.models.user import User
 from app.modules.leave import schemas
 from app.modules.permissions.service import PermissionService
@@ -25,10 +27,17 @@ class LeaveService:
     def _has_role(user: User, code: str) -> bool:
         return any(r.code == code for r in user.roles)
 
-    async def _guardian_children(self, guardian_id: uuid.UUID) -> set[uuid.UUID]:
+    async def _guardian_children(
+        self, school_id: uuid.UUID, guardian_id: uuid.UUID
+    ) -> set[uuid.UUID]:
         rows = await self.db.execute(
-            select(guardian_students.c.student_id).where(
-                guardian_students.c.guardian_id == guardian_id
+            select(guardian_students.c.student_id)
+            .join(User, User.id == guardian_students.c.student_id)
+            .where(
+                guardian_students.c.guardian_id == guardian_id,
+                guardian_students.c.school_id == school_id,
+                User.school_id == school_id,
+                User.roles.any(Role.code == SystemRole.STUDENT.value),
             )
         )
         return {r[0] for r in rows.all()}
@@ -106,7 +115,7 @@ class LeaveService:
         elif self._has_role(user, SystemRole.GUARDIAN.value):
             if data.student_id is None:
                 raise bad_request("Select which child this leave is for")
-            children = await self._guardian_children(user.id)
+            children = await self._guardian_children(school_id, user.id)
             if data.student_id not in children:
                 raise forbidden("You can only apply for your own children")
             student_id = data.student_id
@@ -135,19 +144,28 @@ class LeaveService:
 
     # ------------------------------ lists -------------------------------- #
 
-    async def list_own(self, school_id: uuid.UUID, requester_id: uuid.UUID) -> list[LeaveRequest]:
-        result = await self.db.execute(
-            select(LeaveRequest).where(
-                LeaveRequest.school_id == school_id, LeaveRequest.requester_id == requester_id
-            ).order_by(LeaveRequest.created_at.desc())
+    async def list_own(
+        self, school_id: uuid.UUID, requester_id: uuid.UUID, page: OffsetPage | None = None
+    ) -> list[LeaveRequest]:
+        stmt = (
+            select(LeaveRequest)
+            .where(LeaveRequest.school_id == school_id, LeaveRequest.requester_id == requester_id)
+            .order_by(LeaveRequest.created_at.desc(), LeaveRequest.id.desc())
         )
+        if page is not None:
+            stmt = page.apply(stmt)
+        result = await self.db.execute(stmt)
         return await self._attach_names(list(result.scalars().all()))
 
-    async def list_all(self, school_id: uuid.UUID, status: str | None = None) -> list[LeaveRequest]:
+    async def list_all(
+        self, school_id: uuid.UUID, status: str | None = None, page: OffsetPage | None = None
+    ) -> list[LeaveRequest]:
         stmt = select(LeaveRequest).where(LeaveRequest.school_id == school_id)
         if status is not None:
             stmt = stmt.where(LeaveRequest.status == status)
-        stmt = stmt.order_by(LeaveRequest.created_at.desc())
+        stmt = stmt.order_by(LeaveRequest.created_at.desc(), LeaveRequest.id.desc())
+        if page is not None:
+            stmt = page.apply(stmt)
         return await self._attach_names(list((await self.db.execute(stmt)).scalars().all()))
 
     async def _can_review_all(self, user: User) -> bool:
@@ -159,12 +177,16 @@ class LeaveService:
         )
 
     async def list_for_review(
-        self, school_id: uuid.UUID, user: User, status: str | None = None
+        self,
+        school_id: uuid.UUID,
+        user: User,
+        status: str | None = None,
+        page: OffsetPage | None = None,
     ) -> list[LeaveRequest]:
         """Leaves the caller may review: everything for a headmaster/approver, or
         just their own sections' students for a class teacher."""
         if await self._can_review_all(user):
-            return await self.list_all(school_id, status)
+            return await self.list_all(school_id, status, page)
 
         # Class teacher: only their sections' students.
         section_ids = await self._teacher_section_ids(user.id)
@@ -177,7 +199,9 @@ class LeaveService:
         )
         if status is not None:
             stmt = stmt.where(LeaveRequest.status == status)
-        stmt = stmt.order_by(LeaveRequest.created_at.desc())
+        stmt = stmt.order_by(LeaveRequest.created_at.desc(), LeaveRequest.id.desc())
+        if page is not None:
+            stmt = page.apply(stmt)
         return await self._attach_names(list((await self.db.execute(stmt)).scalars().all()))
 
     # ------------------------------ review ------------------------------- #

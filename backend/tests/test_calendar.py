@@ -40,6 +40,36 @@ async def test_end_before_start_rejected(client, school):
     assert r.status_code == 422
 
 
+async def test_event_update_rejects_an_invalid_merged_time_range(client, school):
+    """A partial edit must not make an existing calendar entry impossible."""
+    sid, hm = school["id"], school["hm"]
+    created = await client.post(
+        f"{API}/schools/{sid}/calendar/events",
+        headers=hm,
+        json={
+            "title": "Parent Meeting",
+            "start_date": "2026-09-10",
+            "all_day": False,
+            "start_time": "09:00:00",
+            "end_time": "10:00:00",
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    event_id = created.json()["id"]
+    invalid = await client.patch(
+        f"{API}/schools/{sid}/calendar/events/{event_id}",
+        headers=hm,
+        json={"end_time": "08:30:00"},
+    )
+    assert invalid.status_code == 400
+
+    events = await client.get(f"{API}/schools/{sid}/calendar/events", headers=hm)
+    event = next(item for item in events.json() if item["id"] == event_id)
+    assert event["start_time"] == "09:00:00"
+    assert event["end_time"] == "10:00:00"
+
+
 async def test_date_window_filter(client, school):
     sid, hm = school["id"], school["hm"]
     for title, d in [("Jan", "2026-01-10"), ("Jun", "2026-06-10"), ("Dec", "2026-12-10")]:

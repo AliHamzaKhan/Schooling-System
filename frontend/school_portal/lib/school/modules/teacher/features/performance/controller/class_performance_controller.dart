@@ -12,7 +12,7 @@ import '../models/section_performance.dart';
 class ClassPerformanceController extends GetxController {
   final TeacherRepository _repo;
   ClassPerformanceController({TeacherRepository? repo})
-      : _repo = repo ?? Get.find<TeacherRepository>();
+    : _repo = repo ?? Get.find<TeacherRepository>();
 
   /// Loading the tab list itself (the teacher's sections).
   final loadingSections = true.obs;
@@ -51,6 +51,10 @@ class ClassPerformanceController extends GetxController {
   Future<void> loadSections() async {
     loadingSections.value = true;
     sectionsError.value = null;
+    sections.clear();
+    selectedSectionId.value = null;
+    rosters.clear();
+    rosterErrors.clear();
     final res = await _repo.loadMyTimetable();
     if (res.success) {
       final mine = MyClass.fromSlots(res.data ?? const []);
