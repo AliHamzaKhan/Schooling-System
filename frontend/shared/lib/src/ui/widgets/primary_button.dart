@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_radius.dart';
 import '../tokens/app_typography.dart';
+import 'focus_ring.dart';
 import '../../assets/app_icons.dart';
 
 /// Primary action button — vertical gradient from `primary` to a darker shade.
@@ -87,6 +88,10 @@ class PrimaryButton extends StatelessWidget {
         ),
       ),
     );
-    return expanded ? SizedBox(width: double.infinity, child: btn) : btn;
+    final ringed = FocusRing(
+      borderRadius: BorderRadius.circular(AppRadius.button),
+      child: btn,
+    );
+    return expanded ? SizedBox(width: double.infinity, child: ringed) : ringed;
   }
 }

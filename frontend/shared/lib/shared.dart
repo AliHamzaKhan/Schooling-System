@@ -38,6 +38,7 @@ export 'src/ui/anim/shimmer.dart';
 export 'src/ui/forms/screen_text_controllers.dart';
 
 export 'src/ui/widgets/primary_button.dart';
+export 'src/ui/widgets/focus_ring.dart';
 export 'src/ui/widgets/ghost_button.dart';
 export 'src/ui/widgets/app_dialog.dart';
 export 'src/ui/widgets/app_card.dart';

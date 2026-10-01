@@ -209,6 +209,8 @@ class _UniformColorPickerState extends State<_UniformColorPicker> {
     final color = _hsv.toColor();
     return Semantics(
       container: true,
+      // Keep each slider and swatch a separate, named control.
+      explicitChildNodes: true,
       label: 'Uniform colour ${_hexOf(color)}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,33 +292,36 @@ class _UniformColorPickerState extends State<_UniformColorPicker> {
             runSpacing: AppSpacing.stackSm,
             children: [
               for (final c in _kPalette)
-                Semantics(
-                  button: true,
-                  selected: _sameColor(c, color),
-                  label: 'Use uniform colour ${_hexOf(c)}',
-                  child: Tooltip(
-                    message: _hexOf(c),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                        onTap: () => _set(HSVColor.fromColor(c)),
-                        child: SizedBox.square(
-                          dimension: 44,
-                          child: Center(
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: c,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.button,
-                                ),
-                                border: Border.all(
-                                  color: _sameColor(c, color)
-                                      ? AppColors.primary
-                                      : AppColors.outlineVariant,
-                                  width: _sameColor(c, color) ? 3 : 1,
+                // Merge so the focusable ink node carries the colour's name.
+                MergeSemantics(
+                  child: Semantics(
+                    button: true,
+                    selected: _sameColor(c, color),
+                    label: 'Use uniform colour ${_hexOf(c)}',
+                    child: Tooltip(
+                      message: _hexOf(c),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                          onTap: () => _set(HSVColor.fromColor(c)),
+                          child: SizedBox.square(
+                            dimension: 44,
+                            child: Center(
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: c,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
+                                  ),
+                                  border: Border.all(
+                                    color: _sameColor(c, color)
+                                        ? AppColors.primary
+                                        : AppColors.outlineVariant,
+                                    width: _sameColor(c, color) ? 3 : 1,
+                                  ),
                                 ),
                               ),
                             ),
@@ -356,13 +361,15 @@ class _ColorSlider extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final largeText = MediaQuery.textScalerOf(context).scale(14) >= 20;
-        final slider = Semantics(
-          label: label,
-          child: Slider(
-            value: value.clamp(0, max),
-            max: max,
-            activeColor: activeColor,
-            onChanged: onChanged,
+        final slider = MergeSemantics(
+          child: Semantics(
+            label: label,
+            child: Slider(
+              value: value.clamp(0, max),
+              max: max,
+              activeColor: activeColor,
+              onChanged: onChanged,
+            ),
           ),
         );
         final labelWidget = Text(

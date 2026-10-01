@@ -4,6 +4,7 @@ import '../tokens/app_colors.dart';
 import '../tokens/app_elevation.dart';
 import '../tokens/app_radius.dart';
 import '../tokens/app_typography.dart';
+import 'focus_ring.dart';
 
 /// Secondary / ghost button — glass-filled with a 1 px border.
 class GhostButton extends StatelessWidget {
@@ -67,6 +68,10 @@ class GhostButton extends StatelessWidget {
         ),
       ),
     );
-    return expanded ? SizedBox(width: double.infinity, child: btn) : btn;
+    final ringed = FocusRing(
+      borderRadius: BorderRadius.circular(AppRadius.button),
+      child: btn,
+    );
+    return expanded ? SizedBox(width: double.infinity, child: ringed) : ringed;
   }
 }
