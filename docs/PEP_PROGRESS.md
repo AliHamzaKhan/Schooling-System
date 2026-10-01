@@ -796,3 +796,20 @@ Defects found and fixed (regression tests added):
 Full isolated backend suite after commit `3ce256d`: **all tests passed, exit 0**
 (441 tests). Frontend: shared 79, school portal 87, admin portal 10 passed;
 browser coordination suite 4 passed in Chromium.
+
+### 2026-10-01 — L05 finance under failure (Chrome)
+
+Headmaster → Record Payment, verified against the server each time:
+
+| Scenario | Result |
+| --- | --- |
+| Triple click on "Mark as paid", then confirm | One confirmation dialog, **one** payment |
+| Double click on "Record payment" in the dialog | **One** payment (3,000 recorded, not 6,000) |
+| Server records the payment but the response is lost | Screen re-reads balances and shows the invoice **paid**; one POST |
+| Request never reaches the server | Invoice keeps a visible "did not confirm" warning and a **Check payment** action; the retry reuses the idempotency key and records once |
+| Guardian view afterwards | Dashboard "Paid / Up to date"; fee screen totals match the server |
+
+Fixed: the uncertain outcome used to be only a transient snackbar while the
+invoice kept a plain "Mark as paid" button and stale balance. It is now durable on
+the invoice and balances are refreshed immediately. Amounts still display a
+hard-coded `$`; the currency is part of the open F06 money-policy decision.

@@ -28,6 +28,10 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
   final _error = RxnString();
   final _selected = Rxn<StudentFeeSnapshot>();
   final _saving = <String>{}.obs;
+
+  /// Invoices whose last payment attempt has an unknown outcome (timeout or
+  /// server error). Kept on screen until a refresh shows the invoice paid.
+  final _uncertain = <String>{}.obs;
   Timer? _debounce;
 
   @override
@@ -103,6 +107,7 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
       );
       if (!mounted) return;
       if (res.success) {
+        _uncertain.remove(inv.id);
         Get.snackbar(
           'Payment recorded',
           'Recorded for "${inv.title}". Refreshing balances…',
@@ -121,6 +126,20 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
               : (res.error ?? 'Please try again.'),
           snackPosition: SnackPosition.BOTTOM,
         );
+        if (res.isNetworkError || res.isServerError) {
+          // The server may have recorded it: re-read balances now, and keep a
+          // visible warning on the invoice until it reads as paid.
+          _uncertain.add(inv.id);
+          await _search(_query.value);
+          final refreshed = _results.firstWhereOrNull(
+            (r) => r.studentId == s.studentId,
+          );
+          if (refreshed != null) _selected.value = refreshed;
+          final now = refreshed?.invoices.firstWhereOrNull(
+            (i) => i.id == inv.id,
+          );
+          if (now?.status == 'paid') _uncertain.remove(inv.id);
+        }
       }
     } finally {
       _saving.remove(inv.id);
@@ -154,6 +173,7 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
                 return _StudentDetail(
                   snapshot: _selected.value!,
                   saving: _saving.toSet(),
+                  uncertain: _uncertain.toSet(),
                   onBack: () => _selected.value = null,
                   onMarkPaid: (inv) => _markPaid(_selected.value!, inv),
                   onRequestAdjustment: (inv) =>
@@ -352,6 +372,7 @@ class _StudentResultTile extends StatelessWidget {
 
 class _StudentDetail extends StatelessWidget {
   final Set<String> saving;
+  final Set<String> uncertain;
   final StudentFeeSnapshot snapshot;
   final VoidCallback onBack;
   final void Function(InvoiceSummary) onMarkPaid;
@@ -359,6 +380,7 @@ class _StudentDetail extends StatelessWidget {
   final VoidCallback onManageBillingContacts;
   const _StudentDetail({
     required this.saving,
+    required this.uncertain,
     required this.snapshot,
     required this.onBack,
     required this.onMarkPaid,
@@ -451,6 +473,7 @@ class _StudentDetail extends StatelessWidget {
             _InvoiceTile(
               inv: inv,
               saving: saving.contains(inv.id),
+              uncertain: uncertain.contains(inv.id) && inv.status != 'paid',
               onMarkPaid: () => onMarkPaid(inv),
               onRequestAdjustment: () => onRequestAdjustment(inv),
             ),
@@ -499,6 +522,7 @@ class _MoneyChip extends StatelessWidget {
 
 class _InvoiceTile extends StatelessWidget {
   final bool saving;
+  final bool uncertain;
   final InvoiceSummary inv;
   final VoidCallback onMarkPaid;
   final VoidCallback onRequestAdjustment;
@@ -507,6 +531,7 @@ class _InvoiceTile extends StatelessWidget {
     required this.onMarkPaid,
     required this.onRequestAdjustment,
     required this.saving,
+    this.uncertain = false,
   });
 
   @override
@@ -552,13 +577,29 @@ class _InvoiceTile extends StatelessWidget {
               color: AppColors.onSurfaceVariant,
             ),
           ),
+          if (uncertain) ...[
+            const SizedBox(height: AppSpacing.stackSm),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                'The last payment attempt did not confirm. It may already be '
+                'recorded. Use Check payment to retry the same payment; do not '
+                'record it again elsewhere.',
+                style: AppTypography.bodyMd.copyWith(color: AppColors.error),
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.stackSm),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: isPaid || saving ? null : onMarkPaid,
               child: Text(
-                saving ? 'Recording…' : (isPaid ? 'Paid' : 'Mark as paid'),
+                saving
+                    ? 'Recording…'
+                    : (isPaid
+                          ? 'Paid'
+                          : (uncertain ? 'Check payment' : 'Mark as paid')),
               ),
             ),
           ),
