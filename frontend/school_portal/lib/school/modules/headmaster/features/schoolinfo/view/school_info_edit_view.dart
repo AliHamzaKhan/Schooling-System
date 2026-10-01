@@ -228,6 +228,7 @@ class _AchievementRow extends StatelessWidget {
             ),
           ),
           IconButton(
+            tooltip: 'Close',
             icon: const Icon(AppIcons.closeRounded, size: 18),
             onPressed: onRemove,
           ),

@@ -105,7 +105,11 @@ class _TopBar extends StatelessWidget {
       child: Row(
         children: [
           if (showBack)
-            _CircleIconButton(icon: AppIcons.arrowBack, onTap: () => Get.back())
+            _CircleIconButton(
+              icon: AppIcons.arrowBack,
+              tooltip: 'Back',
+              onTap: () => Get.back(),
+            )
           else
             const SizedBox(width: 4),
           const SizedBox(width: 8),
@@ -127,20 +131,34 @@ class _TopBar extends StatelessWidget {
 
 class _CircleIconButton extends StatelessWidget {
   final IconData icon;
+  final String tooltip;
   final VoidCallback onTap;
-  const _CircleIconButton({required this.icon, required this.onTap});
+  const _CircleIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surfaceContainerLowest,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(icon, size: 20, color: AppColors.onSurface),
+    // Icon-only control: named for screen readers, hinted on hover.
+    return Tooltip(
+      message: tooltip,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: Material(
+          color: AppColors.surfaceContainerLowest,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Icon(icon, size: 20, color: AppColors.onSurface),
+            ),
+          ),
         ),
       ),
     );

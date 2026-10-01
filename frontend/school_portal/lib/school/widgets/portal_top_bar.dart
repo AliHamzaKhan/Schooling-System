@@ -72,6 +72,7 @@ class PortalTopBar extends StatelessWidget {
           ),
           ...actions,
           IconButton(
+            tooltip: 'Notifications',
             onPressed: onBell,
             splashRadius: 22,
             visualDensity: VisualDensity.compact,

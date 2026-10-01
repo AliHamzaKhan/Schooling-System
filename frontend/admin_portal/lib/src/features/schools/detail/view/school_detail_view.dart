@@ -107,6 +107,7 @@ class _Header extends GetView<SchoolDetailController> {
       child: Row(
         children: [
           IconButton(
+            tooltip: 'Back',
             onPressed: () => Get.back<void>(),
             icon: const Icon(AppIcons.arrowBackRounded, color: AdminPalette.ink),
           ),

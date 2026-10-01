@@ -141,10 +141,12 @@ class _CategoryCard extends StatelessWidget {
               ),
               const Spacer(),
               IconButton(
+                tooltip: 'Edit',
                 icon: const Icon(AppIcons.editOutlined, size: 20),
                 onPressed: () => controller.editFlow(category),
               ),
               IconButton(
+                tooltip: 'Delete',
                 icon: const Icon(AppIcons.deleteOutline,
                     size: 20, color: AppColors.error),
                 onPressed: () => controller.deleteFlow(category),

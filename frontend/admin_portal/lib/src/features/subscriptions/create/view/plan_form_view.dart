@@ -118,6 +118,7 @@ class _PlanFormViewState extends State<PlanFormView> {
             child: Row(
               children: [
                 IconButton(
+                  tooltip: 'Close',
                   onPressed: () => Get.back<void>(),
                   icon:
                       const Icon(AppIcons.closeRounded, color: AdminPalette.ink),

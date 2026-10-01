@@ -36,20 +36,27 @@ class AdminSearchField extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(AppIcons.searchRounded,
-                size: 20, color: AdminPalette.faint),
+            const Icon(
+              AppIcons.searchRounded,
+              size: 20,
+              color: AdminPalette.faint,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
                 controller: controller,
                 onChanged: onChanged,
-                style:
-                    AdminType.body.copyWith(color: AdminPalette.ink, fontSize: 15),
+                style: AdminType.body.copyWith(
+                  color: AdminPalette.ink,
+                  fontSize: 15,
+                ),
                 cursorColor: AdminPalette.ink,
                 decoration: InputDecoration(
                   hintText: hint,
-                  hintStyle: AdminType.body
-                      .copyWith(color: AdminPalette.faint, fontSize: 15),
+                  hintStyle: AdminType.body.copyWith(
+                    color: AdminPalette.faint,
+                    fontSize: 15,
+                  ),
                   isCollapsed: true,
                   filled: false,
                   border: InputBorder.none,
@@ -77,25 +84,40 @@ class AdminSearchField extends StatelessWidget {
 /// Square icon button sized to match [AdminSearchField] (used for filter/tune).
 class AdminIconButton extends StatelessWidget {
   final IconData icon;
+  final String tooltip;
   final VoidCallback? onTap;
-  const AdminIconButton({super.key, required this.icon, this.onTap});
+  const AdminIconButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AdminPalette.card,
-      borderRadius: AdminRadius.brTile,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AdminRadius.brTile,
-        child: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
+    // Icon-only control: named for screen readers, hinted on hover.
+    return Tooltip(
+      message: tooltip,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: Material(
+          color: AdminPalette.card,
+          borderRadius: AdminRadius.brTile,
+          child: InkWell(
+            onTap: onTap,
             borderRadius: AdminRadius.brTile,
-            border: Border.all(color: AdminPalette.border),
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: AdminRadius.brTile,
+                border: Border.all(color: AdminPalette.border),
+              ),
+              child: Icon(icon, size: 20, color: AdminPalette.ink),
+            ),
           ),
-          child: Icon(icon, size: 20, color: AdminPalette.ink),
         ),
       ),
     );

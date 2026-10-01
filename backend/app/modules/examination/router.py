@@ -16,6 +16,7 @@ from app.core.deps import (
     verify_student_access,
 )
 from app.core.enums import Module, PermissionAction as PA
+from app.core.family_scope import FamilyScope, require_staff_reader
 from app.core.pagination import OffsetPage
 from app.modules.examination import schemas
 from app.modules.examination.service import ExaminationService
@@ -139,7 +140,7 @@ async def enter_marks(
 @router.get(
     "/papers/{paper_id}/gradebook",
     response_model=schemas.GradebookOut,
-    dependencies=[_exam_view],
+    dependencies=[_exam_view, Depends(require_staff_reader)],
 )
 async def paper_gradebook(
     school_id: uuid.UUID, paper_id: uuid.UUID, db: DbDep
@@ -148,7 +149,12 @@ async def paper_gradebook(
     return await ExaminationService(db).gradebook(school_id, paper_id)
 
 
-@router.get("/papers/{paper_id}/marks", response_model=list[schemas.MarkOut], dependencies=[_exam_view])
+# Raw marks (published or not) are a staff tool; families read their own
+# published results through /students/{student_id}/results.
+@router.get(
+    "/papers/{paper_id}/marks", response_model=list[schemas.MarkOut],
+    dependencies=[_exam_view, Depends(require_staff_reader)],
+)
 async def list_marks(school_id: uuid.UUID, paper_id: uuid.UUID, db: DbDep) -> list[schemas.MarkOut]:
     return await ExaminationService(db).list_marks(school_id, paper_id)
 
@@ -162,8 +168,14 @@ async def publish_results(school_id: uuid.UUID, exam_id: uuid.UUID, db: DbDep) -
 
 
 @router.get("/{exam_id}/results", response_model=list[schemas.ExamResultOut], dependencies=[_result_view])
-async def list_results(school_id: uuid.UUID, exam_id: uuid.UUID, db: DbDep) -> list[schemas.ExamResultOut]:
-    return await ExaminationService(db).list_results(school_id, exam_id)
+async def list_results(
+    school_id: uuid.UUID, exam_id: uuid.UUID, db: DbDep,
+    scope: set[uuid.UUID] | None = FamilyScope,
+) -> list[schemas.ExamResultOut]:
+    results = await ExaminationService(db).list_results(school_id, exam_id)
+    if scope is None:
+        return results
+    return [r for r in results if r.student_id in scope]
 
 
 @router.get(
@@ -219,6 +231,10 @@ async def generate_seating(
     dependencies=[_exam_view],
 )
 async def list_seating(
-    school_id: uuid.UUID, exam_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, exam_id: uuid.UUID, db: DbDep,
+    scope: set[uuid.UUID] | None = FamilyScope,
 ) -> list[schemas.SeatOut]:
-    return await ExaminationService(db).list_seating(school_id, exam_id)
+    seats = await ExaminationService(db).list_seating(school_id, exam_id)
+    if scope is None:
+        return seats
+    return [s for s in seats if s.student_id in scope]

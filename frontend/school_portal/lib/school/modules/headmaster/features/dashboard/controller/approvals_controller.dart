@@ -10,13 +10,18 @@ typedef ApprovalsLoader = Future<ApiResponse<DashboardData>> Function();
 /// route remains useful after a refresh or direct URL entry.
 class ApprovalsController extends GetxController {
   final ApprovalsLoader _loader;
+  final HeadmasterRepository? _repository;
 
   ApprovalsController({
     HeadmasterRepository? repository,
     ApprovalsLoader? loader,
-  }) : _loader =
+  }) : _repository = repository,
+       _loader =
            loader ??
            (repository ?? Get.find<HeadmasterRepository>()).loadDashboard;
+
+  HeadmasterRepository get _reviewRepo =>
+      _repository ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;
   final error = RxnString();
@@ -41,15 +46,20 @@ class ApprovalsController extends GetxController {
     loading.value = false;
   }
 
-  void approve(String id) => Get.snackbar(
-    'Approved',
-    'Approval $id sent.',
-    snackPosition: SnackPosition.BOTTOM,
-  );
+  /// Approves or rejects a pending leave request, then reloads the queue.
+  Future<void> approve(String id) => _review(id, true);
 
-  void reject(String id) => Get.snackbar(
-    'Rejected',
-    'Approval $id rejected.',
-    snackPosition: SnackPosition.BOTTOM,
-  );
+  Future<void> reject(String id) => _review(id, false);
+
+  Future<void> _review(String id, bool approve) async {
+    final res = await _reviewRepo.reviewLeave(leaveId: id, approve: approve);
+    Get.snackbar(
+      res.success ? (approve ? 'Approved' : 'Rejected') : 'Not saved',
+      res.success
+          ? 'The leave request was ${approve ? 'approved' : 'rejected'}.'
+          : (res.error ?? 'Please try again.'),
+      snackPosition: SnackPosition.BOTTOM,
+    );
+    if (res.success) await load();
+  }
 }

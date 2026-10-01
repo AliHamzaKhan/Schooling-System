@@ -27,6 +27,8 @@ class GuardianEndpoints {
   static String studentSubmissions(String schoolId, String studentId) =>
       '${_base(schoolId)}/homework/students/$studentId/submissions';
   static String exams(String schoolId) => '${_base(schoolId)}/exams';
+  static String studentResults(String schoolId, String studentId) =>
+      '${_base(schoolId)}/exams/students/$studentId/results';
   static String reportCard(String schoolId, String examId, String studentId) =>
       '${_base(schoolId)}/exams/$examId/students/$studentId/report-card';
   static String academicTimetable(String schoolId) =>

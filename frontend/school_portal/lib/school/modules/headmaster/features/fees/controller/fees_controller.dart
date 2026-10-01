@@ -38,21 +38,44 @@ class FeesController extends GetxController {
   Future<void> setAgingAsOf(DateTime value) =>
       load(asOf: DateTime(value.year, value.month, value.day));
 
-  /// Sends a payment reminder for a single overdue invoice.
-  void remind(OverduePayment payment) => Get.snackbar(
-    'Reminder sent',
-    'A payment reminder was sent for ${payment.studentName}.',
-    snackPosition: SnackPosition.BOTTOM,
-  );
-
-  /// Sends reminders to every outstanding invoice.
-  void remindAll() {
-    final count = data.value?.overdue.length ?? 0;
+  /// Notifies the guardians of one overdue student (in-app/push broadcast).
+  Future<void> remind(OverduePayment payment) async {
+    final studentId = payment.studentId;
+    if (studentId == null) {
+      Get.snackbar(
+        'Reminder not sent',
+        'This invoice has no student record.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+    final res = await _repo.createBroadcast(
+      title: 'Fee reminder',
+      body:
+          'A fee of ${payment.amountLabel} for ${payment.studentName} is '
+          'overdue. Please contact the school office.',
+      audienceType: 'student_guardians',
+      audienceRef: studentId,
+    );
     Get.snackbar(
-      'Reminders sent',
-      count == 0
-          ? 'There are no overdue invoices.'
-          : 'Reminders were sent to $count guardian(s).',
+      res.success ? 'Reminder sent' : 'Reminder not sent',
+      res.success
+          ? 'The guardians of ${payment.studentName} were notified.'
+          : (res.error ?? 'Please try again.'),
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  /// Notifies the guardians of every student with outstanding fees.
+  Future<void> remindAll() async {
+    final res = await _repo.sendFeeReminders();
+    Get.snackbar(
+      res.success ? 'Reminders sent' : 'Reminders not sent',
+      res.success
+          ? (res.data == 0
+                ? 'No student has outstanding fees.'
+                : 'Guardians of ${res.data} student(s) were notified.')
+          : (res.error ?? 'Please try again.'),
       snackPosition: SnackPosition.BOTTOM,
     );
   }

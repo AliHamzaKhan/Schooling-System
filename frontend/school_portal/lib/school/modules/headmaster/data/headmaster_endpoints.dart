@@ -42,6 +42,8 @@ class HeadmasterEndpoints {
       '/schools/$schoolId/reports/enrollment';
   static String feesInvoices(String schoolId) =>
       '/schools/$schoolId/fees/invoices';
+  static String feesSendReminders(String schoolId) =>
+      '/schools/$schoolId/fees/send-reminders';
   static String feesStudents(String schoolId) =>
       '/schools/$schoolId/fees/students';
   static String feesAging(String schoolId) => '/schools/$schoolId/fees/aging';

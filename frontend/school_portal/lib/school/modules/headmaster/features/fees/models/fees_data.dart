@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 /// Student row in the "Overdue Payments" list.
 class OverduePayment {
   final String id;
+  final String? studentId;
   final String studentName;
   final String grade;
   final int overdueDays;
@@ -13,6 +14,7 @@ class OverduePayment {
 
   const OverduePayment({
     required this.id,
+    this.studentId,
     required this.studentName,
     required this.grade,
     required this.overdueDays,
@@ -26,6 +28,7 @@ class OverduePayment {
 
   factory OverduePayment.fromJson(Map<String, dynamic> json) => OverduePayment(
     id: '${json['id']}',
+    studentId: json['student_id']?.toString(),
     studentName: json['student_name'] as String? ?? '',
     grade: '${json['grade'] ?? ''}',
     overdueDays: (json['overdue_days'] as num?)?.toInt() ?? 0,

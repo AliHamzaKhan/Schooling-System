@@ -27,6 +27,7 @@ class SubmissionView extends GetView<SubmissionController> {
             onBell: () => Get.back<void>(),
             actions: [
               IconButton(
+                tooltip: 'Back',
                 onPressed: () => Get.back<void>(),
                 icon: const Icon(
                   AppIcons.arrowBackRounded,

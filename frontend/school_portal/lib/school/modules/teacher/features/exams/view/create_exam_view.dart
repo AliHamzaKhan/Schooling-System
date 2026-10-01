@@ -227,6 +227,7 @@ class _PaperCardState extends State<_PaperCard> with ScreenTextControllers {
               ),
               if (controller.papers.length > 1)
                 IconButton(
+                  tooltip: 'Delete',
                   onPressed: () => controller.removePaper(index),
                   icon: const Icon(AppIcons.deleteOutlineRounded,
                       color: AppColors.error),

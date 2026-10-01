@@ -244,6 +244,7 @@ class _QuestionTile extends StatelessWidget {
             ),
           ),
           IconButton(
+            tooltip: 'Close',
             onPressed: onDelete,
             icon: const Icon(AppIcons.closeRounded, size: 18),
             color: AppColors.error,
@@ -366,6 +367,7 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
                 child: Row(
                   children: [
                     IconButton(
+                      tooltip: 'Mark as the correct answer',
                       onPressed: () => setState(() => _correct = i),
                       visualDensity: VisualDensity.compact,
                       icon: Icon(

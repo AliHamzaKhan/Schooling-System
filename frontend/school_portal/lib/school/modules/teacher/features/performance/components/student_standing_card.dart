@@ -89,6 +89,7 @@ class StudentStandingCard extends StatelessWidget {
           _GradePill(grade: student.grade),
           if (onMenu != null)
             IconButton(
+              tooltip: 'More options',
               onPressed: onMenu,
               visualDensity: VisualDensity.compact,
               icon: const Icon(AppIcons.moreVertRounded,

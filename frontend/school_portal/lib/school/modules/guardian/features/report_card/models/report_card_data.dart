@@ -20,35 +20,39 @@ class ReportSubject {
       );
 }
 
-/// A single bar in the GPA trend chart (e.g. "Q1" -> 3.4).
+/// One bar in the results trend: a published exam and its overall percentage.
 class GpaTrendPoint {
-  final String label; // "Q1"
-  final double gpa; // 0..4
-  const GpaTrendPoint({required this.label, required this.gpa});
+  final String label; // exam name
+  final double percent; // 0..100
+  const GpaTrendPoint({required this.label, required this.percent});
 
   factory GpaTrendPoint.fromJson(Map<String, dynamic> json) => GpaTrendPoint(
         label: json['label'] as String? ?? '',
-        gpa: (json['gpa'] as num?)?.toDouble() ?? 0,
+        percent: (json['percent'] as num?)?.toDouble() ?? 0,
       );
 }
 
-/// Report-card view-model for the active child: term results (subject grades),
-/// the term GPA, and a GPA trend across recent terms.
+/// Report-card view-model for the active child: the latest published exam's
+/// subject results, its overall percentage and grade, and every published exam
+/// as a trend (oldest first).
 class ReportCardData {
-  final String termLabel; // "Term 1 Results"
-  final double gpa; // 0..4
+  final String termLabel; // exam name
+  final double averagePercent; // 0..100
+  final String overallGrade;
   final List<ReportSubject> subjects;
   final List<GpaTrendPoint> gpaTrend;
   const ReportCardData({
     required this.termLabel,
-    required this.gpa,
+    required this.averagePercent,
+    this.overallGrade = '',
     required this.subjects,
     required this.gpaTrend,
   });
 
   factory ReportCardData.fromJson(Map<String, dynamic> json) => ReportCardData(
         termLabel: json['term_label'] as String? ?? '',
-        gpa: (json['gpa'] as num?)?.toDouble() ?? 0,
+        averagePercent: (json['average_percent'] as num?)?.toDouble() ?? 0,
+        overallGrade: json['grade'] as String? ?? '',
         subjects: ((json['subjects'] as List?) ?? [])
             .map((e) => ReportSubject.fromJson(e as Map<String, dynamic>))
             .toList(),

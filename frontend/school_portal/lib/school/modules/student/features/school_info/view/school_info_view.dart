@@ -194,6 +194,7 @@ class _Uniform extends StatelessWidget {
               top: 4,
               right: 4,
               child: IconButton(
+                tooltip: 'Close',
                 icon: const Icon(AppIcons.closeRounded, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
               ),

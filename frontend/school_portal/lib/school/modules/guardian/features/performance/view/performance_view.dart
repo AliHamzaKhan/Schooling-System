@@ -68,8 +68,8 @@ class _HeadlineCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('GPA', style: AppTypography.bodyLg),
-                Text(data.gpa.toStringAsFixed(2),
+                Text('Overall', style: AppTypography.bodyLg),
+                Text('${data.averagePercent.round()}%',
                     style: AppTypography.displayLg.copyWith(fontSize: 40)),
               ],
             ),
@@ -80,12 +80,12 @@ class _HeadlineCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Class Rank', style: AppTypography.bodyLg),
-                Text('#${data.classRank}',
-                    style: AppTypography.displayLg.copyWith(fontSize: 40)),
-                Text('of ${data.classSize} students',
-                    style: AppTypography.labelMd
-                        .copyWith(color: AppColors.onSurfaceVariant)),
+                Text('Latest exam', style: AppTypography.bodyLg),
+                Text(data.termLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.titleMd
+                        .copyWith(fontWeight: FontWeight.w800)),
               ],
             ),
           ),
@@ -146,7 +146,8 @@ class _SubjectRow extends StatelessWidget {
                   style: AppTypography.titleMd
                       .copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              StatusPill.trend(grade.deltaPercent),
+              if (grade.deltaPercent != null)
+                StatusPill.trend(grade.deltaPercent!),
             ],
           ),
         ],

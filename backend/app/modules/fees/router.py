@@ -7,7 +7,6 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Header, Query, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
 
 from app.core.deps import (
     CurrentUser,
@@ -15,10 +14,9 @@ from app.core.deps import (
     require_school_admin,
     require_school_permission,
 )
-from app.core.enums import Module, PermissionAction as PA, SystemRole
+from app.core.enums import Module, PermissionAction as PA
 from app.core.exceptions import forbidden, not_found
-from app.models.associations import guardian_students
-from app.modules.permissions.service import PermissionService
+from app.core.family_scope import FamilyScope
 from app.core.pagination import OffsetPage
 from app.modules.fees import schemas
 from app.modules.fees.service import FeeService
@@ -31,34 +29,7 @@ _export = Depends(require_school_permission(Module.FEE_MANAGEMENT, PA.EXPORT))
 _admin = Depends(require_school_admin)
 
 
-_FAMILY_ROLES = {SystemRole.GUARDIAN.value, SystemRole.STUDENT.value}
-
-
-async def fee_reader_scope(
-    school_id: uuid.UUID, current_user: CurrentUser, db: DbDep
-) -> set[uuid.UUID] | None:
-    """Students whose fees this caller may read; ``None`` means the whole school.
-
-    Guardians hold fee VIEW so they can see their children's fees; that module
-    permission alone must not open every family's records. A caller whose only
-    roles are guardian/student is limited to themselves and their currently
-    linked children. Staff roles keep school-wide fee visibility.
-    """
-    codes = {role.code for role in current_user.roles}
-    if PermissionService.is_super_admin(current_user) or not codes <= _FAMILY_ROLES:
-        return None
-    visible = {current_user.id} if SystemRole.STUDENT.value in codes else set()
-    if SystemRole.GUARDIAN.value in codes:
-        visible |= set((await db.execute(
-            select(guardian_students.c.student_id).where(
-                guardian_students.c.school_id == school_id,
-                guardian_students.c.guardian_id == current_user.id,
-            )
-        )).scalars())
-    return visible
-
-
-FeeScope = Depends(fee_reader_scope)
+FeeScope = FamilyScope
 
 
 def _require_visible(invoice, scope: set[uuid.UUID] | None) -> None:
@@ -144,7 +115,11 @@ async def list_invoices(
         school_id, student_id, status, class_id, page.limit, page.offset,
         with_total=False, visible_student_ids=scope,
     )
-    return items
+    names = await FeeService(db).student_names(school_id, {i.student_id for i in items})
+    return [
+        schemas.InvoiceOut.model_validate(i).model_copy(update={"student_name": names.get(i.student_id)})
+        for i in items
+    ]
 
 
 @router.get("/students", response_model=schemas.StudentFeePage, dependencies=[_view])

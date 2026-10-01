@@ -91,6 +91,7 @@ class _TrackCard extends StatelessWidget {
                 Expanded(child: Text('Track your bus', style: AppTypography.titleLg)),
                 if (hasTrip)
                   IconButton(
+                    tooltip: 'Refresh',
                     icon: const Icon(AppIcons.refresh, size: 20),
                     onPressed: () =>
                         controller.refreshTracking(controller.trips.first.id),

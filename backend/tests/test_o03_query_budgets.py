@@ -31,7 +31,7 @@ HISTORY_ROWS = 105
 # permission resolution, measured without Redis (the uncached worst case).
 # Raising one requires a recorded reason in the O03 progress log.
 QUERY_BUDGETS = {
-    "fees.invoices": 10,
+    "fees.invoices": 11,  # +1 batched student-name lookup
     "communication.broadcasts": 10,
     "messages.history": 11,
 }

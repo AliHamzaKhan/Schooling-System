@@ -98,6 +98,7 @@ class _LoginViewState extends State<LoginView> with ScreenTextControllers {
                 prefixIcon: AppIcons.lockOutline,
                 onSubmitted: (_) => controller.submit(),
                 suffix: IconButton(
+                  tooltip: 'Show or hide password',
                   splashRadius: 18,
                   icon: Icon(
                     controller.obscurePassword.value

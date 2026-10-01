@@ -22,6 +22,7 @@ class NotificationsView extends GetView<NotificationsController> {
             onBell: () => Get.back<void>(),
             actions: [
               IconButton(
+                tooltip: 'Back',
                 onPressed: () => Get.back<void>(),
                 icon: const Icon(AppIcons.arrowBackRounded, color: AppColors.primary),
               ),

@@ -835,3 +835,32 @@ hard-coded `$`; the currency is part of the open F06 money-policy decision.
   switcher labels ("Muhammad A." / "Muhammad H."), with full names announced to
   screen readers. "Paid this year" is relabelled "Total paid" (it sums all years).
 
+
+### 2026-10-01 — F01 exam-data leaks (P0, fixed); honest results and real actions
+
+- **Any guardian or student could read every student's exam marks**, including
+  unpublished marks: `GET /exams/papers/{id}/marks` and `/gradebook` checked only
+  EXAMS view, and `GET /exams/{id}/results` and `/exams/{id}/merit-list` returned
+  the whole exam. A shared `app/core/family_scope.py` now applies one rule for
+  family readers (themselves and currently linked children): results and seating
+  are filtered, raw marks, gradebook and merit list are staff-only. Fees use the
+  same helper. `tests/test_exam_family_scope.py` fails on the previous code.
+- `frontend/e2e/chrome/leakscan_ids.py` probes id-keyed endpoints (two hops of
+  real ids per resource type). Before the fix it reported exactly these four
+  endpoints for both roles; after the fix, none. Together with `leakscan.py` all
+  121 school-scoped GET endpoints are covered.
+- **Guardian report card and performance showed invented figures**: a GPA computed
+  as percentage ÷ 25, "Consistent performance across terms" for a single exam,
+  "Class rank #0 of 0" and "+0 %" trends. They now show the published overall
+  percentage and grade, a per-exam trend only when more than one exam is
+  published, and per-subject change only against a real previous exam.
+- **"Download PDF Report" only showed a snackbar.** It now generates and shares a
+  real PDF of the report card on screen (test included).
+- **Fee reminders and dashboard approvals were snackbars that did nothing.**
+  "Remind all" calls `POST /fees/send-reminders`; a single reminder notifies that
+  student's guardians; approvals are the real pending leave queue with working
+  approve/reject. The overdue list now names the student (`student_name` added to
+  the invoice list; budget 10 → 11) and shows real days overdue.
+- **Accessibility**: 35 icon-only buttons had no accessible name; each now has a
+  tooltip/label derived from its action ("Back", "Close", "Show or hide
+  password", "Approve …").

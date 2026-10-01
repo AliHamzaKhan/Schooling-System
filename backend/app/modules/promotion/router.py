@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.core.deps import CurrentUser, DbDep, require_school_permission
 from app.core.enums import Module, PermissionAction as PA
+from app.core.family_scope import require_staff_reader
 from app.modules.promotion import schemas
 from app.modules.promotion.service import PromotionService
 
@@ -61,7 +62,9 @@ async def list_promotions(
 @router.get(
     "/exams/{exam_id}/merit-list",
     response_model=list[schemas.MeritListRow],
-    dependencies=[_exam_view],
+    # A ranked list of every student's marks is a staff view; publishing a
+    # merit list to families would be an explicit school-policy decision.
+    dependencies=[_exam_view, Depends(require_staff_reader)],
 )
 async def merit_list(
     school_id: uuid.UUID,

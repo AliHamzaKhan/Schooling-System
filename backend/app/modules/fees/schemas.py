@@ -77,6 +77,8 @@ class InvoiceOut(BaseModel):
     amount_paid: float
     due_date: date
     status: str
+    # Resolved for list views so staff screens can name the student.
+    student_name: str | None = None
 
     @computed_field
     @property

@@ -53,12 +53,16 @@ class PendingApprovalRow extends StatelessWidget {
           _ActionDot(
             color: AppColors.error,
             icon: AppIcons.closeRounded,
+            label: 'Reject ${approval.title}',
+            tooltip: 'Reject',
             onTap: onReject,
           ),
           const SizedBox(width: 6),
           _ActionDot(
             color: AppColors.tertiary,
             icon: AppIcons.checkRounded,
+            label: 'Approve ${approval.title}',
+            tooltip: 'Approve',
             onTap: onApprove,
           ),
         ],
@@ -70,11 +74,34 @@ class PendingApprovalRow extends StatelessWidget {
 class _ActionDot extends StatelessWidget {
   final Color color;
   final IconData icon;
+  final String label;
+  final String tooltip;
   final VoidCallback onTap;
-  const _ActionDot({required this.color, required this.icon, required this.onTap});
+  const _ActionDot({
+    required this.color,
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Icon-only actions need a name for screen readers and a hover hint.
+    return Tooltip(
+      message: tooltip,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        onTap: onTap,
+        child: _dot(),
+      ),
+    );
+  }
+
+  Widget _dot() {
     return Material(
       color: color.withValues(alpha: 0.14),
       shape: const CircleBorder(),

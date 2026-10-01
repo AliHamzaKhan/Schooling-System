@@ -162,11 +162,13 @@ class _Pager extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
+          tooltip: 'Previous',
           onPressed: page > 1 ? onPrev : null,
           icon: const Icon(AppIcons.chevronLeftRounded),
         ),
         Text('Page $page of $total', style: AdminType.label),
         IconButton(
+          tooltip: 'Next',
           onPressed: page < total ? onNext : null,
           icon: const Icon(AppIcons.chevronRightRounded),
         ),

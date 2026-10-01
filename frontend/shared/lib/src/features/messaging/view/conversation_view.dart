@@ -124,6 +124,7 @@ class _ConversationViewState extends State<ConversationView> {
         child: Row(
           children: [
             IconButton(
+              tooltip: 'Back',
               icon: const Icon(AppIcons.arrowBackRounded),
               color: AppColors.onSurface,
               onPressed: () => Get.back<void>(),

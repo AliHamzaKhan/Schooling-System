@@ -9,7 +9,7 @@ import '../models/subscription_status.dart';
 class HeadmasterDashboardController extends GetxController {
   final HeadmasterRepository _repo;
   HeadmasterDashboardController({HeadmasterRepository? repo})
-      : _repo = repo ?? Get.find<HeadmasterRepository>();
+    : _repo = repo ?? Get.find<HeadmasterRepository>();
 
   final loading = true.obs;
   final error = RxnString();
@@ -60,11 +60,20 @@ class HeadmasterDashboardController extends GetxController {
     if (res.success && res.data != null) schoolName.value = res.data!.name;
   }
 
-  void approve(String id) =>
-      Get.snackbar('Approved', 'Approval $id sent.',
-          snackPosition: SnackPosition.BOTTOM);
+  /// Approves or rejects a pending leave request, then reloads the queue.
+  Future<void> approve(String id) => _review(id, true);
 
-  void reject(String id) =>
-      Get.snackbar('Rejected', 'Approval $id rejected.',
-          snackPosition: SnackPosition.BOTTOM);
+  Future<void> reject(String id) => _review(id, false);
+
+  Future<void> _review(String id, bool approve) async {
+    final res = await _repo.reviewLeave(leaveId: id, approve: approve);
+    Get.snackbar(
+      res.success ? (approve ? 'Approved' : 'Rejected') : 'Not saved',
+      res.success
+          ? 'The leave request was ${approve ? 'approved' : 'rejected'}.'
+          : (res.error ?? 'Please try again.'),
+      snackPosition: SnackPosition.BOTTOM,
+    );
+    if (res.success) await load();
+  }
 }

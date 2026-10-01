@@ -183,6 +183,7 @@ class _Pager extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
+          tooltip: 'Previous',
           onPressed: page > 1 ? () => onChanged(page - 1) : null,
           icon: const Icon(AppIcons.chevronLeftRounded),
         ),
@@ -205,6 +206,7 @@ class _Pager extends StatelessWidget {
             ),
           ),
         IconButton(
+          tooltip: 'Next',
           onPressed: page < total ? () => onChanged(page + 1) : null,
           icon: const Icon(AppIcons.chevronRightRounded),
         ),

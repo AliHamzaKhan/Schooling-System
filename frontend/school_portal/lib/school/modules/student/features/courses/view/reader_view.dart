@@ -119,14 +119,17 @@ class _SearchBarState extends State<_SearchBar> with ScreenTextControllers {
             );
           }),
           IconButton(
+            tooltip: 'Previous match',
             icon: const Icon(AppIcons.keyboardArrowUpRounded),
             onPressed: controller.findPrev,
           ),
           IconButton(
+            tooltip: 'Next match',
             icon: const Icon(AppIcons.keyboardArrowDownRounded),
             onPressed: controller.findNext,
           ),
           IconButton(
+            tooltip: 'Close',
             icon: const Icon(AppIcons.closeRounded),
             onPressed: controller.toggleSearch,
           ),
@@ -250,6 +253,7 @@ class _ChapterNavBar extends StatelessWidget {
           child: Obx(() => Row(
                 children: [
                   IconButton(
+                    tooltip: 'Previous',
                     icon: const Icon(AppIcons.chevronLeftRounded),
                     onPressed: controller.hasPrev ? controller.goPrevChapter : null,
                   ),
@@ -264,6 +268,7 @@ class _ChapterNavBar extends StatelessWidget {
                     ),
                   ),
                   IconButton(
+                    tooltip: 'Next',
                     icon: const Icon(AppIcons.chevronRightRounded),
                     onPressed: controller.hasNext ? controller.goNextChapter : null,
                   ),

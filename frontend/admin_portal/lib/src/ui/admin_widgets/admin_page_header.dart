@@ -33,6 +33,7 @@ class AdminScreenHeader extends StatelessWidget {
           if (showBack) ...[
             _RoundIconButton(
               icon: AppIcons.arrowBackRounded,
+              tooltip: 'Back',
               onTap: () => Get.back<void>(),
             ),
             const SizedBox(width: AppSpacing.stackMd),
@@ -47,26 +48,40 @@ class AdminScreenHeader extends StatelessWidget {
 
 class _RoundIconButton extends StatelessWidget {
   final IconData icon;
+  final String tooltip;
   final VoidCallback onTap;
-  const _RoundIconButton({required this.icon, required this.onTap});
+  const _RoundIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AdminPalette.card,
-      borderRadius: BorderRadius.circular(11),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(11),
-        child: Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
+    // Icon-only control: named for screen readers, hinted on hover.
+    return Tooltip(
+      message: tooltip,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: Material(
+          color: AdminPalette.card,
+          borderRadius: BorderRadius.circular(11),
+          child: InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: AdminPalette.border),
+            child: Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: AdminPalette.border),
+              ),
+              child: Icon(icon, color: AdminPalette.ink, size: 20),
+            ),
           ),
-          child: Icon(icon, color: AdminPalette.ink, size: 20),
         ),
       ),
     );

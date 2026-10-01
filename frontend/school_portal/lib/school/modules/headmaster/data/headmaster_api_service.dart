@@ -119,13 +119,20 @@ class HeadmasterApiService {
     return parsed == null ? iso : _dt.toRelative(parsed.toLocal());
   }
 
+  int _daysOverdue(String? dueDate) {
+    final due = DateTime.tryParse(dueDate ?? '');
+    if (due == null) return 0;
+    final today = DateTime.now();
+    final days = DateTime(today.year, today.month, today.day).difference(due).inDays;
+    return days < 0 ? 0 : days;
+  }
+
   String _money(num v) =>
       '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
 
   /// Headmaster Dashboard — KPI metrics from `/reports/overview` plus recent
-  /// announcements from `/communication/broadcasts`. The backend exposes no
-  /// pending-approval queue, so [DashboardData.approvals] stays empty; trend
-  /// percentages are not tracked server-side (default 0).
+  /// announcements from `/communication/broadcasts`, and the pending leave
+  /// requests awaiting this headmaster as the approvals queue.
   Future<ApiResponse<DashboardData>> fetchDashboard() async {
     final ov = await _get(HeadmasterEndpoints.reportsOverview(_sid));
     if (!ov.success) return ApiResponse.fail(ov.error ?? 'Failed to load');
@@ -147,6 +154,24 @@ class HeadmasterApiService {
             });
           }).toList()
         : <RecentAnnouncementSummary>[];
+    // The approvals queue is the real pending leave review list; a failure
+    // here leaves it empty rather than failing the whole dashboard.
+    final leave = await fetchLeaveReview();
+    final approvals = leave.success
+        ? (leave.data ?? const <LeaveReviewItem>[])
+              .where((l) => l.status == 'pending')
+              .take(5)
+              .map(
+                (l) => PendingApproval(
+                  id: l.id,
+                  icon: AppIcons.pendingActionsRounded,
+                  title:
+                      '${l.leaveType ?? 'Leave'} · ${l.startDate} – ${l.endDate}',
+                  requestedBy: l.studentName ?? l.requesterName ?? '',
+                ),
+              )
+              .toList()
+        : <PendingApproval>[];
     return ApiResponse.ok(
       DashboardData(
         greeting: _userName.isEmpty
@@ -168,7 +193,7 @@ class HeadmasterApiService {
             'value': o['subjects'],
           }),
         ],
-        approvals: const [],
+        approvals: approvals,
         announcements: announcements,
       ),
     );
@@ -332,9 +357,10 @@ class HeadmasterApiService {
               .map(
                 (i) => OverduePayment.fromJson({
                   'id': i['id'],
-                  'student_name': i['title'] ?? 'Invoice',
-                  'grade': '',
-                  'overdue_days': 0,
+                  'student_id': i['student_id'],
+                  'student_name': i['student_name'] ?? i['title'] ?? 'Invoice',
+                  'grade': i['title'] ?? '',
+                  'overdue_days': _daysOverdue(i['due_date'] as String?),
                   'amount': i['balance'] ?? 0,
                 }),
               )
@@ -1429,6 +1455,7 @@ class HeadmasterApiService {
     required String body,
     String? title,
     String audienceType = 'entire_school',
+    String? audienceRef,
     String channel = 'push',
   }) {
     final sid = _sid;
@@ -1446,6 +1473,7 @@ class HeadmasterApiService {
       payload: {
         'channel': channel,
         'audience_type': audienceType,
+        'audience_ref': ?audienceRef,
         'title': ?title,
         'body': body,
       },
@@ -1968,6 +1996,15 @@ class HeadmasterApiService {
           .cast<Map<String, dynamic>>()
           .map(LeaveReviewItem.fromJson)
           .toList(),
+    );
+  }
+
+  /// Notifies guardians of every student with outstanding fees.
+  Future<ApiResponse<int>> sendFeeReminders() {
+    return _api.request<int>(
+      method: HttpMethod.post,
+      path: HeadmasterEndpoints.feesSendReminders(_sid),
+      parser: (json) => ((json as Map)['notified_students'] as num?)?.toInt() ?? 0,
     );
   }
 

@@ -122,6 +122,7 @@ class _EyeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
+      tooltip: 'Show or hide password',
       splashRadius: 18,
       icon: Icon(
         obscured ? AppIcons.visibilityOutlined : AppIcons.visibilityOffOutlined,

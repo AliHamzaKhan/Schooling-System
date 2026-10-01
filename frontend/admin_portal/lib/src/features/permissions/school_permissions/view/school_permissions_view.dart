@@ -25,6 +25,7 @@ class SchoolPermissionsView extends GetView<SchoolPermissionsController> {
             child: Row(
               children: [
                 IconButton(
+                  tooltip: 'Back',
                   onPressed: () => Get.back<void>(),
                   icon: const Icon(AppIcons.arrowBackRounded, color: AdminPalette.ink),
                 ),

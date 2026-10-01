@@ -373,11 +373,15 @@ class HeadmasterRepository {
     required String body,
     String? title,
     String audienceType = 'entire_school',
+    String? audienceRef,
   }) => _api.createBroadcast(
     body: body,
     title: title,
     audienceType: audienceType,
+    audienceRef: audienceRef,
   );
+
+  Future<ApiResponse<int>> sendFeeReminders() => _api.sendFeeReminders();
 
   /// Publish computed results for a single exam.
   Future<ApiResponse<dynamic>> publishExamResults(String examId) =>

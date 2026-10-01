@@ -352,59 +352,87 @@ class GuardianApiService {
   // ---------------------- report card / performance --------------------- #
 
   /// The child's most recent completed/published exam, or null.
-  Future<Map<String, dynamic>?> _latestCompletedExam() async {
-    final completed = (await _examList()).where(_isCompleted).toList()
-      ..sort((a, b) => '${b['start_date']}'.compareTo('${a['start_date']}'));
-    return completed.isEmpty ? null : completed.first;
+  /// The child's published exam results, newest first (server ordered).
+  Future<ApiResponse<List<Map<String, dynamic>>>> _childResults(
+    String childId,
+  ) async {
+    final res = await _get(GuardianEndpoints.studentResults(_sid, childId));
+    if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
+    return ApiResponse.ok((res.data as List).cast<Map<String, dynamic>>());
   }
 
+  /// Subject lines of one published exam's report card.
+  Future<ApiResponse<Map<String, dynamic>>> _reportCard(
+    String examId,
+    String childId,
+  ) async {
+    final rc = await _get(GuardianEndpoints.reportCard(_sid, examId, childId));
+    if (!rc.success) return ApiResponse.fail(rc.error ?? 'Failed to load');
+    return ApiResponse.ok((rc.data as Map).cast<String, dynamic>());
+  }
+
+  double _pct(Map<String, dynamic> l) {
+    final max = (l['max_marks'] as num?)?.toDouble() ?? 0;
+    final got = (l['marks_obtained'] as num?)?.toDouble() ?? 0;
+    return max == 0 ? 0.0 : got * 100 / max;
+  }
+
+  /// Latest published exam for the child, with every published exam as a
+  /// trend. Nothing is derived that the school did not publish (no GPA scale).
   Future<ApiResponse<ReportCardData>> fetchReportCard(String childId) async {
-    final exam = await _latestCompletedExam();
-    if (exam == null) {
+    final results = await _childResults(childId);
+    if (!results.success) return ApiResponse.fail(results.error ?? 'Failed to load');
+    final published = results.data!;
+    if (published.isEmpty) {
       return ApiResponse.ok(
         const ReportCardData(
           termLabel: 'No results yet',
-          gpa: 0,
+          averagePercent: 0,
           subjects: [],
           gpaTrend: [],
         ),
       );
     }
-    final rc = await _get(
-      GuardianEndpoints.reportCard(_sid, '${exam['id']}', childId),
-    );
+    final latest = published.first;
+    final rc = await _reportCard('${latest['exam_id']}', childId);
     if (!rc.success) return ApiResponse.fail(rc.error ?? 'Failed to load');
-    final m = (rc.data as Map).cast<String, dynamic>();
     final subjects = await _subjects();
-    final lines = ((m['lines'] as List?) ?? []).cast<Map<String, dynamic>>();
-    final pct = (m['percentage'] as num?)?.toDouble() ?? 0;
+    final lines = ((rc.data!['lines'] as List?) ?? []).cast<Map<String, dynamic>>();
     return ApiResponse.ok(
       ReportCardData(
-        termLabel: exam['name'] as String? ?? 'Results',
-        gpa: (pct / 25).clamp(0, 4).toDouble(),
-        subjects: lines.map((l) {
-          final max = (l['max_marks'] as num?)?.toDouble() ?? 0;
-          final got = (l['marks_obtained'] as num?)?.toDouble() ?? 0;
-          final p = max == 0 ? 0.0 : got * 100 / max;
-          return ReportSubject(
-            subject: subjects['${l['subject_id']}'] ?? 'Subject',
-            grade: _grade(p),
-            percent: p.round(),
-          );
-        }).toList(),
+        termLabel: latest['exam_name'] as String? ?? 'Results',
+        averagePercent: (latest['percentage'] as num?)?.toDouble() ?? 0,
+        overallGrade: latest['grade'] as String? ?? '',
+        subjects: lines
+            .map(
+              (l) => ReportSubject(
+                subject: subjects['${l['subject_id']}'] ?? 'Subject',
+                grade: _grade(_pct(l)),
+                percent: _pct(l).round(),
+              ),
+            )
+            .toList(),
         gpaTrend: [
-          GpaTrendPoint(label: 'Term', gpa: (pct / 25).clamp(0, 4).toDouble()),
+          for (final r in published.reversed)
+            GpaTrendPoint(
+              label: r['exam_name'] as String? ?? '',
+              percent: (r['percentage'] as num?)?.toDouble() ?? 0,
+            ),
         ],
       ),
     );
   }
 
+  /// Latest published exam by subject, with each subject's change against the
+  /// previous published exam when the child sat that subject there too.
   Future<ApiResponse<PerformanceData>> fetchPerformance(String childId) async {
-    final exam = await _latestCompletedExam();
-    if (exam == null) {
+    final results = await _childResults(childId);
+    if (!results.success) return ApiResponse.fail(results.error ?? 'Failed to load');
+    final published = results.data!;
+    if (published.isEmpty) {
       return ApiResponse.ok(
         const PerformanceData(
-          gpa: 0,
+          averagePercent: 0,
           classRank: 0,
           classSize: 0,
           termLabel: 'No results yet',
@@ -413,33 +441,40 @@ class GuardianApiService {
         ),
       );
     }
-    final rc = await _get(
-      GuardianEndpoints.reportCard(_sid, '${exam['id']}', childId),
-    );
+    final latest = published.first;
+    final rc = await _reportCard('${latest['exam_id']}', childId);
     if (!rc.success) return ApiResponse.fail(rc.error ?? 'Failed to load');
-    final m = (rc.data as Map).cast<String, dynamic>();
+    final previous = <String, double>{};
+    if (published.length > 1) {
+      final prior = await _reportCard('${published[1]['exam_id']}', childId);
+      if (prior.success) {
+        for (final l in ((prior.data!['lines'] as List?) ?? []).cast<Map<String, dynamic>>()) {
+          previous['${l['subject_id']}'] = _pct(l);
+        }
+      }
+    }
     final subjects = await _subjects();
-    final lines = ((m['lines'] as List?) ?? []).cast<Map<String, dynamic>>();
-    final pct = (m['percentage'] as num?)?.toDouble() ?? 0;
-    final gpa = (pct / 25).clamp(0, 4).toDouble();
+    final lines = ((rc.data!['lines'] as List?) ?? []).cast<Map<String, dynamic>>();
     return ApiResponse.ok(
       PerformanceData(
-        gpa: gpa,
+        averagePercent: (latest['percentage'] as num?)?.toDouble() ?? 0,
         classRank: 0,
         classSize: 0,
-        termLabel: exam['name'] as String? ?? 'Results',
+        termLabel: latest['exam_name'] as String? ?? 'Results',
         subjects: lines.map((l) {
-          final max = (l['max_marks'] as num?)?.toDouble() ?? 0;
-          final got = (l['marks_obtained'] as num?)?.toDouble() ?? 0;
-          final p = max == 0 ? 0.0 : got * 100 / max;
+          final p = _pct(l);
+          final before = previous['${l['subject_id']}'];
           return SubjectGrade(
             subject: subjects['${l['subject_id']}'] ?? 'Subject',
             grade: _grade(p),
             percent: p.round(),
-            deltaPercent: 0,
+            deltaPercent: before == null ? null : p - before,
           );
         }).toList(),
-        gpaTrend: [gpa],
+        gpaTrend: [
+          for (final r in published.reversed)
+            (r['percentage'] as num?)?.toDouble() ?? 0,
+        ],
       ),
     );
   }

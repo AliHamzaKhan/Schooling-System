@@ -25,6 +25,7 @@ class SchoolModulesEditorView extends GetView<SchoolModulesController> {
             child: Row(
               children: [
                 IconButton(
+                  tooltip: 'Back',
                   onPressed: () => Get.back<void>(),
                   icon: const Icon(AppIcons.arrowBackRounded, color: AdminPalette.ink),
                 ),

@@ -112,6 +112,7 @@ class _ChipInputState extends State<ChipInput> {
                     ),
                   ),
                   IconButton(
+                    tooltip: 'Add',
                     icon: const Icon(AppIcons.addCircleOutlineRounded,
                         color: AppColors.primary, size: 22),
                     onPressed: _add,

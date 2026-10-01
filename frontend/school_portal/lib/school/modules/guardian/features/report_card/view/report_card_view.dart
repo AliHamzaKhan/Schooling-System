@@ -8,6 +8,8 @@ import '../../../../../widgets/status_pill.dart';
 import '../../../shared/widgets/child_switcher.dart';
 import '../controller/report_card_controller.dart';
 import '../models/report_card_data.dart';
+import '../utils/report_card_pdf.dart';
+import '../../../shared/controller/guardian_session_controller.dart';
 import '../../../../../widgets/skeletons.dart';
 
 /// Report Card — drill-in screen showing the active child's term results
@@ -41,11 +43,25 @@ class ReportCardView extends GetView<ReportCardController> {
                     leadingIcon: AppIcons.downloadRounded,
                     trailingIcon: null,
                     expanded: true,
-                    onPressed: () => Get.snackbar(
-                      'Report Card',
-                      'Your PDF report will download shortly.',
-                      snackPosition: SnackPosition.BOTTOM,
-                    ),
+                    onPressed: d.subjects.isEmpty
+                        ? null
+                        : () async {
+                            final child =
+                                Get.find<GuardianSessionController>().selected;
+                            try {
+                              await ReportCardPdf.share(
+                                childName: child?.name ?? 'Student',
+                                grade: child?.grade ?? '',
+                                data: d,
+                              );
+                            } catch (_) {
+                              Get.snackbar(
+                                'Report Card',
+                                'The PDF could not be created. Please try again.',
+                                snackPosition: SnackPosition.BOTTOM,
+                              );
+                            }
+                          },
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
                   Row(
@@ -54,7 +70,9 @@ class ReportCardView extends GetView<ReportCardController> {
                         child: SectionHeader(title: d.termLabel),
                       ),
                       StatusPill(
-                        label: 'GPA: ${d.gpa.toStringAsFixed(1)}',
+                        label: d.overallGrade.isEmpty
+                            ? '${d.averagePercent.round()}%'
+                            : '${d.averagePercent.round()}% · ${d.overallGrade}',
                         color: AppColors.primary,
                         icon: AppIcons.schoolRounded,
                       ),
@@ -69,12 +87,15 @@ class ReportCardView extends GetView<ReportCardController> {
                       const SizedBox(height: AppSpacing.stackSm),
                     ],
                   const SizedBox(height: AppSpacing.stackLg),
-                  const SectionHeader(title: 'GPA Trend'),
+                  const SectionHeader(title: 'Results by exam'),
                   const SizedBox(height: 6.0),
-                  Text('Consistent performance across terms.',
-                      style: AppTypography.bodyMd),
-                  const SizedBox(height: AppSpacing.stackMd),
-                  if (d.gpaTrend.isNotEmpty) _GpaTrendChart(points: d.gpaTrend),
+                  if (d.gpaTrend.length < 2)
+                    Text(
+                      'A trend appears after more than one published exam.',
+                      style: AppTypography.bodyMd,
+                    )
+                  else
+                    _GpaTrendChart(points: d.gpaTrend),
                 ],
               );
             }),
@@ -153,7 +174,7 @@ class _GpaTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const maxGpa = 4.0;
+    const maxPercent = 100.0;
     return GlassSurface(
       child: SizedBox(
         height: 180,
@@ -168,12 +189,12 @@ class _GpaTrendChart extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text(p.gpa.toStringAsFixed(1),
+                      Text('${p.percent.round()}%',
                           style: AppTypography.labelMd),
                       const SizedBox(height: 4),
                       Expanded(
                         child: FractionallySizedBox(
-                          heightFactor: (p.gpa / maxGpa).clamp(0.05, 1.0),
+                          heightFactor: (p.percent / maxPercent).clamp(0.05, 1.0),
                           alignment: Alignment.bottomCenter,
                           child: Container(
                             decoration: BoxDecoration(

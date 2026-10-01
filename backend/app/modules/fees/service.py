@@ -354,6 +354,18 @@ class FeeService:
         await self.db.flush()
         return invoices
 
+    async def student_names(
+        self, school_id: uuid.UUID, student_ids: set[uuid.UUID]
+    ) -> dict[uuid.UUID, str]:
+        """One batched lookup of student display names for a list page."""
+        if not student_ids:
+            return {}
+        return dict((await self.db.execute(
+            select(User.id, User.full_name).where(
+                User.school_id == school_id, User.id.in_(student_ids)
+            )
+        )).all())
+
     async def get_invoice(self, school_id: uuid.UUID, invoice_id: uuid.UUID) -> Invoice:
         return await self._get_scoped(Invoice, school_id, invoice_id, "Invoice")
 

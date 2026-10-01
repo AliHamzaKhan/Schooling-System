@@ -181,6 +181,7 @@ class _SchoolPicker extends StatelessWidget {
             onChanged: controller.onSchoolSearch,
             action: AdminIconButton(
               icon: AppIcons.searchRounded,
+              tooltip: 'Search',
               onTap: controller.searchSchoolsNow,
             ),
           ),
@@ -313,11 +314,13 @@ class _PickerPager extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
+            tooltip: 'Previous',
             onPressed: page > 1 ? controller.schoolPickerPrev : null,
             icon: const Icon(AppIcons.chevronLeftRounded),
           ),
           Text('Page $page', style: AdminType.label),
           IconButton(
+            tooltip: 'Next',
             onPressed: hasMore ? controller.schoolPickerNext : null,
             icon: const Icon(AppIcons.chevronRightRounded),
           ),
@@ -378,6 +381,7 @@ class _PasswordField extends StatelessWidget {
               borderSide: const BorderSide(color: AdminPalette.border),
             ),
             suffixIcon: IconButton(
+              tooltip: 'Show or hide password',
               icon: Icon(
                 obscure
                     ? AppIcons.visibilityOffOutlined
