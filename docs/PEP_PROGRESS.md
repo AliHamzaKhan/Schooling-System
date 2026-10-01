@@ -649,3 +649,15 @@ full isolated backend regression. No UI preview; no production data migration.
   deterministic pagination/recovery baseline, not a production performance
   measurement. O03 remains in progress for query/API budgets, cache policy,
   bulk quotas and representative device/browser traces.
+
+### 2026-10-01 — O03.10 invoice-page query index
+
+- Added the reversible `ix_invoices_school_due_id` composite index used by the
+  stable school-scoped invoice history query (`school_id`, `due_date`, `id`).
+  It supplements the existing single-column indexes and does not change the
+  list response or finance values.
+- The additive migration upgrade/downgrade is exercised in a disposable schema
+  alongside the representative-invoice and standard invoice-page regressions:
+  **3 passed**. Ruff, migration-head and whitespace checks pass. Query timing
+  and capacity budgets still require an agreed staging-size fixture; no
+  production schema change or measurement has been performed.

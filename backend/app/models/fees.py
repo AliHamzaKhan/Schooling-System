@@ -2,7 +2,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Float, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, Date, Float, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,6 +34,11 @@ class Invoice(Base, UUIDMixin, TimestampMixin):
     """A fee charge issued to a student."""
 
     __tablename__ = "invoices"
+    __table_args__ = (
+        # Matches the stable school-scoped invoice page order.  The separate
+        # single-column indexes remain useful for other predicates.
+        Index("ix_invoices_school_due_id", "school_id", "due_date", "id"),
+    )
 
     school_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("schools.id", ondelete="CASCADE"), nullable=False, index=True
