@@ -875,3 +875,8 @@ Full isolated backend suite after `ba0617d`: **exit 0, no failures**.
 Two more invented trends removed: the fee card's "+0 % vs last term" and the
 student attendance card's "+0 % from last month" (no history exists for either);
 they now appear only when a real previous figure is provided.
+
+Quiz security probe (L04/M14): a student who has not attempted a published quiz
+receives questions and options with `correct_answer: null`; other students'
+attempts, quiz performance and reports return 403 to students and guardians.
+No change needed.
