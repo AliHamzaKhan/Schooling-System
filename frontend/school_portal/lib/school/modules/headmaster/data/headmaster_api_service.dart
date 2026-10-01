@@ -128,7 +128,7 @@ class HeadmasterApiService {
   }
 
   String _money(num v) =>
-      '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+      '${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
 
   /// Headmaster Dashboard — KPI metrics from `/reports/overview` plus recent
   /// announcements from `/communication/broadcasts`, and the pending leave
@@ -1379,7 +1379,6 @@ class HeadmasterApiService {
     required String kind,
     required String targetId,
     required String proposedAmount,
-    required String currencyCode,
     required String reason,
   }) => _api.request<Map<String, dynamic>>(
     method: HttpMethod.post,
@@ -1388,7 +1387,6 @@ class HeadmasterApiService {
       'kind': kind,
       'target_id': targetId,
       'proposed_amount': proposedAmount.trim(),
-      'currency_code': currencyCode.trim(),
       'reason': reason.trim(),
     },
     parser: (json) => (json as Map).cast<String, dynamic>(),

@@ -103,8 +103,7 @@ void main() {
 
       final fields = find.byType(TextField);
       await tester.enterText(fields.at(0), '1500.00');
-      await tester.enterText(fields.at(1), 'pkr');
-      await tester.enterText(fields.at(2), 'Correct attendance deduction');
+      await tester.enterText(fields.at(1), 'Correct attendance deduction');
       final submit = find.text('Submit for review');
       await tester.ensureVisible(submit);
       await tester.tap(submit);
@@ -119,7 +118,6 @@ void main() {
         'kind': 'payroll_correction',
         'target_id': 'payslip-1',
         'proposed_amount': '1500.00',
-        'currency_code': 'PKR',
         'reason': 'Correct attendance deduction',
       });
       expect(tester.takeException(), isNull);

@@ -146,13 +146,11 @@ class HeadmasterRepository {
     required String kind,
     required String targetId,
     required String proposedAmount,
-    required String currencyCode,
     required String reason,
   }) => _api.createFinancialAdjustment(
     kind: kind,
     targetId: targetId,
     proposedAmount: proposedAmount,
-    currencyCode: currencyCode,
     reason: reason,
   );
 

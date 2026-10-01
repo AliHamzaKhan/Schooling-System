@@ -24,7 +24,7 @@ class OverduePayment {
   });
 
   String get amountLabel =>
-      '\$${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+      '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
 
   factory OverduePayment.fromJson(Map<String, dynamic> json) => OverduePayment(
     id: '${json['id']}',

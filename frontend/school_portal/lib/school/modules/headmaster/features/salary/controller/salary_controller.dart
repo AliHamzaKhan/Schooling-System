@@ -281,13 +281,12 @@ class SalaryController extends GetxController {
   /// records the request only; money-policy posting is deliberately separate.
   Future<void> requestPayrollCorrectionFlow(PayslipRow p) async {
     final amount = TextEditingController();
-    final currency = TextEditingController();
     final reason = TextEditingController();
     final monthName = monthNames[(p.month - 1).clamp(0, 11)];
     final ok = await showActionFormSheet(
       title: 'Request Payroll Correction',
       submitLabel: 'Submit for review',
-      ownedControllers: [amount, currency, reason],
+      ownedControllers: [amount, reason],
       fields: [
         _PayrollCorrectionNotice(
           period: '$monthName ${p.year}',
@@ -300,20 +299,6 @@ class SalaryController extends GetxController {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
         ),
         GlassInput(
-          label: 'Currency code',
-          hint: 'e.g. PKR',
-          controller: currency,
-          onChanged: (value) {
-            final upper = value.toUpperCase();
-            if (upper != value) {
-              currency.value = TextEditingValue(
-                text: upper,
-                selection: TextSelection.collapsed(offset: upper.length),
-              );
-            }
-          },
-        ),
-        GlassInput(
           label: 'Reason',
           hint: 'Explain what needs correction',
           controller: reason,
@@ -322,15 +307,11 @@ class SalaryController extends GetxController {
       onSubmit: () async {
         final proposedAmount = amount.text.trim();
         final parsedAmount = double.tryParse(proposedAmount);
-        final currencyCode = currency.text.trim().toUpperCase();
         final requestReason = reason.text.trim();
         if (parsedAmount == null ||
             !parsedAmount.isFinite ||
             parsedAmount <= 0) {
           return 'Enter a positive proposed correction amount.';
-        }
-        if (!RegExp(r'^[A-Z]{3}$').hasMatch(currencyCode)) {
-          return 'Enter a three-letter currency code.';
         }
         if (requestReason.length < 3) {
           return 'Give a reason with at least 3 characters.';
@@ -339,7 +320,6 @@ class SalaryController extends GetxController {
           kind: 'payroll_correction',
           targetId: p.id,
           proposedAmount: proposedAmount,
-          currencyCode: currencyCode,
           reason: requestReason,
         );
         return result.success

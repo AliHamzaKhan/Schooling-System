@@ -14,8 +14,9 @@ class Formatters {
     return n < 0 ? '-$buf' : buf.toString();
   }
 
-  /// `1200 → "$1,200"`. Always 0 decimals — used for currency badges.
-  static String currency(num amount, {String symbol = '\$'}) =>
+  /// `1200 → "1,200"`. Amounts are plain numbers in the school's own
+  /// currency, which the product does not name. Always 0 decimals.
+  static String currency(num amount, {String symbol = ''}) =>
       '$symbol${compactInt(amount.round())}';
 
   /// Up-to-two-letter initials extracted from a person's name. Strips common

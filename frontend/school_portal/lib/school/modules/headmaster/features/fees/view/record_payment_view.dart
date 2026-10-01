@@ -273,7 +273,7 @@ Color _statusColor(String status) => switch (status) {
 };
 
 String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+    '${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
 
 class _StudentResultTile extends StatelessWidget {
   final StudentFeeSnapshot snapshot;
@@ -807,7 +807,6 @@ class _InvoiceAdjustmentSheetState extends State<_InvoiceAdjustmentSheet> {
                 : widget.invoice.amount)
             .toStringAsFixed(2),
   );
-  final _currency = TextEditingController();
   final _reason = TextEditingController();
   String _kind = 'credit';
   bool _submitting = false;
@@ -816,21 +815,15 @@ class _InvoiceAdjustmentSheetState extends State<_InvoiceAdjustmentSheet> {
   @override
   void dispose() {
     _amount.dispose();
-    _currency.dispose();
     _reason.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final amount = double.tryParse(_amount.text.trim());
-    final currency = _currency.text.trim().toUpperCase();
     final reason = _reason.text.trim();
     if (amount == null || amount <= 0) {
       setState(() => _error = 'Enter a positive proposed amount.');
-      return;
-    }
-    if (!RegExp(r'^[A-Z]{3}$').hasMatch(currency)) {
-      setState(() => _error = 'Enter a three-letter currency code.');
       return;
     }
     if (reason.length < 3) {
@@ -846,7 +839,6 @@ class _InvoiceAdjustmentSheetState extends State<_InvoiceAdjustmentSheet> {
       kind: _kind,
       targetId: widget.invoice.id,
       proposedAmount: _amount.text.trim(),
-      currencyCode: currency,
       reason: reason,
     );
     if (!mounted) return;
@@ -914,16 +906,6 @@ class _InvoiceAdjustmentSheetState extends State<_InvoiceAdjustmentSheet> {
                   decimal: true,
                 ),
                 decoration: const InputDecoration(labelText: 'Proposed amount'),
-              ),
-              const SizedBox(height: AppSpacing.stackMd),
-              TextField(
-                controller: _currency,
-                textCapitalization: TextCapitalization.characters,
-                maxLength: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Currency code',
-                  hintText: 'For example: PKR',
-                ),
               ),
               const SizedBox(height: AppSpacing.stackMd),
               TextField(

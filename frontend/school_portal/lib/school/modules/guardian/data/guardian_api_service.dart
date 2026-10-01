@@ -221,7 +221,7 @@ class GuardianApiService {
     }
     return ApiResponse.ok(
       FeeData(
-        currency: r'$',
+        currency: '',
         outstanding: outstanding,
         paidThisYear: paid,
         nextDueDate: nextDue == null ? null : _fmtDate(nextDue),

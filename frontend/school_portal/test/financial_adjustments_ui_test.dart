@@ -30,7 +30,7 @@ Map<String, dynamic> _adjustment({
   'target_type': 'invoice',
   'target_id': 'invoice-123456789',
   'proposed_amount': '125.50',
-  'currency_code': 'PKR',
+  'currency_code': 'XXX',
   'reason': 'Duplicate bank transfer',
   'decision': decision,
   'decision_reason': decisionReason,
@@ -118,11 +118,10 @@ void main() {
       await tester.ensureVisible(submitButton);
       await tester.tap(submitButton);
       await tester.pump();
-      expect(find.text('Enter a three-letter currency code.'), findsOneWidget);
+      expect(find.text('Give a reason with at least 3 characters.'), findsOneWidget);
       expect(posts, isEmpty);
 
       await tester.enterText(_field('Proposed amount'), '80.25');
-      await tester.enterText(_field('Currency code'), 'pkr');
       await tester.enterText(_field('Reason'), 'Verified duplicate payment');
       await tester.ensureVisible(submitButton);
       await tester.tap(submitButton);
@@ -134,7 +133,6 @@ void main() {
         'kind': 'credit',
         'target_id': 'invoice-1',
         'proposed_amount': '80.25',
-        'currency_code': 'PKR',
         'reason': 'Verified duplicate payment',
       });
       expect(find.text('Adjustment requested'), findsOneWidget);

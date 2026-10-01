@@ -456,3 +456,21 @@ async def test_adjustment_routes_require_headmaster_and_keep_targets_tenant_scop
     )
     assert super_admin_decision.status_code == 200, super_admin_decision.text
     assert super_admin_decision.json()["decision"] == "approved"
+
+
+async def test_adjustment_without_currency_code_stores_no_currency(client, school):
+    """Amounts are plain numbers; an omitted currency is stored as ISO 'XXX'."""
+    from tests.utils import create_user
+
+    sid, hm = school["id"], school["hm"]
+    student = await create_user(client, sid, hm, "student")
+    invoice = await client.post(f"{API}/schools/{sid}/fees/invoices", headers=hm, json={
+        "student_id": student["id"], "title": "Plain number fee", "amount": 500, "due_date": "2030-01-10",
+    })
+    assert invoice.status_code == 201, invoice.text
+    r = await client.post(f"{API}/schools/{sid}/fees/adjustments", headers=hm, json={
+        "kind": "waiver", "target_id": invoice.json()["id"], "proposed_amount": "50",
+        "reason": "Sibling waiver",
+    })
+    assert r.status_code == 201, r.text
+    assert r.json()["currency_code"] == "XXX"

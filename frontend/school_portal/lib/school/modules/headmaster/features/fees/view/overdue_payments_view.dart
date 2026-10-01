@@ -244,7 +244,7 @@ class _ClassTabBar extends StatelessWidget {
 }
 
 String _money(double v) =>
-    '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+    '${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
 
 class _OverdueStudentRow extends StatelessWidget {
   final StudentFeeSnapshot snapshot;

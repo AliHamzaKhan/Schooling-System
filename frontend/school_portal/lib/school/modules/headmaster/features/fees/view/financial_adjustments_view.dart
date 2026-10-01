@@ -409,7 +409,6 @@ class _AdjustmentCard extends StatelessWidget {
     final target = item['target_type'] as String? ?? 'record';
     final targetId = item['target_id'] as String? ?? '';
     final amount = item['proposed_amount'] as String? ?? '—';
-    final currency = item['currency_code'] as String? ?? '';
     final reason = item['reason'] as String? ?? '';
 
     return Container(
@@ -431,7 +430,7 @@ class _AdjustmentCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.stackSm),
-          Text('$currency $amount', style: AppTypography.titleLg),
+          Text(amount, style: AppTypography.titleLg),
           const SizedBox(height: AppSpacing.stackSm),
           Text(reason, style: AppTypography.bodyMd),
           const SizedBox(height: AppSpacing.stackSm),

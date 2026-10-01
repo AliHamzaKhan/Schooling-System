@@ -233,7 +233,10 @@ class FinancialAdjustmentCreate(BaseModel):
     kind: AdjustmentKind
     target_id: uuid.UUID
     proposed_amount: str = Field(min_length=1, max_length=64)
-    currency_code: str = Field(min_length=3, max_length=3)
+    # Amounts are plain numbers in the school's own currency, which the product
+    # does not name. ISO 4217 "XXX" (no currency) is stored unless a caller
+    # explicitly supplies a code.
+    currency_code: str = Field(default="XXX", min_length=3, max_length=3)
     reason: str = Field(min_length=3, max_length=500)
 
     @field_validator("proposed_amount")

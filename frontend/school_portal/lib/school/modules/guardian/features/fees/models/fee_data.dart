@@ -27,7 +27,7 @@ class FeeInvoice {
 }
 
 class FeeData {
-  final String currency; // "$"
+  final String currency; // empty: amounts are plain numbers
   final double outstanding;
   final double paidThisYear;
   final String? nextDueDate;
@@ -42,7 +42,7 @@ class FeeData {
   });
 
   factory FeeData.fromJson(Map<String, dynamic> json) => FeeData(
-        currency: json['currency'] as String? ?? r'$',
+        currency: json['currency'] as String? ?? '',
         outstanding: (json['outstanding'] as num?)?.toDouble() ?? 0,
         paidThisYear: (json['paid_this_year'] as num?)?.toDouble() ?? 0,
         nextDueDate: json['next_due_date'] as String?,
