@@ -58,6 +58,19 @@ class Child {
     );
   }
 
+  /// Short switcher label: the first name, or first name plus the next
+  /// initial when another linked child shares that first name (common with
+  /// names such as "Muhammad Ali" and "Muhammad Hassan").
+  String shortLabel(Iterable<Child> siblings) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final first = parts.first;
+    final shared = siblings.any(
+      (c) => c.id != id && c.name.trim().split(RegExp(r'\s+')).first == first,
+    );
+    if (!shared || parts.length < 2) return first;
+    return '$first ${parts[1][0]}.';
+  }
+
   /// Initials for the avatar fallback ("Aanya Khan" -> "AK").
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));

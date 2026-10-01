@@ -813,3 +813,25 @@ Fixed: the uncertain outcome used to be only a transient snackbar while the
 invoice kept a plain "Mark as paid" button and stale balance. It is now durable on
 the invoice and balances are refreshed immediately. Amounts still display a
 hard-coded `$`; the currency is part of the open F06 money-policy decision.
+
+### 2026-10-01 — F01 family fee leak (P0, fixed) and L03 multi-child journey
+
+- **Any guardian could read every family's fee invoices.** Guardians hold
+  `FEE_MANAGEMENT` view so they can see their children's fees, but the invoice
+  list, invoice detail, receipt and the school-wide fee roster applied only the
+  module permission. Found in Chrome while testing unlink revocation: after the
+  headmaster unlinked a child, the guardian still listed that child's invoices,
+  and also an unrelated family's. Fee reads are now scoped per caller: a user
+  whose only roles are guardian/student sees their own and currently linked
+  children's records; the fee roster is staff-only; staff keep school-wide
+  access. `tests/test_fee_family_scope.py` fails on the previous code.
+- New `frontend/e2e/chrome/leakscan.py` probes all 121 school-scoped GET
+  endpoints as guardian and student with an unrelated student's id. Before the
+  fix it reported exactly the two fee endpoints; after the fix it reports none.
+  Endpoints keyed by other ids (invoice, message) are covered by targeted tests.
+- Multi-child guardian journey in Chrome: switching child scopes dashboard, fees
+  and timetable to that child; after unlink the child disappears on reload and its
+  records are refused. Siblings sharing a first name now get distinguishable
+  switcher labels ("Muhammad A." / "Muhammad H."), with full names announced to
+  screen readers. "Paid this year" is relabelled "Total paid" (it sums all years).
+

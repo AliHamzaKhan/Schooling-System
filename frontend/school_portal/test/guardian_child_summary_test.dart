@@ -25,4 +25,21 @@ void main() {
     });
     expect(child.attendancePercent, 75);
   });
+
+  test('siblings sharing a first name get distinguishable labels', () {
+    Child kid(String id, String name) => Child(
+      id: id,
+      name: name,
+      grade: '',
+      pendingHomework: 0,
+      feesDue: false,
+    );
+    final ali = kid('1', 'Muhammad Ali Khan');
+    final hassan = kid('2', 'Muhammad Hassan Khan');
+    final ayesha = kid('3', 'Ayesha Khan');
+    final all = [ali, hassan, ayesha];
+    expect(ali.shortLabel(all), 'Muhammad A.');
+    expect(hassan.shortLabel(all), 'Muhammad H.');
+    expect(ayesha.shortLabel(all), 'Ayesha');
+  });
 }

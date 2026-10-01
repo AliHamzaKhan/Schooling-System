@@ -7,6 +7,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Header, Query, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 
 from app.core.deps import (
     CurrentUser,
@@ -14,7 +15,10 @@ from app.core.deps import (
     require_school_admin,
     require_school_permission,
 )
-from app.core.enums import Module, PermissionAction as PA
+from app.core.enums import Module, PermissionAction as PA, SystemRole
+from app.core.exceptions import forbidden, not_found
+from app.models.associations import guardian_students
+from app.modules.permissions.service import PermissionService
 from app.core.pagination import OffsetPage
 from app.modules.fees import schemas
 from app.modules.fees.service import FeeService
@@ -25,6 +29,41 @@ _view = Depends(require_school_permission(Module.FEE_MANAGEMENT, PA.VIEW))
 _create = Depends(require_school_permission(Module.FEE_MANAGEMENT, PA.CREATE))
 _export = Depends(require_school_permission(Module.FEE_MANAGEMENT, PA.EXPORT))
 _admin = Depends(require_school_admin)
+
+
+_FAMILY_ROLES = {SystemRole.GUARDIAN.value, SystemRole.STUDENT.value}
+
+
+async def fee_reader_scope(
+    school_id: uuid.UUID, current_user: CurrentUser, db: DbDep
+) -> set[uuid.UUID] | None:
+    """Students whose fees this caller may read; ``None`` means the whole school.
+
+    Guardians hold fee VIEW so they can see their children's fees; that module
+    permission alone must not open every family's records. A caller whose only
+    roles are guardian/student is limited to themselves and their currently
+    linked children. Staff roles keep school-wide fee visibility.
+    """
+    codes = {role.code for role in current_user.roles}
+    if PermissionService.is_super_admin(current_user) or not codes <= _FAMILY_ROLES:
+        return None
+    visible = {current_user.id} if SystemRole.STUDENT.value in codes else set()
+    if SystemRole.GUARDIAN.value in codes:
+        visible |= set((await db.execute(
+            select(guardian_students.c.student_id).where(
+                guardian_students.c.school_id == school_id,
+                guardian_students.c.guardian_id == current_user.id,
+            )
+        )).scalars())
+    return visible
+
+
+FeeScope = Depends(fee_reader_scope)
+
+
+def _require_visible(invoice, scope: set[uuid.UUID] | None) -> None:
+    if scope is not None and invoice.student_id not in scope:
+        raise not_found("Invoice not found")
 
 
 def _csv_cell(value: object | None) -> str:
@@ -99,9 +138,11 @@ async def list_invoices(
     student_id: uuid.UUID | None = Query(default=None),
     status: str | None = Query(default=None),
     class_id: uuid.UUID | None = Query(default=None),
+    scope: set[uuid.UUID] | None = FeeScope,
 ) -> list[schemas.InvoiceOut]:
     items, _ = await FeeService(db).list_invoices(
-        school_id, student_id, status, class_id, page.limit, page.offset, with_total=False
+        school_id, student_id, status, class_id, page.limit, page.offset,
+        with_total=False, visible_student_ids=scope,
     )
     return items
 
@@ -118,7 +159,10 @@ async def search_student_fees(
         default=None,
         pattern="^(overdue|pending|paid|no_dues)$",
     ),
+    scope: set[uuid.UUID] | None = FeeScope,
 ) -> schemas.StudentFeePage:
+    if scope is not None:
+        raise forbidden("The school-wide fee roster is available to staff only")
     items, total = await FeeService(db).search_student_fees(
         school_id,
         q,
@@ -134,9 +178,12 @@ async def search_student_fees(
     "/invoices/{invoice_id}", response_model=schemas.InvoiceOut, dependencies=[_view]
 )
 async def get_invoice(
-    school_id: uuid.UUID, invoice_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, invoice_id: uuid.UUID, db: DbDep,
+    scope: set[uuid.UUID] | None = FeeScope,
 ) -> schemas.InvoiceOut:
-    return await FeeService(db).get_invoice(school_id, invoice_id)
+    invoice = await FeeService(db).get_invoice(school_id, invoice_id)
+    _require_visible(invoice, scope)
+    return invoice
 
 
 @router.get(
@@ -145,8 +192,10 @@ async def get_invoice(
     dependencies=[_view],
 )
 async def get_receipt(
-    school_id: uuid.UUID, invoice_id: uuid.UUID, db: DbDep
+    school_id: uuid.UUID, invoice_id: uuid.UUID, db: DbDep,
+    scope: set[uuid.UUID] | None = FeeScope,
 ) -> schemas.Receipt:
+    _require_visible(await FeeService(db).get_invoice(school_id, invoice_id), scope)
     return await FeeService(db).get_receipt(school_id, invoice_id)
 
 

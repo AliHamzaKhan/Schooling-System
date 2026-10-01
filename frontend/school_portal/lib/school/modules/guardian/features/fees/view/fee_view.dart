@@ -91,7 +91,7 @@ class _BalanceHero extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('Paid this year',
+                child: Text('Total paid',
                     style: AppTypography.bodyMd),
               ),
               Text(

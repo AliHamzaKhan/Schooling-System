@@ -366,6 +366,7 @@ class FeeService:
         limit: int = 50,
         offset: int = 0,
         with_total: bool = True,
+        visible_student_ids: set[uuid.UUID] | None = None,
     ) -> tuple[list[Invoice], int | None]:
         """Return (invoices, total_count) — page window + full match total.
 
@@ -373,6 +374,10 @@ class FeeService:
         count scan is then skipped and ``None`` is returned in its place.
         """
         filters = [Invoice.school_id == school_id]
+        if visible_student_ids is not None:
+            # Family readers: only their own or linked children's invoices,
+            # applied before any page window.
+            filters.append(Invoice.student_id.in_(visible_student_ids))
         if student_id is not None:
             filters.append(Invoice.student_id == student_id)
         if status is not None:

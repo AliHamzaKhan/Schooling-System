@@ -33,6 +33,10 @@ python seed.py && python seed2.py
 npm run login && npm run u02 && npm run roles && npm run session
 ```
 
+`python leakscan.py` probes every school-scoped GET in the OpenAPI document as
+the synthetic guardian and student, substituting an unrelated student's id, and
+reports any response that exposes that student.
+
 Each check prints `PASS`/`FAIL`; results are written as JSON and screenshots to
 `shots/`. CanvasKit is served from the build and Roboto from `@fontsource`, so the
 run does not depend on `gstatic.com`.

@@ -27,7 +27,8 @@ class ChildSwitcher extends StatelessWidget {
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.containerPaddingMobile),
+            horizontal: AppSpacing.containerPaddingMobile,
+          ),
           itemCount: children.length + (onManage != null ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.stackMd),
           itemBuilder: (context, i) {
@@ -36,41 +37,46 @@ class ChildSwitcher extends StatelessWidget {
             }
             final c = children[i];
             final selected = c.id == selectedId;
-            return AccessibleTap(
-              onTap: () => session.select(c.id),
-              child: AnimatedContainer(
-                duration: AppMotion.fast,
-                width: 64,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
+            return Semantics(
+              label: '${c.name}, ${c.grade}',
+              child: AccessibleTap(
+                selected: selected,
+                onTap: () => session.select(c.id),
+                child: AnimatedContainer(
+                  duration: AppMotion.fast,
+                  width: 64,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selected
+                                ? AppColors.primary
+                                : Colors.transparent,
+                            width: 2.5,
+                          ),
+                        ),
+                        child: ChildAvatar(child: c, size: 48),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        c.shortLabel(children),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.labelMd.copyWith(
                           color: selected
                               ? AppColors.primary
-                              : Colors.transparent,
-                          width: 2.5,
+                              : AppColors.onSurfaceVariant,
+                          fontWeight: selected
+                              ? FontWeight.w800
+                              : FontWeight.w500,
                         ),
                       ),
-                      child: ChildAvatar(child: c, size: 48),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      c.name.split(' ').first,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.labelMd.copyWith(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
-                        fontWeight:
-                            selected ? FontWeight.w800 : FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -101,13 +107,19 @@ class _ManageButton extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: AppColors.surfaceContainerHigh,
               ),
-              child: const Icon(AppIcons.tuneRounded,
-                  size: 20, color: AppColors.onSurfaceVariant),
+              child: const Icon(
+                AppIcons.tuneRounded,
+                size: 20,
+                color: AppColors.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
-            Text('Manage',
-                style: AppTypography.labelMd
-                    .copyWith(color: AppColors.onSurfaceVariant)),
+            Text(
+              'Manage',
+              style: AppTypography.labelMd.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       ),
