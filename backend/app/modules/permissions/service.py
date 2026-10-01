@@ -17,6 +17,23 @@ from app.models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
+_PINNED_SCHOOLS = "pinned_schools"
+
+
+async def get_request_school(db: AsyncSession, school_id) -> School | None:
+    """Load a School once per session for the tenant and permission gates.
+
+    The session identity map holds only weak references, so a School loaded by
+    one request dependency is otherwise collected and re-queried, together with
+    its plan and module toggles, by the next.  Pinning it in ``db.info`` keeps
+    it for the session's lifetime; ``db.get`` still honours expiry/refresh.
+    """
+    school = await db.get(School, school_id)
+    if school is not None:
+        db.info.setdefault(_PINNED_SCHOOLS, {})[school.id] = school
+    return school
+
+
 class PermissionService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
@@ -33,7 +50,7 @@ class PermissionService:
         """
         if school_id is None:
             return set()
-        school = await self.db.get(School, school_id)
+        school = await get_request_school(self.db, school_id)
         if school is None or school.status != SchoolStatus.ACTIVE.value:
             return set()
 

@@ -360,8 +360,13 @@ class FeeService:
         class_id: uuid.UUID | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> tuple[list[Invoice], int]:
-        """Return (invoices, total_count) — page window + full match total."""
+        with_total: bool = True,
+    ) -> tuple[list[Invoice], int | None]:
+        """Return (invoices, total_count) — page window + full match total.
+
+        Pass ``with_total=False`` when the caller discards the total; the full
+        count scan is then skipped and ``None`` is returned in its place.
+        """
         filters = [Invoice.school_id == school_id]
         if student_id is not None:
             filters.append(Invoice.student_id == student_id)
@@ -387,8 +392,10 @@ class FeeService:
                 )
             )
 
-        count_stmt = select(func.count()).select_from(Invoice).where(*filters)
-        total = int(await self.db.scalar(count_stmt) or 0)
+        total = None
+        if with_total:
+            count_stmt = select(func.count()).select_from(Invoice).where(*filters)
+            total = int(await self.db.scalar(count_stmt) or 0)
 
         page_stmt = (
             select(Invoice)

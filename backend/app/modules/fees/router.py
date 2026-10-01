@@ -101,7 +101,7 @@ async def list_invoices(
     class_id: uuid.UUID | None = Query(default=None),
 ) -> list[schemas.InvoiceOut]:
     items, _ = await FeeService(db).list_invoices(
-        school_id, student_id, status, class_id, page.limit, page.offset
+        school_id, student_id, status, class_id, page.limit, page.offset, with_total=False
     )
     return items
 

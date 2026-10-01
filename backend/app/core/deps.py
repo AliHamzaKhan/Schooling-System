@@ -32,7 +32,7 @@ from app.models.session import RefreshSession
 from app.models.school import School
 from app.models.subscription import SchoolSubscription
 from app.models.user import User
-from app.modules.permissions.service import PermissionService
+from app.modules.permissions.service import PermissionService, get_request_school
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 
@@ -287,7 +287,7 @@ async def _tenant_status(db: AsyncSession, school_id: uuid.UUID) -> str:
         if isinstance(cached, str):
             return cached
 
-    school = await db.get(School, school_id)
+    school = await get_request_school(db, school_id)
     if school is None:
         status = "not_found"
     elif school.status != SchoolStatus.ACTIVE.value:

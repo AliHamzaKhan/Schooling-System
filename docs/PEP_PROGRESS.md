@@ -661,3 +661,27 @@ full isolated backend regression. No UI preview; no production data migration.
   **3 passed**. Ruff, migration-head and whitespace checks pass. Query timing
   and capacity budgets still require an agreed staging-size fixture; no
   production schema change or measurement has been performed.
+
+### 2026-10-01 — O03.11 query budgets and per-request School load
+
+- Added an isolated-test SQL statement recorder (`tests/query_budget.py`) and
+  `tests/test_o03_query_budgets.py`. Invoice, broadcast and direct-message
+  history are measured on the 105-row representative data at limit 5, limit 50
+  and the partial tail. The statement count must be identical across those
+  windows (no per-row N+1 work) and within the budget: invoices **10**,
+  broadcasts **10**, direct messages **11** per request, including
+  authentication, tenant status and permissions, uncached (no Redis).
+- Measurement found a duplicate School/plan/module load on every school-scoped
+  request: the session identity map holds weak references, so the School loaded
+  by the tenant-status gate was collected and re-queried by the permission gate.
+  `get_request_school` now pins it for the session. The invoice list also no
+  longer runs a full `count(*)` whose result the router discarded. Invoices went
+  from 14 to 10 statements and broadcasts from 13 to 10; responses are unchanged.
+- Local latency (single client, disposable database, not a budget): p50 about
+  20–26 ms and p95 under 35 ms for every window. Set `O03_MEASUREMENT_REPORT`
+  to collect the JSON evidence.
+- The new budget tests fail on the previous code and pass with the fix. The full
+  isolated backend suite result is recorded below once it completes.
+  Staging-size latency/concurrency budgets, cache policy, bulk-job quotas and
+  device/browser traces remain for O03.
+

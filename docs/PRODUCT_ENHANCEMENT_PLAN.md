@@ -1,7 +1,7 @@
 # Meri Taleem — Product Flow, Enhancement Plan & Progress Tracker
 
 Last updated: **2026-10-01** (Asia/Karachi)
-Baseline: commit `233c140` (tenant-fair representative fixture and bounded broadcast delivery history)
+Baseline: commit `f4aac5f` (invoice page index) plus O03.11 query budgets
 Document owner: Product owner / engineering lead — individual to be assigned
 Stage: **Phase 1 implementation in progress**
 
@@ -30,12 +30,12 @@ Scope covers the 31 baseline backend router groups plus two file-access infrastr
 
 ## Next work
 
-**Current implementation: O03.2 — query-budget and cache-policy measurement.**
-The reusable bounded-list contract now covers the high-growth history paths,
-and an isolated 105-row invoice fixture proves tenant-fair page boundaries.
-The next local work is to record repeatable query/API measurements against an
-agreed school-size and concurrency fixture, then define cache and bulk-job
-quotas from that evidence.
+**Current implementation: O03 — cache policy and bulk-job quotas.**
+O03.11 enforces SQL statement budgets on invoice, broadcast and direct-message
+history (`tests/test_o03_query_budgets.py`) and removed a duplicate
+per-request School load. Next: extend budgets to the remaining paginated
+history endpoints, then define cache and bulk-job quotas from an agreed
+school-size and concurrency fixture.
 The active release foundations also still need independent F01 review, O01 hosted
 pipeline evidence, and O02 alert-routing, restore/rollback and approved
 synthetic-provider evidence.
