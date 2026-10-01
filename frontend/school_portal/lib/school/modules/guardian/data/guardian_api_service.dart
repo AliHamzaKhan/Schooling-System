@@ -40,6 +40,32 @@ class GuardianApiService {
     parser: (json) => json,
   );
 
+  /// Reads every row of a bounded list endpoint (server maximum 100 per page)
+  /// so totals are not silently computed from a truncated first page.
+  Future<ApiResponse<dynamic>> _getAllPages(
+    String path, {
+    Map<String, String>? query,
+    int maxPages = 20,
+  }) async {
+    const pageSize = 100;
+    final rows = <dynamic>[];
+    for (var page = 0; page < maxPages; page++) {
+      final res = await _get(
+        path,
+        query: {
+          ...?query,
+          'limit': '$pageSize',
+          'offset': '${page * pageSize}',
+        },
+      );
+      if (!res.success) return res;
+      final items = res.data as List;
+      rows.addAll(items);
+      if (items.length < pageSize) break;
+    }
+    return ApiResponse.ok(rows);
+  }
+
   /// The active section id for a child, read from the session's children list.
   String? _sectionId(String childId) =>
       Get.isRegistered<GuardianSessionController>()
@@ -158,9 +184,9 @@ class GuardianApiService {
 
   /// Per-child fees from `/fees/invoices?student_id=` (InvoiceOut list).
   Future<ApiResponse<FeeData>> fetchFees(String childId) async {
-    final res = await _get(
+    final res = await _getAllPages(
       GuardianEndpoints.feesInvoices(_sid),
-      query: {'student_id': childId, 'limit': '200'},
+      query: {'student_id': childId},
     );
     if (!res.success) return ApiResponse.fail(res.error ?? 'Failed to load');
     final invoices = (res.data as List).cast<Map<String, dynamic>>();
@@ -210,9 +236,9 @@ class GuardianApiService {
   /// submissions to derive each item's status.
   Future<ApiResponse<HomeworkData>> fetchHomework(String childId) async {
     final section = _sectionId(childId);
-    final asgRes = await _get(
+    final asgRes = await _getAllPages(
       GuardianEndpoints.homeworkAssignments(_sid),
-      query: {'limit': '200', 'section_id': ?section},
+      query: {'section_id': ?section},
     );
     if (!asgRes.success) {
       return ApiResponse.fail(asgRes.error ?? 'Failed to load');

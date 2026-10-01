@@ -122,7 +122,13 @@ class _TeacherAttendanceReportCardState
             if (_loading.value)
               const Shimmer(child: SkeletonCardList(count: 2, height: 44))
             else if (_day.value == null)
-              Text(_error.value ?? 'No data', style: AppTypography.bodyMd)
+              AppStateView.error(
+                title: 'Could not load attendance',
+                message:
+                    _error.value ?? 'The latest information is unavailable.',
+                actionLabel: 'Retry',
+                onAction: _fetch,
+              )
             else ...[
               _MetricsRow(day: _day.value!, onOpen: _openRoster),
               const SizedBox(height: AppSpacing.stackMd),

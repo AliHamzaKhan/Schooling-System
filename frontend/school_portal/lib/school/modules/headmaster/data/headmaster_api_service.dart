@@ -319,9 +319,10 @@ class HeadmasterApiService {
     final reconciliation = await _get(
       HeadmasterEndpoints.feesReconciliation(_sid),
     );
+    // The server applies the overdue filter before its 100-row page bound.
     final inv = await _get(
       HeadmasterEndpoints.feesInvoices(_sid),
-      query: {'limit': '200'},
+      query: {'status': 'overdue', 'limit': '100'},
     );
     final overdue = inv.success
         ? (inv.data as List)

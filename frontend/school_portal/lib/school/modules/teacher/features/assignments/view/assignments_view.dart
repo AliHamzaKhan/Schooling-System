@@ -54,9 +54,13 @@ class AssignmentsView extends GetView<TeacherAssignmentsController> {
                 }
                 final data = controller.data.value;
                 if (data == null) {
-                  return Center(
-                      child: Text(controller.error.value ?? 'No data',
-                          style: AppTypography.bodyLg));
+                  return AppStateView.error(
+                    title: 'Could not load this page',
+                    message: controller.error.value ??
+                        'The latest information is unavailable.',
+                    actionLabel: 'Retry',
+                    onAction: controller.fetch,
+                  );
                 }
                 return _AssignmentsList(
                   controller: controller,

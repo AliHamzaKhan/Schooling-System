@@ -63,11 +63,13 @@ class DashboardView extends GetView<HeadmasterDashboardController> {
             }
             final data = controller.data.value;
             if (data == null) {
-              return Center(
-                child: Text(
-                  controller.error.value ?? 'No data',
-                  style: AppTypography.bodyLg,
-                ),
+              return AppStateView.error(
+                title: 'Could not load this page',
+                message:
+                    controller.error.value ??
+                    'The latest information is unavailable.',
+                actionLabel: 'Retry',
+                onAction: controller.load,
               );
             }
             return ListView(

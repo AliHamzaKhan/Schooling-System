@@ -139,11 +139,13 @@ class _AttendanceViewState extends State<AttendanceView> {
                   if (day == null) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 48),
-                      child: Center(
-                        child: Text(
-                          _error.value ?? 'No data',
-                          style: AppTypography.bodyLg,
-                        ),
+                      child: AppStateView.error(
+                        title: 'Could not load this page',
+                        message:
+                            _error.value ??
+                            'The latest information is unavailable.',
+                        actionLabel: 'Retry',
+                        onAction: _fetch,
                       ),
                     );
                   }
