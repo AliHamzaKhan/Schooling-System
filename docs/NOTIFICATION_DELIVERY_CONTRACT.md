@@ -11,7 +11,7 @@ no real notifications were sent during verification.
 | `scheduled` | Saved for future processing; not yet sent |
 | `pending` | Saved and awaiting processing; does not prove a durable broker job exists |
 | `uncertain` | Delivery requires review; never automatically resend |
-| `simulated` | No provider delivery attempted; includes the email placeholder and unconfigured Twilio/FCM |
+| `simulated` | No provider delivery attempted; unconfigured SMTP, Twilio or FCM |
 | `accepted` | A provider request succeeded; not proof of recipient delivery |
 | `partial` | Some attempts accepted, others failed or were simulated |
 | `failed` | No attempt accepted and at least one failed, or there were no recipients |
@@ -44,7 +44,7 @@ HTTP 201 means the broadcast was saved. F07.2 returns pending/scheduled and leav
 provider work to an independent worker; read later status for the outcome. Do not
 blindly create another broadcast to retry: partial outcomes may already include
 real provider side effects. Password recovery keeps the same neutral response for
-known/unknown emails without falsely asserting that the placeholder sent a code.
+known/unknown emails without asserting that a code was sent.
 
 ## Remaining F07 acceptance work
 

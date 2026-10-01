@@ -97,6 +97,7 @@ class SubscriptionService:
             billing_period=data.billing_period.value,
             modules=data.modules,
             max_students=data.max_students,
+            storage_quota_mb=data.storage_quota_mb,
         )
         self.db.add(plan)
         await self.db.flush()

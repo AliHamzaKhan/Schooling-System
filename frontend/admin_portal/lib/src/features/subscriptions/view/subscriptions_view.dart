@@ -164,6 +164,14 @@ class _PlanCard extends StatelessWidget {
                 color: accent,
                 subtle: true,
               ),
+              const SizedBox(width: AppSpacing.stackSm),
+              Flexible(
+                child: _Chip(
+                  label: plan.storageLabel,
+                  color: accent,
+                  subtle: true,
+                ),
+              ),
               const Spacer(),
               IconButton(
                 icon: const Icon(AppIcons.archiveOutlined,

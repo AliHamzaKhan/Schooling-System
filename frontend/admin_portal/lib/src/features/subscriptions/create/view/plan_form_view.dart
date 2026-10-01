@@ -32,6 +32,7 @@ class _PlanFormViewState extends State<PlanFormView> {
   late final TextEditingController _price;
   late final TextEditingController _description;
   late final TextEditingController _maxStudents;
+  late final TextEditingController _storageGb;
   late BillingPeriod _period;
 
   /// Feature keys currently switched on.
@@ -55,6 +56,11 @@ class _PlanFormViewState extends State<PlanFormView> {
     _description = TextEditingController(text: p?.description ?? '');
     _maxStudents = TextEditingController(
         text: p?.maxStudents == null ? '' : '${p!.maxStudents}');
+    final quota = p?.storageQuotaMb;
+    _storageGb = TextEditingController(
+        text: quota == null
+            ? ''
+            : (quota % 1024 == 0 ? '${quota ~/ 1024}' : '${quota / 1024}'));
     _period = p?.billingPeriod ?? BillingPeriod.monthly;
     for (final key in p?.modules ?? const <String>[]) {
       if (kPlanFeatureByKey.containsKey(key)) {
@@ -71,6 +77,7 @@ class _PlanFormViewState extends State<PlanFormView> {
     _price.dispose();
     _description.dispose();
     _maxStudents.dispose();
+    _storageGb.dispose();
     super.dispose();
   }
 
@@ -91,6 +98,17 @@ class _PlanFormViewState extends State<PlanFormView> {
         return;
       }
     }
+    final storageText = _storageGb.text.trim();
+    int? storageQuotaMb;
+    if (storageText.isNotEmpty) {
+      final gb = double.tryParse(storageText);
+      if (gb == null || gb <= 0) {
+        setState(() => _error =
+            'Storage must be a number of GB (or blank for unlimited).');
+        return;
+      }
+      storageQuotaMb = (gb * 1024).round().clamp(1, 2147483647);
+    }
     setState(() => _error = null);
     // Persist selected features alongside any modules we chose not to surface.
     final modules = <String>[..._preserved, ..._selected];
@@ -101,6 +119,7 @@ class _PlanFormViewState extends State<PlanFormView> {
       billingPeriod: _period,
       description: _description.text.trim(),
       maxStudents: maxStudents,
+      storageQuotaMb: storageQuotaMb,
       modules: modules,
     );
     if (ok && mounted) Get.back<void>();
@@ -177,6 +196,14 @@ class _PlanFormViewState extends State<PlanFormView> {
                           hint: 'Leave blank for unlimited',
                           controller: _maxStudents,
                           keyboardType: TextInputType.number,
+                        ),
+                        const SizedBox(height: AppSpacing.stackLg),
+                        AdminTextField(
+                          label: 'File storage (GB)',
+                          hint: 'Leave blank for unlimited',
+                          controller: _storageGb,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                         ),
                         const SizedBox(height: AppSpacing.stackLg),
                         AdminTextField(

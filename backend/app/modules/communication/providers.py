@@ -1,14 +1,17 @@
 """Notification delivery providers.
 
-Real adapters for Twilio (WhatsApp/SMS) and Firebase Cloud Messaging (push),
-plus a plain email placeholder. When the relevant credentials are not configured
-in settings, each channel reports "simulated": no delivery was attempted.
-Successful provider requests report "accepted", never confirmed delivery.
-Email remains a placeholder until a real adapter is configured and verified.
+Real adapters for Twilio (WhatsApp/SMS), Firebase Cloud Messaging (push) and
+SMTP email. When the relevant credentials are not configured in settings, each
+channel reports "simulated": no delivery was attempted. Successful provider
+requests report "accepted", never confirmed delivery.
 """
+import asyncio
 import json
 import logging
+import smtplib
+import ssl
 import time
+from email.message import EmailMessage
 from dataclasses import dataclass
 
 from app.core.config import settings
@@ -56,6 +59,10 @@ class Notifier:
         return bool(
             settings.FIREBASE_CREDENTIALS_FILE or settings.FIREBASE_CREDENTIALS_JSON
         )
+
+    @staticmethod
+    def _smtp_ready() -> bool:
+        return bool(settings.SMTP_HOST and settings.EMAIL_FROM)
 
     # ------------------------------ dispatch ----------------------------- #
 
@@ -224,10 +231,45 @@ class Notifier:
     # ------------------------------ email -------------------------------- #
 
     async def _email(self, to: str, subject: str | None, body: str) -> DeliveryResult:
-        # Real SMTP not configured here; log in stub mode.
-        logger.info("[STUB email] no delivery attempted")
-        return DeliveryResult(status=DeliveryStatus.SIMULATED.value, provider="stub",
-                              error="Email delivery is not configured; no delivery attempted", stub=True)
+        if not self._smtp_ready():
+            logger.info("[STUB email] no delivery attempted")
+            return DeliveryResult(status=DeliveryStatus.SIMULATED.value, provider="stub",
+                                  error="Email delivery is not configured; no delivery attempted", stub=True)
+        message = EmailMessage()
+        message["From"] = settings.EMAIL_FROM
+        message["To"] = to
+        message["Subject"] = subject or "School notification"
+        message.set_content(body)
+        try:
+            refused = await asyncio.to_thread(_smtp_send, message)
+        except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused) as exc:
+            # The server rejected the envelope before any message data was sent.
+            return DeliveryResult(status=DeliveryStatus.FAILED.value, provider="smtp",
+                                  error=f"Rejected by mail server ({type(exc).__name__})")
+        except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, ConnectionRefusedError) as exc:
+            # Nothing was handed over: login or connection failed.
+            return DeliveryResult(status=DeliveryStatus.FAILED.value, provider="smtp",
+                                  error=f"Mail server unavailable or login failed ({type(exc).__name__})")
+        if refused:
+            return DeliveryResult(status=DeliveryStatus.FAILED.value, provider="smtp",
+                                  error="Recipient refused by mail server")
+        return DeliveryResult(status=DeliveryStatus.ACCEPTED.value, provider="smtp")
+
+
+def _smtp_send(message: EmailMessage) -> dict:
+    """Blocking SMTP hand-off, run in a worker thread. Returns refused recipients."""
+    security = settings.SMTP_SECURITY.lower()
+    context = ssl.create_default_context()
+    if security == "ssl":
+        server: smtplib.SMTP = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=_TIMEOUT, context=context)
+    else:
+        server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=_TIMEOUT)
+    with server:
+        if security == "starttls":
+            server.starttls(context=context)
+        if settings.SMTP_USERNAME:
+            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+        return server.send_message(message)
 
 
 notifier = Notifier()

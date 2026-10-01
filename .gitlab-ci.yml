@@ -137,7 +137,11 @@ backend:migration-rehearsal:
     - export JWT_SECRET_KEY="ci-test-secret-not-used-in-prod"
     - export REDIS_URL=""
     - export ENVIRONMENT="test"
-    - python scripts/run_isolated_tests.py -- -q tests/test_outbox_migration.py tests/test_worker_heartbeat_migration.py
+    - python scripts/run_isolated_tests.py -- -q tests/test_outbox_migration.py tests/test_worker_heartbeat_migration.py tests/test_storage_quota.py
+    # Full chain rollback drill on the empty service database: every revision
+    # must upgrade, downgrade to base and upgrade again.
+    - export DATABASE_URL="postgresql+asyncpg://postgres:postgres@postgres:5432/schooling_test"
+    - alembic upgrade head && alembic downgrade base && alembic upgrade head
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes: [backend/**/*, .gitlab-ci.yml]

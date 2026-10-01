@@ -880,3 +880,29 @@ Quiz security probe (L04/M14): a student who has not attempted a published quiz
 receives questions and options with `correct_answer: null`; other students'
 attempts, quiz performance and reports return 403 to students and guardians.
 No change needed.
+
+### 2026-10-01 — F04 storage allowance by subscription plan and orphan clean-up
+
+Decision (product owner): storage limits and file clean-up follow each school's
+subscription plan.
+
+- **Plan allowance.** `subscription_plans.storage_quota_mb` (blank = unlimited);
+  defaults Basic 1 GB, Standard 5 GB, Premium 20 GB, set by migration
+  `1b2c3d4e5f6a` and the seed, editable in the admin plan editor ("File storage
+  (GB)") and shown on each plan card.
+- **Ledger.** Every successful upload records a `stored_uploads` row (school,
+  uploader, key, folder, bytes, type). An upload that would take the school past
+  its plan allowance is refused with 413 `storage_quota_exceeded` *before*
+  anything is stored. `GET /schools/{id}/uploads/usage` returns used/allowance.
+- **Clean-up.** `scripts/cleanup_unreferenced_uploads.py` reports (default) or,
+  with `--apply`, deletes ledger uploads older than `--min-age-days` (default 7)
+  that no record references (documents, submissions, payment proofs, uniform,
+  course covers, achievements, profile and school-setting URLs). Records are
+  never deleted; files stored before the ledger existed are never touched.
+  Schedule it daily.
+- Evidence: `tests/test_storage_quota.py` (usage, refusal without storage write,
+  dry-run vs apply clean-up, migration upgrade/downgrade on a disposable schema)
+  plus existing upload policy/scanner tests: **10 passed**. Admin portal analyze
+  (no new issues) and tests **10 passed**.
+- Limit: concurrent uploads can each pass the check and overshoot the allowance
+  by at most one file each.

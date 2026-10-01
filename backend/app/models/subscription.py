@@ -42,6 +42,8 @@ class SubscriptionPlan(Base, UUIDMixin, TimestampMixin):
     modules: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list, nullable=False)
     # Cap on active students a school on this plan may have. NULL = unlimited.
     max_students: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # File-storage quota for schools on this plan, in MB. None = unlimited.
+    storage_quota_mb: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Archived plans (is_active=False) stay for history but are hidden from new
     # assignments instead of being hard-deleted.
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

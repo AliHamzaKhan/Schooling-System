@@ -53,6 +53,13 @@ PLAN_PRICES: dict[PlanCode, float] = {
     PlanCode.PREMIUM: 1499.0,
 }
 
+# Default file-storage quota per plan in MB (None = unlimited; admin-editable).
+PLAN_STORAGE_MB: dict[PlanCode, int | None] = {
+    PlanCode.BASIC: 1024,
+    PlanCode.STANDARD: 5120,
+    PlanCode.PREMIUM: 20480,
+}
+
 # Default student cap seeded per plan (None = unlimited; admin-editable).
 PLAN_MAX_STUDENTS: dict[PlanCode, int | None] = {
     PlanCode.BASIC: 200,

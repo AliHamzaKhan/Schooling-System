@@ -19,6 +19,8 @@ class PlanCreate(BaseModel):
     modules: list[str] = Field(default_factory=list)
     # Max active students a school on this plan may have. None = unlimited.
     max_students: int | None = Field(default=None, ge=1)
+    # File-storage quota in MB for schools on this plan. None = unlimited.
+    storage_quota_mb: int | None = Field(default=None, ge=1)
 
 
 class PlanUpdate(BaseModel):
@@ -28,6 +30,7 @@ class PlanUpdate(BaseModel):
     billing_period: BillingPeriod | None = None
     modules: list[str] | None = None
     max_students: int | None = Field(default=None, ge=1)
+    storage_quota_mb: int | None = Field(default=None, ge=1)
     is_active: bool | None = None
 
 
@@ -42,6 +45,7 @@ class PlanOut(BaseModel):
     billing_period: str
     modules: list[str]
     max_students: int | None = None
+    storage_quota_mb: int | None = None
     is_active: bool
 
 

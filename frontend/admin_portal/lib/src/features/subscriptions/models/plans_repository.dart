@@ -18,6 +18,7 @@ class PlansRepository {
     required BillingPeriod billingPeriod,
     String? description,
     int? maxStudents,
+    int? storageQuotaMb,
     List<String> modules = const [],
   }) =>
       _api.createPlan({
@@ -29,6 +30,7 @@ class PlansRepository {
           'description': description,
         // Sent as null when uncapped so the plan is explicitly unlimited.
         'max_students': maxStudents,
+        'storage_quota_mb': storageQuotaMb,
       });
 
   /// Full update from the plan editor. The editor always carries every field,
@@ -42,6 +44,7 @@ class PlansRepository {
     required List<String> modules,
     String? description,
     int? maxStudents,
+    int? storageQuotaMb,
   }) {
     return _api.updatePlan(id, {
       'name': name,
@@ -50,6 +53,7 @@ class PlansRepository {
       'modules': modules,
       'description': description ?? '',
       'max_students': maxStudents,
+      'storage_quota_mb': storageQuotaMb,
     });
   }
 

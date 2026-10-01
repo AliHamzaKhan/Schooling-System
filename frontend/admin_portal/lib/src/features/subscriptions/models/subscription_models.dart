@@ -83,6 +83,9 @@ class SubscriptionPlanModel {
 
   /// Cap on active students a school on this plan may have. `null` = unlimited.
   final int? maxStudents;
+
+  /// File storage allowance for schools on this plan, in MB. `null` = unlimited.
+  final int? storageQuotaMb;
   final bool isActive;
 
   const SubscriptionPlanModel({
@@ -94,8 +97,19 @@ class SubscriptionPlanModel {
     this.description,
     this.modules = const [],
     this.maxStudents,
+    this.storageQuotaMb,
     this.isActive = true,
   });
+
+  /// Storage allowance as GB text, or "Unlimited storage".
+  String get storageLabel {
+    final mb = storageQuotaMb;
+    if (mb == null) return 'Unlimited storage';
+    final gb = mb / 1024;
+    final text =
+        gb == gb.roundToDouble() ? gb.toStringAsFixed(0) : gb.toStringAsFixed(1);
+    return '$text GB storage';
+  }
 
   /// Human-readable cap: the number, or "Unlimited" when uncapped.
   String get maxStudentsLabel =>
@@ -113,6 +127,7 @@ class SubscriptionPlanModel {
             .map((e) => e.toString())
             .toList(),
         maxStudents: (j['max_students'] as num?)?.toInt(),
+        storageQuotaMb: (j['storage_quota_mb'] as num?)?.toInt(),
         isActive: j['is_active'] as bool? ?? true,
       );
 }

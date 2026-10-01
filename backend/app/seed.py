@@ -9,7 +9,13 @@ import asyncio
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.constants import PLAN_MAX_STUDENTS, PLAN_MODULES, PLAN_NAMES, PLAN_PRICES
+from app.core.constants import (
+    PLAN_MAX_STUDENTS,
+    PLAN_MODULES,
+    PLAN_NAMES,
+    PLAN_PRICES,
+    PLAN_STORAGE_MB,
+)
 from app.core.database import AsyncSessionLocal, engine
 from app.core.enums import BillingPeriod, Module, PermissionAction, SystemRole
 from app.core.security import hash_password
@@ -40,6 +46,7 @@ async def _seed_plans(db) -> None:
                     price=price,
                     billing_period=BillingPeriod.MONTHLY.value,
                     max_students=PLAN_MAX_STUDENTS.get(code),
+                    storage_quota_mb=PLAN_STORAGE_MB.get(code),
                 )
             )
         else:
@@ -51,6 +58,8 @@ async def _seed_plans(db) -> None:
             # Backfill the student cap only when it was never set.
             if existing.max_students is None:
                 existing.max_students = PLAN_MAX_STUDENTS.get(code)
+            if existing.storage_quota_mb is None:
+                existing.storage_quota_mb = PLAN_STORAGE_MB.get(code)
 
 
 def _full_permission(module: str) -> RolePermission:

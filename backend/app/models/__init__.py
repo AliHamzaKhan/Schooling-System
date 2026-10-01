@@ -70,6 +70,7 @@ from app.models.subscription import (
     SubscriptionPayment,
     SubscriptionPlan,
 )
+from app.models.upload import StoredUpload
 from app.models.user import User
 
 __all__ = [
@@ -86,6 +87,7 @@ __all__ = [
     "SchoolSubscription",
     "SubscriptionPayment",
     "User",
+    "StoredUpload",
     "RefreshSession",
     "PasswordReset",
     "SchoolClass",

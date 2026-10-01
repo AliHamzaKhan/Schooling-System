@@ -12,3 +12,11 @@ class UploadOut(BaseModel):
     filename: str
     size: int
     content_type: str | None = None
+
+
+class StorageUsageOut(BaseModel):
+    """File storage used against the subscription plan (quota None = unlimited)."""
+
+    used_bytes: int
+    quota_bytes: int | None = None
+    plan_code: str | None = None

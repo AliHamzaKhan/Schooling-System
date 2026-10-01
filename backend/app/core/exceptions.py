@@ -32,6 +32,7 @@ class ErrorCode(str, Enum):
     CONFLICT = "conflict"  # 409: state conflict
     RATE_LIMITED = "rate_limited"  # 429: too many requests for this key
     SERVICE_UNAVAILABLE = "service_unavailable"  # 503: dependency outage
+    STORAGE_QUOTA_EXCEEDED = "storage_quota_exceeded"  # 413: plan storage used up
 
 
 class AppHTTPException(HTTPException):

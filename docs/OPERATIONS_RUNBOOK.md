@@ -87,6 +87,30 @@ Run at least quarterly and before any irreversible migration:
    operator and exceptions. Delete the rehearsal environment and rotate its
    credentials after sign-off.
 
+### Automated drill
+
+`backend/scripts/drill_backup_restore.py` performs steps 1–3 and a migration
+rollback rehearsal on an isolated copy in one command: `pg_dump` (checksummed),
+restore into a new scratch database, compare the schema revision and exact row
+counts of every table, roll the copy back `--rollback-steps` revisions and
+forward to head, compare again, then drop the copy. It only reads the source
+and prints JSON (timings, revision, checksum, counts) without URLs or row
+contents. Run it against a staging copy, with credentials that can create
+databases:
+
+```bash
+cd backend
+DRILL_SOURCE_DATABASE_URL=postgresql+asyncpg://... \
+  python scripts/drill_backup_restore.py --rollback-steps 3
+```
+
+Exit 0 means the restore matched and the round trip returned to head. Encryption
+of the stored backup and object-storage restore remain hosting tasks.
+
+CI (`backend:migration-rehearsal`) also upgrades an empty database to head,
+downgrades every revision to base and upgrades again, so a migration that
+cannot be rolled back fails the pipeline.
+
 ## Deploy rollback
 
 1. Stop promotion of the new image and preserve the failed image SHA, current

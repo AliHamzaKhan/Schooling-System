@@ -120,8 +120,16 @@ class Settings(BaseSettings):
     # Deployment-safe alternative for a multiline JSON service-account secret.
     # Decoded in memory and never logged or returned by an API.
     FIREBASE_CREDENTIALS_JSON_B64: str = ""
-    # Email (SMTP); blank => stub
+    # Email over SMTP; blank SMTP_HOST => stub (no delivery attempted). Every
+    # mainstream provider (Amazon SES, SendGrid, Mailgun, Brevo, Google
+    # Workspace) offers SMTP, so no provider SDK is needed.
     EMAIL_FROM: str = ""
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    # "starttls" (port 587), "ssl" (port 465) or "none" (local relay only).
+    SMTP_SECURITY: str = "starttls"
 
     # AI features (Anthropic Claude); blank key => stub mode
     ANTHROPIC_API_KEY: str = ""
@@ -206,6 +214,13 @@ class Settings(BaseSettings):
             if not self.TWILIO_WHATSAPP_FROM and not self.TWILIO_SMS_FROM:
                 raise ValueError("Configure a Twilio sender before enabling Twilio delivery")
 
+        if self.SMTP_HOST:
+            if not self.EMAIL_FROM:
+                raise ValueError("EMAIL_FROM must be set when SMTP_HOST is configured")
+            if self.SMTP_SECURITY.lower() not in {"starttls", "ssl", "none"}:
+                raise ValueError("SMTP_SECURITY must be 'starttls', 'ssl' or 'none'")
+            if bool(self.SMTP_USERNAME) != bool(self.SMTP_PASSWORD):
+                raise ValueError("SMTP_USERNAME and SMTP_PASSWORD must be configured together")
         if self.FIREBASE_CREDENTIALS_FILE and self.FIREBASE_CREDENTIALS_JSON:
             raise ValueError("Configure only one Firebase credential source")
         if self.FIREBASE_CREDENTIALS_JSON:

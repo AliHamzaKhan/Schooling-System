@@ -9,11 +9,14 @@ selected by ``settings.STORAGE_BACKEND`` — see ``app/core/storage.py``.
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from sqlalchemy import func, select
 
 from app.core.config import settings
-from app.core.deps import CurrentUser, require_school_member
-from app.core.exceptions import bad_request, service_unavailable
+from app.core.deps import CurrentUser, DbDep, require_school_member
+from app.core.exceptions import AppHTTPException, ErrorCode, bad_request, service_unavailable
 from app.core.storage import build_key, get_storage
+from app.models.upload import StoredUpload
+from app.modules.permissions.service import get_request_school
 from app.modules.uploads import schemas
 from app.modules.uploads.limits import read_limited_upload
 from app.modules.uploads.policy import (
@@ -26,6 +29,26 @@ from app.modules.uploads.scanner import ScanRejected, ScannerUnavailable, get_up
 
 router = APIRouter(prefix="/schools/{school_id}/uploads", tags=["Uploads"])
 
+MB = 1024 * 1024
+
+
+async def _storage_usage(db, school_id: uuid.UUID) -> tuple[int, int | None, str | None]:
+    """Bytes used by the school, its plan quota in bytes (None = unlimited), plan code."""
+    used = await db.scalar(
+        select(func.coalesce(func.sum(StoredUpload.size_bytes), 0)).where(StoredUpload.school_id == school_id)
+    )
+    school = await get_request_school(db, school_id)
+    plan = school.subscription_plan if school else None
+    quota_mb = plan.storage_quota_mb if plan else None
+    return int(used or 0), (quota_mb * MB if quota_mb else None), (plan.code if plan else None)
+
+
+@router.get("/usage", response_model=schemas.StorageUsageOut, dependencies=[Depends(require_school_member)])
+async def storage_usage(school_id: uuid.UUID, db: DbDep) -> schemas.StorageUsageOut:
+    """How much of the subscription plan's file storage the school has used."""
+    used, quota, plan = await _storage_usage(db, school_id)
+    return schemas.StorageUsageOut(used_bytes=used, quota_bytes=quota, plan_code=plan)
+
 
 @router.post(
     "",
@@ -36,6 +59,7 @@ router = APIRouter(prefix="/schools/{school_id}/uploads", tags=["Uploads"])
 async def upload_file(
     school_id: uuid.UUID,
     current_user: CurrentUser,
+    db: DbDep,
     file: UploadFile = File(...),
     folder: str = Form(default="submissions"),
 ) -> schemas.UploadOut:
@@ -48,6 +72,13 @@ async def upload_file(
     max_bytes = settings.MAX_UPLOAD_MB * 1024 * 1024
     data = await read_limited_upload(file, max_bytes)
     content = inspect_content(safe_folder, data)
+    used, quota, _ = await _storage_usage(db, school_id)
+    if quota is not None and used + len(data) > quota:
+        raise AppHTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="This school has used its file storage allowance. Remove old files or upgrade the plan.",
+            code=ErrorCode.STORAGE_QUOTA_EXCEEDED,
+        )
     try:
         await get_upload_scanner().scan(data)
     except ScanRejected:
@@ -60,6 +91,11 @@ async def upload_file(
         prefix = f"private/{safe_folder}/{school_id}/{current_user.id}"
     key = build_key(prefix, canonical_filename(file.filename or "upload", content))
     url = await get_storage().save(key=key, data=data, content_type=content.media_type)
+    db.add(StoredUpload(
+        school_id=school_id, uploaded_by=current_user.id, storage_key=key, url=url,
+        folder=safe_folder, size_bytes=len(data), content_type=content.media_type,
+    ))
+    await db.flush()
     return schemas.UploadOut(
         url=url,
         filename=key.rsplit("/", 1)[-1],
