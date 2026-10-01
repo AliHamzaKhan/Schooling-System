@@ -681,7 +681,7 @@ full isolated backend regression. No UI preview; no production data migration.
   20–26 ms and p95 under 35 ms for every window. Set `O03_MEASUREMENT_REPORT`
   to collect the JSON evidence.
 - The new budget tests fail on the previous code and pass with the fix. The full
-  isolated backend suite result is recorded below once it completes.
+  isolated backend suite: **434 passed, 0 failed** (exit 0).
   Staging-size latency/concurrency budgets, cache policy, bulk-job quotas and
   device/browser traces remain for O03.
 
