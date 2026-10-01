@@ -864,3 +864,9 @@ hard-coded `$`; the currency is part of the open F06 money-policy decision.
 - **Accessibility**: 35 icon-only buttons had no accessible name; each now has a
   tooltip/label derived from its action ("Back", "Close", "Show or hide
   password", "Approve …").
+
+Chrome verification of the batch above: approving from the dashboard queue sets
+the leave request to `approved` on the server and empties the queue; "Remind All"
+calls `POST /fees/send-reminders`; "Download PDF Report" downloads a valid PDF.
+The finance card labelled the overdue *invoice* count as "students"; it now
+reads "N overdue invoices".

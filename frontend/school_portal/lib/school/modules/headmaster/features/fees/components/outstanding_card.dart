@@ -51,7 +51,7 @@ class OutstandingCard extends StatelessWidget {
                         style: AppTypography.displayLg
                             .copyWith(color: AppColors.error, fontSize: 40)),
                     const SizedBox(height: 4),
-                    Text('from ${data.outstandingCount} students',
+                    Text('${data.outstandingCount} overdue invoice${data.outstandingCount == 1 ? '' : 's'}',
                         style: AppTypography.bodyLg),
                     const SizedBox(height: AppSpacing.stackLg),
                     GhostButton(
