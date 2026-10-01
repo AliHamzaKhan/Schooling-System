@@ -1,5 +1,5 @@
 import { open, boot, login, texts, shot, enableSemantics } from './harness.mjs';
-import { OUT } from './harness.mjs';
+import { OUT, apiToken } from './harness.mjs';
 import { check, results } from './u02lib.mjs';
 import fs from 'node:fs';
 const S = 'http://localhost:8081/#';
@@ -75,7 +75,7 @@ if (process.env.ONLY_F03) { } else {
 // Guardian cannot read another student's data by URL-manipulated id (API).
 {
   const api = 'http://127.0.0.1:8000/api/v1';
-  const tok = async (u, p) => (await (await fetch(`${api}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `username=${encodeURIComponent(u)}&password=${p}` })).json()).access_token;
+  const tok = (u, p) => apiToken(u, p);
   const ids = JSON.parse(fs.readFileSync(`${OUT}/ids.txt`, 'utf8').trim().split('\n').pop());
   const g = await tok('guardian@chromeschool.edu', 'Passw0rd1');
   const r = await fetch(`${api}/schools/${ids.school}/students/${ids.teacher}/attendance`, { headers: { authorization: `Bearer ${g}` } });

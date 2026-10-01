@@ -161,7 +161,7 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: AnimatedContainer(
         duration: AppMotion.fast,

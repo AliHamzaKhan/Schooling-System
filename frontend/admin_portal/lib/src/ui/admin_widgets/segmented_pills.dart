@@ -57,7 +57,7 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: Container(
         height: 44,

@@ -58,7 +58,7 @@ class StudentPerformanceView extends GetView<TeacherPerformanceController> {
                       ],
                     ),
                     const SizedBox(height: AppSpacing.stackSm),
-                    GestureDetector(
+                    AccessibleTap(
                       onTap: () => Get.back<void>(),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,

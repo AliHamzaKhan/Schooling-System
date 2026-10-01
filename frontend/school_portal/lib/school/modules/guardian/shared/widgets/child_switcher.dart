@@ -36,7 +36,7 @@ class ChildSwitcher extends StatelessWidget {
             }
             final c = children[i];
             final selected = c.id == selectedId;
-            return GestureDetector(
+            return AccessibleTap(
               onTap: () => session.select(c.id),
               child: AnimatedContainer(
                 duration: AppMotion.fast,
@@ -87,7 +87,7 @@ class _ManageButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: SizedBox(
         width: 64,

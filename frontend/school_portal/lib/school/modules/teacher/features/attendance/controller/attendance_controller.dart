@@ -107,6 +107,10 @@ class AttendanceMarkController extends GetxController {
       submitError.value = 'Choose a class before submitting attendance.';
       return false;
     }
+    if (!marks.values.any((m) => m != AttendanceMark.unmarked)) {
+      submitError.value = 'Mark at least one student before submitting.';
+      return false;
+    }
     submitting.value = true;
     submitError.value = null;
     final res = await _repo.saveAttendanceMarks(selectedClass.id, {

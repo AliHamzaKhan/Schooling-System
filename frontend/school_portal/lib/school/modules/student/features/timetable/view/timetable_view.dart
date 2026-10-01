@@ -94,7 +94,7 @@ class _DayChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: Container(
         alignment: Alignment.center,

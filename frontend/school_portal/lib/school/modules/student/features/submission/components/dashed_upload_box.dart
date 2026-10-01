@@ -10,7 +10,7 @@ class DashedUploadBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: CustomPaint(
         painter: _DashedPainter(),
@@ -45,7 +45,7 @@ class DashedUploadBox extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 filename == null
-                    ? 'PDF, DOCX, or Pages (Max 10MB)'
+                    ? 'PDF only (max 10 MB)'
                     : 'Tap to remove and pick another file',
                 style: AppTypography.bodySm,
               ),

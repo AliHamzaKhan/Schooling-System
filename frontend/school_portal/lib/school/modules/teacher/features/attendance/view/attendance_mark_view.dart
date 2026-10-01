@@ -89,7 +89,11 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
                         color: AppColors.onSurfaceVariant,
                       ),
                       const SizedBox(width: 6),
-                      Text('Oct 24, 2023', style: AppTypography.bodyMd),
+                      // The register is saved for today; show that date.
+                      Text(
+                        DateTimeParserService().toFriendlyDate(DateTime.now()),
+                        style: AppTypography.bodyMd,
+                      ),
                       const Spacer(),
                       _MarkAllPresentButton(onTap: controller.markAllPresent),
                     ],
@@ -242,31 +246,41 @@ class _MarkAllPresentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.12),
+    // A real button: focusable, keyboard-activatable and announced.
+    return Semantics(
+      container: true,
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.full),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              AppIcons.doneAllRounded,
-              size: 18,
-              color: AppColors.primary,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.full),
             ),
-            const SizedBox(width: 6),
-            Text(
-              'Mark All Present',
-              style: AppTypography.labelMd.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  AppIcons.doneAllRounded,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Mark All Present',
+                  style: AppTypography.labelMd.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

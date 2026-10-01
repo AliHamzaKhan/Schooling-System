@@ -48,6 +48,14 @@ class AttendanceClassesView extends GetView<TeacherAttendanceController> {
                   style: AppTypography.bodyLg,
                 ),
                 const SizedBox(height: AppSpacing.stackLg),
+                if (controller.classes.isEmpty)
+                  const AppStateView.empty(
+                    title: 'No class register assigned',
+                    message:
+                        'Only a section\'s class teacher takes its daily '
+                        'register. Ask your headmaster to assign you as class '
+                        'teacher.',
+                  ),
                 for (final c in controller.classes) ...[
                   _ClassRow(
                     item: c,

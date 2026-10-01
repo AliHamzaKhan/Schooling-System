@@ -95,7 +95,7 @@ class _DaySelector extends StatelessWidget {
         itemBuilder: (_, i) {
           final d = days[i];
           final active = i == selected;
-          return GestureDetector(
+          return AccessibleTap(
             onTap: () => onSelect(i),
             child: Container(
               width: 58,

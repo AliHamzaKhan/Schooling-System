@@ -1,5 +1,5 @@
 import { open, boot, texts, shot, enableSemantics } from './harness.mjs';
-import { OUT } from './harness.mjs';
+import { OUT, apiToken } from './harness.mjs';
 const BASE = 'http://localhost:8080/#';
 const CLASS = 'Grade ' + (Date.now() % 100000);
 const results = [];
@@ -45,7 +45,7 @@ export { check, has, settle, tapText, typeInto, results, BASE };
 
 async function classExists(name) {
   const api = 'http://127.0.0.1:8000/api/v1';
-  const token = (await (await fetch(`${api}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'username=head%40chromeschool.edu&password=HeadPass123' })).json()).access_token;
+  const token = await apiToken('head@chromeschool.edu', 'HeadPass123');
   const ids = JSON.parse((await import('node:fs')).readFileSync(`${OUT}/ids.txt`, 'utf8').trim().split('\n').pop());
   const rows = await (await fetch(`${api}/schools/${ids.school}/academic/classes`, { headers: { authorization: `Bearer ${token}` } })).json();
   return rows.some(r => r.name === name);
@@ -95,7 +95,7 @@ await tapText(page, /^Save/i); await settle(page, 3000);
 check('valid settings save confirms', await has(page, /Settings saved/i));
 await shot(page, 'u02_settings_saved');
 const api = 'http://127.0.0.1:8000/api/v1';
-const token = (await (await fetch(`${api}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'username=head%40chromeschool.edu&password=HeadPass123' })).json()).access_token;
+const token = await apiToken('head@chromeschool.edu', 'HeadPass123');
 const ids = JSON.parse((await import('node:fs')).readFileSync(`${OUT}/ids.txt`, 'utf8').trim().split('\n').pop());
 const profile = await (await fetch(`${api}/schools/${ids.school}/profile`, { headers: { authorization: `Bearer ${token}` } })).json();
 const saved = JSON.stringify(profile.settings ?? null);

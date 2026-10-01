@@ -186,7 +186,7 @@ class _CommunicationViewState extends State<CommunicationView> {
                   style: AppTypography.bodySm,
                 ),
                 const SizedBox(width: AppSpacing.stackSm),
-                GestureDetector(
+                AccessibleTap(
                   onTap: () => controller.selectFilter(0),
                   child: Text(
                     'Clear',

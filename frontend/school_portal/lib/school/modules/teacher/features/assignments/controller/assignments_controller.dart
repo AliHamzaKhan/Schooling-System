@@ -10,7 +10,10 @@ class TeacherAssignmentsController extends GetxController {
   TeacherAssignmentsController({TeacherRepository? repo})
       : _repo = repo ?? Get.find<TeacherRepository>();
 
-  static const classFilters = ['All Classes', 'Algebra 101', 'Calculus II'];
+  static const allClasses = 'All Classes';
+
+  /// "All Classes" plus the classes that actually have assignments.
+  final classOptions = <String>[allClasses].obs;
 
   /// Rows revealed per page as the user scrolls.
   static const pageSize = 8;
@@ -59,6 +62,12 @@ class TeacherAssignmentsController extends GetxController {
     fetch();
   }
 
+  bool _matchesClass(Assignment a) {
+    final i = classFilterIndex.value;
+    if (i <= 0 || i >= classOptions.length) return true;
+    return a.className == classOptions[i];
+  }
+
   /// Reveals the next page. Async so the footer can show a brief spinner
   /// instead of the list snapping longer with no feedback.
   Future<void> loadMore() async {
@@ -79,18 +88,27 @@ class TeacherAssignmentsController extends GetxController {
       refreshing.value = true;
     }
     error.value = null;
-    final res = await _repo.loadAssignments(
-        classFilter: classFilters[classFilterIndex.value]);
+    final res = await _repo.loadAssignments();
     if (res.success && res.data != null) {
       final q = query.value.toLowerCase();
       final base = res.data!;
+      final selected = classFilterIndex.value < classOptions.length
+          ? classOptions[classFilterIndex.value]
+          : allClasses;
+      classOptions.assignAll([
+        allClasses,
+        ...({for (final a in base.assignments) a.className}
+              ..removeWhere((c) => c.isEmpty))
+            .toList()
+          ..sort(),
+      ]);
+      classFilterIndex.value = classOptions.indexOf(selected).clamp(0, classOptions.length - 1);
       data.value = AssignmentsData(
         stats: base.stats,
-        assignments: q.isEmpty
-            ? base.assignments
-            : base.assignments
-                .where((a) => a.title.toLowerCase().contains(q))
-                .toList(),
+        assignments: base.assignments
+            .where(_matchesClass)
+            .where((a) => q.isEmpty || a.title.toLowerCase().contains(q))
+            .toList(),
       );
       // A new result set starts from page one again.
       visibleCount.value = pageSize;

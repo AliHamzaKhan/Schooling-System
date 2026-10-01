@@ -115,7 +115,7 @@ async def test_school_scoped_request_loads_school_once(client, school):
 
 # Measured on the same uncached path as QUERY_BUDGETS above.
 ACADEMIC_BUDGETS = {
-    "homework.assignments": 14,
+    "homework.assignments": 17,  # +3 batched: graded counts, placements, rosters
     "leave.requests": 11,
     "exams.list": 10,
     "attendance.student_history": 11,

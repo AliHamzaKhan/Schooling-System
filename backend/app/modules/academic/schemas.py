@@ -226,6 +226,21 @@ class TeacherDashboard(BaseModel):
     sections_taught: int = 0
 
 
+class TeacherSectionOut(BaseModel):
+    """A section the signed-in teacher works with.
+
+    ``is_homeroom`` marks the sections they are class teacher of; only those
+    accept the daily register. ``subjects`` lists what they teach there.
+    """
+
+    section_id: uuid.UUID
+    section_name: str
+    class_name: str
+    student_count: int
+    is_homeroom: bool
+    subjects: list[str] = []
+
+
 class TeacherTimetableSlot(BaseModel):
     """A period a teacher takes, with class/section/subject names resolved.
 

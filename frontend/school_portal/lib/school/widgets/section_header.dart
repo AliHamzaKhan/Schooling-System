@@ -25,7 +25,7 @@ class SectionHeader extends StatelessWidget {
       children: [
         Text(title, style: AppTypography.titleLg),
         if (actionLabel != null)
-          GestureDetector(
+          AccessibleTap(
             onTap: onAction,
             child: Row(
               mainAxisSize: MainAxisSize.min,

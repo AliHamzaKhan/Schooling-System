@@ -48,7 +48,7 @@ class GradeCard extends StatelessWidget {
                   .copyWith(fontSize: 24, color: AppColors.primary)),
           const SizedBox(height: AppSpacing.stackMd),
           for (var i = 0; i < group.sections.length; i++) ...[
-            GestureDetector(
+            AccessibleTap(
               onTap: onSectionTap == null
                   ? null
                   : () => onSectionTap!(group.sections[i]),

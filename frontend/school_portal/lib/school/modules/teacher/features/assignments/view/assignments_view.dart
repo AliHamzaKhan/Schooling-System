@@ -261,7 +261,7 @@ class _AssignmentsListState extends State<_AssignmentsList> {
                 child: AssignmentStatCard(
                   label: 'To Grade',
                   value: '${stats.toGrade}',
-                  trend: '+${stats.toGradeDelta} today',
+                  trend: stats.toGrade == 0 ? 'All reviewed' : 'Awaiting review',
                   icon: AppIcons.menuBookOutlined,
                   accent: const Color(0xFFE8A317),
                   trendColor: AppColors.error,
@@ -286,8 +286,7 @@ class _AssignmentsListState extends State<_AssignmentsList> {
                   label: 'Turn-in Rate',
                   value:
                       '${(stats.averageTurnInRate * 100).toStringAsFixed(0)}%',
-                  trend:
-                      '+${(stats.averageTurnInDelta * 100).toStringAsFixed(0)}% wk',
+                  trend: 'Of enrolled students',
                   icon: AppIcons.groupOutlined,
                   accent: AppColors.aiAccent,
                   trendColor: AppColors.tertiary,
@@ -304,7 +303,7 @@ class _AssignmentsListState extends State<_AssignmentsList> {
         ),
         const SizedBox(height: AppSpacing.stackMd),
         Obx(() => FilterChips(
-              options: TeacherAssignmentsController.classFilters,
+              options: c.classOptions.toList(),
               selectedIndex: c.classFilterIndex.value,
               onSelected: c.selectClass,
             )),

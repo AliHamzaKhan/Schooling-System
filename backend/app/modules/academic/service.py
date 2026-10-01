@@ -870,6 +870,55 @@ class AcademicService:
             sections_taught=len(section_ids),
         )
 
+    async def teacher_sections(
+        self, school_id: uuid.UUID, teacher_id: uuid.UUID
+    ) -> list[schemas.TeacherSectionOut]:
+        """Homeroom sections plus sections the teacher has timetable periods in."""
+        taught = (await self.db.execute(
+            select(TimetableSlot.section_id, Subject.name)
+            .join(Subject, Subject.id == TimetableSlot.subject_id)
+            .where(
+                TimetableSlot.school_id == school_id,
+                TimetableSlot.teacher_id == teacher_id,
+            )
+        )).all()
+        subjects: dict[uuid.UUID, set[str]] = {}
+        for section_id, name in taught:
+            subjects.setdefault(section_id, set()).add(name)
+        homeroom = set((await self.db.execute(
+            select(Section.id).where(
+                Section.school_id == school_id, Section.class_teacher_id == teacher_id
+            )
+        )).scalars())
+        section_ids = homeroom | set(subjects)
+        if not section_ids:
+            return []
+        rows = (await self.db.execute(
+            select(Section.id, Section.name, SchoolClass.name)
+            .join(SchoolClass, SchoolClass.id == Section.class_id)
+            .where(Section.school_id == school_id, Section.id.in_(section_ids))
+        )).all()
+        head_counts = dict((await self.db.execute(
+            select(StudentEnrollment.section_id, func.count(StudentEnrollment.student_id))
+            .where(
+                StudentEnrollment.section_id.in_(section_ids),
+                StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+            )
+            .group_by(StudentEnrollment.section_id)
+        )).all())
+        out = [
+            schemas.TeacherSectionOut(
+                section_id=sid,
+                section_name=section_name,
+                class_name=class_name,
+                student_count=head_counts.get(sid, 0),
+                is_homeroom=sid in homeroom,
+                subjects=sorted(subjects.get(sid, set())),
+            )
+            for sid, section_name, class_name in rows
+        ]
+        return sorted(out, key=lambda s: (s.class_name, s.section_name))
+
     async def teacher_timetable(
         self,
         school_id: uuid.UUID,

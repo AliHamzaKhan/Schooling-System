@@ -154,7 +154,7 @@ class _RangeToggle extends StatelessWidget {
   }
 
   Widget _segment(String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: AnimatedContainer(
         duration: AppMotion.fast,

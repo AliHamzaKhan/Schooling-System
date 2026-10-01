@@ -76,7 +76,7 @@ class _PlanOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.stackMd),
@@ -195,7 +195,7 @@ class _DiscountChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: AnimatedContainer(
         duration: AppMotion.fast,

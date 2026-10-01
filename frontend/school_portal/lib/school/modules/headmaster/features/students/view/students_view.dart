@@ -126,7 +126,7 @@ class _Header extends StatelessWidget {
         children: [
           Row(
             children: [
-              GestureDetector(
+              AccessibleTap(
                 onTap: () => Get.back<void>(),
                 child: const CircleAvatar(
                   radius: 18,
@@ -187,7 +187,7 @@ class _Pager extends StatelessWidget {
           icon: const Icon(AppIcons.chevronLeftRounded),
         ),
         for (var i = 1; i <= total; i++)
-          GestureDetector(
+          AccessibleTap(
             onTap: () => onChanged(i),
             child: Container(
               width: 32,

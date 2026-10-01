@@ -134,7 +134,7 @@ class _RangeFilter extends StatelessWidget {
         children: [
           for (final (value, label) in _options)
             Expanded(
-              child: GestureDetector(
+              child: AccessibleTap(
                 onTap: () => onSelect(value),
                 behavior: HitTestBehavior.opaque,
                 child: AnimatedContainer(

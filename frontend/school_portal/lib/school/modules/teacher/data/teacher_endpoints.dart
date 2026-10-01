@@ -53,6 +53,8 @@ class TeacherEndpoints {
 
   static String myTimetable(String schoolId) =>
       '/schools/$schoolId/academic/me/timetable';
+  static String mySections(String schoolId) =>
+      '/schools/$schoolId/academic/me/sections';
   static String academicClassSections(String schoolId, String classId) =>
       '/schools/$schoolId/academic/classes/$classId/sections';
   static String homeworkAssignments(String schoolId) =>

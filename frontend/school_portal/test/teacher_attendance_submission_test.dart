@@ -60,4 +60,42 @@ void main() {
     expect(controller.loading.value, isFalse);
     expect(controller.error.value, contains('Choose a class'));
   });
+
+  test('an empty register is not sent to the server', () async {
+    var saves = 0;
+    final controller = AttendanceMarkController(
+      repo: _CountingTeacherRepository(() => saves++),
+      initialClassInfo: const AttendanceClass(
+        id: 'section-1',
+        subject: 'Daily register',
+        grade: 'Grade 1 A',
+        students: 1,
+        icon: AppIcons.functionsRounded,
+        color: AppColors.primary,
+      ),
+    );
+    controller.onInit();
+    controller.marks['student-1'] = AttendanceMark.unmarked;
+
+    expect(await controller.submit(), isFalse);
+    expect(saves, 0);
+    expect(
+      controller.submitError.value,
+      'Mark at least one student before submitting.',
+    );
+  });
+}
+
+class _CountingTeacherRepository extends _FailingTeacherRepository {
+  _CountingTeacherRepository(this.onSave);
+  final void Function() onSave;
+
+  @override
+  Future<ApiResponse<void>> saveAttendanceMarks(
+    String sectionId,
+    Map<String, String> marks,
+  ) async {
+    onSave();
+    return ApiResponse.fail('unexpected save');
+  }
 }

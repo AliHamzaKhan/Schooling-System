@@ -74,3 +74,21 @@ export async function login(page, email, password) {
   await page.waitForTimeout(5000);
   await enableSemantics(page);
 }
+
+const tokens = new Map();
+/** API token for a synthetic account, cached and retried on rate limiting. */
+export async function apiToken(email, password, api = 'http://127.0.0.1:8000/api/v1') {
+  if (tokens.has(email)) return tokens.get(email);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const r = await fetch(`${api}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
+    });
+    if (r.status === 429) { await new Promise(res => setTimeout(res, 1000 * Number(r.headers.get('retry-after') || 10))); continue; }
+    const token = (await r.json()).access_token;
+    tokens.set(email, token);
+    return token;
+  }
+  throw new Error(`login for ${email} stayed rate limited`);
+}

@@ -258,7 +258,7 @@ class _PlanRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.stackMd),

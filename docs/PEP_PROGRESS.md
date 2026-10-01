@@ -753,3 +753,42 @@ Defects found and fixed in this session (each with a regression test):
 
 Not yet covered: physical phones/tablets, Safari/Firefox, screen-reader runs, and
 a named product reviewer's sign-off.
+
+### 2026-10-01 — L03/L04 Chrome journeys: attendance and homework lifecycle
+
+Driven end to end in Chromium on the profile build with synthetic data. Every
+step was verified against the server.
+
+| Journey | Result |
+| --- | --- |
+| Teacher → Attendance → own homeroom section → Mark All Present → Submit | Record saved; guardian dashboard shows 100 % for the month |
+| Student → Due Soon → assignment → notes → Turn In | Submission saved; item leaves Due Soon; guardian pending homework updates |
+| Teacher → Tasks → assignment → Grade → Save | Submission graded; "1 submitted · 1 graded" |
+| Route crawl: every guardian, student, teacher, headmaster and driver route | No API errors; only intended "missing context" recovery states |
+
+Defects found and fixed (regression tests added):
+
+1. **Timetables crashed on any free weekday** (guardian and student): a const
+   empty list was sorted.
+2. **Headmaster overview read the Super-Admin-only school endpoint** (403), leaving
+   the school identity blank; it now reads `/profile`.
+3. **Teacher daily register offered the wrong sections**: it listed timetable
+   sections (where the backend rejects a non-class-teacher register) and omitted
+   the teacher's homeroom section. New `GET /academic/me/sections` returns
+   homeroom and taught sections; the register lists homeroom sections with an
+   explanatory empty state.
+4. **Register screen**: showed a hard-coded "Oct 24, 2023" date, offered Submit
+   with no class loaded, sent an empty register to the server, exposed raw
+   database ids, and "Mark All Present" was a gesture with no button semantics.
+5. **Teacher assignments showed fabricated data**: hard-coded "Algebra 101 /
+   Calculus II" filters, "1/0 turned in", "0 to grade" with work waiting and
+   invented "+0 today / +0% wk" trends. The list API now returns class/section,
+   roster size and graded count (homework budget 14 → 17 statements, still
+   page-size independent); filters come from real classes; no deltas are invented.
+6. **Submission upload label** advertised DOCX/Pages although only PDF is accepted.
+
+7. **39 custom tap targets were invisible to keyboards and screen readers** (bare
+   `GestureDetector`, including "Forgot Password?" on login, filter chips,
+   section-header actions and pagination). A shared `AccessibleTap` (button
+   semantics, Tab focus, Enter/Space activation, focus ring) replaces them, and
+   `Pressable` gains the same behaviour. Widget test included.

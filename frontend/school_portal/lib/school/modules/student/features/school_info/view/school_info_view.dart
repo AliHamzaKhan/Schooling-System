@@ -221,7 +221,7 @@ class _Uniform extends StatelessWidget {
       );
     }
     final resolved = EnvConfig.mediaUrl(url!);
-    return GestureDetector(
+    return AccessibleTap(
       onTap: () => _viewFull(context, resolved),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.button),

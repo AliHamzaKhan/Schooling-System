@@ -24,7 +24,8 @@ class FilterChips extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.stackSm),
         itemBuilder: (context, i) {
           final selected = i == selectedIndex;
-          return GestureDetector(
+          return AccessibleTap(
+            selected: selected,
             onTap: () => onSelected(i),
             child: AnimatedContainer(
               duration: AppMotion.fast,

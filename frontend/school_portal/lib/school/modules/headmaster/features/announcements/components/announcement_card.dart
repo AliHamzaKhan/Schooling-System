@@ -87,7 +87,7 @@ class AnnouncementCard extends StatelessWidget {
                     ],
                     if (a.ctaLabel != null) ...[
                       const SizedBox(height: AppSpacing.stackMd),
-                      GestureDetector(
+                      AccessibleTap(
                         onTap: onCta,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,

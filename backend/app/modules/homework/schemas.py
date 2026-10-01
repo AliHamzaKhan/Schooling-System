@@ -56,7 +56,13 @@ class AssignmentListOut(AssignmentOut):
     submission count, and the requesting user's own submission (if any)."""
 
     subject_name: str | None = None
+    class_name: str | None = None
+    section_name: str | None = None
     submission_count: int = 0
+    # Reviewed submissions (graded, approved or rejected) and the section's
+    # active roster, so "to grade" and turn-in rates come from real records.
+    graded_count: int = 0
+    roster_size: int = 0
     my_submission: SubmissionBrief | None = None
 
 

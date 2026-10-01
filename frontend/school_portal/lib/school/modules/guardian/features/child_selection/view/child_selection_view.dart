@@ -69,7 +69,7 @@ class _ChildCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: GlassSurface(
         padding: const EdgeInsets.all(AppSpacing.stackMd),

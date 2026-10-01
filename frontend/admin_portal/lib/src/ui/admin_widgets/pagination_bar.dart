@@ -72,7 +72,7 @@ class _PageDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: Container(
         width: 36,
@@ -101,7 +101,7 @@ class _Chevron extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: enabled ? onTap : null,
       child: Container(
         width: 36,

@@ -76,7 +76,7 @@ class _QuizRow extends StatelessWidget {
       'closed' => ('Closed', AppColors.onSurfaceVariant),
       _ => ('Draft', const Color(0xFFE8A317)),
     };
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: GlassSurface(
         padding: const EdgeInsets.all(AppSpacing.stackMd),

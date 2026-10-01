@@ -109,34 +109,28 @@ class TeacherApiService {
     );
   }
 
-  /// Sections the teacher takes, folded up from their own timetable.
-  ///
-  /// There is no aggregate "/teacher/attendance/classes" endpoint — the real
-  /// source is the timetable, grouped by section, which also gives the true
-  /// head-count per section.
-  Future<ApiResponse<List<AttendanceClass>>> fetchAttendanceClasses() async {
-    final res = await fetchMyTimetable();
-    if (!res.success) {
-      return ApiResponse.fail(res.error ?? 'Could not load your classes.');
-    }
-    final bySection = <String, List<TeacherSlot>>{};
-    for (final slot in res.data ?? const <TeacherSlot>[]) {
-      bySection.putIfAbsent(slot.sectionId, () => []).add(slot);
-    }
-    final classes = bySection.values.map((group) {
-      final first = group.first;
-      final subjects = group.map((s) => s.subject).toSet().toList()..sort();
-      return AttendanceClass(
-        id: first.sectionId,
-        subject: subjects.join(', '),
-        grade: '${first.className} ${first.sectionName}',
-        students: first.studentCount,
-        icon: AppIcons.classOutlined,
-        color: AppColors.primary,
-      );
-    }).toList()
-      ..sort((a, b) => a.grade.compareTo(b.grade));
-    return ApiResponse.ok(classes);
+  /// Sections whose daily register this teacher takes: the ones they are
+  /// class teacher of. The backend accepts the daily register only from the
+  /// section's class teacher, so timetable-only sections are not offered.
+  Future<ApiResponse<List<AttendanceClass>>> fetchAttendanceClasses() {
+    return _api.request<List<AttendanceClass>>(
+      method: HttpMethod.get,
+      path: TeacherEndpoints.mySections(_sid),
+      parser: (json) => (json as List)
+          .cast<Map<String, dynamic>>()
+          .where((s) => s['is_homeroom'] == true)
+          .map(
+            (s) => AttendanceClass(
+              id: '${s['section_id']}',
+              subject: 'Daily register',
+              grade: '${s['class_name']} ${s['section_name']}',
+              students: (s['student_count'] as num?)?.toInt() ?? 0,
+              icon: AppIcons.classOutlined,
+              color: AppColors.primary,
+            ),
+          )
+          .toList(),
+    );
   }
 
   /// The section's active roster, names included.
@@ -181,44 +175,53 @@ class TeacherApiService {
     );
   }
 
-  /// Live assignments from `/schools/{id}/homework/assignments` (list of
-  /// `AssignmentOut`). The backend has no per-assignment class name,
-  /// submission counts, or KPI stats, so [Assignment.className] is blank,
-  /// turned-in/total are 0, and the header stats are derived from the list
-  /// (active = due in the future). [classFilter] is ignored (no class name to
-  /// match server- or client-side).
+  /// Live assignments from `/schools/{id}/homework/assignments`, with class,
+  /// roster and grading counts resolved server-side. Stats are derived from
+  /// those counts only; there is no history, so no trend deltas are invented.
   Future<ApiResponse<AssignmentsData>> fetchAssignments({String? classFilter}) {
     return _api.request<AssignmentsData>(
       method: HttpMethod.get,
       path: TeacherEndpoints.homeworkAssignments(_sid),
+      query: const {'limit': '100'},
       parser: (json) {
         final now = DateTime.now();
+        var toGrade = 0;
+        var turnedIn = 0;
+        var expected = 0;
         final items = (json as List).cast<Map<String, dynamic>>().map((a) {
           final due = DateTime.tryParse(a['due_date'] as String? ?? '');
           final isClosed = due != null && due.isBefore(now);
+          final submitted = (a['submission_count'] as num?)?.toInt() ?? 0;
+          final graded = (a['graded_count'] as num?)?.toInt() ?? 0;
+          final roster = (a['roster_size'] as num?)?.toInt() ?? 0;
+          toGrade += (submitted - graded).clamp(0, submitted);
+          turnedIn += submitted;
+          expected += roster;
           return Assignment(
             id: '${a['id']}',
             title: a['title'] as String? ?? '',
-            className: '',
+            className: [a['class_name'], a['section_name']]
+                .whereType<String>()
+                .join(' '),
             dueLabel: a['due_date'] as String? ?? '',
             status:
                 isClosed ? AssignmentStatus.closed : AssignmentStatus.active,
-            turnedIn: (a['submission_count'] as num?)?.toInt() ?? 0,
-            total: 0,
+            turnedIn: submitted,
+            total: roster,
             icon: AppIcons.assignmentOutlined,
             iconAccent: AppColors.primary,
             maxMarks: (a['max_marks'] as num?)?.toDouble(),
           );
         }).toList();
         final active =
-            items.where((a) => a.status == AssignmentStatus.active).length;
+            items.where((a) => a.status == AssignmentStatus.active).toList();
         return AssignmentsData(
           stats: AssignmentStats(
-            toGrade: 0,
+            toGrade: toGrade,
             toGradeDelta: 0,
-            activeCount: active,
-            activeAcrossClasses: 0,
-            averageTurnInRate: 0,
+            activeCount: active.length,
+            activeAcrossClasses: active.map((a) => a.className).toSet().length,
+            averageTurnInRate: expected == 0 ? 0 : turnedIn / expected,
             averageTurnInDelta: 0,
           ),
           assignments: items,

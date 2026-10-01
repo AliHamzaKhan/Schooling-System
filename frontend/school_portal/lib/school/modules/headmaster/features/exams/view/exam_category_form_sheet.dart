@@ -246,7 +246,7 @@ class _DateTile extends StatelessWidget {
                               : AppColors.onSurfaceVariant)),
                 ),
                 if (onClear != null)
-                  GestureDetector(
+                  AccessibleTap(
                     onTap: onClear,
                     child: const Icon(AppIcons.closeRounded, size: 18),
                   ),

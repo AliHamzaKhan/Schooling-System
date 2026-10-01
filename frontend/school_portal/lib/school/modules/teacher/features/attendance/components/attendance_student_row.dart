@@ -39,7 +39,6 @@ class AttendanceStudentRow extends StatelessWidget {
                   Text(student.name,
                       style: AppTypography.titleMd
                           .copyWith(fontWeight: FontWeight.w700)),
-                  Text('ID: ${student.id}', style: AppTypography.bodySm),
                 ],
               ),
             ),
@@ -91,7 +90,7 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = mark.color;
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),

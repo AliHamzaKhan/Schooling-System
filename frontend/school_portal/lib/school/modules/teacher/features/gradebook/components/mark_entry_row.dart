@@ -74,7 +74,7 @@ class _MarkEntryRowState extends State<MarkEntryRow> {
                   ),
                   const SizedBox(width: AppSpacing.stackSm),
                   Expanded(
-                    child: GestureDetector(
+                    child: AccessibleTap(
                       onTap: onOpenStudent,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,8 +82,6 @@ class _MarkEntryRowState extends State<MarkEntryRow> {
                           Text(student.name,
                               style: AppTypography.titleMd
                                   .copyWith(fontWeight: FontWeight.w700)),
-                          Text('ID: ${student.id}',
-                              style: AppTypography.bodySm),
                         ],
                       ),
                     ),

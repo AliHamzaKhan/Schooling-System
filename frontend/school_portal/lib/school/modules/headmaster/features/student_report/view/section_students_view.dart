@@ -128,7 +128,7 @@ class StudentRosterTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AccessibleTap(
       onTap: () => Get.toNamed(
         '$reportRoute?student_id=${Uri.encodeComponent(student.id)}',
         arguments: student.id,

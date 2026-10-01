@@ -100,7 +100,7 @@ class _AlertCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = item.level.color;
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: GlassSurface(
         padding: const EdgeInsets.all(AppSpacing.stackMd),

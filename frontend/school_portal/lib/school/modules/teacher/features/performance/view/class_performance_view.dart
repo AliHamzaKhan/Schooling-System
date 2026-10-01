@@ -91,7 +91,7 @@ class _SectionTabs extends StatelessWidget {
           itemBuilder: (context, i) {
             final s = controller.sections[i];
             final active = s.sectionId == selected;
-            return GestureDetector(
+            return AccessibleTap(
               onTap: () => controller.selectSection(s.sectionId),
               child: AnimatedContainer(
                 duration: AppMotion.fast,

@@ -82,7 +82,7 @@ class _LoginViewState extends State<LoginView> with ScreenTextControllers {
               Text('PASSWORD',
                   style: AppTypography.labelCaps
                       .copyWith(color: AppColors.onSurfaceVariant)),
-              GestureDetector(
+              AccessibleTap(
                 onTap: controller.goToForgotPassword,
                 child: Text('Forgot Password?',
                     style: AppTypography.labelMd

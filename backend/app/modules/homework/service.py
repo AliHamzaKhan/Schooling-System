@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.enums import EnrollmentStatus, SubmissionStatus
 from app.core.exceptions import bad_request, forbidden, not_found
 from app.core.pagination import OffsetPage
-from app.models.academic import Section, StudentEnrollment, Subject
+from app.models.academic import SchoolClass, Section, StudentEnrollment, Subject
 from app.models.homework import Assignment, Submission
 from app.models.user import User
 from app.modules.homework import schemas
@@ -142,6 +142,40 @@ class HomeworkService:
             )).all()
         )
 
+        reviewed = (
+            SubmissionStatus.GRADED.value, SubmissionStatus.APPROVED.value,
+            SubmissionStatus.REJECTED.value,
+        )
+        graded: dict[uuid.UUID, int] = dict(
+            (await self.db.execute(
+                select(Submission.assignment_id, func.count())
+                .where(
+                    Submission.assignment_id.in_(assignment_ids),
+                    Submission.status.in_(reviewed),
+                )
+                .group_by(Submission.assignment_id)
+            )).all()
+        )
+        section_ids = {a.section_id for a in assignments}
+        placements = {
+            sid: (section_name, class_name)
+            for sid, section_name, class_name in (await self.db.execute(
+                select(Section.id, Section.name, SchoolClass.name)
+                .join(SchoolClass, SchoolClass.id == Section.class_id)
+                .where(Section.id.in_(section_ids))
+            )).all()
+        }
+        rosters: dict[uuid.UUID, int] = dict(
+            (await self.db.execute(
+                select(StudentEnrollment.section_id, func.count(StudentEnrollment.student_id))
+                .where(
+                    StudentEnrollment.section_id.in_(section_ids),
+                    StudentEnrollment.status == EnrollmentStatus.ACTIVE.value,
+                )
+                .group_by(StudentEnrollment.section_id)
+            )).all()
+        )
+
         # The requesting user's own submissions (for students).
         mine: dict[uuid.UUID, Submission] = {}
         if current_user_id is not None:
@@ -169,7 +203,11 @@ class HomeworkService:
                     max_marks=a.max_marks,
                     assigned_by=a.assigned_by,
                     subject_name=subject_names.get(a.subject_id),
+                    section_name=placements.get(a.section_id, (None, None))[0],
+                    class_name=placements.get(a.section_id, (None, None))[1],
                     submission_count=counts.get(a.id, 0),
+                    graded_count=graded.get(a.id, 0),
+                    roster_size=rosters.get(a.section_id, 0),
                     my_submission=(
                         schemas.SubmissionBrief.model_validate(submission)
                         if submission is not None

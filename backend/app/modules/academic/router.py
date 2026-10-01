@@ -167,6 +167,18 @@ async def my_dashboard(
 
 
 @router.get(
+    "/me/sections",
+    response_model=list[schemas.TeacherSectionOut],
+    dependencies=[_view],
+)
+async def my_sections(
+    school_id: uuid.UUID, db: DbDep, current_user: CurrentUser
+) -> list[schemas.TeacherSectionOut]:
+    """Sections the signed-in teacher is class teacher of or teaches."""
+    return await AcademicService(db).teacher_sections(school_id, current_user.id)
+
+
+@router.get(
     "/me/timetable",
     response_model=list[schemas.TeacherTimetableSlot],
     dependencies=[_view],

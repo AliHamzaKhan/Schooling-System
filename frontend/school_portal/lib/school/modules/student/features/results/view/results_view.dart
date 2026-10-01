@@ -123,7 +123,7 @@ class _ExamRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = result.passed ? AppColors.tertiary : AppColors.error;
-    return GestureDetector(
+    return AccessibleTap(
       onTap: onTap,
       child: GlassSurface(
         padding: const EdgeInsets.all(AppSpacing.stackMd),

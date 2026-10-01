@@ -39,9 +39,10 @@ there were fixed, including a P0 web sign-in failure.
 1. L01–L05 remaining journey slices (student, guardian multi-child, finance under
    failure, academic rollover) using the Chrome harness for each journey.
 2. Physical-device runs (Android/iOS) and other browsers for L06 evidence.
-3. Decision-gated items listed in the backlog "Decisions to resolve" table:
-   F06 money precision policy, F04 public-media approval, hosted CI/alerting (O01/O02),
-   provider credentials (F07), pilot and named sign-off (L06).
+3. Decision-, access- and sign-off-gated items are consolidated in
+   [RELEASE_BLOCKERS.md](RELEASE_BLOCKERS.md): F06 money policy, F04 media and
+   retention policy, hosted CI/alerting (O01/O02), provider credentials (F07),
+   pilot and named sign-off (L06).
 
 ## Update procedure for every future development session
 
