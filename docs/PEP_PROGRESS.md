@@ -870,3 +870,8 @@ the leave request to `approved` on the server and empties the queue; "Remind All
 calls `POST /fees/send-reminders`; "Download PDF Report" downloads a valid PDF.
 The finance card labelled the overdue *invoice* count as "students"; it now
 reads "N overdue invoices".
+
+Full isolated backend suite after `ba0617d`: **exit 0, no failures**.
+Two more invented trends removed: the fee card's "+0 % vs last term" and the
+student attendance card's "+0 % from last month" (no history exists for either);
+they now appear only when a real previous figure is provided.

@@ -41,11 +41,11 @@ class TotalCollectedCard extends StatelessWidget {
               style: AppTypography.displayLg
                   .copyWith(color: AppColors.primary, fontSize: 44)),
           const SizedBox(height: 4),
-          Row(
+          if (data.trendPercent != null) Row(
             children: [
               const Icon(AppIcons.trendingUpRounded, size: 14, color: AppColors.tertiary),
               const SizedBox(width: 4),
-              Text('+${data.trendPercent.toStringAsFixed(0)}% vs last term',
+              Text('+${data.trendPercent!.toStringAsFixed(0)}% vs last term',
                   style: AppTypography.bodyMd
                       .copyWith(color: AppColors.tertiary, fontWeight: FontWeight.w600)),
             ],

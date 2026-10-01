@@ -50,7 +50,7 @@ class StudentApiService {
   /// the view-model is aggregated client-side: monthly average = (present+late)
   /// / total, the week strip = the last 7 records (late counts as a half bar),
   /// recent absences and late marks come straight from the records. The backend
-  /// has no previous-period figure, so `deltaPercent` is 0 and late `minutes`
+  /// has no previous-period figure, so `deltaPercent` is null (not shown) and late `minutes`
   /// are unknown (0).
   Future<ApiResponse<AttendanceData>> fetchAttendance() async {
     final res = await _api.request<List<Map<String, dynamic>>>(
@@ -76,7 +76,6 @@ class StudentApiService {
 
     return ApiResponse.ok(AttendanceData(
       monthlyAverage: monthlyAverage,
-      deltaPercent: 0,
       week: week.map((r) {
         final date = DateTime.tryParse('${r['attendance_date']}');
         final label =

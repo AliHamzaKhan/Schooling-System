@@ -374,7 +374,6 @@ class HeadmasterApiService {
       FeesData(
         term: '',
         totalCollected: _money(collected),
-        trendPercent: 0,
         progressPercent: rate,
         targetLabel: 'of ${_money(billed)} billed',
         outstandingAmount: _money(outstanding),

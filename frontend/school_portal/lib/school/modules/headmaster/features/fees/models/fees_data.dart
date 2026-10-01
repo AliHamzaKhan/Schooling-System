@@ -61,7 +61,8 @@ class FeeAgingBucket {
 class FeesData {
   final String term;
   final String totalCollected;
-  final double trendPercent;
+  /// Change against the previous term; null when no history is available.
+  final double? trendPercent;
   final double progressPercent;
   final String targetLabel;
   final String outstandingAmount;
@@ -76,7 +77,7 @@ class FeesData {
   const FeesData({
     required this.term,
     required this.totalCollected,
-    required this.trendPercent,
+    this.trendPercent,
     required this.progressPercent,
     required this.targetLabel,
     required this.outstandingAmount,
@@ -90,7 +91,7 @@ class FeesData {
   factory FeesData.fromJson(Map<String, dynamic> json) => FeesData(
     term: json['term'] as String? ?? '',
     totalCollected: '${json['total_collected'] ?? ''}',
-    trendPercent: (json['trend_percent'] as num?)?.toDouble() ?? 0,
+    trendPercent: (json['trend_percent'] as num?)?.toDouble(),
     progressPercent: (json['progress_percent'] as num?)?.toDouble() ?? 0,
     targetLabel: json['target_label'] as String? ?? '',
     outstandingAmount: '${json['outstanding_amount'] ?? ''}',

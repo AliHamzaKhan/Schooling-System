@@ -24,14 +24,15 @@ class LateMark {
 
 class AttendanceData {
   final int monthlyAverage;
-  final int deltaPercent;
+  /// Change against last month; null when there is no previous figure.
+  final int? deltaPercent;
   final List<DayBar> week;
   final List<String> recentAbsences;
   final List<LateMark> lateMarks;
 
   const AttendanceData({
     required this.monthlyAverage,
-    required this.deltaPercent,
+    this.deltaPercent,
     required this.week,
     required this.recentAbsences,
     required this.lateMarks,
@@ -39,7 +40,7 @@ class AttendanceData {
 
   factory AttendanceData.fromJson(Map<String, dynamic> json) => AttendanceData(
         monthlyAverage: (json['monthly_average'] as num?)?.toInt() ?? 0,
-        deltaPercent: (json['delta_percent'] as num?)?.toInt() ?? 0,
+        deltaPercent: (json['delta_percent'] as num?)?.toInt(),
         week: ((json['week'] as List?) ?? [])
             .map((e) => DayBar.fromJson(e as Map<String, dynamic>))
             .toList(),

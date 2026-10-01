@@ -15,7 +15,7 @@ const kAttendAbsent = Color(0xFFDC2626);
 /// the month label, and the change vs. last month.
 class AttendanceRingCard extends StatelessWidget {
   final int percent;
-  final int delta;
+  final int? delta;
 
   /// Defaults to the current month/year when omitted.
   final String? monthLabel;
@@ -23,7 +23,7 @@ class AttendanceRingCard extends StatelessWidget {
   const AttendanceRingCard({
     super.key,
     required this.percent,
-    required this.delta,
+    this.delta,
     this.monthLabel,
   });
 
@@ -34,7 +34,7 @@ class AttendanceRingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final up = delta >= 0;
+    final up = (delta ?? 0) >= 0;
     final now = DateTime.now();
     final label = monthLabel ?? '${_months[now.month - 1]} ${now.year}';
     return GlassSurface(
@@ -69,12 +69,14 @@ class AttendanceRingCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(up ? AppIcons.trendingUpRounded : AppIcons.trendingDownRounded,
-                  size: 16, color: up ? kAttendPresent : kAttendAbsent),
-              const SizedBox(width: 6),
-              Text('${up ? '+' : ''}$delta% from last month',
-                  style: AppTypography.bodyMd),
-              Text('   ·   $label',
+              if (delta != null) ...[
+                Icon(up ? AppIcons.trendingUpRounded : AppIcons.trendingDownRounded,
+                    size: 16, color: up ? kAttendPresent : kAttendAbsent),
+                const SizedBox(width: 6),
+                Text('${up ? '+' : ''}$delta% from last month   ·   ',
+                    style: AppTypography.bodyMd),
+              ],
+              Text(label,
                   style: AppTypography.bodyMd
                       .copyWith(color: AppColors.onSurfaceVariant)),
             ],
