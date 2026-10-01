@@ -792,3 +792,7 @@ Defects found and fixed (regression tests added):
    section-header actions and pagination). A shared `AccessibleTap` (button
    semantics, Tab focus, Enter/Space activation, focus ring) replaces them, and
    `Pressable` gains the same behaviour. Widget test included.
+
+Full isolated backend suite after commit `3ce256d`: **all tests passed, exit 0**
+(441 tests). Frontend: shared 79, school portal 87, admin portal 10 passed;
+browser coordination suite 4 passed in Chromium.
