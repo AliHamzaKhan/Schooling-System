@@ -13,7 +13,12 @@ from app.core import queue
 from app.core.security import decode_token
 from app.models.communication import Message, MessageDelivery, NotificationOutbox
 from app.modules.communication import outbox
-from app.modules.communication.outbox import OutboxWorker, now, MAX_JOB_ATTEMPTS
+from app.modules.communication.outbox import (
+    DELIVERY_ERROR_MAX_LENGTH,
+    MAX_JOB_ATTEMPTS,
+    OutboxWorker,
+    now,
+)
 from app.modules.communication.providers import DeliveryResult
 from app.modules.communication.schemas import BroadcastCreate
 from app.modules.communication.service import CommunicationService
@@ -201,6 +206,23 @@ async def test_ambiguous_provider_exception_requires_review_without_retry(client
     assert message.status == "uncertain" and job.state == "needs_review"
     assert "secret" not in rows[0].error
     assert provider.await_count == 1
+
+
+async def test_provider_diagnostic_is_bounded_before_the_completion_transaction(
+    client, school, worker, provider,
+):
+    """An oversized adapter error cannot make a known result look ambiguous."""
+    message_id = await create_message(client, school)
+    provider.return_value = DeliveryResult(
+        status="failed", provider="test", error="x" * (DELIVERY_ERROR_MAX_LENGTH + 200),
+    )
+
+    await worker.run_due()
+
+    message, job, rows = await state(worker, message_id)
+    assert message.status == "failed" and job.state == "complete"
+    assert len(rows) == 1 and rows[0].status == "failed"
+    assert rows[0].error == "x" * DELIVERY_ERROR_MAX_LENGTH
 
 
 async def test_missing_and_legacy_jobs_are_not_adopted(client, school, worker, provider):

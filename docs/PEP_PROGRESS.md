@@ -631,3 +631,21 @@ full isolated backend regression. No UI preview; no production data migration.
 - This is non-posting by design: approval does not alter invoice, payment or
   payslip totals. The next implementation step after the currency/scale/
   rounding decision is a reviewed posting policy and reconciliation rules.
+
+### 2026-10-01 — O03.9 / F07 recovery hardening
+
+- Added a deterministic, disposable 105-invoice O03 fixture with a competing
+  tenant and an executable three-page assertion. It proves school scope is
+  applied before invoice offsets, so foreign rows with overlapping due dates
+  cannot shift a school’s result pages. Broadcast delivery history now uses the
+  shared bounded page contract after reviewer, message and tenant scope, with
+  stable newest-first ordering.
+- Provider adapter diagnostics are bounded to the durable delivery-column
+  limit before the completion transaction. A long failed-provider result is
+  therefore recorded as a known failure rather than turning into an ambiguous
+  worker outcome through a database-length error.
+- Focused isolated fixture, broadcast and outbox suite: **16 passed**; changed
+  communication code passes Ruff and whitespace checks. These checks are a
+  deterministic pagination/recovery baseline, not a production performance
+  measurement. O03 remains in progress for query/API budgets, cache policy,
+  bulk quotas and representative device/browser traces.

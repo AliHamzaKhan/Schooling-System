@@ -1,7 +1,7 @@
 # Meri Taleem — Product Flow, Enhancement Plan & Progress Tracker
 
-Last updated: **2026-09-23** (Asia/Karachi)
-Baseline: commit `590b60d` (U02.4.3) plus the current uncommitted F01.11/F04.3–F04.5/F05.3 working tree
+Last updated: **2026-10-01** (Asia/Karachi)
+Baseline: commit `233c140` (tenant-fair representative fixture and bounded broadcast delivery history)
 Document owner: Product owner / engineering lead — individual to be assigned
 Stage: **Phase 1 implementation in progress**
 
@@ -30,9 +30,12 @@ Scope covers the 31 baseline backend router groups plus two file-access infrastr
 
 ## Next work
 
-**Current implementation: O03.1 — representative-fixture and pagination performance baseline.**
-The next local work is to define a backward-safe bounded-list contract, add
-tenant-fair representative fixtures and publish an isolated before/after baseline.
+**Current implementation: O03.2 — query-budget and cache-policy measurement.**
+The reusable bounded-list contract now covers the high-growth history paths,
+and an isolated 105-row invoice fixture proves tenant-fair page boundaries.
+The next local work is to record repeatable query/API measurements against an
+agreed school-size and concurrency fixture, then define cache and bulk-job
+quotas from that evidence.
 The active release foundations also still need independent F01 review, O01 hosted
 pipeline evidence, and O02 alert-routing, restore/rollback and approved
 synthetic-provider evidence.
