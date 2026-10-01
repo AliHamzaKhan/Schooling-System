@@ -431,11 +431,24 @@ class CommunicationService:
             raise not_found("Message not found in this school")
         return msg
 
-    async def list_deliveries(self, school_id: uuid.UUID, message_id: uuid.UUID) -> list[MessageDelivery]:
+    async def list_deliveries(
+        self,
+        school_id: uuid.UUID,
+        message_id: uuid.UUID,
+        page: OffsetPage | None = None,
+    ) -> list[MessageDelivery]:
         await self.get_message(school_id, message_id)
-        result = await self.db.execute(
-            select(MessageDelivery).where(MessageDelivery.message_id == message_id)
+        stmt = (
+            select(MessageDelivery)
+            .where(
+                MessageDelivery.message_id == message_id,
+                MessageDelivery.school_id == school_id,
+            )
+            .order_by(MessageDelivery.created_at.desc(), MessageDelivery.id.desc())
         )
+        if page is not None:
+            stmt = page.apply(stmt)
+        result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
     async def delivery_summary(self, school_id: uuid.UUID, message_id: uuid.UUID) -> schemas.DeliverySummary:

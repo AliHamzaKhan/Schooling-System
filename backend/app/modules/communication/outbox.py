@@ -18,6 +18,20 @@ from app.modules.communication.service import CommunicationService
 
 LEASE_SECONDS = 300
 MAX_JOB_ATTEMPTS = 5
+DELIVERY_ERROR_MAX_LENGTH = 255
+
+
+def _safe_delivery_error(value: object | None) -> str | None:
+    """Keep adapter diagnostics within the durable delivery column limit.
+
+    A provider adapter is an integration boundary and may return an arbitrary
+    error payload. Letting that overflow abort the completion transaction can
+    turn a known terminal result into an ambiguous sending marker.
+    """
+    if value is None:
+        return None
+    return str(value)[:DELIVERY_ERROR_MAX_LENGTH]
+
 
 
 def now():
@@ -146,7 +160,9 @@ class OutboxWorker:
                 status = "accepted"
             if status not in {"simulated", "accepted", "failed", "uncertain"}:
                 status = "uncertain"
-            delivery.status, delivery.provider, delivery.error = status, result.provider, result.error
+            delivery.status = status
+            delivery.provider = result.provider
+            delivery.error = _safe_delivery_error(result.error)
             if status == "accepted":
                 message = await db.get(Message, message_id)
                 message.sent_at = message.sent_at or now()

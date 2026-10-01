@@ -84,9 +84,16 @@ async def get_broadcast(school_id: uuid.UUID, message_id: uuid.UUID, db: DbDep, 
 
 
 @router.get("/broadcasts/{message_id}/deliveries", response_model=list[schemas.DeliveryOut], dependencies=[_view])
-async def list_deliveries(school_id: uuid.UUID, message_id: uuid.UUID, db: DbDep, current_user: CurrentUser) -> list[schemas.DeliveryOut]:
+async def list_deliveries(
+    school_id: uuid.UUID,
+    message_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+    page: OffsetPage = Depends(),
+) -> list[schemas.DeliveryOut]:
+    """A bounded delivery page for a broadcast the caller may review."""
     await CommunicationService(db).require_review_access(school_id, message_id, current_user)
-    return await CommunicationService(db).list_deliveries(school_id, message_id)
+    return await CommunicationService(db).list_deliveries(school_id, message_id, page)
 
 
 @router.get("/broadcasts/{message_id}/summary", response_model=schemas.DeliverySummary, dependencies=[_view])
