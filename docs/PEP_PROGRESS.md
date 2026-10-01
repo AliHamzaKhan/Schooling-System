@@ -717,3 +717,39 @@ full isolated backend regression. No UI preview; no production data migration.
   outside the test zone; fixed. Added a JS-integer regression case (fails before
   the fix). `flutter test --platform chrome`: **4 passed**. Added a
   `frontend:shared:browser-test` CI job.
+
+### 2026-10-01 — Chrome acceptance: U02, F02, F03 and role journeys
+
+Run in Chromium 1194 via Playwright against profile web builds of both portals
+(`APP_ENV=development`, disposable `schooling_chrome` database, synthetic school,
+headmaster, teacher, student, guardian and driver). The harness is committed in
+[`frontend/e2e/chrome`](../frontend/e2e/chrome/README.md).
+
+| Area | Checks | Result |
+| --- | --- | --- |
+| U02 setup/mutations | cold deep link, empty/duplicate/valid class, empty/valid section, settings validation (empty name, fee day 40, salary day 0), save and server persistence | Pass |
+| U02 refresh/navigation | F5 keeps screen and data; browser Back returns with data | Pass |
+| U02 browser Forward | Forward after Back | **Known limitation**: Navigator 1 single-entry browser history drops the forward entry; needs a Router API migration |
+| U02 failure states | backend 503 on create keeps the sheet open with the error and writes nothing; failed read shows a retryable error | Pass (retry state fixed in this batch) |
+| U02 accessibility | Enter submits; 200% zoom (half CSS viewport) has no page-level horizontal scroll; reduced-motion run | Pass; focus ring and colour-control names fixed in this batch |
+| U02/F03 access | teacher on admin portal → access denied; teacher → headmaster URL denied | Pass |
+| F02 session | refresh keeps session; logout → sign-in; Back after logout shows no data; direct URL after logout → sign-in with `returnTo`; no token left in browser storage; logout in one tab signs out a second tab | Pass |
+| F03 routes | signed-out deep link returns after login; teacher route refresh | Pass |
+| Role landing (390×844) | teacher, student, guardian, driver, headmaster land with no API errors | Pass after fixes below |
+
+Defects found and fixed in this session (each with a regression test):
+
+1. **P0 — no web sign-in** (`nextInt(1 << 32)` under JS integers). See F02 entry above.
+2. **Over-limit list requests (422)**: headmaster dashboard overdue list, guardian
+   fees and guardian homework asked for `limit=200` from endpoints bounded at 100.
+3. **No retry on failed reads**: ten headmaster/teacher screens showed bare error text.
+4. **Invisible keyboard focus** on shared primary/ghost buttons; unnamed colour swatches.
+5. **False all-clear guardian dashboard**: fees always "Paid", homework "All clear",
+   attendance "0 %" because the backend never supplied these figures. `/me/children`
+   now returns live `fees_due`, `pending_homework` and this month's
+   `attendance_percent` (null when no register); unknown values display "—".
+6. **Homeroom teacher saw 0 sections**: the teacher dashboard counted only timetable
+   sections; class-teacher sections are now included.
+
+Not yet covered: physical phones/tablets, Safari/Firefox, screen-reader runs, and
+a named product reviewer's sign-off.

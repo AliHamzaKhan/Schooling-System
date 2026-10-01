@@ -30,23 +30,18 @@ Scope covers the 31 baseline backend router groups plus two file-access infrastr
 
 ## Next work
 
-**Current implementation: O03 — cache policy and bulk-job quotas.**
-O03.11 enforces SQL statement budgets on invoice, broadcast and direct-message
-history (`tests/test_o03_query_budgets.py`) and removed a duplicate
-per-request School load. Next: extend budgets to the remaining paginated
-history endpoints, then define cache and bulk-job quotas from an agreed
-school-size and concurrency fixture.
-The active release foundations also still need independent F01 review, O01 hosted
-pipeline evidence, and O02 alert-routing, restore/rollback and approved
-synthetic-provider evidence.
+**Current state (2026-10-01).** O03 local evidence is complete and in Review
+(statement budgets, cache policy, bulk quotas). U02, F02 and F03 passed scripted
+Chrome acceptance ([harness](../frontend/e2e/chrome/README.md)); six defects found
+there were fixed, including a P0 web sign-in failure.
 
-**Next experience step: physical browser acceptance of U02 (user-run).**
-U02.4.3 landed the automated class/section, timetable and settings mutation
-harnesses and the [physical browser checklist](U02_HEADMASTER_BROWSER_CHECKLIST.md).
-The remaining U02 step is the user running that checklist in a real browser; do
-not open a preview. The next launch experience track is **L01 — role journeys**;
-it incorporates the U03 student work and U04 role-journey work. It begins only
-when its active foundation dependencies are ready.
+**Next work:**
+1. L01–L05 remaining journey slices (student, guardian multi-child, finance under
+   failure, academic rollover) using the Chrome harness for each journey.
+2. Physical-device runs (Android/iOS) and other browsers for L06 evidence.
+3. Decision-gated items listed in the backlog "Decisions to resolve" table:
+   F06 money precision policy, F04 public-media approval, hosted CI/alerting (O01/O02),
+   provider credentials (F07), pilot and named sign-off (L06).
 
 ## Update procedure for every future development session
 

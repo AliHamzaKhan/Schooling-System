@@ -15,15 +15,19 @@ Authorization model (mirrors UserService):
   - A guardian may always read their own children (`/me/children`).
 """
 import uuid
+from datetime import date
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import case, delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.enums import Module, PermissionAction, SystemRole
+from app.core.enums import AttendanceStatus, InvoiceStatus, Module, PermissionAction, SystemRole
 from app.core.exceptions import bad_request, forbidden, not_found
 from app.models.academic import Section, SchoolClass, StudentEnrollment
 from app.models.associations import guardian_students
+from app.models.attendance import AttendanceRecord
+from app.models.fees import Invoice
+from app.models.homework import Assignment, Submission
 from app.models.user import User
 from app.modules.guardians import schemas
 from app.modules.permissions.service import PermissionService
@@ -86,8 +90,80 @@ class GuardianService:
             out.setdefault(sid, (sec_id, sec_name, cls_name, level))
         return out
 
+    async def _summaries(
+        self, school_id: uuid.UUID, placements: dict, student_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, dict]:
+        """Per-child fees, homework and this month's attendance in three queries."""
+        out: dict[uuid.UUID, dict] = {
+            sid: {"attendance_percent": None, "pending_homework": 0, "fees_due": False}
+            for sid in student_ids
+        }
+        if not student_ids:
+            return out
+        today = date.today()
+
+        owing = await self.db.execute(
+            select(Invoice.student_id).where(
+                Invoice.school_id == school_id,
+                Invoice.student_id.in_(student_ids),
+                Invoice.status != InvoiceStatus.PAID.value,
+                Invoice.amount > Invoice.amount_paid,
+            ).distinct()
+        )
+        for sid in owing.scalars():
+            out[sid]["fees_due"] = True
+
+        sections = {sid: p[0] for sid, p in placements.items() if p[0] is not None}
+        if sections:
+            open_work = (
+                select(Assignment.section_id, func.count(Assignment.id))
+                .where(
+                    Assignment.school_id == school_id,
+                    Assignment.section_id.in_(set(sections.values())),
+                    Assignment.due_date >= today,
+                )
+                .group_by(Assignment.section_id)
+            )
+            per_section = dict((await self.db.execute(open_work)).all())
+            submitted = (
+                select(Submission.student_id, func.count(Submission.id))
+                .join(Assignment, Assignment.id == Submission.assignment_id)
+                .where(
+                    Assignment.school_id == school_id,
+                    Assignment.due_date >= today,
+                    Submission.student_id.in_(list(sections)),
+                    Assignment.section_id.in_(set(sections.values())),
+                )
+                .group_by(Submission.student_id)
+            )
+            done = dict((await self.db.execute(submitted)).all())
+            for sid, section_id in sections.items():
+                out[sid]["pending_homework"] = max(0, per_section.get(section_id, 0) - done.get(sid, 0))
+
+        attended = (AttendanceStatus.PRESENT.value, AttendanceStatus.LATE.value)
+        month = (
+            select(
+                AttendanceRecord.student_id,
+                func.count(AttendanceRecord.id),
+                func.sum(case((AttendanceRecord.status.in_(attended), 1), else_=0)),
+            )
+            .where(
+                AttendanceRecord.school_id == school_id,
+                AttendanceRecord.student_id.in_(student_ids),
+                AttendanceRecord.subject_id.is_(None),
+                AttendanceRecord.attendance_date >= today.replace(day=1),
+                AttendanceRecord.attendance_date <= today,
+            )
+            .group_by(AttendanceRecord.student_id)
+        )
+        for sid, total, present in (await self.db.execute(month)).all():
+            if total:
+                out[sid]["attendance_percent"] = round(100 * int(present or 0) / int(total))
+        return out
+
     def _to_child_out(
-        self, student: User, relationship: str | None, placements: dict
+        self, student: User, relationship: str | None, placements: dict,
+        summaries: dict | None = None,
     ) -> schemas.ChildOut:
         sec_id, sec_name, cls_name, level = placements.get(
             student.id, (None, None, None, None)
@@ -101,6 +177,7 @@ class GuardianService:
             section_name=sec_name,
             class_name=cls_name,
             grade_level=level,
+            **((summaries or {}).get(student.id) or {}),
         )
 
     # --------------------------- authorization --------------------------- #
@@ -197,7 +274,8 @@ class GuardianService:
                 )
         await self.db.flush()
         placements = await self._placements(school_id, [student.id])
-        return self._to_child_out(student, relationship, placements)
+        summaries = await self._summaries(school_id, placements, [student.id])
+        return self._to_child_out(student, relationship, placements, summaries)
 
     async def unlink_child(
         self,
@@ -240,8 +318,10 @@ class GuardianService:
                 .order_by(User.full_name)
             )
         ).all()
-        placements = await self._placements(school_id, [u.id for u, _ in rows])
-        return [self._to_child_out(u, rel, placements) for u, rel in rows]
+        ids = [u.id for u, _ in rows]
+        placements = await self._placements(school_id, ids)
+        summaries = await self._summaries(school_id, placements, ids)
+        return [self._to_child_out(u, rel, placements, summaries) for u, rel in rows]
 
     async def my_children(
         self, current_user: User, school_id: uuid.UUID

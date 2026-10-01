@@ -13,9 +13,11 @@ class Child {
   /// Null when the student is not yet enrolled in a section.
   final String? sectionId;
 
-  /// At-a-glance figures used by dashboard summary cards.
-  final int attendancePercent; // 0..100
-  final double gpa; // 0..4
+  /// At-a-glance figures used by dashboard summary cards. Null means the
+  /// server has no data yet (no register this month, no published results);
+  /// it must be shown as unknown, never as 0.
+  final int? attendancePercent; // 0..100
+  final double? gpa; // 0..4
   final int pendingHomework;
   final bool feesDue;
 
@@ -25,8 +27,8 @@ class Child {
     required this.grade,
     this.photoUrl,
     this.sectionId,
-    required this.attendancePercent,
-    required this.gpa,
+    this.attendancePercent,
+    this.gpa,
     required this.pendingHomework,
     required this.feesDue,
   });
@@ -49,8 +51,8 @@ class Child {
       grade: gradeLabel,
       photoUrl: json['photo_url'] as String?,
       sectionId: json['section_id']?.toString(),
-      attendancePercent: (json['attendance_percent'] as num?)?.toInt() ?? 0,
-      gpa: (json['gpa'] as num?)?.toDouble() ?? 0,
+      attendancePercent: (json['attendance_percent'] as num?)?.toInt(),
+      gpa: (json['gpa'] as num?)?.toDouble(),
       pendingHomework: (json['pending_homework'] as num?)?.toInt() ?? 0,
       feesDue: json['fees_due'] as bool? ?? false,
     );

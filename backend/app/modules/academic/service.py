@@ -739,6 +739,12 @@ class AcademicService:
         all_slots = await self.teacher_timetable(school_id, teacher_id, today)
         schedule = [s for s in all_slots if s.day_of_week == today.weekday()]
         section_ids = {s.section_id for s in all_slots}
+        # A homeroom teacher owns their section even without timetable slots.
+        section_ids |= set((await self.db.execute(
+            select(Section.id).where(
+                Section.school_id == school_id, Section.class_teacher_id == teacher_id
+            )
+        )).scalars())
 
         todos: list[schemas.TeacherTodo] = []
         pending_grades = 0

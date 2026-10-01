@@ -99,10 +99,12 @@ class _ChildCard extends StatelessWidget {
                     children: [
                       _MiniStat(
                           label: 'Attd',
-                          value: '${child.attendancePercent}%'),
+                          value: child.attendancePercent == null
+                              ? '—'
+                              : '${child.attendancePercent}%'),
                       _MiniStat(
                           label: 'GPA',
-                          value: child.gpa.toStringAsFixed(1)),
+                          value: child.gpa?.toStringAsFixed(1) ?? '—'),
                       _MiniStat(
                           label: 'HW',
                           value: '${child.pendingHomework}'),

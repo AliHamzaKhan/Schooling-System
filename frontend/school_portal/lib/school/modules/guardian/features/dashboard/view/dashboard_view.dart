@@ -136,15 +136,19 @@ class _SummaryGrid extends StatelessWidget {
           icon: AppIcons.eventAvailableRounded,
           accent: AppColors.tertiary,
           label: 'Attendance',
-          value: '${child.attendancePercent}%',
-          sub: 'This month',
+          value: child.attendancePercent == null
+              ? '—'
+              : '${child.attendancePercent}%',
+          sub: child.attendancePercent == null
+              ? 'No register yet'
+              : 'This month',
         ),
         DashboardStat(
           icon: AppIcons.gradingRounded,
           accent: AppColors.primary,
           label: 'GPA',
-          value: child.gpa.toStringAsFixed(1),
-          sub: 'Term average',
+          value: child.gpa?.toStringAsFixed(1) ?? '—',
+          sub: child.gpa == null ? 'No published results' : 'Term average',
         ),
         DashboardStat(
           icon: AppIcons.assignmentOutlined,

@@ -29,6 +29,11 @@ class ChildOut(BaseModel):
     section_name: str | None = None
     class_name: str | None = None
     grade_level: int | None = None
+    # Live family summary. `attendance_percent` is null when no register was
+    # taken this month, so a client never presents a default as a real 0 %.
+    attendance_percent: int | None = None
+    pending_homework: int = 0
+    fees_due: bool = False
 
 
 class GuardianOut(BaseModel):

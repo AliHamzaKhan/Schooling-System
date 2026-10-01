@@ -1,0 +1,15 @@
+{
+  "name": "meri-taleem-chrome-acceptance",
+  "private": true,
+  "type": "module",
+  "description": "Scripted Chrome acceptance for the Flutter web portals (U02, F02, F03).",
+  "scripts": {
+    "login": "node login_headmaster.mjs",
+    "u02": "node u02.mjs && node u02b.mjs",
+    "roles": "node roles.mjs",
+    "session": "node f02f03.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.56.1"
+  }
+}

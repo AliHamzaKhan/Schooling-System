@@ -1,0 +1,10 @@
+import { open, boot, login, texts, shot, OUT } from './harness.mjs';
+const { browser, page, logs } = await open('admin_portal');
+await boot(page, 'http://localhost:8080/');
+await login(page, 'head@chromeschool.edu', 'HeadPass123');
+await shot(page, 'hm_dashboard');
+console.log('URL', page.url());
+console.log((await texts(page)).slice(0, 80).join(' | '));
+console.log(logs.join('\n').slice(0, 2000));
+await page.context().storageState({ path: `${OUT}/hm_state.json` });
+await browser.close();
