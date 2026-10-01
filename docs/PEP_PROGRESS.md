@@ -685,3 +685,35 @@ full isolated backend regression. No UI preview; no production data migration.
   Staging-size latency/concurrency budgets, cache policy, bulk-job quotas and
   device/browser traces remain for O03.
 
+
+### 2026-10-01 — O03.12 academic budgets, HTTP cache policy and bulk quotas
+
+- Extended the statement budgets to homework (14), leave (11), exams (10),
+  student attendance history (11) and student documents (12) on 105-row data;
+  every endpoint is page-size independent.
+- HTTP cache policy: every credentialed API response and every `/auth/`
+  response (token issue/refresh) now defaults to `Cache-Control: private,
+  no-store`. Previously fee, homework and exam reads and token responses had no
+  directive. Server-side caching remains limited to the 30-second Redis
+  tenant-status entry with explicit invalidation on school/subscription changes.
+- Bulk-job quotas (`app/core/quotas.py`): 500 entries per attendance register
+  or exam-marks request, 500 per staff attendance save, and 1,000 students per
+  class-wide invoice issuance. Oversized requests are rejected before any write.
+- `tests/test_o03_cache_and_quotas.py`: 3 cases that fail on the previous code.
+  Full isolated backend suite: all tests passed (exit 0).
+
+### 2026-10-01 — F02 web sign-in failure found in Chrome (P0, fixed)
+
+- First Chrome run of the admin portal (Playwright, Chromium 1194, profile web
+  build, `APP_ENV=development`) found that **no user could sign in on any web
+  portal**: the session coordinator called `Random.secure().nextInt(1 << 32)`;
+  on the web `1 << 32` is a 32-bit JS shift that evaluates to 0, so `nextInt`
+  threw and login reported "Secure storage could not save your session".
+  Native apps were unaffected. Fixed with a literal bound.
+- The Web Lock wrapper now rethrows the action's own Dart error rather than an
+  opaque boxed JS error, so failures inside the credential lock keep their type.
+- The existing browser test `session_coordination_browser_test.dart` was never
+  run in CI and one case failed because its mock backend called `expect`
+  outside the test zone; fixed. Added a JS-integer regression case (fails before
+  the fix). `flutter test --platform chrome`: **4 passed**. Added a
+  `frontend:shared:browser-test` CI job.

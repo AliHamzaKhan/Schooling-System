@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import EnrollmentStatus, InvoiceStatus, SystemRole
 from app.core.exceptions import AppHTTPException, ErrorCode, bad_request, not_found
+from app.core.quotas import BULK_INVOICE_MAX_STUDENTS
 from app.models.academic import Section, SchoolClass, StudentEnrollment
 from app.models.fees import FeeStructure, Invoice, Payment, StudentBillingContact
 from app.models.finance import FinancialAdjustment, FinancialAdjustmentDecision
@@ -316,6 +317,10 @@ class FeeService:
             raise bad_request("No enrolled students found for this class")
 
         unique_student_ids = set(student_ids)
+        if len(unique_student_ids) > BULK_INVOICE_MAX_STUDENTS:
+            raise bad_request(
+                f"Bulk issuance is limited to {BULK_INVOICE_MAX_STUDENTS} students per request"
+            )
         duplicate = await self.db.scalar(
             select(Invoice.id).where(
                 Invoice.school_id == school_id,

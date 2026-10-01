@@ -111,3 +111,80 @@ async def test_school_scoped_request_loads_school_once(client, school):
     school_loads = [sql for sql in recorder.statements if sql.lstrip().startswith("SELECT schools.")]
     assert len(school_loads) == 1, school_loads
     assert not any("count(*)" in sql for sql in recorder.statements)
+
+
+# Measured on the same uncached path as QUERY_BUDGETS above.
+ACADEMIC_BUDGETS = {
+    "homework.assignments": 14,
+    "leave.requests": 11,
+    "exams.list": 10,
+    "attendance.student_history": 11,
+    "documents.student_history": 12,
+}
+
+
+async def test_academic_history_query_budgets(client, school):
+    """Homework, leave, exam, attendance and document history stay N+1 free."""
+    from datetime import date
+
+    from app.models.attendance import AttendanceRecord
+    from app.models.document import StudentDocument
+    from app.models.examination import Exam
+    from app.models.homework import Assignment
+    from app.models.leave import LeaveRequest
+    from tests.utils import enroll, make_academics
+
+    school_id, headmaster = school["id"], school["hm"]
+    academic = await make_academics(client, school_id, headmaster)
+    student = await create_user(client, school_id, headmaster, "student")
+    await enroll(client, school_id, headmaster, academic["section_id"], student["id"])
+    first = date(2030, 1, 1)
+    engine = create_async_engine(TEST_URL)
+    try:
+        async with async_sessionmaker(engine, expire_on_commit=False)() as db, db.begin():
+            for index in range(HISTORY_ROWS):
+                day = first + timedelta(days=index)
+                db.add(Assignment(
+                    school_id=UUID(school_id), section_id=UUID(academic["section_id"]),
+                    subject_id=UUID(academic["subject_id"]), title=f"Representative assignment {index}",
+                    assigned_on=day, due_date=day,
+                ))
+                db.add(LeaveRequest(
+                    school_id=UUID(school_id), requester_id=UUID(student["id"]),
+                    start_date=day, end_date=day, status="pending", reason=f"Representative leave {index}",
+                ))
+                db.add(Exam(
+                    school_id=UUID(school_id), class_id=UUID(academic["class_id"]),
+                    name=f"Representative exam {index}", start_date=day, end_date=day,
+                ))
+                db.add(AttendanceRecord(
+                    school_id=UUID(school_id), section_id=UUID(academic["section_id"]),
+                    student_id=UUID(student["id"]), attendance_date=day, status="present",
+                ))
+                db.add(StudentDocument(
+                    school_id=UUID(school_id), student_id=UUID(student["id"]),
+                    title=f"Representative document {index}",
+                    file_url=f"documents/representative-{index}.pdf",
+                ))
+    finally:
+        await engine.dispose()
+
+    base = f"{API}/schools/{school_id}"
+    endpoints = {
+        "homework.assignments": f"{base}/homework/assignments",
+        "leave.requests": f"{base}/leave/requests",
+        "exams.list": f"{base}/exams",
+        "attendance.student_history": f"{base}/students/{student['id']}/attendance",
+        "documents.student_history": f"{base}/students/{student['id']}/documents",
+    }
+    report = MeasurementReport()
+    for name, url in endpoints.items():
+        measurements = [await measure_endpoint(client, name, url, headmaster, params) for params in WINDOWS]
+        for measurement in measurements:
+            report.add(measurement)
+            print(f"O03 {name} {measurement}")
+        counts = {measurement.queries for measurement in measurements}
+        assert len(counts) == 1, f"{name} statement count varies with page size: {measurements}"
+        assert counts.pop() <= ACADEMIC_BUDGETS[name], measurements
+        assert [measurement.rows for measurement in measurements] == [5, 50, HISTORY_ROWS - 100]
+    report.write_if_requested()

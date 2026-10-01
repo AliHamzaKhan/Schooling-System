@@ -41,6 +41,14 @@ class SecurityHeadersMiddleware:
             return
 
         path = scope.get("path", "")
+        # O03 cache policy: any credentialed API response is user- and
+        # tenant-specific, so shared and browser HTTP caches must not keep it.
+        # An endpoint that sets its own Cache-Control keeps that value.
+        # Token-issuing auth responses are covered even without a credential.
+        authenticated_api = path.startswith(f"{settings.API_V1_PREFIX}/auth/") or (
+            path.startswith(f"{settings.API_V1_PREFIX}/")
+            and any(key.lower() == b"authorization" for key, _ in scope.get("headers", []))
+        )
         csp_exempt = path.startswith(_CSP_EXEMPT_PREFIXES)
 
         async def _send(message: Message) -> None:
@@ -55,7 +63,8 @@ class SecurityHeadersMiddleware:
                          or path.endswith("/fees/report")
                          or ("/sections/" in path and path.endswith("/students")))
                 )
-                if (private_communication or path == f"{settings.API_V1_PREFIX}/file-download" or
+                if (private_communication or authenticated_api or
+                        path == f"{settings.API_V1_PREFIX}/file-download" or
                         ("/files/" in path and path.endswith("/ticket"))):
                     # Targeted communication, denials and expired tickets must
                     # not survive authorization changes in an HTTP cache.

@@ -7,15 +7,20 @@ import 'session_coordinator.dart';
 SessionCoordinator createCoordinator() => _BrowserCoordinator();
 class _BrowserCoordinator implements SessionCoordinator {
   static const _key = 'meri_taleem.session_revision';
+  // Written as a literal: on the web `1 << 32` is a 32-bit JS shift and
+  // evaluates to 0, which made `nextInt` throw on every sign-in.
+  static const _revisionEntropy = 0xFFFFFFFF;
   @override
   String get revision => web.window.localStorage.getItem(_key) ?? 'initial';
   @override
   void advance() => web.window.localStorage.setItem(
-    _key, '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}');
+    _key, '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(_revisionEntropy)}');
 
   @override
   Future<T> exclusive<T>(Future<T> Function() action) async {
     late T result;
+    Object? failure;
+    StackTrace? failureStack;
     // No unsafe fallback: unavailable Web Locks is a recoverable storage error.
     final abort = web.AbortController();
     final timer = Timer(const Duration(seconds: 10), () => abort.abort());
@@ -24,9 +29,20 @@ class _BrowserCoordinator implements SessionCoordinator {
         web.LockOptions(signal: abort.signal),
         ((JSAny? _) {
           timer.cancel();
-          return (() async { result = await action(); return null; })().toJS;
+          // Capture the action's own error: one thrown through the JS promise
+          // reaches the caller boxed, without its Dart type or stack trace.
+          return (() async {
+            try {
+              result = await action();
+            } catch (error, stack) {
+              failure = error;
+              failureStack = stack;
+            }
+            return null;
+          })().toJS;
         }).toJS,
       ).toDart;
+      if (failure != null) Error.throwWithStackTrace(failure!, failureStack!);
       return result;
     } finally { timer.cancel(); }
   }

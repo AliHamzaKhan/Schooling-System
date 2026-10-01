@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.quotas import BULK_STAFF_MAX_ENTRIES
+
 
 class StaffProfileCreate(BaseModel):
     user_id: uuid.UUID
@@ -103,7 +105,7 @@ class TeacherAttendanceMark(BaseModel):
 class TeacherAttendanceBulkMark(BaseModel):
     """Mark several teachers at once for the same day (Save button)."""
 
-    entries: list[TeacherAttendanceMark] = Field(min_length=1)
+    entries: list[TeacherAttendanceMark] = Field(min_length=1, max_length=BULK_STAFF_MAX_ENTRIES)
 
 
 class TeacherAttendanceOut(BaseModel):

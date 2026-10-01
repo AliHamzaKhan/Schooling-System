@@ -211,6 +211,19 @@ frontend:shared:test:
     - flutter test
   rules: *frontend_rules
 
+# Browser-only code (Web Locks, localStorage, JS integer semantics) is not
+# exercised by the VM tests above; a web sign-in regression shipped unseen.
+frontend:shared:browser-test:
+  extends: .flutter
+  stage: test
+  script:
+    - apt-get update -qq && apt-get install -y -qq chromium > /dev/null
+    - export CHROME_EXECUTABLE="$(command -v chromium)"
+    - cd frontend/shared
+    - flutter pub get
+    - flutter test --platform chrome test/session_coordination_browser_test.dart
+  rules: *frontend_rules
+
 frontend:school:test:
   extends: .flutter
   stage: test

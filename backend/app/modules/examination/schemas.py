@@ -5,6 +5,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.core.enums import ExamStatus
+from app.core.quotas import BULK_ROSTER_MAX_ENTRIES
 
 # --------------------------------------------------------------------------- #
 # Exam category (term/type, e.g. Mid Term / Final Term)
@@ -141,7 +142,7 @@ class MarkEntry(BaseModel):
 
 
 class MarksEntryRequest(BaseModel):
-    entries: list[MarkEntry] = Field(min_length=1)
+    entries: list[MarkEntry] = Field(min_length=1, max_length=BULK_ROSTER_MAX_ENTRIES)
 
 
 class GradebookRow(BaseModel):

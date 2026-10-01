@@ -30,10 +30,13 @@ void main() {
   test('independent browser clients rotate a rejected token only once', () async {
     final tokens = {'access': 'old', 'refresh': 'old-refresh'};
     var refreshes = 0;
+    final submitted = <Object?>[];
+    // The Web Lock callback runs outside the test zone, where `expect` throws;
+    // record the request and assert after the refresh completes.
     Future<http.Response> backend(http.Request r) async {
       refreshes++;
       await Future<void>.delayed(const Duration(milliseconds: 20));
-      expect(jsonDecode(r.body)['refresh_token'], 'old-refresh');
+      submitted.add(jsonDecode(r.body)['refresh_token']);
       return http.Response('{"access_token":"new","refresh_token":"new-refresh"}', 200);
     }
     final a = BrowserStore(tokens), b = BrowserStore(tokens);
@@ -45,6 +48,7 @@ void main() {
       second.refreshSession(rejectedAccessToken: 'old'),
     ], eagerError: true);
     expect(result, [true, true]); expect(refreshes, 1);
+    expect(submitted, ['old-refresh']);
   });
 
   test('Web Lock excludes another browsing context until release', () async {
@@ -91,5 +95,13 @@ void main() {
     expect(auth.currentUser.value, isNull); expect(auth.isLoggedIn.value, isFalse);
     final response = await api.request<dynamic>(method: HttpMethod.post, path: '/old-account-write');
     expect(response.success, isFalse); expect(requests, 0);
+  });
+  test('advancing the session revision works under JavaScript integers', () {
+    // Regression: `nextInt(1 << 32)` evaluated to nextInt(0) on the web and
+    // threw on every sign-in.
+    final coordinator = SessionCoordinator();
+    final before = coordinator.revision;
+    coordinator.advance();
+    expect(coordinator.revision, isNot(before));
   });
 }

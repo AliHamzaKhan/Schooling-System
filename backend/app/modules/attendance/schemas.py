@@ -5,6 +5,7 @@ from datetime import date, time
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.enums import AttendanceStatus
+from app.core.quotas import BULK_ROSTER_MAX_ENTRIES
 
 # --------------------------------------------------------------------------- #
 # Enrollment
@@ -54,7 +55,7 @@ class AttendanceMarkRequest(BaseModel):
     subject_id: uuid.UUID | None = None
     timetable_slot_id: uuid.UUID | None = None
     period_label: str | None = Field(default=None, max_length=50)
-    entries: list[AttendanceEntry] = Field(min_length=1)
+    entries: list[AttendanceEntry] = Field(min_length=1, max_length=BULK_ROSTER_MAX_ENTRIES)
 
     @property
     def is_daily(self) -> bool:
