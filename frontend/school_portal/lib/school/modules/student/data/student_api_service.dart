@@ -345,7 +345,8 @@ class StudentApiService {
         }
         final days = <TimetableDay>[];
         for (var i = 0; i < 7; i++) {
-          final periods = byDay[i] ?? const <TimetablePeriod>[];
+          // A growable copy: sorting a const empty list throws on free days.
+          final periods = [...?byDay[i]];
           if (periods.isEmpty && i > 4) continue; // hide empty weekends
           periods.sort((a, b) => a.start.compareTo(b.start));
           days.add(TimetableDay(

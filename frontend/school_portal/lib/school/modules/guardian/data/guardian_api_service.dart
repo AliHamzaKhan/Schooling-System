@@ -472,7 +472,8 @@ class GuardianApiService {
     final today = DateTime.now().weekday - 1; // 0=Mon
     final days = <TimetableDay>[];
     for (var i = 0; i < _weekdays.length; i++) {
-      final entries = byDay[i] ?? const <TimetableEntry>[];
+      // A growable copy: sorting a const empty list throws on free days.
+      final entries = [...?byDay[i]];
       if (entries.isEmpty && i > 4) continue; // hide empty weekends
       entries.sort((a, b) => a.startTime.compareTo(b.startTime));
       days.add(

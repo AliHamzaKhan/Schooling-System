@@ -130,27 +130,35 @@ class AttendanceMarkView extends GetView<AttendanceMarkController> {
           ),
         ],
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 12, right: 4),
-        child: FloatingActionButton.extended(
-          onPressed: controller.submitting.value ? null : controller.submit,
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.onPrimary,
-          icon: controller.submitting.value
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.onPrimary,
-                  ),
-                )
-              : const Icon(AppIcons.sendRounded),
-          label: Text(
-            controller.submitting.value ? 'Submitting…' : 'Submit Attendance',
+      // Offer Submit only once a roster is loaded; reactive so the
+      // submitting state is shown.
+      floatingActionButton: Obx(() {
+        if (controller.loading.value ||
+            controller.error.value != null ||
+            controller.classInfo == null) {
+          return const SizedBox.shrink();
+        }
+        final submitting = controller.submitting.value;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12, right: 4),
+          child: FloatingActionButton.extended(
+            onPressed: submitting ? null : controller.submit,
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.onPrimary,
+            icon: submitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.onPrimary,
+                    ),
+                  )
+                : const Icon(AppIcons.sendRounded),
+            label: Text(submitting ? 'Submitting…' : 'Submit Attendance'),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }

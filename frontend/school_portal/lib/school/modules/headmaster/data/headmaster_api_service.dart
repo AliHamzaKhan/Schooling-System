@@ -185,14 +185,15 @@ class HeadmasterApiService {
     );
   }
 
-  /// School Overview — identity from `/schools/{id}` and KPI pulse from
+  /// School Overview — identity from `/schools/{id}/profile` (the headmaster's
+  /// self-service read; `/schools/{id}` is Super Admin only) and KPI pulse from
   /// `/reports/overview`. The backend has no events feed, so the Upcoming
   /// Events carousel stays empty.
   Future<ApiResponse<OverviewData>> fetchOverview() async {
     final ov = await _get(HeadmasterEndpoints.reportsOverview(_sid));
     if (!ov.success) return ApiResponse.fail(ov.error ?? 'Failed to load');
     final o = (ov.data as Map).cast<String, dynamic>();
-    final sc = await _get(HeadmasterEndpoints.school(_sid));
+    final sc = await _get(HeadmasterEndpoints.schoolProfile(_sid));
     final s = sc.success
         ? (sc.data as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
