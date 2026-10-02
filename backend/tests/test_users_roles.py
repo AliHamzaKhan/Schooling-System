@@ -30,10 +30,10 @@ async def test_headmaster_creates_custom_role(client, school):
     sid, hm = school["id"], school["hm"]
     r = await client.post(
         f"{API}/schools/{sid}/roles", headers=hm,
-        json={"name": "Accountant", "permissions": [{"module": "fee_management", "actions": ["view", "create"]}]},
+        json={"name": "Librarian", "permissions": [{"module": "fee_management", "actions": ["view", "create"]}]},
     )
     assert r.status_code == 201
-    assert r.json()["code"] == "accountant"
+    assert r.json()["code"] == "librarian"
 
 
 async def test_role_grant_bounded_by_school_modules(client, sa_headers):

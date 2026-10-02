@@ -28,11 +28,14 @@ async def _invoice(client, school, *, title: str = "Term fee") -> dict:
 
 
 async def _adjustment(client, school, invoice, *, reason: str) -> dict:
+    """An Accountant's request, so it stays pending until a decision."""
+    accountant = await create_user(client, school["id"], school["hm"], "accountant")
+    headers = await login(client, accountant["email"], accountant["password"])
     response = await client.post(
         f"{API}/schools/{school['id']}/fees/adjustments",
-        headers=school["hm"],
+        headers=headers,
         json={
-            "kind": "refund",
+            "kind": "credit",
             "target_id": invoice["id"],
             "proposed_amount": "25.50",
             "currency_code": "PKR",
@@ -62,7 +65,8 @@ async def test_headmaster_csv_export_is_tenant_scoped_formula_safe_and_auditable
     )
     assert listed.status_code == 200, listed.text
     api_row = next(row for row in listed.json() if row["id"] == adjustment["id"])
-    assert api_row["decided_by"] == adjustment["requested_by"]
+    headmaster_id = (await client.get(f"{API}/auth/me", headers=school["hm"])).json()["id"]
+    assert api_row["decided_by"] == headmaster_id
     assert api_row["decided_at"]
 
     exported = await client.get(
@@ -80,7 +84,7 @@ async def test_headmaster_csv_export_is_tenant_scoped_formula_safe_and_auditable
     assert row["reason"] == "' \t=SUM(1,1)"
     assert row["decision_reason"] == "'\t@audit-review"
     assert row["requested_by"] == adjustment["requested_by"]
-    assert row["decided_by"] == adjustment["requested_by"]
+    assert row["decided_by"] == headmaster_id
     assert row["requested_at"]
     assert row["decided_at"]
 
