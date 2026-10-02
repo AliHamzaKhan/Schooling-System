@@ -131,7 +131,7 @@ async def test_legacy_files_only_resolve_from_existing_school_records(client, sc
             record_id = str(doc.id)
     finally:
         await engine.dispose()
-    assert (await client.get(url)).status_code == 404
+    assert (await client.get(url, headers=headers)).status_code == 404
     response = await client.post(ticket_endpoint(school, {"id": record_id}), headers=headers)
     assert response.status_code == 200, response.text
     assert (await client.get(response.json()["path"])).content == b"legacy-private"
@@ -231,13 +231,24 @@ def test_download_access_log_redacts_every_query_value():
     assert "/auth/verify" in record.getMessage()
 
 
-async def test_public_raster_compatibility_and_active_content_rejected(client, school):
+async def test_school_photos_are_for_school_members_only(client, school):
+    from tests.test_broadcast_isolation import another_school
+    from tests.utils import create_user, login
+
     png = b"\x89PNG\r\n\x1a\nfixture"
     url = await upload(client, school, school["hm"], "avatars", png)
-    public = await client.get(url)
-    assert public.status_code == 200
-    assert public.headers["content-type"] == "image/png"
-    assert public.content == png
+    assert (await client.get(url)).status_code == 401
+    student = await create_user(client, school["id"], school["hm"], "student")
+    member = await client.get(url, headers=await login(client, student["email"], student["password"]))
+    assert member.status_code == 200
+    assert member.headers["content-type"] == "image/png"
+    assert member.content == png
+    assert (await client.get(url, headers=school["sa"])).status_code == 200
+
+    other = await another_school(client, school["sa"])
+    outsider = await create_user(client, other, school["sa"], "teacher")
+    denied = await client.get(url, headers=await login(client, outsider["email"], outsider["password"]))
+    assert denied.status_code == 404
     for folder in ("avatars", "uniform"):
         response = await client.post(f"{API}/schools/{school['id']}/uploads", headers=school["hm"],
                                      data={"folder": folder}, files={"file": ("x.svg", b"<svg/>", "image/svg+xml")})

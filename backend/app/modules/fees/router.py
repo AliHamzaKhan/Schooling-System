@@ -14,18 +14,20 @@ from app.core.deps import (
     require_school_admin,
     require_school_permission,
 )
-from app.core.enums import Module, PermissionAction as PA
+from app.core.enums import Module, PermissionAction as PA, SystemRole
 from app.core.exceptions import forbidden, not_found
 from app.core.family_scope import FamilyScope
 from app.core.pagination import OffsetPage
 from app.modules.fees import schemas
 from app.modules.fees.service import FeeService
+from app.modules.permissions.service import PermissionService
 
 router = APIRouter(prefix="/schools/{school_id}/fees", tags=["Fee Management"])
 
 _view = Depends(require_school_permission(Module.FEE_MANAGEMENT, PA.VIEW))
 _create = Depends(require_school_permission(Module.FEE_MANAGEMENT, PA.CREATE))
 _export = Depends(require_school_permission(Module.FEE_MANAGEMENT, PA.EXPORT))
+_edit = Depends(require_school_permission(Module.FEE_MANAGEMENT, PA.EDIT))
 _admin = Depends(require_school_admin)
 
 
@@ -180,7 +182,7 @@ async def get_receipt(
 @router.get(
     "/students/{student_id}/billing-contacts",
     response_model=list[schemas.BillingContactOut],
-    dependencies=[_admin],
+    dependencies=[_edit],
 )
 async def list_billing_contacts(
     school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
@@ -191,7 +193,7 @@ async def list_billing_contacts(
 @router.get(
     "/students/{student_id}/billing-contacts/candidates",
     response_model=list[schemas.BillingGuardianCandidate],
-    dependencies=[_admin],
+    dependencies=[_edit],
 )
 async def list_billing_guardian_candidates(
     school_id: uuid.UUID, student_id: uuid.UUID, db: DbDep
@@ -202,7 +204,7 @@ async def list_billing_guardian_candidates(
 @router.put(
     "/students/{student_id}/billing-contacts/{guardian_id}",
     response_model=schemas.BillingContactOut,
-    dependencies=[_admin],
+    dependencies=[_edit],
 )
 async def upsert_billing_contact(
     school_id: uuid.UUID,
@@ -250,7 +252,7 @@ async def fee_report(school_id: uuid.UUID, db: DbDep) -> schemas.FeeReport:
     return await FeeService(db).report(school_id)
 
 
-@router.get("/aging", response_model=schemas.FeeAgingReport, dependencies=[_admin])
+@router.get("/aging", response_model=schemas.FeeAgingReport, dependencies=[_edit])
 async def fee_aging_report(
     school_id: uuid.UUID,
     db: DbDep,
@@ -263,7 +265,7 @@ async def fee_aging_report(
 @router.get(
     "/reconciliation",
     response_model=schemas.FeeReconciliationReport,
-    dependencies=[_admin],
+    dependencies=[_edit],
 )
 async def fee_reconciliation_report(
     school_id: uuid.UUID,
@@ -277,7 +279,7 @@ async def fee_reconciliation_report(
 # ------------------------- adjustment proposals ------------------------- #
 
 
-@router.get("/adjustments/export", dependencies=[_admin])
+@router.get("/adjustments/export", dependencies=[_edit])
 async def export_financial_adjustments(
     school_id: uuid.UUID,
     db: DbDep,
@@ -356,7 +358,6 @@ async def export_financial_adjustments(
     "/adjustments",
     response_model=schemas.FinancialAdjustmentOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[_admin],
 )
 async def create_financial_adjustment(
     school_id: uuid.UUID,
@@ -364,13 +365,23 @@ async def create_financial_adjustment(
     db: DbDep,
     current_user: CurrentUser,
 ) -> schemas.FinancialAdjustmentOut:
-    return await FeeService(db).create_adjustment(school_id, data, current_user.id)
+    """A Headmaster's adjustment is applied at once; finance staff (fee or
+    payroll edit permission, e.g. the Accountant) create a request that waits
+    for a Headmaster decision."""
+    module = Module.HR_PAYROLL if data.kind == "payroll_correction" else Module.FEE_MANAGEMENT
+    await require_school_permission(module, PA.EDIT)(school_id, current_user, db)
+    is_head = PermissionService.is_super_admin(current_user) or any(
+        role.code == SystemRole.HEADMASTER.value for role in current_user.roles
+    )
+    return await FeeService(db).create_adjustment(
+        school_id, data, current_user.id, apply_directly=is_head
+    )
 
 
 @router.get(
     "/adjustments",
     response_model=list[schemas.FinancialAdjustmentOut],
-    dependencies=[_admin],
+    dependencies=[_edit],
 )
 async def list_financial_adjustments(
     school_id: uuid.UUID,
@@ -380,7 +391,7 @@ async def list_financial_adjustments(
     target_type: schemas.AdjustmentTargetType | None = Query(default=None),
     decision: schemas.AdjustmentListDecision | None = Query(default=None),
 ) -> list[schemas.FinancialAdjustmentOut]:
-    """Return a scoped, bounded adjustment review queue without posting money."""
+    """Return a scoped, bounded adjustment queue (Headmaster and finance staff)."""
     return await FeeService(db).list_adjustments(
         school_id,
         page.limit,

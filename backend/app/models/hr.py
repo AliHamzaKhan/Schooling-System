@@ -59,3 +59,8 @@ class Payslip(Base, UUIDMixin, TimestampMixin):
     late_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     leave_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     absence_deduction: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    # Client request key of the "mark paid" call, so a retried request after a
+    # lost response is answered with the same result instead of an error.
+    payment_request_key: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), unique=True, nullable=True
+    )

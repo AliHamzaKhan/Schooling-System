@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, status
 
-from app.core.deps import DbDep, SuperAdmin, require_school_admin
+from app.core.deps import DbDep, SuperAdmin, require_school_admin, require_school_admin_or_finance
 from app.modules.schools import schemas
 from app.modules.schools.service import SchoolService
 
@@ -50,10 +50,11 @@ async def update_school(
 @router.get(
     "/{school_id}/profile",
     response_model=schemas.SchoolOut,
-    dependencies=[Depends(require_school_admin)],
+    dependencies=[Depends(require_school_admin_or_finance)],
 )
 async def get_school_profile(school_id: uuid.UUID, db: DbDep) -> schemas.SchoolOut:
-    """The school's own Headmaster (or Super Admin) reads their school."""
+    """The school's own Headmaster or Accountant (or Super Admin) reads it;
+    only the Headmaster changes it."""
     return await SchoolService(db).get_school(school_id)
 
 

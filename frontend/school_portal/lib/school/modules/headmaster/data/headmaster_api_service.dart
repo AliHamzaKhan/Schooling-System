@@ -37,6 +37,7 @@ import 'headmaster_endpoints.dart';
 class HeadmasterApiService {
   final ApiService _api;
   final _paymentRetries = PaymentRetryGuard();
+  final _payslipRetries = PaymentRetryGuard();
   final _broadcastRetries = BroadcastRetryGuard();
   String get _broadcastScope =>
       '${Get.find<AuthService>().currentUser.value?['id'] ?? ''}/$_sid';
@@ -1680,11 +1681,19 @@ class HeadmasterApiService {
   }
 
   /// Mark a payslip as paid.
+  /// Retrying after a lost response reuses the same request key, so the
+  /// server answers with the original result instead of "already paid".
   Future<ApiResponse<dynamic>> markPayslipPaid(String payslipId) {
-    return _api.request<dynamic>(
-      method: HttpMethod.post,
-      path: HeadmasterEndpoints.hrPayslipPay(_sid, payslipId),
-      parser: (json) => json,
+    final sid = _sid;
+    return _payslipRetries.run(
+      scope: '$sid/$payslipId',
+      createPayload: () => const {},
+      send: (key, _) => _api.request<dynamic>(
+        method: HttpMethod.post,
+        path: HeadmasterEndpoints.hrPayslipPay(sid, payslipId),
+        headers: {'Idempotency-Key': key},
+        parser: (json) => json,
+      ),
     );
   }
 

@@ -29,14 +29,20 @@ references.
 
 ## Visibility decisions and remaining approvals
 
-The current route is a compatibility surface, not proof that the following
-public-media decisions have received product/privacy approval.
+Decided 2026-10-02 (product owner): photos and logos are not public. They are
+for the school's own people (students, guardians, teachers, accountant,
+drivers) and the platform admin panel.
 
-| Asset | Current behavior | Required approval before production migration/release |
+`GET /media/{avatars|uniform}/{school_id}/{file}` now requires a signed-in
+user who belongs to that school, or the Super Admin; no token gives 401 and
+another school's user gets 404. The apps load these images with the user's
+token (`schoolImage` in the shared package); other hosts never receive it.
+
+| Asset | Current behavior | Remaining approval |
 | --- | --- | --- |
-| Student/staff avatars | Public raster compatibility path | Named privacy owner confirms consent, removal process, minor-data policy and whether future avatars move to authenticated retrieval |
-| Uniform images | Public raster compatibility path | School owner confirms it is intended public school-published imagery |
-| School logos | Existing clients upload into the avatar namespace | Product owner confirms branding is public; relocate to a dedicated policy only in a separately compatible change |
+| Student/staff avatars | School members and Super Admin only | Consent and removal process for minors' photos |
+| Uniform images | School members and Super Admin only | None |
+| School logos | School members and Super Admin only (avatar namespace) | None |
 | Course covers | Existing URL metadata; no managed cover upload path | Product owner decides public, school-restricted or approved external-host policy before adding uploads/migration |
 | Documents/submissions | Private ticket-only retrieval | Records owner approves retention, legal hold and deletion schedule |
 

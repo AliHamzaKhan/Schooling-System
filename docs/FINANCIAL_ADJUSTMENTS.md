@@ -8,43 +8,35 @@ settlement.
 
 ## Authority and targets
 
-Only a Headmaster or Super Admin can create, view or decide an adjustment.
+Decided 2026-10-02 (product owner): finance staff request, the Headmaster
+decides; a Headmaster's own adjustment applies at once.
 
-| Kind | Required target | Decision authority |
+| Who | Can do |
+| --- | --- |
+| Accountant (fee/payroll edit permission) | Request refunds, credits, waivers (fee edit) and payroll corrections (payroll edit); see the queue and export it. Cannot decide. |
+| Headmaster / Super Admin | Make an adjustment that applies immediately (recorded with an automatic approval), and approve or reject requests. |
+
+| Kind | Target | Effect when approved |
 | --- | --- | --- |
-| Refund | School invoice | Headmaster / Super Admin |
-| Credit | School invoice | Headmaster / Super Admin |
-| Waiver | School invoice | Headmaster / Super Admin |
-| Payroll correction | School payslip | Headmaster / Super Admin |
+| Waiver | Invoice | The charge drops by the amount (at most the balance owed). |
+| Credit | Invoice | Same as a waiver. |
+| Refund | Invoice | Money already paid is returned: a negative `refund` payment is added to the ledger and the charge drops by the same amount, so the balance owed does not change. At most the amount paid. |
+| Payroll correction | Unpaid payslip | The amount is the corrected net pay; allowances (increase) or deductions (decrease) absorb the difference. A paid payslip cannot be corrected; correct the next one. |
 
-Each proposal stores a positive submitted decimal string, a three-letter
-currency code, a reason and the requesting user. A proposal has at most one
-immutable approval or rejection. The database validates kind/target pairings,
-currency-code format and decision values.
-
-## Non-posting boundary
-
-Recording or approving a proposal does not alter an invoice, payment, cached
-invoice total, receipt, payslip or payroll payment. This prevents an apparently
-exact monetary change while the product's currency scope, decimal scale and
-rounding policy are still undecided.
-
-Before decisions may post an accounting effect, approve and implement:
-
-1. The currency scope for every school and payroll record.
-2. Decimal scale, range and rounding rule.
-3. Exact posting semantics for each adjustment kind, including whether a
-   refund is a new manual disbursement record or an invoice credit.
-4. Reconciliation invariants for invoices, receipts, aging and payslips.
+Each request stores a positive amount, a three-letter code (`XXX`, no
+currency, unless supplied), a reason and the requesting user, and has at most
+one approval or rejection. An impossible request (e.g. a refund larger than
+what was paid) is refused when it is made; one that becomes impossible later
+cannot be approved and should be rejected.
 
 ## API
 
-All endpoints are under `/schools/{school_id}/fees/adjustments` and require
-school-admin authority.
+All endpoints are under `/schools/{school_id}/fees/adjustments`.
 
-- `POST /` creates a proposal.
-- `GET /` lists the newest proposals.
-- `POST /{adjustment_id}/decision` records the only approval or rejection.
+- `POST /` creates a request (finance staff) or an applied adjustment (Headmaster).
+- `GET /` and `GET /export` list the newest adjustments (fee edit permission).
+- `POST /{adjustment_id}/decision` records the only approval or rejection
+  (Headmaster / Super Admin); approval posts the effect above in the same
+  transaction.
 
-These routes have no endpoint that modifies or deletes a proposal, decision or
-target financial record.
+No endpoint modifies or deletes an adjustment or decision.

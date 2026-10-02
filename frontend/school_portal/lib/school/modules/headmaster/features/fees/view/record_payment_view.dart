@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
+import 'package:school_portal/school/utils/finance_roles.dart';
 
 import '../../../../../widgets/portal_search_field.dart';
 import '../../../data/headmaster_repository.dart';
@@ -249,11 +250,20 @@ class _RecordPaymentViewState extends State<RecordPaymentView> {
       ),
     );
     if (requested == true && mounted) {
-      Get.snackbar(
-        'Adjustment requested',
-        'The request is pending Headmaster review. No balance has changed.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      if (signedInAsHeadmaster()) {
+        Get.snackbar(
+          'Adjustment applied',
+          'The invoice has been updated.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        await _search(_query.value);
+      } else {
+        Get.snackbar(
+          'Adjustment requested',
+          'Sent to the Headmaster for approval. No balance has changed yet.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
     }
   }
 }
@@ -608,7 +618,11 @@ class _InvoiceTile extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: saving ? null : onRequestAdjustment,
-              child: const Text('Request refund, credit, or waiver'),
+              child: Text(
+                signedInAsHeadmaster()
+                    ? 'Refund, credit, or waiver'
+                    : 'Request refund, credit, or waiver',
+              ),
             ),
           ),
         ],
@@ -855,6 +869,7 @@ class _InvoiceAdjustmentSheetState extends State<_InvoiceAdjustmentSheet> {
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final applies = signedInAsHeadmaster();
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -868,7 +883,10 @@ class _InvoiceAdjustmentSheetState extends State<_InvoiceAdjustmentSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Request invoice adjustment', style: AppTypography.titleLg),
+              Text(
+                applies ? 'Invoice adjustment' : 'Request invoice adjustment',
+                style: AppTypography.titleLg,
+              ),
               const SizedBox(height: AppSpacing.stackSm),
               Text(
                 '${widget.studentName} · ${widget.invoice.title}',
@@ -884,7 +902,9 @@ class _InvoiceAdjustmentSheetState extends State<_InvoiceAdjustmentSheet> {
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
                 child: Text(
-                  'This creates an approval request only. It does not change the invoice balance or record a payment.',
+                  applies
+                      ? 'This applies now. A credit or waiver lowers what the invoice charges. A refund returns money already paid and lowers the charge by the same amount.'
+                      : 'This sends a request to the Headmaster. Nothing changes until it is approved.',
                   style: AppTypography.bodyMd,
                 ),
               ),
@@ -930,7 +950,9 @@ class _InvoiceAdjustmentSheetState extends State<_InvoiceAdjustmentSheet> {
                   child: Text(
                     _submitting
                         ? 'Submitting…'
-                        : 'Submit for Headmaster review',
+                        : (applies
+                              ? 'Apply adjustment'
+                              : 'Submit for Headmaster review'),
                   ),
                 ),
               ),

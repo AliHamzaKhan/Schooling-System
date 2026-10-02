@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared/shared.dart';
+import 'package:school_portal/school/utils/finance_roles.dart';
 
 import '../../../data/headmaster_repository.dart';
 import '../../../../../widgets/skeletons.dart';
@@ -223,7 +224,7 @@ class _AdjustmentList extends StatelessWidget {
         Text('Financial adjustments', style: AppTypography.headlineLg),
         const SizedBox(height: AppSpacing.stackSm),
         Text(
-          '${pending.length} awaiting a Headmaster decision. Decisions are audit records and do not post money yet.',
+          '${pending.length} awaiting a Headmaster decision. Approving applies the change to the invoice or payslip.',
           style: AppTypography.bodyMd.copyWith(
             color: AppColors.onSurfaceVariant,
           ),
@@ -448,6 +449,14 @@ class _AdjustmentCard extends StatelessWidget {
                 color: AppColors.onSurfaceVariant,
               ),
             ),
+          ] else if (!signedInAsHeadmaster()) ...[
+            const SizedBox(height: AppSpacing.stackSm),
+            Text(
+              'Waiting for the Headmaster',
+              style: AppTypography.bodySm.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
           ] else ...[
             const SizedBox(height: AppSpacing.stackMd),
             if (isBusy)
@@ -523,7 +532,9 @@ class _DecisionDialogState extends State<_DecisionDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'This records an immutable ${widget.decision} decision. It does not change an invoice balance, payment, or payslip.',
+            approving
+                ? 'Approving applies this change to the invoice or payslip now. It cannot be undone.'
+                : 'Rejecting records the decision. Nothing is changed.',
             style: AppTypography.bodyMd,
           ),
           const SizedBox(height: AppSpacing.stackMd),

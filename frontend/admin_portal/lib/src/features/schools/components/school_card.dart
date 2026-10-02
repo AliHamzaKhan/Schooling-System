@@ -133,7 +133,7 @@ class _Logo extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: AdminRadius.brTile,
           image: DecorationImage(
-              image: NetworkImage(school.logoUrl!), fit: BoxFit.cover),
+              image: schoolImage(school.logoUrl!), fit: BoxFit.cover),
         ),
       );
     }

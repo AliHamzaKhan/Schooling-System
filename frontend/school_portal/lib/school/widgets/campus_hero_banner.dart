@@ -37,7 +37,7 @@ class CampusHeroBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = imageUrl?.trim() ?? '';
     final ImageProvider image =
-        url.isNotEmpty ? NetworkImage(url) : AssetImage(assetFallback);
+        url.isNotEmpty ? schoolImage(url) : AssetImage(assetFallback);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.card),

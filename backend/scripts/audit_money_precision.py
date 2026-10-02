@@ -137,7 +137,9 @@ async def run(database_url: str, policy: PrecisionPolicy, details: bool) -> dict
                     SELECT school_id::text, 'fee_structure' AS source, amount, false AS allow_zero FROM fee_structures
                     UNION ALL SELECT school_id::text, 'invoice_amount', amount, false FROM invoices
                     UNION ALL SELECT school_id::text, 'invoice_paid', amount_paid, true FROM invoices
-                    UNION ALL SELECT school_id::text, 'payment', amount, false FROM payments
+                    UNION ALL SELECT school_id::text, 'payment', amount, false FROM payments WHERE method <> 'refund'
+                    -- Approved refunds are negative ledger rows; check their size.
+                    UNION ALL SELECT school_id::text, 'refund', -amount, false FROM payments WHERE method = 'refund'
                     UNION ALL SELECT school_id::text, 'staff_salary', base_salary, true FROM staff_profiles
                     UNION ALL SELECT school_id::text, 'payslip_gross', gross, true FROM payslips
                     UNION ALL SELECT school_id::text, 'payslip_allowances', allowances, true FROM payslips

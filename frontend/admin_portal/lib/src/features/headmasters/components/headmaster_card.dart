@@ -104,7 +104,7 @@ class _Avatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final ring = headmaster.status.color;
     final Widget avatar = headmaster.avatarUrl != null
-        ? CircleAvatar(radius: 24, backgroundImage: NetworkImage(headmaster.avatarUrl!))
+        ? CircleAvatar(radius: 24, backgroundImage: schoolImage(headmaster.avatarUrl!))
         : CircleAvatar(
             radius: 24,
             backgroundColor: ring.withValues(alpha: 0.12),

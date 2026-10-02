@@ -39,6 +39,7 @@ from app.models.user import User
 
 
 PRIVATE_SOURCES = {"document", "submission"}
+# Photos and logos: visible only to signed-in members of the school.
 PUBLIC_SOURCES = {"avatar", "uniform", "logo"}
 POLICY_SOURCES = {"course_cover", "profile_other", "school_setting_other"}
 
@@ -116,7 +117,7 @@ def classify_reference(
     if source in PUBLIC_SOURCES:
         expected = "uniform" if source == "uniform" else "avatars"
         if len(parts) == 3 and parts[:2] == [expected, school_id]:
-            return AssetFinding(source, record_id, school_id, "public_compatibility_path", "public", _shape(normalized))
+            return AssetFinding(source, record_id, school_id, "school_members_path", "school_members", _shape(normalized))
         return AssetFinding(source, record_id, school_id, "unrecognized_local_path", "review", _shape(normalized))
     if source in POLICY_SOURCES:
         return AssetFinding(source, record_id, school_id, "managed_or_local_reference", "policy_decision", _shape(normalized))

@@ -111,6 +111,11 @@ class UserService:
         roles = list(result.scalars().all())
         found = {r.code for r in roles}
         missing = set(role_codes) - found
+        if missing and missing <= DEFAULT_ROLE_PERMISSIONS.keys():
+            # A default role added after this school was set up (e.g. the
+            # Accountant role) is provisioned on first use.
+            await self.provision_school_roles(school_id)
+            return await self._resolve_roles(school_id, role_codes)
         if missing:
             raise bad_request(
                 f"Roles not provisioned for this school: {', '.join(sorted(missing))}"

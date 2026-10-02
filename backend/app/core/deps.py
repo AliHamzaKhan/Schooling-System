@@ -116,6 +116,22 @@ async def require_school_admin(school_id: uuid.UUID, user: CurrentUser) -> User:
     return user
 
 
+async def require_school_admin_or_finance(school_id: uuid.UUID, user: CurrentUser) -> User:
+    """The Headmaster, the school's Accountant, or the Super Admin.
+
+    For reads the finance screens share with the Headmaster, such as the
+    school profile that names the workspace.
+    """
+    if PermissionService.is_super_admin(user):
+        return user
+    if user.school_id != school_id:
+        raise forbidden("You can only act within your own school")
+    allowed = {SystemRole.HEADMASTER.value, SystemRole.ACCOUNTANT.value}
+    if not any(role.code in allowed for role in user.roles):
+        raise forbidden("Headmaster or accountant privileges required")
+    return user
+
+
 def require_permission(module: Module, action: PermissionAction):
     """Dependency factory that enforces a module/action permission."""
 

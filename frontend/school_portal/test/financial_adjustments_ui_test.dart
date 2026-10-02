@@ -36,11 +36,17 @@ Map<String, dynamic> _adjustment({
   'decision_reason': decisionReason,
 };
 
-void _installRepository(http.Client client) {
+void _installRepository(http.Client client, {String role = 'headmaster'}) {
   final store = _Store();
   final api = ApiService(store: store, client: client);
   final auth = AuthService(api: api, store: store);
-  auth.currentUser.value = {'id': 'headmaster', 'school_id': 'school'};
+  auth.currentUser.value = {
+    'id': role,
+    'school_id': 'school',
+    'roles': [
+      {'code': role},
+    ],
+  };
   Get.put<AuthService>(auth);
   Get.put<HeadmasterRepository>(
     HeadmasterRepository(api: HeadmasterApiService(api: api)),
@@ -91,6 +97,7 @@ void main() {
             200,
           );
         }),
+        role: 'accountant',
       );
 
       await tester.pumpWidget(const GetMaterialApp(home: RecordPaymentView()));
@@ -108,7 +115,7 @@ void main() {
 
       expect(find.text('Request invoice adjustment'), findsOneWidget);
       expect(
-        find.textContaining('does not change the invoice balance'),
+        find.textContaining('Nothing changes until it is approved'),
         findsOneWidget,
       );
       final submitButton = find.widgetWithText(
@@ -170,7 +177,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        '1 awaiting a Headmaster decision. Decisions are audit records and do not post money yet.',
+        '1 awaiting a Headmaster decision. Approving applies the change to the invoice or payslip.',
       ),
       findsOneWidget,
     );
@@ -249,6 +256,27 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('accountant sees requests waiting without approve actions', (
+    tester,
+  ) async {
+    _installRepository(
+      MockClient(
+        (request) async => http.Response(
+          jsonEncode([_adjustment(id: 'mine-1')]),
+          200,
+        ),
+      ),
+      role: 'accountant',
+    );
+    await tester.pumpWidget(
+      const GetMaterialApp(home: FinancialAdjustmentsView()),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Waiting for the Headmaster'), findsOneWidget);
+    expect(find.widgetWithText(PrimaryButton, 'Approve'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'Reject'), findsNothing);
   });
 
   testWidgets('review queue sends filter and paging controls to the API', (

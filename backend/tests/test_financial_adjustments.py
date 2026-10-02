@@ -1,4 +1,8 @@
-"""Headmaster-only proposed finance adjustments never mutate their target."""
+"""Finance adjustment requests, decisions and tenant scope.
+
+Accountant requests wait for a Headmaster decision; see
+test_adjustment_approval.py for how decisions post to balances.
+"""
 
 from datetime import date
 from uuid import uuid4
@@ -24,6 +28,11 @@ async def _invoice(client, school, *, amount: int = 100) -> dict:
     )
     assert response.status_code == 201, response.text
     return response.json()
+
+
+async def _accountant(client, school_id: str, creator: dict) -> dict:
+    user = await create_user(client, school_id, creator, "accountant")
+    return await login(client, user["email"], user["password"])
 
 
 async def _payslip(client, school) -> dict:
@@ -52,10 +61,11 @@ async def test_headmaster_can_record_one_immutable_fee_adjustment_decision(
 ):
     school_id, headmaster = school["id"], school["hm"]
     invoice = await _invoice(client, school)
+    accountant = await _accountant(client, school_id, headmaster)
 
     created = await client.post(
         f"{API}/schools/{school_id}/fees/adjustments",
-        headers=headmaster,
+        headers=accountant,
         json={
             "kind": "waiver",
             "target_id": invoice["id"],
@@ -86,13 +96,13 @@ async def test_headmaster_can_record_one_immutable_fee_adjustment_decision(
     )
     assert duplicate.status_code == 400
 
-    unchanged = await client.get(
+    waived = await client.get(
         f"{API}/schools/{school_id}/fees/invoices/{invoice['id']}",
         headers=headmaster,
     )
-    assert unchanged.json()["amount"] == 100
-    assert unchanged.json()["amount_paid"] == 0
-    assert unchanged.json()["status"] == "unpaid"
+    assert waived.json()["amount"] == 74.5
+    assert waived.json()["amount_paid"] == 0
+    assert waived.json()["status"] == "unpaid"
 
 
 async def test_guardian_cannot_read_or_create_financial_adjustments(client, school):
@@ -122,10 +132,11 @@ async def test_guardian_cannot_read_or_create_financial_adjustments(client, scho
 async def test_payroll_correction_targets_only_a_payslip(client, school):
     school_id, headmaster = school["id"], school["hm"]
     payslip = await _payslip(client, school)
+    accountant = await _accountant(client, school_id, headmaster)
 
     created = await client.post(
         f"{API}/schools/{school_id}/fees/adjustments",
-        headers=headmaster,
+        headers=accountant,
         json={
             "kind": "payroll_correction",
             "target_id": payslip["id"],
@@ -137,8 +148,7 @@ async def test_payroll_correction_targets_only_a_payslip(client, school):
     assert created.status_code == 201, created.text
     assert created.json()["target_type"] == "payslip"
 
-    # A correction proposal is evidence for a future money-policy decision;
-    # it does not rewrite the generated payroll record.
+    # A pending request does not rewrite the payroll record.
     listed = await client.get(
         f"{API}/schools/{school_id}/hr/payslips", headers=headmaster
     )
@@ -219,11 +229,18 @@ async def test_adjustment_review_queue_filters_and_paginates_after_school_scope(
     school_id, headmaster = school["id"], school["hm"]
     invoices = [await _invoice(client, school) for _ in range(3)]
     payslip = await _payslip(client, school)
+    accountant = await _accountant(client, school_id, headmaster)
+    paid = await client.post(
+        f"{API}/schools/{school_id}/fees/invoices/{invoices[0]['id']}/payments",
+        headers=headmaster,
+        json={"amount": 10, "method": "cash", "paid_on": date.today().isoformat()},
+    )
+    assert paid.status_code == 201, paid.text
 
     async def create(kind: str, target_id: str, amount: str) -> dict:
         response = await client.post(
             f"{API}/schools/{school_id}/fees/adjustments",
-            headers=headmaster,
+            headers=accountant,
             json={
                 "kind": kind,
                 "target_id": target_id,
@@ -419,11 +436,15 @@ async def test_adjustment_routes_require_headmaster_and_keep_targets_tenant_scop
         )
     ).status_code == 403
 
+    # Finance staff need an active plan with fee management.
+    await client.post(f"{API}/schools/{foreign_school}/subscription", headers=school["sa"], json={"plan_code": "premium"})
+    await client.post(f"{API}/schools/{foreign_school}/status", headers=school["sa"], json={"status": "active"})
+    foreign_accountant = await _accountant(client, foreign_school, school["sa"])
     foreign_adjustment = await client.post(
         f"{API}/schools/{foreign_school}/fees/adjustments",
-        headers=school["sa"],
+        headers=foreign_accountant,
         json={
-            "kind": "refund",
+            "kind": "waiver",
             "target_id": foreign_invoice.json()["id"],
             "proposed_amount": "1",
             "currency_code": "PKR",

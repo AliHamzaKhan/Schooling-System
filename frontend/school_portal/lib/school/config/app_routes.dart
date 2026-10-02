@@ -1,3 +1,4 @@
+import 'accountant_routes.dart';
 import 'driver_routes.dart';
 import 'guardian_routes.dart';
 import 'headmaster_routes.dart';
@@ -28,5 +29,6 @@ class AppRoutes {
   static const student = StudentRoutes.shell;
   static const guardian = GuardianRoutes.shell;
   static const driver = DriverRoutes.shell;
+  static const accountant = AccountantRoutes.shell;
   // static const staff = StaffRoutes.shell;
 }

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import SystemRole
-from app.core.exceptions import bad_request, not_found
+from app.core.exceptions import AppHTTPException, ErrorCode, bad_request, not_found
 from app.models.hr import Payslip, StaffProfile
 from app.models.role import Role
 from app.models.teacher_attendance import TeacherAttendance
@@ -170,16 +170,30 @@ class HRService:
         await self.db.flush()
         return payslip
 
-    async def mark_paid(self, school_id: uuid.UUID, payslip_id: uuid.UUID) -> Payslip:
+    async def mark_paid(
+        self, school_id: uuid.UUID, payslip_id: uuid.UUID, *, idempotency_key: uuid.UUID | None = None
+    ) -> Payslip:
         payslip = await self.db.scalar(
             select(Payslip).where(Payslip.id == payslip_id).with_for_update()
         )
         if payslip is None or payslip.school_id != school_id:
             raise not_found("Payslip not found in this school")
         if payslip.status == "paid":
+            # A retry of the request that paid it gets the same answer.
+            if idempotency_key is not None and payslip.payment_request_key == idempotency_key:
+                return payslip
             raise bad_request("Payslip is already paid")
+        if idempotency_key is not None:
+            used = await self.db.scalar(
+                select(Payslip.id).where(Payslip.payment_request_key == idempotency_key)
+            )
+            if used is not None:
+                raise AppHTTPException(
+                    409, "Payment request key was already used for another payslip", ErrorCode.CONFLICT
+                )
         payslip.status = "paid"
         payslip.paid_on = date.today()
+        payslip.payment_request_key = idempotency_key
         await self.db.flush()
         return payslip
 

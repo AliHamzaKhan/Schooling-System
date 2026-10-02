@@ -33,6 +33,11 @@ python seed.py && python seed2.py
 npm run login && npm run u02 && npm run roles && npm run session
 ```
 
+`node accountant.mjs` creates the synthetic Accountant (if missing), checks the
+Finance home and that the Accountant's waiver waits for the Headmaster, approves
+it as the Headmaster in the UI, confirms the invoice changed, and checks school
+photos need a signed-in member (401 without a token).
+
 `python leakscan.py` probes every school-scoped GET in the OpenAPI document as
 the synthetic guardian and student, substituting an unrelated student's id, and
 reports any response that exposes that student.

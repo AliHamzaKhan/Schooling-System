@@ -24,7 +24,7 @@ class PerformanceProfileCard extends StatelessWidget {
             radius: 36,
             backgroundColor: AppColors.surfaceContainerHigh,
             backgroundImage: student.avatarUrl != null
-                ? NetworkImage(student.avatarUrl!)
+                ? schoolImage(student.avatarUrl!)
                 : null,
             child: student.avatarUrl == null
                 ? Text(student.name.characters.first,

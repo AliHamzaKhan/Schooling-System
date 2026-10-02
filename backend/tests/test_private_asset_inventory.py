@@ -33,7 +33,7 @@ def test_private_asset_inventory_flags_misowned_and_unsafe_references():
 def test_private_asset_inventory_classifies_public_compatibility_and_policy_sources():
     avatar = classify("avatar", f"/media/avatars/{SCHOOL}/photo.png")
     course = classify("course_cover", "https://cdn.example.test/cover.jpg")
-    assert (avatar.state, avatar.target_visibility) == ("public_compatibility_path", "public")
+    assert (avatar.state, avatar.target_visibility) == ("school_members_path", "school_members")
     assert (course.state, course.target_visibility) == ("external_reference", "review")
 
 

@@ -574,7 +574,7 @@ class _Logo extends StatelessWidget {
         color: AdminPalette.tint,
         borderRadius: BorderRadius.circular(AppRadius.button),
         image: school.logoUrl != null
-            ? DecorationImage(image: NetworkImage(school.logoUrl!), fit: BoxFit.cover)
+            ? DecorationImage(image: schoolImage(school.logoUrl!), fit: BoxFit.cover)
             : null,
       ),
       child: school.logoUrl == null

@@ -1072,7 +1072,16 @@ class FeeService:
         school_id: uuid.UUID,
         data: schemas.FinancialAdjustmentCreate,
         requested_by: uuid.UUID,
+        *,
+        apply_directly: bool = False,
     ) -> schemas.FinancialAdjustmentOut:
+        """Record a refund, credit, waiver or payroll correction.
+
+        Finance staff only propose: the request waits for a Headmaster
+        decision. A Headmaster (``apply_directly``) makes the change at once;
+        the adjustment and an automatic approval are still recorded as the
+        audit trail.
+        """
         target_type = await self._validate_adjustment_target(
             school_id, data.kind, data.target_id
         )
@@ -1088,7 +1097,95 @@ class FeeService:
         )
         self.db.add(adjustment)
         await self.db.flush()
-        return self._adjustment_out(adjustment)
+        if not apply_directly:
+            # Validate now so finance staff learn about an impossible request
+            # before it reaches the Headmaster, without changing anything.
+            await self._apply_adjustment(adjustment, requested_by, dry_run=True)
+            return self._adjustment_out(adjustment)
+        await self._apply_adjustment(adjustment, requested_by)
+        decision = FinancialAdjustmentDecision(
+            school_id=school_id,
+            adjustment_id=adjustment.id,
+            decision="approved",
+            reason="Applied directly by the Headmaster",
+            decided_by=requested_by,
+        )
+        self.db.add(decision)
+        await self.db.flush()
+        return self._adjustment_out(adjustment, decision)
+
+    async def _apply_adjustment(
+        self, adjustment: FinancialAdjustment, actor: uuid.UUID, *, dry_run: bool = False
+    ) -> None:
+        """Post an approved adjustment to its invoice or payslip.
+
+        - waiver / credit: lower what the invoice charges (up to its balance).
+        - refund: return money already paid. A negative ``refund`` payment is
+          added to the ledger and the charge drops by the same amount, so the
+          balance still owed is unchanged.
+        - payroll_correction: the proposed amount is the corrected net pay of
+          an unpaid payslip; allowances or deductions absorb the difference.
+        """
+        amount = round(float(adjustment.proposed_amount), 2)
+        if adjustment.target_type == "payslip":
+            payslip = await self.db.scalar(
+                select(Payslip)
+                .where(Payslip.id == adjustment.target_id, Payslip.school_id == adjustment.school_id)
+                .with_for_update()
+            )
+            if payslip is None:
+                raise not_found("Payslip not found in this school")
+            if payslip.status == "paid":
+                raise bad_request("This payslip is already paid; correct it on the next payslip")
+            if dry_run:
+                return
+            difference = round(amount - payslip.net, 2)
+            if difference >= 0:
+                payslip.allowances = round(payslip.allowances + difference, 2)
+                payslip.gross = round(payslip.gross + difference, 2)
+            else:
+                payslip.deductions = round(payslip.deductions - difference, 2)
+            payslip.net = amount
+            await self.db.flush()
+            return
+
+        invoice = await self.db.scalar(
+            select(Invoice)
+            .where(Invoice.id == adjustment.target_id, Invoice.school_id == adjustment.school_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if invoice is None:
+            raise not_found("Invoice not found in this school")
+        paid = round(float(await self.db.scalar(
+            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+                Payment.invoice_id == invoice.id, Payment.school_id == invoice.school_id
+            )
+        )), 2)
+        if adjustment.kind == "refund":
+            if amount > paid:
+                raise bad_request(f"Refund ({amount}) exceeds the amount paid ({paid})")
+        else:
+            balance = round(invoice.amount - paid, 2)
+            if amount > balance:
+                raise bad_request(f"{adjustment.kind.title()} ({amount}) exceeds the balance owed ({balance})")
+        if dry_run:
+            return
+        if adjustment.kind == "refund":
+            self.db.add(Payment(
+                school_id=invoice.school_id,
+                invoice_id=invoice.id,
+                amount=-amount,
+                method="refund",
+                paid_on=date.today(),
+                note=f"Refund (adjustment {adjustment.id})",
+                recorded_by=actor,
+            ))
+            paid = round(paid - amount, 2)
+        invoice.amount = round(invoice.amount - amount, 2)
+        invoice.amount_paid = paid
+        invoice.status = self._status_for(invoice.amount, invoice.amount_paid)
+        await self.db.flush()
 
     async def list_adjustments(
         self,
@@ -1197,6 +1294,8 @@ class FeeService:
         )
         if existing is not None:
             raise bad_request("This financial adjustment already has a decision")
+        if data.decision == "approved":
+            await self._apply_adjustment(adjustment, decided_by)
         decision = FinancialAdjustmentDecision(
             school_id=school_id,
             adjustment_id=adjustment.id,

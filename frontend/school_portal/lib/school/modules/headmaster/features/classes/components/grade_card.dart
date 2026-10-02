@@ -136,7 +136,7 @@ class _SectionRow extends StatelessWidget {
                 radius: 14,
                 backgroundColor: AppColors.surfaceContainerHigh,
                 backgroundImage: section.teacherAvatarUrl != null
-                    ? NetworkImage(section.teacherAvatarUrl!)
+                    ? schoolImage(section.teacherAvatarUrl!)
                     : null,
                 child: section.teacherAvatarUrl == null
                     ? const Icon(AppIcons.person, size: 16, color: AppColors.outline)

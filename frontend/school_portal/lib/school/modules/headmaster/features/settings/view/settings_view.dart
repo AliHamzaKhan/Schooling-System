@@ -526,8 +526,7 @@ class _LogoThumb extends StatelessWidget {
     if (preview != null) {
       child = Image.memory(preview!, fit: BoxFit.contain);
     } else if (url.isNotEmpty) {
-      child = Image.network(
-        url,
+      child = Image(image: schoolImage(url),
         fit: BoxFit.contain,
         errorBuilder: (_, _, _) =>
             const Icon(AppIcons.imageNotSupportedOutlined),

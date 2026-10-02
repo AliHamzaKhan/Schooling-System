@@ -21,7 +21,7 @@ class OverdueRow extends StatelessWidget {
             radius: 22,
             backgroundColor: payment.accent.withValues(alpha: 0.18),
             backgroundImage:
-                payment.avatarUrl != null ? NetworkImage(payment.avatarUrl!) : null,
+                payment.avatarUrl != null ? schoolImage(payment.avatarUrl!) : null,
             child: payment.avatarUrl == null
                 ? Text(
                     payment.studentName.characters.first,

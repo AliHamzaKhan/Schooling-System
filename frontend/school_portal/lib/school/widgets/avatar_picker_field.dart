@@ -132,7 +132,7 @@ class _AvatarPickerFieldState extends State<AvatarPickerField> {
     if (_preview != null) return MemoryImage(_preview!);
     final url = widget.urlController.text.trim();
     if (url.isEmpty) return null;
-    if (url.startsWith('http')) return NetworkImage(url);
+    if (url.startsWith('http')) return schoolImage(url);
     // Local absolute path (e.g. dev storage) — attempt file image.
     if (!kIsWeb) return FileImage(File(url));
     return null;

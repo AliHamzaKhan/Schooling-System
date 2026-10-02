@@ -102,6 +102,7 @@ class SalaryController extends GetxController {
     'Vice Principal',
     'Principal',
     'Administrator',
+    'Accountant',
     'Librarian',
     'Counsellor',
   ];

@@ -48,6 +48,9 @@ class SystemRole(str, Enum):
     GUARDIAN = "guardian"
     STUDENT = "student"
     DRIVER = "driver"
+    # Finance staff: fees and payroll. Money adjustments they propose need a
+    # Headmaster decision before they change any balance.
+    ACCOUNTANT = "accountant"
 
 
 class TransportRequestStatus(str, Enum):

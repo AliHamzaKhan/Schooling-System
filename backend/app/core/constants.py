@@ -118,12 +118,23 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, dict[Module, set[PermissionAction]]] = {
     },
 }
 
+DEFAULT_ROLE_PERMISSIONS[SystemRole.ACCOUNTANT.value] = {
+    Module.FEE_MANAGEMENT: {_A.VIEW, _A.CREATE, _A.EDIT, _A.EXPORT},
+    Module.HR_PAYROLL: {_A.VIEW, _A.CREATE, _A.EDIT, _A.EXPORT},
+    Module.REPORTS: {_A.VIEW, _A.EXPORT},
+    Module.STUDENT_MANAGEMENT: {_A.VIEW},
+    # Class and section names for fee filters (read only).
+    Module.TIMETABLE: {_A.VIEW},
+    Module.MESSAGING: {_A.VIEW, _A.CREATE},
+}
+
 ROLE_DISPLAY_NAMES: dict[str, str] = {
     SystemRole.HEADMASTER.value: "Headmaster",
     SystemRole.TEACHER.value: "Teacher",
     SystemRole.GUARDIAN.value: "Guardian",
     SystemRole.STUDENT.value: "Student",
     SystemRole.DRIVER.value: "Driver",
+    SystemRole.ACCOUNTANT.value: "Accountant",
 }
 
 # Maps a role code to the module that governs creating/managing such a user.

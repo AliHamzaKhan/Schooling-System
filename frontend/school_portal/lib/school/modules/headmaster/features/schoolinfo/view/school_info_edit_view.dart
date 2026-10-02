@@ -119,8 +119,7 @@ class _SchoolInfoEditViewState extends State<SchoolInfoEditView>
                     }
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadius.button),
-                      child: Image.network(
-                        EnvConfig.mediaUrl(url!),
+                      child: Image(image: schoolImage(EnvConfig.mediaUrl(url!)),
                         height: 180,
                         width: double.infinity,
                         fit: BoxFit.cover,

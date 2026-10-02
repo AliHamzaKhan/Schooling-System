@@ -20,6 +20,27 @@ class AdminApiService {
   final ApiService _api;
   AdminApiService({ApiService? api}) : _api = api ?? Get.find<ApiService>();
 
+  /// Shared across instances so a retry after a lost response reuses the
+  /// original request key and cannot record a second subscription payment.
+  static final _subscriptionRetries = PaymentRetryGuard();
+
+  static ApiResponse<SchoolSubscriptionModel> _asSubscription(
+    ApiResponse<dynamic> result,
+  ) {
+    if (result.success && result.data is Map) {
+      return ApiResponse.ok(
+        SchoolSubscriptionModel.fromJson(
+          (result.data as Map).cast<String, dynamic>(),
+        ),
+        statusCode: result.statusCode,
+      );
+    }
+    return ApiResponse.fail(
+      result.error ?? 'Could not save the subscription.',
+      statusCode: result.statusCode,
+    );
+  }
+
   // ── Schools ─────────────────────────────────────────────────
   /// Fetches schools paged by `limit`/`offset`. When [search] is provided the
   /// backend returns only schools whose name or code matches (server-side
@@ -350,27 +371,41 @@ class AdminApiService {
     double discountValue = 0,
     bool activate = true,
   }) {
-    return _api.request<SchoolSubscriptionModel>(
-      method: HttpMethod.post,
-      path: AdminEndpoints.subscriptions,
-      body: {
-        'school_id': schoolId,
-        'plan_id': planId,
-        'discount_type': discountType,
-        'discount_value': discountValue,
-        'activate': activate,
-      },
-      parser: (json) => SchoolSubscriptionModel.fromJson(json as Map<String, dynamic>),
-    );
+    return _subscriptionRetries
+        .run(
+          scope: 'assign/$schoolId/$planId',
+          createPayload: () => {
+            'school_id': schoolId,
+            'plan_id': planId,
+            'discount_type': discountType,
+            'discount_value': discountValue,
+            'activate': activate,
+          },
+          send: (key, payload) => _api.request<dynamic>(
+            method: HttpMethod.post,
+            path: AdminEndpoints.subscriptions,
+            headers: {'Idempotency-Key': key},
+            body: payload,
+            parser: (json) => json,
+          ),
+        )
+        .then(_asSubscription);
   }
 
   Future<ApiResponse<SchoolSubscriptionModel>> renewSubscription(String id) {
-    return _api.request<SchoolSubscriptionModel>(
-      method: HttpMethod.post,
-      path: AdminEndpoints.subscriptionRenew(id),
-      body: const {},
-      parser: (json) => SchoolSubscriptionModel.fromJson(json as Map<String, dynamic>),
-    );
+    return _subscriptionRetries
+        .run(
+          scope: 'renew/$id',
+          createPayload: () => const {},
+          send: (key, payload) => _api.request<dynamic>(
+            method: HttpMethod.post,
+            path: AdminEndpoints.subscriptionRenew(id),
+            headers: {'Idempotency-Key': key},
+            body: payload,
+            parser: (json) => json,
+          ),
+        )
+        .then(_asSubscription);
   }
 
   Future<ApiResponse<SchoolSubscriptionModel>> cancelSubscription(String id) {

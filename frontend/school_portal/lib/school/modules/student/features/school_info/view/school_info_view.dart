@@ -188,7 +188,7 @@ class _Uniform extends StatelessWidget {
           children: [
             InteractiveViewer(
               maxScale: 4,
-              child: Center(child: Image.network(resolved)),
+              child: Center(child: Image(image: schoolImage(resolved))),
             ),
             Positioned(
               top: 4,
@@ -226,8 +226,7 @@ class _Uniform extends StatelessWidget {
       onTap: () => _viewFull(context, resolved),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.button),
-        child: Image.network(
-          resolved,
+        child: Image(image: schoolImage(resolved),
           width: double.infinity,
           height: 240,
           fit: BoxFit.cover,

@@ -44,6 +44,7 @@ export 'src/ui/widgets/app_dialog.dart';
 export 'src/ui/widgets/app_card.dart';
 export 'src/ui/widgets/app_data_table.dart';
 export 'src/ui/widgets/accessible_tap.dart';
+export 'src/ui/widgets/school_image.dart';
 export 'src/ui/widgets/app_state_view.dart';
 export 'src/ui/widgets/app_text_field.dart';
 export 'src/ui/widgets/glass_surface.dart';

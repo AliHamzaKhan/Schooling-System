@@ -71,8 +71,7 @@ class ProfileAvatar extends StatelessWidget {
     if (resolved.isEmpty) return _initials();
     return ClipRRect(
       borderRadius: _radius,
-      child: Image.network(
-        resolved,
+      child: Image(image: schoolImage(resolved),
         width: size,
         height: size,
         fit: BoxFit.cover,

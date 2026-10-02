@@ -906,3 +906,35 @@ subscription plan.
   (no new issues) and tests **10 passed**.
 - Limit: concurrent uploads can each pass the check and overshoot the allowance
   by at most one file each.
+
+### 2026-10-02 — Accountant role, adjustments that post, retry-safe payroll/subscriptions, private media
+
+Decisions (product owner, 2026-10-02): an accountant/finance user's refunds,
+credits, waivers and payroll corrections need Headmaster approval; the
+Headmaster's own apply directly. Logos and photos are only for the school's
+own members and the platform admin. Email will use SMTP later.
+
+- **Accountant role** (`accountant`): fees and payroll view/create/edit/export,
+  reports view/export, student view, messaging. Added to new schools by default
+  and to existing schools by migration `2c3d4e5f6a7b`. The Headmaster adds one
+  from "Register Staff" (role: Accountant). In the school app an Accountant
+  lands on a Finance home linking to record payment, student fees, overdue,
+  adjustments and salaries; those screens accept the Accountant role.
+- **Adjustments post money** ([contract](FINANCIAL_ADJUSTMENTS.md)): waiver and
+  credit lower the charge; refund adds a negative `refund` payment and lowers the
+  charge equally (balance unchanged, reconciliation stays clean); payroll
+  correction sets the net pay of an unpaid payslip. Impossible amounts are
+  refused before anything changes. The money audit treats refund rows
+  separately.
+- **Retry-safe payments**: `POST /hr/payslips/{id}/pay` accepts
+  `Idempotency-Key` (migration `3d4e5f6a7b8c`); a retry returns the original
+  result, a reused key on another payslip is 409. The school app sends a stable
+  key per payslip; the admin app now sends keys for subscription assign and
+  renew (the server already supported them).
+- **Private photos/logos**: `/media/{avatars|uniform}/...` requires a signed-in
+  member of that school or the Super Admin (401 without a token, 404 for other
+  schools). Apps load them through `schoolImage`, which adds the token only for
+  our own server.
+- Evidence: new `tests/test_adjustment_approval.py` (8), updated adjustment,
+  download, upload-policy and inventory tests; Flutter shared, school and admin
+  suites pass, including accountant queue, routing and image-token tests.

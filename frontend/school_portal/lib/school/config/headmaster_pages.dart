@@ -66,6 +66,16 @@ import 'headmaster_routes.dart';
 class HeadmasterPages {
   HeadmasterPages._();
 
+  /// Fee and payroll screens finance staff (Accountant) also use.
+  static const _financeRoutes = <String>{
+    HeadmasterRoutes.overduePayments,
+    HeadmasterRoutes.recordPayment,
+    HeadmasterRoutes.feesRoster,
+    HeadmasterRoutes.financialAdjustments,
+    HeadmasterRoutes.salary,
+    HeadmasterRoutes.generatePayslip,
+  };
+
   static const _capabilitiesByRoute = <String, Set<String>>{
     HeadmasterRoutes.approvals: {'leave_management'},
     HeadmasterRoutes.overduePayments: {'fee_management'},
@@ -273,7 +283,11 @@ class HeadmasterPages {
           bindings: [HeadmasterRouteBinding(), ...page.bindings],
           middlewares: [
             ...?page.middlewares,
-            RoleRouteGuard({'headmaster'}),
+            RoleRouteGuard(
+              _financeRoutes.contains(page.name)
+                  ? {'headmaster', 'accountant'}
+                  : {'headmaster'},
+            ),
             if (capabilities != null)
               HeadmasterCapabilityMiddleware(capabilities),
           ],

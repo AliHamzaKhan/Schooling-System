@@ -21,7 +21,7 @@ class ChildAvatar extends StatelessWidget {
         color: AppColors.primaryFixed,
         image: child.photoUrl != null
             ? DecorationImage(
-                image: NetworkImage(child.photoUrl!), fit: BoxFit.cover)
+                image: schoolImage(child.photoUrl!), fit: BoxFit.cover)
             : null,
       ),
       child: child.photoUrl == null

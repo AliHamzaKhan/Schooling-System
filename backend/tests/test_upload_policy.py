@@ -43,6 +43,6 @@ async def test_public_upload_uses_signature_not_caller_content_type(client, scho
     body = response.json()
     assert body["content_type"] == "image/png"
     assert body["filename"].endswith(".png")
-    public = await client.get(body["url"])
+    public = await client.get(body["url"], headers=school["hm"])
     assert public.status_code == 200
     assert public.headers["content-type"] == "image/png"

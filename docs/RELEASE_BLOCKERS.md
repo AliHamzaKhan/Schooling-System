@@ -1,6 +1,6 @@
 # Release blockers that need a person, not code
 
-Last updated: **2026-10-01**. Companion to the [backlog](PEP_BACKLOG.md) and the
+Last updated: **2026-10-02**. Companion to the [backlog](PEP_BACKLOG.md) and the
 [progress log](PEP_PROGRESS.md).
 
 Everything on this page has finished its engineering work, or cannot safely
@@ -12,8 +12,8 @@ once it is answered.
 
 | Packet | Decision needed | Why code cannot decide it | What happens next |
 | --- | --- | --- | --- |
-| F06 / L05 | ~~Money policy~~ **Decided 2026-10-01:** amounts are plain numbers with no currency symbol or code (stored as ISO `XXX`). Still open: who may approve refunds, credits, waivers and payroll corrections, and the rounding rule if decimals are introduced | Adjustment approval is a school-governance choice | Posting adjustments to balances after the approver rule is agreed |
-| F04 | Public media: may school logos, avatars and uniform images stay publicly reachable? **Decided 2026-10-01:** storage limits and file clean-up follow each school's subscription plan | Privacy and retention are legal/school-policy choices | Storage allowance per plan and the orphan clean-up job are built (Basic 1 GB / Standard 5 GB / Premium 20 GB defaults, editable). Still open: public-media classification, scheduling the daily clean-up, production read-only inventory |
+| F06 / L05 | ~~Money policy~~ **Decided:** plain numbers, no currency symbol (2026-10-01); the Accountant requests refunds/credits/waivers/payroll corrections and the Headmaster approves, while the Headmaster's own adjustments apply directly (2026-10-02, built). Still open: the rounding rule if decimals are introduced | Rounding is a policy choice | None until decimals are introduced |
+| F04 | ~~Public media~~ **Decided 2026-10-02:** logos and photos are visible only to the school's own members and the platform admin (built). Storage limits follow the subscription plan (2026-10-01, built). Still open: consent/removal process for minors' photos | Privacy and retention are legal/school-policy choices | Storage allowance per plan and the orphan clean-up job are built (Basic 1 GB / Standard 5 GB / Premium 20 GB defaults, editable). Still open: scheduling the daily clean-up, production read-only inventory |
 | O03 | Target school size and concurrency for latency budgets (e.g. students per school, peak concurrent users) | Statement budgets are enforced; time budgets need an agreed load profile | Run the representative fixture at the agreed size on staging and record p95 targets |
 | L06 | Supported devices/browsers list, pilot school, training owner, rollback decision owner | Release audience is a business decision | Execute the device matrix and pilot checklist |
 | Locale | Urdu/RTL scope and timezone/currency defaults (U05, deferred) | Language scope is a product decision | Deferred until after the pilot |
@@ -24,7 +24,7 @@ once it is answered.
 | --- | --- | --- |
 | O01 | One hosted GitLab pipeline run on `main` | All gates run locally. A new `frontend:shared:browser-test` job installs Chromium in CI; confirm the runner image allows `apt-get` |
 | O02 | Alert routing destination, a staging environment for restore and rollback rehearsal | Runbooks are in [OPERATIONS_RUNBOOK.md](OPERATIONS_RUNBOOK.md) |
-| F07 | Email/FCM provider credentials for an **approved synthetic recipient** | No provider was contacted; delivery states are verified with simulated providers |
+| F07 | Email (SMTP, planned for later) and FCM credentials for an **approved synthetic recipient** | SMTP adapter and test-send command are built ([setup](DELIVERY_SETUP.md)); delivery stays simulated until configured |
 | F05 | An approved staging release start and access to its infrastructure logs | Production configuration guards are verified locally |
 | F04 | ClamAV scanner in staging | The pre-storage scan gate and readiness are verified locally |
 

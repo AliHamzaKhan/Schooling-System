@@ -2,7 +2,7 @@
 import uuid
 from datetime import date as date_type
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Header, Query, status
 
 from app.core.deps import CurrentUser, DbDep, require_school_permission
 from app.core.enums import Module, PermissionAction as PA
@@ -37,8 +37,13 @@ async def generate_payslip(school_id: uuid.UUID, profile_id: uuid.UUID, data: sc
 
 
 @router.post("/payslips/{payslip_id}/pay", response_model=schemas.PayslipOut, dependencies=[_edit])
-async def mark_paid(school_id: uuid.UUID, payslip_id: uuid.UUID, db: DbDep) -> schemas.PayslipOut:
-    return await HRService(db).mark_paid(school_id, payslip_id)
+async def mark_paid(
+    school_id: uuid.UUID,
+    payslip_id: uuid.UUID,
+    db: DbDep,
+    idempotency_key: uuid.UUID | None = Header(default=None, alias="Idempotency-Key"),
+) -> schemas.PayslipOut:
+    return await HRService(db).mark_paid(school_id, payslip_id, idempotency_key=idempotency_key)
 
 
 @router.get("/payslips", response_model=list[schemas.PayslipOut], dependencies=[_view])

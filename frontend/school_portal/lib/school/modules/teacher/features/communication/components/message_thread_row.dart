@@ -75,7 +75,7 @@ class _Avatar extends StatelessWidget {
       );
     }
     if (thread.avatarUrl != null) {
-      return CircleAvatar(radius: 22, backgroundImage: NetworkImage(thread.avatarUrl!));
+      return CircleAvatar(radius: 22, backgroundImage: schoolImage(thread.avatarUrl!));
     }
     return CircleAvatar(
       radius: 22,

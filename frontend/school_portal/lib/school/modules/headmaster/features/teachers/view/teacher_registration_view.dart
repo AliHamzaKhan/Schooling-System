@@ -48,6 +48,11 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
   final _emergencyContact = TextEditingController();
   final _notes = TextEditingController();
 
+  /// Account role: a teacher, or finance staff (Accountant) whose refunds,
+  /// credits, waivers and salary corrections need Headmaster approval.
+  final _role = 'teacher'.obs;
+  static const _roles = {'teacher': 'Teacher', 'accountant': 'Accountant'};
+
   final _submitting = false.obs;
   final _error = RxnString();
 
@@ -108,7 +113,7 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
           email: _email.text.trim(),
           password: _password.text.trim(),
           fullName: _fullName.text.trim(),
-          role: 'teacher',
+          role: _role.value,
           phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
           profileMetadata: metadata,
         );
@@ -137,9 +142,10 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
       }
 
       Get.back<bool>(result: true);
+      final label = _roles[_role.value] ?? 'Staff';
       Get.snackbar(
-        'Teacher registered',
-        'The teacher account was created.',
+        '$label registered',
+        'The ${label.toLowerCase()} account was created.',
         snackPosition: SnackPosition.BOTTOM,
       );
     } finally {
@@ -207,7 +213,7 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        title: const Text('Register Teacher'),
+        title: const Text('Register Staff'),
         backgroundColor: AppColors.surface,
       ),
       body: ListView(
@@ -219,6 +225,25 @@ class _TeacherRegistrationViewState extends State<TeacherRegistrationView> {
         ),
         children: [
           _section('Account'),
+          Obx(
+            () => ActionDropdownField<String>(
+              label: 'Role',
+              hint: 'Select role',
+              value: _role.value,
+              items: [
+                for (final entry in _roles.entries)
+                  DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+              ],
+              onChanged: (v) {
+                // The account already exists; its role cannot change here.
+                if (_createdTeacherId != null) return;
+                _role.value = v ?? 'teacher';
+                _designation.value =
+                    _role.value == 'accountant' ? 'Accountant' : 'Teacher';
+              },
+            ),
+          ),
+          _gap(),
           GlassInput(
             label: 'Full name',
             hint: 'Teacher name',
